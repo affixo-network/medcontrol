@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Affixo MedControl — Login</title>
+</head>
+<body style="font-family:sans-serif;max-width:600px;margin:60px auto;">
+
+<h2>Affixo MedControl — Login</h2>
+
+<p>Enter email and send magic link.</p>
+
+<input id="email" placeholder="Email" style="width:260px;">
+<button id="send">Send magic link</button>
+
+<pre id="debug" style="margin-top:20px;color:#555;"></pre>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const debugEl = document.getElementById("debug");
+
+/* ---------------- DEBUG ---------------- */
+
+debugEl.textContent = JSON.stringify({
+  href: window.location.href,
+  hash: window.location.hash,
+  hasAccess: window.location.hash.includes("access_token")
+}, null, 2);
+
+/* ---------------- MAGIC LINK SESSION HANDLING ---------------- */
+
+const { data: sessionData } = await supabase.auth.getSession();
+
+if (sessionData?.session) {
+  // Уже есть сессия → сразу в app
+  window.location.href = "http://localhost:8080/app.html";
+}
+
+/* ---------------- SEND LINK ---------------- */
+
+document.getElementById("send").onclick = async () => {
+  const email = document.getElementById("email").value.trim();
+  if (!email) return alert("Enter email");
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: "http://localhost:8080/auth-login.html"
+    }
+  });
+
+  if (error) {
+    alert("Error: " + error.message);
+  } else {
+    alert("Magic link sent.");
+  }
+};
+
+/* ---------------- AFTER MAGIC LINK ---------------- */
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    window.location.href = "http://localhost:8080/app.html";
+  }
+});
+</script>
+
+</body>
+</html>
