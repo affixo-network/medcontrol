@@ -603,8 +603,6 @@ function escapeHtml(str) {
 const { data: sessionData } = await supabase.auth.getSession();
 if (!sessionData?.session) {
   statusEl.textContent = T.session_missing;
-  // FIX: never redirect to localhost in production.
-  // Use an absolute path on the same origin instead.
   window.location.replace("/auth-login.html");
   throw new Error("No session");
 }
@@ -1061,7 +1059,6 @@ if (addBtn) {
 
 document.getElementById("logout").onclick = async () => {
   await supabase.auth.signOut();
-  // FIX: never redirect to localhost in production.
   window.location.replace("/auth-login.html");
 };
 
