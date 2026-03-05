@@ -13,7 +13,7 @@
 <input id="email" placeholder="Email" style="width:260px;">
 <button id="send">Send magic link</button>
 
-<pre id="debug" style="margin-top:20px;color:#555;"></pre>
+<pre id="debug" style="margin-top:20px;color:#555; display:none;"></pre>
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -24,23 +24,78 @@ const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const debugEl = document.getElementById("debug");
+const url = new URL(window.location.href);
+const DEBUG = url.searchParams.get("debug") === "1";
 
-/* ---------------- DEBUG ---------------- */
-
-debugEl.textContent = JSON.stringify({
-  href: window.location.href,
-  hash: window.location.hash,
-  hasAccess: window.location.hash.includes("access_token")
-}, null, 2);
-
-/* ---------------- MAGIC LINK SESSION HANDLING ---------------- */
-
-const { data: sessionData } = await supabase.auth.getSession();
-
-if (sessionData?.session) {
-  // Уже есть сессия → сразу в app
-  window.location.href = "http://localhost:8080/app.html";
+function showDebug(obj) {
+  if (!DEBUG) return;
+  debugEl.style.display = "block";
+  debugEl.textContent = JSON.stringify(obj, null, 2);
 }
+
+async function goApp() {
+  // IMPORTANT: never use localhost in production
+  window.location.replace("/app.html");
+}
+
+/* ---------------- HANDLE MAGIC LINK CALLBACK ----------------
+   Supabase может вернуть:
+   - ?code=...   (PKCE flow)
+   - #access_token=... (implicit/legacy)
+   Мы поддерживаем оба.
+-------------------------------------------------------------- */
+
+(async () => {
+  try {
+    const hasCode = url.searchParams.has("code");
+    const hasAccessToken = window.location.hash.includes("access_token");
+
+    showDebug({
+      href: window.location.href,
+      hash: window.location.hash,
+      hasCode,
+      hasAccessToken
+    });
+
+    // 1) Если пришёл code=... — обменяем на session
+    if (hasCode) {
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      if (error) {
+        alert("Auth code exchange error: " + error.message);
+      } else {
+        // Чистим URL от code=... чтобы не мешал при обновлении
+        const clean = new URL(window.location.href);
+        clean.searchParams.delete("code");
+        clean.searchParams.delete("state");
+        clean.hash = "";
+        window.history.replaceState({}, document.title, clean.pathname + clean.search);
+      }
+    }
+
+    // 2) Проверяем сессию (после code-exchange или если она уже есть)
+    const { data: sessionData, error: sessErr } = await supabase.auth.getSession();
+    if (sessErr) console.warn("getSession error:", sessErr);
+
+    if (sessionData?.session) {
+      await goApp();
+      return;
+    }
+
+    // 3) Если у нас hash access_token — supabase обычно сам подхватит,
+    // но на всякий случай просто подождём onAuthStateChange
+    if (hasAccessToken) {
+      // попытка повторно получить сессию после возможной обработки токена
+      const { data: s2 } = await supabase.auth.getSession();
+      if (s2?.session) {
+        await goApp();
+        return;
+      }
+    }
+
+  } catch (e) {
+    console.error(e);
+  }
+})();
 
 /* ---------------- SEND LINK ---------------- */
 
@@ -48,25 +103,29 @@ document.getElementById("send").onclick = async () => {
   const email = document.getElementById("email").value.trim();
   if (!email) return alert("Enter email");
 
+  // Redirect обратно на ЭТОТ домен, а не localhost
+  const redirectTo = `${window.location.origin}/auth-login.html`;
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: "http://localhost:8080/auth-login.html"
+      emailRedirectTo: redirectTo
     }
   });
 
   if (error) {
     alert("Error: " + error.message);
   } else {
-    alert("Magic link sent.");
+    alert("Magic link sent. Open your email on the SAME device/browser.");
   }
 };
 
-/* ---------------- AFTER MAGIC LINK ---------------- */
+/* ---------------- AFTER MAGIC LINK (SESSION EVENT) ---------------- */
 
 supabase.auth.onAuthStateChange((event, session) => {
+  showDebug({ event, hasSession: !!session });
   if (session) {
-    window.location.href = "http://localhost:8080/app.html";
+    goApp();
   }
 });
 </script>
