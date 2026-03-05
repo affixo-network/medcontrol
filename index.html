@@ -1,16 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Affixo MedControl</title>
-  <meta http-equiv="refresh" content="0; url=/app.html" />
-  <script>
-    // Hard redirect to app entrypoint on same origin (no localhost).
-    location.replace("/app.html");
-  </script>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
-<body>
-  Redirecting to <a href="/app.html">/app.html</a>…
+<body style="font-family:sans-serif;max-width:900px;margin:40px auto;">
+
+<h2>Affixo MedControl</h2>
+
+<p id="msg">Redirecting to login…</p>
+
+<script>
+  // Always start from login on the same domain (no localhost).
+  window.location.replace("/auth-login.html");
+</script>
+
+<noscript>
+  <p>JavaScript is required. Open: <a href="/auth-login.html">/auth-login.html</a></p>
+</noscript>
+
 </body>
 </html>
