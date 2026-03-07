@@ -5,19 +5,26 @@
   <title>Affixo MedControl</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
+
 <body style="font-family:sans-serif;max-width:900px;margin:40px auto;">
 
 <h2>Affixo MedControl</h2>
 
+<p>
+<a href="/demo.html">
+<button>Try MedControl Demo</button>
+</a>
+</p>
+
+<p id="status">Loading...</p>
 <p id="msg">Redirecting to login…</p>
 
 <script>
-  // Always start from login on the same domain (no localhost).
-  window.location.replace("/auth-login.html");
+window.location.replace("/auth-login.html");
 </script>
 
 <noscript>
-  <p>JavaScript is required. Open: <a href="/auth-login.html">/auth-login.html</a></p>
+<p>JavaScript is required. Open: <a href="/auth-login.html">/auth-login.html</a></p>
 </noscript>
 
 </body>
