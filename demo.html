@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MedControl Demo</title>
+</head>
+
+<body style="font-family:sans-serif;max-width:900px;margin:40px auto;">
+
+<h2>MedControl — Demo</h2>
+
+<p>Try how medication control works.</p>
+
+<hr>
+
+<h3>Select Mode</h3>
+
+<button onclick="loadStandard()">Standard</button>
+<button onclick="loadPartner()">Partner</button>
+<button onclick="loadTeam()">Team</button>
+
+<hr>
+
+<div id="demo"></div>
+
+<script>
+
+function render(persons){
+
+let html="";
+
+persons.forEach(p=>{
+
+html+=`<h3>${p.name}</h3>`;
+
+p.meds.forEach(m=>{
+
+html+=`<div><b>${m.name}</b></div>`;
+
+m.times.forEach(t=>{
+
+html+=`
+<div style="margin:6px 0">
+Slot ${t} — Status: <b id="${p.name}-${t}">not marked</b>
+<button onclick="mark('${p.name}','${t}','taken')">Taken</button>
+<button onclick="mark('${p.name}','${t}','missed')">Missed</button>
+</div>
+`;
+
+});
+
+});
+
+html+="<hr>";
+
+});
+
+document.getElementById("demo").innerHTML=html;
+
+}
+
+function mark(name,time,status){
+
+document.getElementById(name+"-"+time).innerText=status;
+
+}
+
+function loadStandard(){
+
+render([
+{
+name:"Maria",
+meds:[
+{name:"Aspirin",times:["09:00","14:00","20:00"]}
+]
+}
+]);
+
+}
+
+function loadPartner(){
+
+render([
+{
+name:"Maria",
+meds:[
+{name:"Aspirin",times:["09:00","20:00"]}
+]
+}
+]);
+
+alert("Partner will be notified if medication is not confirmed.");
+
+}
+
+function loadTeam(){
+
+render([
+{
+name:"Maria",
+meds:[
+{name:"Aspirin",times:["09:00"]}
+]
+},
+{
+name:"Ivan",
+meds:[
+{name:"Vitamin D",times:["10:00"]}
+]
+},
+{
+name:"Anna",
+meds:[
+{name:"Metformin",times:["12:00"]}
+]
+}
+]);
+
+}
+
+</script>
+
+</body>
+</html>
