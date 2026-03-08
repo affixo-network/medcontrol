@@ -1127,6 +1127,31 @@ savePartnerEmailBtn.onclick = async () => {
   selectedPartnerEmail = email;
   partnerEmailStatusEl.textContent = "Partner email saved";
 };
+  async function loadPartnerLinks() {
+  if (!selectedPatientId) {
+    partnerLinkedListEl.textContent = "";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("patient_partners")
+    .select("partner_email")
+    .eq("patient_id", selectedPatientId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    partnerLinkedListEl.textContent = "Partner list error: " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    partnerLinkedListEl.textContent = "No linked partners yet";
+    return;
+  }
+
+  partnerLinkedListEl.textContent =
+    "Linked partners: " + data.map(x => x.partner_email).join(", ");
+}
 /* ---------------- ADD MED (ADMIN ONLY) ---------------- */
 
 const addBtn = document.getElementById("addMed");
