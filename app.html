@@ -1097,8 +1097,9 @@ applyTexts();
 
 if (cachedPatients.length === 1) {
   const p = cachedPatients[0];
- patientsSectionEl.style.display = "block";
-  await selectPatient(p.id, p.display_name);
+  patientsSectionEl.style.display = "block";
+  await renderPatientsList(cachedPatients);
+  await selectPatient(p.id, p.display_name, p.monitoring_mode);
 } else {
   patientsSectionEl.style.display = "block";
   await renderPatientsList(cachedPatients);
