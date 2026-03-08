@@ -115,7 +115,8 @@ let cachedPatients = [];
 let role = "unknown";
 let profileEmail = "";
 let selectedMonitoringMode = "standard";
-let selectedPartnerEmail = "";
+selectedPartnerEmail = partnerEmail || "";
+partnerEmailEl.value = selectedPartnerEmail;
 /* ---------------- LANG LIST (extendable) ---------------- */
 
 const LANGS = [
