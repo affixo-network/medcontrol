@@ -1090,21 +1090,35 @@ async function mark(medId, status, slot) {
   await loadHistory();
 }
 savePartnerEmailBtn.onclick = async () => {
-  if (!selectedPatientId) {
+   if (!selectedPatientId) {
     partnerEmailStatusEl.textContent = "Select patient first";
     return;
   }
 
   const email = (partnerEmailEl.value || "").trim().toLowerCase();
 
-  const { error } = await supabase
+  const { error: patientError } = await supabase
     .from("patients")
     .update({ partner_email: email || null })
     .eq("id", selectedPatientId);
 
-  if (error) {
-    partnerEmailStatusEl.textContent = "Save error: " + error.message;
+  if (patientError) {
+    partnerEmailStatusEl.textContent = "Save error: " + patientError.message;
     return;
+  }
+
+  if (email) {
+    const { error: partnerError } = await supabase
+      .from("patient_partners")
+      .upsert(
+        [{ patient_id: selectedPatientId, partner_email: email }],
+        { onConflict: "patient_id,partner_email" }
+      );
+
+    if (partnerError) {
+      partnerEmailStatusEl.textContent = "Partner link error: " + partnerError.message;
+      return;
+    }
   }
 
   selectedPartnerEmail = email;
