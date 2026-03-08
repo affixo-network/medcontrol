@@ -746,9 +746,15 @@ partnerEmailStatusEl.textContent = "";
 if ((monitoringMode || "standard") === "partner") {
   partnerBoxEl.style.display = "block";
   partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
+  partnerEmailEl.style.display = "inline-block";
+  savePartnerEmailBtn.style.display = "inline-block";
+  partnerEmailStatusEl.style.display = "block";
 } else if ((monitoringMode || "standard") === "team") {
   partnerBoxEl.style.display = "block";
   partnerNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+  partnerEmailEl.style.display = "none";
+  savePartnerEmailBtn.style.display = "none";
+  partnerEmailStatusEl.style.display = "none";
 } else {
   partnerBoxEl.style.display = "none";
 }
