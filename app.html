@@ -729,7 +729,15 @@ async function selectPatient(patientId, displayName, monitoringMode = "standard"
 
   const modeSelect = document.getElementById("mode_select");
   modeSelect.value = monitoringMode || "standard";
-
+if ((monitoringMode || "standard") === "partner") {
+  partnerBoxEl.style.display = "block";
+  partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
+} else if ((monitoringMode || "standard") === "team") {
+  partnerBoxEl.style.display = "block";
+  partnerNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+} else {
+  partnerBoxEl.style.display = "none";
+}
   modeSelect.onchange = async () => {
     const newMode = modeSelect.value;
 
