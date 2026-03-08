@@ -739,20 +739,30 @@ if ((monitoringMode || "standard") === "partner") {
   partnerBoxEl.style.display = "none";
 }
   modeSelect.onchange = async () => {
-    const newMode = modeSelect.value;
+  const newMode = modeSelect.value;
 
-    const { error } = await supabase
-      .from("patients")
-      .update({ monitoring_mode: newMode })
-      .eq("id", patientId);
+  const { error } = await supabase
+    .from("patients")
+    .update({ monitoring_mode: newMode })
+    .eq("id", patientId);
 
-    if (error) {
-      alert("Cannot update mode: " + error.message);
-      return;
-    }
+  if (error) {
+    alert("Cannot update mode: " + error.message);
+    return;
+  }
 
-    alert("Mode updated: " + newMode);
-  };
+  if (newMode === "partner") {
+    partnerBoxEl.style.display = "block";
+    partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
+  } else if (newMode === "team") {
+    partnerBoxEl.style.display = "block";
+    partnerNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+  } else {
+    partnerBoxEl.style.display = "none";
+  }
+
+  alert("Mode updated: " + newMode);
+};
 
   await loadMeds();
   await loadToday();
