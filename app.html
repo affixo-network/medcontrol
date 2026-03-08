@@ -1089,7 +1089,27 @@ async function mark(medId, status, slot) {
   await loadToday();
   await loadHistory();
 }
+savePartnerEmailBtn.onclick = async () => {
+  if (!selectedPatientId) {
+    partnerEmailStatusEl.textContent = "Select patient first";
+    return;
+  }
 
+  const email = (partnerEmailEl.value || "").trim().toLowerCase();
+
+  const { error } = await supabase
+    .from("patients")
+    .update({ partner_email: email || null })
+    .eq("id", selectedPatientId);
+
+  if (error) {
+    partnerEmailStatusEl.textContent = "Save error: " + error.message;
+    return;
+  }
+
+  selectedPartnerEmail = email;
+  partnerEmailStatusEl.textContent = "Partner email saved";
+};
 /* ---------------- ADD MED (ADMIN ONLY) ---------------- */
 
 const addBtn = document.getElementById("addMed");
