@@ -696,7 +696,7 @@ async function renderPatientsList(patients) {
 
   patients.forEach((p) => {
     const li = document.createElement("li");
-    li.textContent = p.display_name + " [" + p.id.slice(0, 8) + "]";
+   li.textContent = p.display_name + " — Mode: " + (p.monitoring_mode || "standard") + " [" + p.id.slice(0, 8) + "]";
     li.style.cursor = "pointer";
     li.style.padding = "6px 8px";
     li.style.border = "1px solid #ddd";
