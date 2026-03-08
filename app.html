@@ -719,7 +719,7 @@ async function renderPatientsList(patients) {
     li.style.borderRadius = "6px";
 
     li.onclick = async () => {
-  await selectPatient(p.id, p.display_name, p.monitoring_mode);
+ await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
 };
 
     patientsEl.appendChild(li);
