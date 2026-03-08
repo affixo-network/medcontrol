@@ -726,7 +726,7 @@ async function renderPatientsList(patients) {
   });
 }
 
-async function selectPatient(patientId, displayName, monitoringMode = "standard") {
+async function selectPatient(patientId, displayName, monitoringMode = "standard", partnerEmail = "")
   selectedPatientId = patientId;
 selectedMonitoringMode = monitoringMode || "standard";
 selectedPartnerEmail = "";
