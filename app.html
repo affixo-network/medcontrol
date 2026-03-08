@@ -728,7 +728,10 @@ async function renderPatientsList(patients) {
 
 async function selectPatient(patientId, displayName, monitoringMode = "standard") {
   selectedPatientId = patientId;
-
+selectedMonitoringMode = monitoringMode || "standard";
+selectedPartnerEmail = "";
+partnerEmailEl.value = "";
+partnerEmailStatusEl.textContent = "";
   selectedEl.innerHTML =
   `${T.selected_prefix} ${displayName} (${patientId})` +
   `<br><br>` +
