@@ -1127,6 +1127,7 @@ savePartnerEmailBtn.onclick = async () => {
 
   selectedPartnerEmail = email;
   partnerEmailStatusEl.textContent = "Partner email saved";
+  await loadPartnerLinks();
 };
   async function loadPartnerLinks() {
   if (!selectedPatientId) {
