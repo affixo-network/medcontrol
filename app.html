@@ -1069,7 +1069,7 @@ applyTexts();
 
 if (cachedPatients.length === 1) {
   const p = cachedPatients[0];
-  patientsSectionEl.style.display = "none";
+ patientsSectionEl.style.display = "block";
   await selectPatient(p.id, p.display_name);
 } else {
   patientsSectionEl.style.display = "block";
