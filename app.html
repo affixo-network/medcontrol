@@ -704,8 +704,8 @@ async function renderPatientsList(patients) {
     li.style.borderRadius = "6px";
 
     li.onclick = async () => {
-      await selectPatient(p.id, p.display_name);
-    };
+  await selectPatient(p.id, p.display_name, p.monitoring_mode);
+};
 
     patientsEl.appendChild(li);
   });
