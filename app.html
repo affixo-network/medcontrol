@@ -711,9 +711,37 @@ async function renderPatientsList(patients) {
   });
 }
 
-async function selectPatient(patientId, displayName) {
+async function selectPatient(patientId, displayName, monitoringMode = "standard") {
   selectedPatientId = patientId;
-  selectedEl.textContent = `${T.selected_prefix} ${displayName} (${patientId})`;
+
+  selectedEl.innerHTML =
+    `${T.selected_prefix} ${displayName} (${patientId})` +
+    `<br><br>` +
+    `Mode: <select id="mode_select">` +
+    `<option value="standard">Standard</option>` +
+    `<option value="partner">Partner</option>` +
+    `<option value="team">Team</option>` +
+    `</select>`;
+
+  const modeSelect = document.getElementById("mode_select");
+  modeSelect.value = monitoringMode || "standard";
+
+  modeSelect.onchange = async () => {
+    const newMode = modeSelect.value;
+
+    const { error } = await supabase
+      .from("patients")
+      .update({ monitoring_mode: newMode })
+      .eq("id", patientId);
+
+    if (error) {
+      alert("Cannot update mode: " + error.message);
+      return;
+    }
+
+    alert("Mode updated: " + newMode);
+  };
+
   await loadMeds();
   await loadToday();
   await loadHistory();
