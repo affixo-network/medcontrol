@@ -719,13 +719,13 @@ async function selectPatient(patientId, displayName, monitoringMode = "standard"
   selectedPatientId = patientId;
 
   selectedEl.innerHTML =
-    `${T.selected_prefix} ${displayName} (${patientId})` +
-    `<br><br>` +
-   Monitoring Mode: <select id="mode_select">
-    `<option value="standard">Standard</option>` +
-    `<option value="partner">Partner</option>` +
-    `<option value="team">Team</option>` +
-    `</select>`;
+  `${T.selected_prefix} ${displayName} (${patientId})` +
+  `<br><br>` +
+  `Monitoring Mode: <select id="mode_select">` +
+  `<option value="standard">Standard</option>` +
+  `<option value="partner">Partner</option>` +
+  `<option value="team">Team</option>` +
+  `</select>`;
 
   const modeSelect = document.getElementById("mode_select");
   modeSelect.value = monitoringMode || "standard";
