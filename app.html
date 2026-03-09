@@ -1176,6 +1176,33 @@ savePartnerEmailBtn.onclick = async () => {
   partnerLinkedListEl.textContent =
     "Linked partners: " + data.map(x => x.partner_email).join(", ");
 }
+  async function loadPartnerInviteStatus() {
+  if (!selectedPatientId) {
+    partnerInviteStatusEl.textContent = "";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("patient_partner_invites")
+    .select("invited_email, status")
+    .eq("patient_id", selectedPatientId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    partnerInviteStatusEl.textContent = "Invite status error: " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    partnerInviteStatusEl.textContent = "Invite status: none";
+    return;
+  }
+
+  const row = data[0];
+  partnerInviteStatusEl.textContent =
+    "Invite status: " + row.status + " (" + row.invited_email + ")";
+}
 /* ---------------- ADD MED (ADMIN ONLY) ---------------- */
 
 const addBtn = document.getElementById("addMed");
