@@ -771,18 +771,22 @@ partnerEmailStatusEl.textContent = "";
   modeSelect.value = monitoringMode || "standard";
 if ((monitoringMode || "standard") === "partner") {
   partnerBoxEl.style.display = "block";
+  teamBoxEl.style.display = "none";
+
   partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
   partnerEmailEl.style.display = "inline-block";
   savePartnerEmailBtn.style.display = "inline-block";
   partnerEmailStatusEl.style.display = "block";
+  partnerLinkedListEl.style.display = "block";
+  partnerInviteStatusEl.style.display = "block";
 } else if ((monitoringMode || "standard") === "team") {
-  partnerBoxEl.style.display = "block";
-  partnerNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
-  partnerEmailEl.style.display = "none";
-  savePartnerEmailBtn.style.display = "none";
-  partnerEmailStatusEl.style.display = "none";
+  partnerBoxEl.style.display = "none";
+  teamBoxEl.style.display = "block";
+
+  teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
 } else {
   partnerBoxEl.style.display = "none";
+  teamBoxEl.style.display = "none";
 }
   modeSelect.onchange = async () => {
   const newMode = modeSelect.value;
