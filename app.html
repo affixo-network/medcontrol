@@ -1126,7 +1126,23 @@ savePartnerEmailBtn.onclick = async () => {
       return;
     }
   }
+ if (email) {
+    const { error: inviteError } = await supabase
+      .from("patient_partner_invites")
+      .upsert(
+        [{
+          patient_id: selectedPatientId,
+          invited_email: email,
+          status: "pending"
+        }],
+        { onConflict: "patient_id,invited_email" }
+      );
 
+    if (inviteError) {
+      partnerEmailStatusEl.textContent = "Invite save error: " + inviteError.message;
+      return;
+    }
+  }
   selectedPartnerEmail = email;
   partnerEmailStatusEl.textContent = "Partner email saved";
   await loadPartnerLinks();
