@@ -751,6 +751,10 @@ async function renderPatientsList(patients) {
 }
 
 async function selectPatient(patientId, displayName, monitoringMode = "standard", partnerEmail = "") {
+  const mode = monitoringMode || "standard";
+
+partnerBoxEl.style.display = mode === "partner" ? "block" : "none";
+teamBoxEl.style.display = mode === "team" ? "block" : "none";
   selectedPatientId = patientId;
 selectedMonitoringMode = monitoringMode || "standard";
 selectedPartnerEmail = partnerEmail || "";
