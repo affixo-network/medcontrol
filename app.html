@@ -814,7 +814,7 @@ if ((monitoringMode || "standard") === "partner") {
   teamBoxEl.style.display = "none";
 }
 
-  alert("Mode updated: " + newMode);
+ await selectPatient(patientId, displayName, newMode, selectedPartnerEmail);
 };
 
   await loadMeds();
