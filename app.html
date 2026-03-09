@@ -1067,7 +1067,9 @@ async function loadHistory() {
     const d = dateLocalFromIso(r.scheduled_at);
     const hhmm = hhmmLocalFromIso(r.scheduled_at);
 
-    row.textContent = `${d} — ${T.slot}: ${hhmm} — ${uiStatusText(r.status)} — ${T.by} ${r.recorded_role}`;
+    const roleLabel = (r.recorded_role === "partner") ? T.role_partner : r.recorded_role;
+
+row.textContent = `${d} — ${T.slot}: ${hhmm} — ${uiStatusText(r.status)} — ${T.by} ${roleLabel}`;
     historyEl.appendChild(row);
   });
 
