@@ -1107,7 +1107,16 @@ savePartnerEmailBtn.onclick = async () => {
   }
 
   const email = (partnerEmailEl.value || "").trim().toLowerCase();
+ const { error: deleteOldPartnersError } = await supabase
+    .from("patient_partners")
+    .delete()
+    .eq("patient_id", selectedPatientId)
+    .neq("partner_email", email);
 
+  if (deleteOldPartnersError) {
+    partnerEmailStatusEl.textContent = "Partner cleanup error: " + deleteOldPartnersError.message;
+    return;
+  }
   const { error: patientError } = await supabase
     .from("patients")
     .update({ partner_email: email || null })
