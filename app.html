@@ -790,7 +790,7 @@ if ((monitoringMode || "standard") === "partner") {
 }
   modeSelect.onchange = async () => {
   const newMode = modeSelect.value;
-
+ selectedMonitoringMode = newMode;
   const { error } = await supabase
     .from("patients")
     .update({ monitoring_mode: newMode })
