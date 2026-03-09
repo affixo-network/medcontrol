@@ -1140,6 +1140,16 @@ savePartnerEmailBtn.onclick = async () => {
       return;
     }
   }
+   const { error: deleteOldInvitesError } = await supabase
+    .from("patient_partner_invites")
+    .delete()
+    .eq("patient_id", selectedPatientId)
+    .neq("invited_email", email);
+
+  if (deleteOldInvitesError) {
+    partnerEmailStatusEl.textContent = "Invite cleanup error: " + deleteOldInvitesError.message;
+    return;
+  }
  if (email) {
     const { error: inviteError } = await supabase
       .from("patient_partner_invites")
