@@ -624,7 +624,7 @@ if (!sessionData?.session) {
   window.location.replace("/auth-login.html");
   throw new Error("No session");
 }
-
+await supabase.rpc("accept_partner_invites_for_me");
 /* ---------------- PROFILE ---------------- */
 
 const { data: profile, error: profileError } = await supabase
