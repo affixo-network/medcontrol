@@ -802,14 +802,17 @@ if ((monitoringMode || "standard") === "partner") {
   }
 
   if (newMode === "partner") {
-    partnerBoxEl.style.display = "block";
-    partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
-  } else if (newMode === "team") {
-    partnerBoxEl.style.display = "block";
-    partnerNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
-  } else {
-    partnerBoxEl.style.display = "none";
-  }
+  partnerBoxEl.style.display = "block";
+  teamBoxEl.style.display = "none";
+  partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
+} else if (newMode === "team") {
+  partnerBoxEl.style.display = "none";
+  teamBoxEl.style.display = "block";
+  teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+} else {
+  partnerBoxEl.style.display = "none";
+  teamBoxEl.style.display = "none";
+}
 
   alert("Mode updated: " + newMode);
 };
