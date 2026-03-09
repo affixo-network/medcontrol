@@ -800,7 +800,11 @@ if ((monitoringMode || "standard") === "partner") {
     alert("Cannot update mode: " + error.message);
     return;
   }
+ cachedPatients = cachedPatients.map((p) =>
+    p.id === patientId ? { ...p, monitoring_mode: newMode } : p
+  );
 
+  await renderPatientsList(cachedPatients);
   if (newMode === "partner") {
   partnerBoxEl.style.display = "block";
   teamBoxEl.style.display = "none";
