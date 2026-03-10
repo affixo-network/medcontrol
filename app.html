@@ -492,7 +492,9 @@ async function loadHistory() {
     historyEl.appendChild(div);
   });
 }
-
+wait loadToday();
+  await loadHistory();
+}
 document.getElementById("addMed").onclick = async () => {
   if (role !== "admin") return;
   if (!selectedPatientId) {
