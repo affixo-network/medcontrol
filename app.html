@@ -349,8 +349,13 @@ await supabase.auth.signOut();
 window.location.replace("/auth-login.html");
 };
 
-cachedPatients=await fetchPatients();
+cachedPatients = await fetchPatients();
 await renderPatientsList(cachedPatients);
+
+if (cachedPatients.length > 0) {
+  const p = cachedPatients[0];
+  await selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
+}
 
 </script>
 
