@@ -803,7 +803,7 @@ async function selectPatient(patientId, displayName, monitoringMode = "standard"
   `</select>`;
 
   const modeSelect = document.getElementById("mode_select");
-  modeSelect.value = mode;
+ modeSelect.value = (mode === "team") ? "team" : "standard";
 
   modeSelect.onchange = async () => {
     const newMode = modeSelect.value;
