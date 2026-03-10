@@ -283,7 +283,41 @@ medsEl.appendChild(li);
 
 }
 
-async function loadToday(){
+async function loadToday() {
+  todayEl.innerHTML = "";
+
+  if (!selectedPatientId) return;
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  const { data, error } = await supabase
+    .from("medication_logs")
+    .select("*")
+    .eq("patient_id", selectedPatientId)
+    .gte("scheduled_at", start.toISOString())
+    .lte("scheduled_at", end.toISOString())
+    .order("scheduled_at", { ascending: true });
+
+  if (error) {
+    todayEl.textContent = "Today error: " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    todayEl.textContent = "(no records for today)";
+    return;
+  }
+
+  data.forEach((r) => {
+    const div = document.createElement("div");
+    div.textContent = `${r.status} ${r.scheduled_at}`;
+    todayEl.appendChild(div);
+  });
+}
 
 todayEl.innerHTML="";
 
