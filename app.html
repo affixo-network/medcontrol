@@ -147,6 +147,13 @@ let selectedPartnerEmail = "";
 /* ---------------- MODE UI ---------------- */
 
 function updateModeUI(mode) {
+  if (mode === "team") {
+    teamBoxEl.style.display = "block";
+    teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+  } else {
+    teamBoxEl.style.display = "none";
+  }
+}
   if (mode === "partner") {
     partnerBoxEl.style.display = "block";
     teamBoxEl.style.display = "none";
