@@ -313,7 +313,122 @@ async function loadMeds() {
   });
 }
 
+function fmtTimeHHMM(t) {
+  if (!t) return "09:00";
+  const s = String(t);
+  return s.length >= 5 ? s.slice(0, 5) : s;
+}
+
+function makeTodaySlotIso(timeStr) {
+  const [hh, mm] = (timeStr || "09:00").split(":").map(x => parseInt(x, 10));
+  const d = new Date();
+  d.setHours(Number.isFinite(hh) ? hh : 9, Number.isFinite(mm) ? mm : 0, 0, 0);
+  return d.toISOString();
+}
+
 async function loadToday() {
+  todayEl.innerHTML = "";
+
+  if (!selectedPatientId) return;
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const { data: meds, error: medsErr } = await supabase
+    .from("medications")
+    .select("id, name, dose")
+    .eq("patient_id", selectedPatientId)
+    .order("created_at", { ascending: false });
+
+  if (medsErr) {
+    todayEl.textContent = "Today meds error: " + medsErr.message;
+    return;
+  }
+
+  if (!meds || meds.length === 0) {
+    todayEl.textContent = "(no medications)";
+    return;
+  }
+
+  const medIds = meds.map(m => m.id);
+
+  const { data: times, error: timesErr } = await supabase
+    .from("medication_times")
+    .select("medication_id, time_of_day, is_active")
+    .in("medication_id", medIds)
+    .eq("is_active", true)
+    .order("time_of_day", { ascending: true });
+
+  if (timesErr) {
+    todayEl.textContent = "Today times error: " + timesErr.message;
+    return;
+  }
+
+  const timesByMed = new Map();
+  (times || []).forEach(t => {
+    const arr = timesByMed.get(t.medication_id) || [];
+    arr.push(fmtTimeHHMM(t.time_of_day));
+    timesByMed.set(t.medication_id, arr);
+  });
+
+  const { data: logs, error: logsErr } = await supabase
+    .from("medication_logs")
+    .select("medication_id, scheduled_at, status")
+    .eq("patient_id", selectedPatientId)
+    .gte("scheduled_at", start.toISOString());
+
+  if (logsErr) {
+    todayEl.textContent = "Today logs error: " + logsErr.message;
+    return;
+  }
+
+  todayEl.innerHTML = "";
+
+  meds.forEach((m) => {
+    const slots = timesByMed.get(m.id) || [];
+
+    const container = document.createElement("div");
+    container.style.marginBottom = "12px";
+    container.innerHTML = `<div><strong>${m.name}</strong> — ${m.dose || ""}</div>`;
+
+    if (slots.length === 0) {
+      const warn = document.createElement("div");
+      warn.textContent = "No time slots configured for this medication.";
+      warn.style.color = "#b00";
+      container.appendChild(warn);
+      todayEl.appendChild(container);
+      return;
+    }
+
+    slots.forEach((slot) => {
+      const slotIso = makeTodaySlotIso(slot);
+      const slotMs = new Date(slotIso).getTime();
+
+      const existing = (logs || []).find((l) => {
+        const logMs = new Date(l.scheduled_at).getTime();
+        return l.medication_id === m.id && logMs === slotMs;
+      });
+
+      const row = document.createElement("div");
+      row.style.margin = "6px 0";
+
+      const statusText = existing ? existing.status : "not marked";
+
+      row.innerHTML = `
+        <div>${slot} — <b>${statusText}</b></div>
+        <button data-act="taken">Taken</button>
+        <button data-act="missed">Missed</button>
+      `;
+
+      row.querySelector('[data-act="taken"]').onclick = () => mark(m.id, "taken", slot);
+      row.querySelector('[data-act="missed"]').onclick = () => mark(m.id, "missed", slot);
+
+      container.appendChild(row);
+    });
+
+    todayEl.appendChild(container);
+  });
+}
   todayEl.innerHTML = "";
 
   if (!selectedPatientId) return;
