@@ -93,12 +93,18 @@ window.location.replace("/auth-login.html");
 throw new Error("No session");
 }
 
-const {data:profile}=await supabase
-.from("profiles")
-.select("email,role")
-.maybeSingle();
+const { data: profile, error: profileError } = await supabase
+  .from("profiles")
+  .select("email, role")
+  .maybeSingle();
 
-statusEl.textContent=`Logged in as ${profile.email} (${profile.role})`;
+if (profileError) {
+  statusEl.textContent = "Profile load error: " + profileError.message;
+} else {
+  const email = profile?.email || "(no email)";
+  const userRole = profile?.role || "unknown";
+  statusEl.textContent = `Logged in as ${email} (${userRole})`;
+}
 
 async function fetchPatients(){
 
