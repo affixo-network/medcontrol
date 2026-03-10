@@ -33,7 +33,7 @@
 <hr>
 
 <div id="patients-section">
- <h3 id="t_patients">People</h3>
+  <h3 id="t_patients">People</h3>
   <p id="selected" style="margin:6px 0;color:#555;">Selected patient: (none)</p>
   <ul id="patients"></ul>
   <pre id="err" style="margin-top:12px;white-space:pre-wrap;color:#b00;"></pre>
@@ -42,6 +42,7 @@
 
 <h3 id="t_meds">Medications</h3>
 <ul id="meds"></ul>
+
 <div id="partner-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
   <h3>Partner</h3>
   <p id="partner-note" style="margin:0 0 10px 0;">Partner mode is active.</p>
@@ -55,7 +56,8 @@
   <p id="partner-linked-list" style="margin-top:8px; color:#333;"></p>
   <p id="partner-invite-status" style="margin-top:8px; color:#555;"></p>
 </div>
-  <div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
+
+<div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
   <h3>Team</h3>
   <p id="team-note" style="margin:0 0 10px 0;">Team mode is active. Multiple people can participate in monitoring.</p>
 
@@ -67,6 +69,7 @@
   <p id="team-email-status" style="margin-top:8px; color:#555;"></p>
   <p id="team-members-list" style="margin-top:8px; color:#333;"></p>
 </div>
+
 <div id="med-name-lang-hint" style="margin:8px 0; color:#666; font-size:13px;"></div>
 
 <h3 id="t_today">Today</h3>
@@ -78,7 +81,6 @@
 
 <hr>
 
-<!-- Add Medication: admin only -->
 <div id="addmed-section">
   <h3 id="t_addmed">Add Medication</h3>
 
@@ -99,7 +101,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 /* ---------------- CONFIG ---------------- */
 
 const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ"; // sb_publishable_...
+const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ---------------- ELEMENTS ---------------- */
@@ -113,19 +115,22 @@ const historyEl = document.getElementById("history-list");
 const errEl = document.getElementById("err");
 const selectedEl = document.getElementById("selected");
 const addMedSectionEl = document.getElementById("addmed-section");
+
 const partnerBoxEl = document.getElementById("partner-box");
 const partnerNoteEl = document.getElementById("partner-note");
-  const partnerEmailEl = document.getElementById("partner-email");
+const partnerEmailEl = document.getElementById("partner-email");
 const savePartnerEmailBtn = document.getElementById("save-partner-email");
 const partnerEmailStatusEl = document.getElementById("partner-email-status");
-  const partnerLinkedListEl = document.getElementById("partner-linked-list");
-  const partnerInviteStatusEl = document.getElementById("partner-invite-status");
-  const teamBoxEl = document.getElementById("team-box");
+const partnerLinkedListEl = document.getElementById("partner-linked-list");
+const partnerInviteStatusEl = document.getElementById("partner-invite-status");
+
+const teamBoxEl = document.getElementById("team-box");
 const teamNoteEl = document.getElementById("team-note");
 const teamEmailEl = document.getElementById("team-email");
 const addTeamMemberBtn = document.getElementById("add-team-member");
 const teamEmailStatusEl = document.getElementById("team-email-status");
 const teamMembersListEl = document.getElementById("team-members-list");
+
 const uiLangEl = document.getElementById("uiLang");
 const tzLabelEl = document.getElementById("tzLabel");
 const historyNoteEl = document.getElementById("history-note");
@@ -138,6 +143,23 @@ let role = "unknown";
 let profileEmail = "";
 let selectedMonitoringMode = "standard";
 let selectedPartnerEmail = "";
+
+/* ---------------- MODE UI ---------------- */
+
+function updateModeUI(mode) {
+  if (mode === "partner") {
+    partnerBoxEl.style.display = "block";
+    teamBoxEl.style.display = "none";
+    partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
+  } else if (mode === "team") {
+    partnerBoxEl.style.display = "none";
+    teamBoxEl.style.display = "block";
+    teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+  } else {
+    partnerBoxEl.style.display = "none";
+    teamBoxEl.style.display = "none";
+  }
+}
 
 /* ---------------- LANG LIST (extendable) ---------------- */
 
@@ -164,7 +186,7 @@ const I18N = {
 
     patients: "People",
     selected_prefix: "Selected person:",
-selected_none: "Selected person: (none)",
+    selected_none: "Selected person: (none)",
     no_patients: "(no patients visible for this user)",
 
     medications: "Medications",
@@ -180,7 +202,7 @@ selected_none: "Selected person: (none)",
     status: "Status",
     status_not_marked: "not marked",
     by: "by",
-role_partner: "partner",
+    role_partner: "partner",
     taken_btn: "Taken",
     missed_btn: "Missed",
 
@@ -234,7 +256,7 @@ role_partner: "partner",
     status: "Статус",
     status_not_marked: "не отмечено",
     by: "от",
-role_partner: "партнёр",
+    role_partner: "партнёр",
     taken_btn: "Принято",
     missed_btn: "Пропущено",
 
@@ -288,7 +310,7 @@ role_partner: "партнёр",
     status: "Կարգավիճակ",
     status_not_marked: "չնշված",
     by: "կողմից",
-role_partner: "գործընկեր",
+    role_partner: "գործընկեր",
     taken_btn: "Ընդունված",
     missed_btn: "Բաց թողնված",
 
@@ -342,7 +364,7 @@ role_partner: "գործընկեր",
     status: "Status",
     status_not_marked: "nicht markiert",
     by: "von",
-role_partner: "Partner",
+    role_partner: "Partner",
     taken_btn: "Eingenommen",
     missed_btn: "Verpasst",
 
@@ -396,7 +418,7 @@ role_partner: "Partner",
     status: "الحالة",
     status_not_marked: "غير محدد",
     by: "بواسطة",
-role_partner: "شريك",
+    role_partner: "شريك",
     taken_btn: "تم",
     missed_btn: "فائت",
 
@@ -450,7 +472,7 @@ role_partner: "شريك",
     status: "状态",
     status_not_marked: "未标记",
     by: "记录者",
-role_partner: "伙伴",
+    role_partner: "伙伴",
     taken_btn: "已服用",
     missed_btn: "未服用",
 
@@ -504,7 +526,7 @@ role_partner: "伙伴",
     status: "状態",
     status_not_marked: "未記録",
     by: "記録者",
-role_partner: "パートナー",
+    role_partner: "パートナー",
     taken_btn: "服用",
     missed_btn: "未服用",
 
@@ -582,7 +604,6 @@ function applyTexts() {
 
   if (!selectedPatientId) selectedEl.textContent = T.selected_none;
 
-  // Fill name_lang options in current UI language
   const sel = document.getElementById("medNameLang");
   if (sel) {
     sel.innerHTML = "";
@@ -645,7 +666,7 @@ if (!sessionData?.session) {
   throw new Error("No session");
 }
 await supabase.rpc("accept_partner_invites_for_me");
-  
+
 /* ---------------- PROFILE ---------------- */
 
 const { data: profile, error: profileError } = await supabase
@@ -672,14 +693,12 @@ if (profileError) {
   const tz = (profile?.timezone || "").trim() || detectTimezone() || "";
   tzLabelEl.textContent = tz || "(unknown)";
 
-  // save missing prefs (requires RPC set_profile_prefs)
   if (!profile?.timezone || !profile?.ui_lang) {
     const wantLang = (uiLangEl.value === "auto") ? browserLang2() : uiLangEl.value;
     await supabase.rpc("set_profile_prefs", { _ui_lang: wantLang, _timezone: tz });
   }
 }
 
-// Admin-only add-med section
 if (role !== "admin") addMedSectionEl.style.display = "none";
 
 /* ---------------- UI lang change ---------------- */
@@ -714,7 +733,7 @@ async function fetchPatients() {
   errEl.textContent = "";
   const { data, error } = await supabase
     .from("patients")
-   .select("id, display_name, monitoring_mode, partner_email, created_at")
+    .select("id, display_name, monitoring_mode, partner_email, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -735,7 +754,7 @@ async function renderPatientsList(patients) {
 
   patients.forEach((p) => {
     const li = document.createElement("li");
-   li.textContent = p.display_name + " — Mode: " + (p.monitoring_mode || "standard") + " [" + p.id.slice(0, 8) + "]";
+    li.textContent = p.display_name + " — Mode: " + (p.monitoring_mode || "standard") + " [" + p.id.slice(0, 8) + "]";
     li.style.cursor = "pointer";
     li.style.padding = "6px 8px";
     li.style.border = "1px solid #ddd";
@@ -743,8 +762,8 @@ async function renderPatientsList(patients) {
     li.style.borderRadius = "6px";
 
     li.onclick = async () => {
- await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
-};
+      await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
+    };
 
     patientsEl.appendChild(li);
   });
@@ -753,83 +772,62 @@ async function renderPatientsList(patients) {
 async function selectPatient(patientId, displayName, monitoringMode = "standard", partnerEmail = "") {
   const mode = monitoringMode || "standard";
 
-partnerBoxEl.style.display = mode === "partner" ? "block" : "none";
-teamBoxEl.style.display = mode === "team" ? "block" : "none";
   selectedPatientId = patientId;
-selectedMonitoringMode = monitoringMode || "standard";
-selectedPartnerEmail = partnerEmail || "";
-partnerEmailEl.value = selectedPartnerEmail;
-partnerEmailStatusEl.textContent = "";
+  selectedMonitoringMode = mode;
+  selectedPartnerEmail = partnerEmail || "";
+
+  partnerEmailEl.value = selectedPartnerEmail;
+  partnerEmailStatusEl.textContent = "";
   partnerLinkedListEl.textContent = "";
   partnerInviteStatusEl.textContent = "";
+
+  teamEmailEl.value = "";
+  teamEmailStatusEl.textContent = "";
+  teamMembersListEl.textContent = "";
+
+  updateModeUI(mode);
+
   selectedEl.innerHTML =
-  `${T.selected_prefix} ${displayName} (${patientId})` +
-  `<br><br>` +
-  `Monitoring Mode: <select id="mode_select">` +
-  `<option value="standard">Standard</option>` +
-  `<option value="partner">Partner</option>` +
-  `<option value="team">Team</option>` +
-  `</select>`;
+    `${T.selected_prefix} ${displayName} (${patientId})` +
+    `<br><br>` +
+    `Monitoring Mode: <select id="mode_select">` +
+    `<option value="standard">Standard</option>` +
+    `<option value="partner">Partner</option>` +
+    `<option value="team">Team</option>` +
+    `</select>`;
 
   const modeSelect = document.getElementById("mode_select");
-  modeSelect.value = monitoringMode || "standard";
-if ((monitoringMode || "standard") === "partner") {
-  partnerBoxEl.style.display = "block";
-  teamBoxEl.style.display = "none";
+  modeSelect.value = mode;
 
-  partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
-  partnerEmailEl.style.display = "inline-block";
-  savePartnerEmailBtn.style.display = "inline-block";
-  partnerEmailStatusEl.style.display = "block";
-  partnerLinkedListEl.style.display = "block";
-  partnerInviteStatusEl.style.display = "block";
-} else if ((monitoringMode || "standard") === "team") {
-  partnerBoxEl.style.display = "none";
-  teamBoxEl.style.display = "block";
-
-  teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
-} else {
-  partnerBoxEl.style.display = "none";
-  teamBoxEl.style.display = "none";
-}
   modeSelect.onchange = async () => {
-  const newMode = modeSelect.value;
- selectedMonitoringMode = newMode;
-  const { error } = await supabase
-    .from("patients")
-    .update({ monitoring_mode: newMode })
-    .eq("id", patientId);
+    const newMode = modeSelect.value;
+    selectedMonitoringMode = newMode;
 
-  if (error) {
-    alert("Cannot update mode: " + error.message);
-    return;
-  }
- cachedPatients = cachedPatients.map((p) =>
-    p.id === patientId ? { ...p, monitoring_mode: newMode } : p
-  );
+    const { error } = await supabase
+      .from("patients")
+      .update({ monitoring_mode: newMode })
+      .eq("id", patientId);
 
-  await renderPatientsList(cachedPatients);
-  if (newMode === "partner") {
-  partnerBoxEl.style.display = "block";
-  teamBoxEl.style.display = "none";
-  partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
-} else if (newMode === "team") {
-  partnerBoxEl.style.display = "none";
-  teamBoxEl.style.display = "block";
-  teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
-} else {
-  partnerBoxEl.style.display = "none";
-  teamBoxEl.style.display = "none";
-}
+    if (error) {
+      alert("Cannot update mode: " + error.message);
+      return;
+    }
 
- await selectPatient(patientId, displayName, newMode, selectedPartnerEmail);
-};
+    cachedPatients = cachedPatients.map((p) =>
+      p.id === patientId ? { ...p, monitoring_mode: newMode } : p
+    );
+
+    await renderPatientsList(cachedPatients);
+    updateModeUI(newMode);
+    await selectPatient(patientId, displayName, newMode, selectedPartnerEmail);
+  };
 
   await loadMeds();
   await loadToday();
   await loadHistory();
   await loadPartnerLinks();
   await loadPartnerInviteStatus();
+  await loadTeamMembers();
 }
 
 /* ---------------- MEDS (with admin edit) ---------------- */
@@ -958,7 +956,7 @@ async function loadMeds() {
     medsEl.appendChild(li);
   });
 
-  applyTexts(); // refresh labels + name_lang options
+  applyTexts();
 }
 
 function renderNameLangOptions(selected) {
@@ -1104,10 +1102,9 @@ async function loadHistory() {
 
     const d = dateLocalFromIso(r.scheduled_at);
     const hhmm = hhmmLocalFromIso(r.scheduled_at);
-
     const roleLabel = (r.recorded_role === "partner") ? T.role_partner : r.recorded_role;
 
-row.textContent = `${d} — ${T.slot}: ${hhmm} — ${uiStatusText(r.status)} — ${T.by} ${roleLabel}`;
+    row.textContent = `${d} — ${T.slot}: ${hhmm} — ${uiStatusText(r.status)} — ${T.by} ${roleLabel}`;
     historyEl.appendChild(row);
   });
 
@@ -1133,14 +1130,18 @@ async function mark(medId, status, slot) {
   await loadToday();
   await loadHistory();
 }
+
+/* ---------------- PARTNER ---------------- */
+
 savePartnerEmailBtn.onclick = async () => {
-   if (!selectedPatientId) {
+  if (!selectedPatientId) {
     partnerEmailStatusEl.textContent = "Select patient first";
     return;
   }
 
   const email = (partnerEmailEl.value || "").trim().toLowerCase();
- const { error: deleteOldPartnersError } = await supabase
+
+  const { error: deleteOldPartnersError } = await supabase
     .from("patient_partners")
     .delete()
     .eq("patient_id", selectedPatientId)
@@ -1150,6 +1151,7 @@ savePartnerEmailBtn.onclick = async () => {
     partnerEmailStatusEl.textContent = "Partner cleanup error: " + deleteOldPartnersError.message;
     return;
   }
+
   const { error: patientError } = await supabase
     .from("patients")
     .update({ partner_email: email || null })
@@ -1173,7 +1175,8 @@ savePartnerEmailBtn.onclick = async () => {
       return;
     }
   }
-   const { error: deleteOldInvitesError } = await supabase
+
+  const { error: deleteOldInvitesError } = await supabase
     .from("patient_partner_invites")
     .delete()
     .eq("patient_id", selectedPatientId)
@@ -1183,7 +1186,8 @@ savePartnerEmailBtn.onclick = async () => {
     partnerEmailStatusEl.textContent = "Invite cleanup error: " + deleteOldInvitesError.message;
     return;
   }
- if (email) {
+
+  if (email) {
     const { error: inviteError } = await supabase
       .from("patient_partner_invites")
       .upsert(
@@ -1200,12 +1204,20 @@ savePartnerEmailBtn.onclick = async () => {
       return;
     }
   }
+
   selectedPartnerEmail = email;
+
+  cachedPatients = cachedPatients.map((p) =>
+    p.id === selectedPatientId ? { ...p, partner_email: email || null } : p
+  );
+
   partnerEmailStatusEl.textContent = "Partner email saved";
   await loadPartnerLinks();
   await loadPartnerInviteStatus();
+  await loadTeamMembers();
 };
-  async function loadPartnerLinks() {
+
+async function loadPartnerLinks() {
   if (!selectedPatientId) {
     partnerLinkedListEl.textContent = "";
     return;
@@ -1230,7 +1242,8 @@ savePartnerEmailBtn.onclick = async () => {
   partnerLinkedListEl.textContent =
     "Linked partners: " + data.map(x => x.partner_email).join(", ");
 }
-  async function loadPartnerInviteStatus() {
+
+async function loadPartnerInviteStatus() {
   if (!selectedPatientId) {
     partnerInviteStatusEl.textContent = "";
     return;
@@ -1257,6 +1270,80 @@ savePartnerEmailBtn.onclick = async () => {
   partnerInviteStatusEl.textContent =
     "Invite status: " + row.status + " (" + row.invited_email + ")";
 }
+
+/* ---------------- TEAM ---------------- */
+
+addTeamMemberBtn.onclick = async () => {
+  if (!selectedPatientId) {
+    teamEmailStatusEl.textContent = "Select patient first";
+    return;
+  }
+
+  const email = (teamEmailEl.value || "").trim().toLowerCase();
+  if (!email) {
+    teamEmailStatusEl.textContent = "Enter team member email";
+    return;
+  }
+
+  const { error: partnerError } = await supabase
+    .from("patient_partners")
+    .upsert(
+      [{ patient_id: selectedPatientId, partner_email: email }],
+      { onConflict: "patient_id,partner_email" }
+    );
+
+  if (partnerError) {
+    teamEmailStatusEl.textContent = "Team link error: " + partnerError.message;
+    return;
+  }
+
+  const { error: inviteError } = await supabase
+    .from("patient_partner_invites")
+    .upsert(
+      [{
+        patient_id: selectedPatientId,
+        invited_email: email,
+        status: "pending"
+      }],
+      { onConflict: "patient_id,invited_email" }
+    );
+
+  if (inviteError) {
+    teamEmailStatusEl.textContent = "Invite save error: " + inviteError.message;
+    return;
+  }
+
+  teamEmailEl.value = "";
+  teamEmailStatusEl.textContent = "Team member added";
+  await loadTeamMembers();
+};
+
+async function loadTeamMembers() {
+  if (!selectedPatientId) {
+    teamMembersListEl.textContent = "";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("patient_partners")
+    .select("partner_email")
+    .eq("patient_id", selectedPatientId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    teamMembersListEl.textContent = "Team list error: " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    teamMembersListEl.textContent = "No team members yet";
+    return;
+  }
+
+  teamMembersListEl.textContent =
+    "Team members: " + data.map(x => x.partner_email).join(", ");
+}
+
 /* ---------------- ADD MED (ADMIN ONLY) ---------------- */
 
 const addBtn = document.getElementById("addMed");
@@ -1309,7 +1396,7 @@ if (cachedPatients.length === 1) {
   const p = cachedPatients[0];
   patientsSectionEl.style.display = "block";
   await renderPatientsList(cachedPatients);
- await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
+  await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
 } else {
   patientsSectionEl.style.display = "block";
   await renderPatientsList(cachedPatients);
@@ -1318,4 +1405,3 @@ if (cachedPatients.length === 1) {
 
 </body>
 </html>
-<!-- update -->
