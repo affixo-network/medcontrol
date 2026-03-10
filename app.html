@@ -43,20 +43,6 @@
 <h3 id="t_meds">Medications</h3>
 <ul id="meds"></ul>
 
-<div id="partner-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
-  <h3>Partner</h3>
-  <p id="partner-note" style="margin:0 0 10px 0;">Partner mode is active.</p>
-
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="partner-email" placeholder="Partner email">
-    <button id="save-partner-email">Save Partner Email</button>
-  </div>
-
-  <p id="partner-email-status" style="margin-top:8px; color:#555;"></p>
-  <p id="partner-linked-list" style="margin-top:8px; color:#333;"></p>
-  <p id="partner-invite-status" style="margin-top:8px; color:#555;"></p>
-</div>
-
 <div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
   <h3>Team</h3>
   <p id="team-note" style="margin:0 0 10px 0;">Team mode is active. Multiple people can participate in monitoring.</p>
@@ -116,14 +102,6 @@ const errEl = document.getElementById("err");
 const selectedEl = document.getElementById("selected");
 const addMedSectionEl = document.getElementById("addmed-section");
 
-const partnerBoxEl = document.getElementById("partner-box");
-const partnerNoteEl = document.getElementById("partner-note");
-const partnerEmailEl = document.getElementById("partner-email");
-const savePartnerEmailBtn = document.getElementById("save-partner-email");
-const partnerEmailStatusEl = document.getElementById("partner-email-status");
-const partnerLinkedListEl = document.getElementById("partner-linked-list");
-const partnerInviteStatusEl = document.getElementById("partner-invite-status");
-
 const teamBoxEl = document.getElementById("team-box");
 const teamNoteEl = document.getElementById("team-note");
 const teamEmailEl = document.getElementById("team-email");
@@ -142,7 +120,6 @@ let cachedPatients = [];
 let role = "unknown";
 let profileEmail = "";
 let selectedMonitoringMode = "standard";
-let selectedPartnerEmail = "";
 
 /* ---------------- MODE UI ---------------- */
 
@@ -151,19 +128,6 @@ function updateModeUI(mode) {
     teamBoxEl.style.display = "block";
     teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
   } else {
-    teamBoxEl.style.display = "none";
-  }
-}
-  if (mode === "partner") {
-    partnerBoxEl.style.display = "block";
-    teamBoxEl.style.display = "none";
-    partnerNoteEl.textContent = "Partner mode is active. A second person can participate in monitoring.";
-  } else if (mode === "team") {
-    partnerBoxEl.style.display = "none";
-    teamBoxEl.style.display = "block";
-    teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
-  } else {
-    partnerBoxEl.style.display = "none";
     teamBoxEl.style.display = "none";
   }
 }
@@ -740,7 +704,7 @@ async function fetchPatients() {
   errEl.textContent = "";
   const { data, error } = await supabase
     .from("patients")
-  .select("id, display_name, monitoring_mode, created_at")
+    .select("id, display_name, monitoring_mode, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -769,24 +733,18 @@ async function renderPatientsList(patients) {
     li.style.borderRadius = "6px";
 
     li.onclick = async () => {
-      await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
+      await selectPatient(p.id, p.display_name, p.monitoring_mode);
     };
 
     patientsEl.appendChild(li);
   });
 }
 
-async function selectPatient(patientId, displayName, monitoringMode = "standard", partnerEmail = "") {
+async function selectPatient(patientId, displayName, monitoringMode = "standard") {
   const mode = monitoringMode || "standard";
 
   selectedPatientId = patientId;
   selectedMonitoringMode = mode;
-  selectedPartnerEmail = partnerEmail || "";
-
-  partnerEmailEl.value = selectedPartnerEmail;
-  partnerEmailStatusEl.textContent = "";
-  partnerLinkedListEl.textContent = "";
-  partnerInviteStatusEl.textContent = "";
 
   teamEmailEl.value = "";
   teamEmailStatusEl.textContent = "";
@@ -795,15 +753,15 @@ async function selectPatient(patientId, displayName, monitoringMode = "standard"
   updateModeUI(mode);
 
   selectedEl.innerHTML =
-  `${T.selected_prefix} ${displayName} (${patientId})` +
-  `<br><br>` +
-  `Monitoring Mode: <select id="mode_select">` +
-  `<option value="standard">Standard</option>` +
-  `<option value="team">Team</option>` +
-  `</select>`;
+    `${T.selected_prefix} ${displayName} (${patientId})` +
+    `<br><br>` +
+    `Monitoring Mode: <select id="mode_select">` +
+    `<option value="standard">Standard</option>` +
+    `<option value="team">Team</option>` +
+    `</select>`;
 
   const modeSelect = document.getElementById("mode_select");
- modeSelect.value = (mode === "team") ? "team" : "standard";
+  modeSelect.value = (mode === "team") ? "team" : "standard";
 
   modeSelect.onchange = async () => {
     const newMode = modeSelect.value;
@@ -825,14 +783,12 @@ async function selectPatient(patientId, displayName, monitoringMode = "standard"
 
     await renderPatientsList(cachedPatients);
     updateModeUI(newMode);
-    await selectPatient(patientId, displayName, newMode, selectedPartnerEmail);
+    await selectPatient(patientId, displayName, newMode);
   };
 
   await loadMeds();
   await loadToday();
   await loadHistory();
-  await loadPartnerLinks();
-  await loadPartnerInviteStatus();
   await loadTeamMembers();
 }
 
@@ -1137,146 +1093,6 @@ async function mark(medId, status, slot) {
   await loadHistory();
 }
 
-/* ---------------- PARTNER ---------------- */
-
-savePartnerEmailBtn.onclick = async () => {
-  if (!selectedPatientId) {
-    partnerEmailStatusEl.textContent = "Select patient first";
-    return;
-  }
-
-  const email = (partnerEmailEl.value || "").trim().toLowerCase();
-
-  const { error: deleteOldPartnersError } = await supabase
-    .from("patient_partners")
-    .delete()
-    .eq("patient_id", selectedPatientId)
-    .neq("partner_email", email);
-
-  if (deleteOldPartnersError) {
-    partnerEmailStatusEl.textContent = "Partner cleanup error: " + deleteOldPartnersError.message;
-    return;
-  }
-
-  const { error: patientError } = await supabase
-    .from("patients")
-    .update({ partner_email: email || null })
-    .eq("id", selectedPatientId);
-
-  if (patientError) {
-    partnerEmailStatusEl.textContent = "Save error: " + patientError.message;
-    return;
-  }
-
-  if (email) {
-    const { error: partnerError } = await supabase
-      .from("patient_partners")
-      .upsert(
-        [{ patient_id: selectedPatientId, partner_email: email }],
-        { onConflict: "patient_id,partner_email" }
-      );
-
-    if (partnerError) {
-      partnerEmailStatusEl.textContent = "Partner link error: " + partnerError.message;
-      return;
-    }
-  }
-
-  const { error: deleteOldInvitesError } = await supabase
-    .from("patient_partner_invites")
-    .delete()
-    .eq("patient_id", selectedPatientId)
-    .neq("invited_email", email);
-
-  if (deleteOldInvitesError) {
-    partnerEmailStatusEl.textContent = "Invite cleanup error: " + deleteOldInvitesError.message;
-    return;
-  }
-
-  if (email) {
-    const { error: inviteError } = await supabase
-      .from("patient_partner_invites")
-      .upsert(
-        [{
-          patient_id: selectedPatientId,
-          invited_email: email,
-          status: "pending"
-        }],
-        { onConflict: "patient_id,invited_email" }
-      );
-
-    if (inviteError) {
-      partnerEmailStatusEl.textContent = "Invite save error: " + inviteError.message;
-      return;
-    }
-  }
-
-  selectedPartnerEmail = email;
-
-  cachedPatients = cachedPatients.map((p) =>
-    p.id === selectedPatientId ? { ...p, partner_email: email || null } : p
-  );
-
-  partnerEmailStatusEl.textContent = "Partner email saved";
-  await loadPartnerLinks();
-  await loadPartnerInviteStatus();
-  await loadTeamMembers();
-};
-
-async function loadPartnerLinks() {
-  if (!selectedPatientId) {
-    partnerLinkedListEl.textContent = "";
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from("patient_partners")
-    .select("partner_email")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    partnerLinkedListEl.textContent = "Partner list error: " + error.message;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    partnerLinkedListEl.textContent = "No linked partners yet";
-    return;
-  }
-
-  partnerLinkedListEl.textContent =
-    "Linked partners: " + data.map(x => x.partner_email).join(", ");
-}
-
-async function loadPartnerInviteStatus() {
-  if (!selectedPatientId) {
-    partnerInviteStatusEl.textContent = "";
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from("patient_partner_invites")
-    .select("invited_email, status")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (error) {
-    partnerInviteStatusEl.textContent = "Invite status error: " + error.message;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    partnerInviteStatusEl.textContent = "Invite status: none";
-    return;
-  }
-
-  const row = data[0];
-  partnerInviteStatusEl.textContent =
-    "Invite status: " + row.status + " (" + row.invited_email + ")";
-}
-
 /* ---------------- TEAM ---------------- */
 
 addTeamMemberBtn.onclick = async () => {
@@ -1323,6 +1139,8 @@ addTeamMemberBtn.onclick = async () => {
   teamEmailStatusEl.textContent = "Team member added";
   await loadTeamMembers();
 };
+
+/* ---------------- TEAM LIST ---------------- */
 
 async function loadTeamMembers() {
   if (!selectedPatientId) {
@@ -1402,7 +1220,7 @@ if (cachedPatients.length === 1) {
   const p = cachedPatients[0];
   patientsSectionEl.style.display = "block";
   await renderPatientsList(cachedPatients);
-  await selectPatient(p.id, p.display_name, p.monitoring_mode, p.partner_email);
+  await selectPatient(p.id, p.display_name, p.monitoring_mode);
 } else {
   patientsSectionEl.style.display = "block";
   await renderPatientsList(cachedPatients);
