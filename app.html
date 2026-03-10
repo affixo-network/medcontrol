@@ -1,1230 +1,357 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Affixo MedControl</title>
+<meta charset="utf-8"/>
+<title>Affixo MedControl</title>
 </head>
+
 <body style="font-family:sans-serif;max-width:900px;margin:40px auto;">
 
-<h2 id="t_title">Affixo MedControl — App</h2>
+<h2>Affixo MedControl — App</h2>
 
 <p id="status">Loading...</p>
 
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-  <button id="logout">Logout</button>
-  <button id="whoami">WhoAmI</button>
+<button id="logout">Logout</button>
+<hr>
 
-  <span id="t_ui_lang_label" style="margin-left:10px;">UI language:</span>
-  <select id="uiLang">
-    <option value="auto">Auto (browser)</option>
-    <option value="en">English</option>
-    <option value="ru">Русский</option>
-    <option value="hy">Հայերեն</option>
-    <option value="de">Deutsch</option>
-    <option value="ar">العربية</option>
-    <option value="zh">中文</option>
-    <option value="ja">日本語</option>
-  </select>
-
-  <span id="t_tz_label" style="margin-left:10px;">Timezone:</span>
-  <span id="tzLabel" style="color:#555;"></span>
-</div>
+<h3>People</h3>
+<p id="selected">(none)</p>
+<ul id="patients"></ul>
 
 <hr>
 
-<div id="patients-section">
-  <h3 id="t_patients">People</h3>
-  <p id="selected" style="margin:6px 0;color:#555;">Selected patient: (none)</p>
-  <ul id="patients"></ul>
-  <pre id="err" style="margin-top:12px;white-space:pre-wrap;color:#b00;"></pre>
-  <hr>
+<div id="team-box" style="display:none;border:1px solid #ccc;padding:10px;border-radius:6px;margin-bottom:10px;">
+<h3>Team</h3>
+
+<input id="team-email" placeholder="Team member email">
+<button id="add-team-member">Add Team Member</button>
+
+<p id="team-email-status"></p>
+<p id="team-members-list"></p>
+
 </div>
 
-<h3 id="t_meds">Medications</h3>
+<h3>Medications</h3>
 <ul id="meds"></ul>
 
-<div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
-  <h3>Team</h3>
-  <p id="team-note" style="margin:0 0 10px 0;">Team mode is active. Multiple people can participate in monitoring.</p>
+<h3>Today</h3>
+<div id="today-list"></div>
 
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="team-email" placeholder="Team member email">
-    <button id="add-team-member">Add Team Member</button>
-  </div>
-
-  <p id="team-email-status" style="margin-top:8px; color:#555;"></p>
-  <p id="team-members-list" style="margin-top:8px; color:#333;"></p>
-</div>
-
-<div id="med-name-lang-hint" style="margin:8px 0; color:#666; font-size:13px;"></div>
-
-<h3 id="t_today">Today</h3>
-<div id="today-list" style="padding:8px 0;"></div>
-
-<h3 id="t_history">History (last 7 days)</h3>
-<div id="history-note" style="padding:6px 10px; background:#f6f6f6; border:1px solid #eee; border-radius:8px; margin-bottom:8px;"></div>
-<div id="history-list" style="padding:8px 0;"></div>
+<h3>History</h3>
+<div id="history-list"></div>
 
 <hr>
 
-<div id="addmed-section">
-  <h3 id="t_addmed">Add Medication</h3>
+<h3>Add Medication</h3>
 
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="medName" placeholder="Name (any language)">
-    <select id="medNameLang" title="Language of medication name"></select>
-    <input id="medDose" placeholder="Dose">
-    <input id="medScheduleLegacy" placeholder="Legacy schedule text (optional)">
-    <button id="addMed">Add</button>
-  </div>
-
-  <div id="t_addmed_hint" style="margin-top:8px; color:#666; font-size:13px;"></div>
-</div>
+<input id="medName" placeholder="Name">
+<input id="medDose" placeholder="Dose">
+<input id="medScheduleLegacy" placeholder="Schedule">
+<button id="addMed">Add</button>
 
 <script type="module">
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/* ---------------- CONFIG ---------------- */
+const supabase = createClient(
+"https://lewdbjjaohqxbirzhrbm.supabase.co",
+"sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ"
+);
 
-const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const statusEl=document.getElementById("status");
+const patientsEl=document.getElementById("patients");
+const selectedEl=document.getElementById("selected");
 
-/* ---------------- ELEMENTS ---------------- */
+const teamBoxEl=document.getElementById("team-box");
+const teamEmailEl=document.getElementById("team-email");
+const teamEmailStatusEl=document.getElementById("team-email-status");
+const teamMembersListEl=document.getElementById("team-members-list");
 
-const statusEl = document.getElementById("status");
-const patientsSectionEl = document.getElementById("patients-section");
-const patientsEl = document.getElementById("patients");
-const medsEl = document.getElementById("meds");
-const todayEl = document.getElementById("today-list");
-const historyEl = document.getElementById("history-list");
-const errEl = document.getElementById("err");
-const selectedEl = document.getElementById("selected");
-const addMedSectionEl = document.getElementById("addmed-section");
+const medsEl=document.getElementById("meds");
+const todayEl=document.getElementById("today-list");
+const historyEl=document.getElementById("history-list");
 
-const teamBoxEl = document.getElementById("team-box");
-const teamNoteEl = document.getElementById("team-note");
-const teamEmailEl = document.getElementById("team-email");
-const addTeamMemberBtn = document.getElementById("add-team-member");
-const teamEmailStatusEl = document.getElementById("team-email-status");
-const teamMembersListEl = document.getElementById("team-members-list");
+let selectedPatientId=null;
+let cachedPatients=[];
+let selectedMonitoringMode="standard";
 
-const uiLangEl = document.getElementById("uiLang");
-const tzLabelEl = document.getElementById("tzLabel");
-const historyNoteEl = document.getElementById("history-note");
-const addHintEl = document.getElementById("t_addmed_hint");
-const medNameLangHintEl = document.getElementById("med-name-lang-hint");
+function updateModeUI(mode){
 
-let selectedPatientId = null;
-let cachedPatients = [];
-let role = "unknown";
-let profileEmail = "";
-let selectedMonitoringMode = "standard";
-
-/* ---------------- MODE UI ---------------- */
-
-function updateModeUI(mode) {
-  if (mode === "team") {
-    teamBoxEl.style.display = "block";
-    teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
-  } else {
-    teamBoxEl.style.display = "none";
-  }
+if(mode==="team"){
+teamBoxEl.style.display="block";
+}
+else{
+teamBoxEl.style.display="none";
 }
 
-/* ---------------- LANG LIST (extendable) ---------------- */
-
-const LANGS = [
-  { code: "und", label: { en:"und (unknown)", ru:"und (неизвестно)", hy:"und (անհայտ)", de:"und (unbekannt)", ar:"und (غير معروف)", zh:"und（未知）", ja:"und（不明）" } },
-  { code: "en",  label: { en:"English (en)", ru:"Английский (en)", hy:"Անգլերեն (en)", de:"Englisch (en)", ar:"الإنجليزية (en)", zh:"英语 (en)", ja:"英語 (en)" } },
-  { code: "ru",  label: { en:"Russian (ru)", ru:"Русский (ru)", hy:"Ռուսերեն (ru)", de:"Russisch (ru)", ar:"الروسية (ru)", zh:"俄语 (ru)", ja:"ロシア語 (ru)" } },
-  { code: "hy",  label: { en:"Armenian (hy)", ru:"Армянский (hy)", hy:"Հայերեն (hy)", de:"Armenisch (hy)", ar:"الأرمنية (hy)", zh:"亚美尼亚语 (hy)", ja:"アルメニア語 (hy)" } },
-  { code: "de",  label: { en:"German (de)", ru:"Немецкий (de)", hy:"Գերմաներեն (de)", de:"Deutsch (de)", ar:"الألمانية (de)", zh:"德语 (de)", ja:"ドイツ語 (de)" } },
-  { code: "ar",  label: { en:"Arabic (ar)", ru:"Арабский (ar)", hy:"Արաբերեն (ar)", de:"Arabisch (ar)", ar:"العربية (ar)", zh:"阿拉伯语 (ar)", ja:"アラビア語 (ar)" } },
-  { code: "zh",  label: { en:"Chinese (zh)", ru:"Китайский (zh)", hy:"Չինարեն (zh)", de:"Chinesisch (zh)", ar:"الصينية (zh)", zh:"中文 (zh)", ja:"中国語 (zh)" } },
-  { code: "ja",  label: { en:"Japanese (ja)", ru:"Японский (ja)", hy:"Ճապոներեն (ja)", de:"Japanisch (ja)", ar:"اليابانية (ja)", zh:"日语 (ja)", ja:"日本語 (ja)" } }
-];
-
-/* ---------------- i18n (FULL UI) ---------------- */
-
-const I18N = {
-  en: {
-    title: "Affixo MedControl — App",
-    ui_lang_label: "UI language:",
-    tz_label: "Timezone:",
-    logout: "Logout",
-    whoami: "WhoAmI",
-
-    patients: "People",
-    selected_prefix: "Selected person:",
-    selected_none: "Selected person: (none)",
-    no_patients: "(no patients visible for this user)",
-
-    medications: "Medications",
-    today: "Today",
-    history: "History (last 7 days)",
-    history_note: "History shows only recorded events (Taken/Missed). Unmarked slots are not shown here.",
-    no_logs: "(no logs in last 7 days)",
-
-    loading: "Loading...",
-    select_patient_first: "Select patient first",
-
-    slot: "Slot",
-    status: "Status",
-    status_not_marked: "not marked",
-    by: "by",
-    role_partner: "partner",
-    taken_btn: "Taken",
-    missed_btn: "Missed",
-
-    addmed: "Add Medication",
-    addmed_hint: "UI language and medication-name language are independent. Example: UI = English, medication name = German/Arabic/Chinese/etc.",
-    name_ph: "Name (any language)",
-    dose_ph: "Dose",
-    schedule_ph: "Legacy schedule text (optional)",
-    add_btn: "Add",
-
-    edit_btn: "Edit",
-    save_btn: "Save",
-    cancel_btn: "Cancel",
-    delete_btn: "Delete",
-
-    enter_med_name: "Enter medication name",
-    cannot_add: "Cannot add medication: ",
-    cannot_update: "Cannot update medication: ",
-    cannot_delete: "Cannot delete medication: ",
-
-    rpc_error: "RPC error: ",
-    whoami_error: "WhoAmI error: ",
-    session_missing: "No session, redirecting to login…",
-
-    med_name_lang_hint_admin: "Medication name language can be set/edited below (admin only).",
-    med_name_lang_hint_caregiver: "Medication name language can be changed only by admin. You can still mark Taken/Missed."
-  },
-
-  ru: {
-    title: "Affixo MedControl — Приложение",
-    ui_lang_label: "Язык интерфейса:",
-    tz_label: "Часовой пояс:",
-    logout: "Выйти",
-    whoami: "Кто я",
-
-    patients: "Пациенты",
-    selected_prefix: "Выбран пациент:",
-    selected_none: "Выбран пациент: (нет)",
-    no_patients: "(нет пациентов, доступных этому пользователю)",
-
-    medications: "Лекарства",
-    today: "Сегодня",
-    history: "История (последние 7 дней)",
-    history_note: "История показывает только зафиксированные отметки (Принято/Пропущено). Неотмеченные слоты в истории не отображаются.",
-    no_logs: "(нет записей за последние 7 дней)",
-
-    loading: "Загрузка...",
-    select_patient_first: "Сначала выберите пациента",
-
-    slot: "Слот",
-    status: "Статус",
-    status_not_marked: "не отмечено",
-    by: "от",
-    role_partner: "партнёр",
-    taken_btn: "Принято",
-    missed_btn: "Пропущено",
-
-    addmed: "Добавить препарат",
-    addmed_hint: "Язык интерфейса и язык названия препарата независимы. Пример: интерфейс = русский, название препарата = немецкий/арабский/китайский и т.д.",
-    name_ph: "Название (любой язык)",
-    dose_ph: "Дозировка",
-    schedule_ph: "Текст расписания (необязательно)",
-    add_btn: "Добавить",
-
-    edit_btn: "Редактировать",
-    save_btn: "Сохранить",
-    cancel_btn: "Отмена",
-    delete_btn: "Удалить",
-
-    enter_med_name: "Введите название препарата",
-    cannot_add: "Нельзя добавить препарат: ",
-    cannot_update: "Нельзя обновить препарат: ",
-    cannot_delete: "Нельзя удалить препарат: ",
-
-    rpc_error: "Ошибка RPC: ",
-    whoami_error: "Ошибка WhoAmI: ",
-    session_missing: "Сессия отсутствует, переход на вход…",
-
-    med_name_lang_hint_admin: "Язык названия препарата можно задавать/редактировать ниже (только admin).",
-    med_name_lang_hint_caregiver: "Язык названия препарата меняется только admin. Вы можете отмечать Принято/Пропущено."
-  },
-
-  hy: {
-    title: "Affixo MedControl — Հավելված",
-    ui_lang_label: "Ինտերֆեյսի լեզու․",
-    tz_label: "Ժամային գոտի․",
-    logout: "Ելք",
-    whoami: "Ո՞վ եմ ես",
-
-    patients: "Հիվանդներ",
-    selected_prefix: "Ընտրված հիվանդ․",
-    selected_none: "Ընտրված հիվանդ․ (չկա)",
-    no_patients: "(այս օգտվողին հասանելի հիվանդ չկա)",
-
-    medications: "Դեղեր",
-    today: "Այսօր",
-    history: "Պատմություն (վերջին 7 օր)",
-    history_note: "Պատմությունը ցույց է տալիս միայն գրանցված նշումները (Ընդունված/Բաց թողնված)։ Չնշված ժամերը այստեղ չեն ցուցադրվում։",
-    no_logs: "(վերջին 7 օրվա ընթացքում գրառում չկա)",
-
-    loading: "Բեռնվում է…",
-    select_patient_first: "Սկզբում ընտրեք հիվանդին",
-
-    slot: "Ժամ",
-    status: "Կարգավիճակ",
-    status_not_marked: "չնշված",
-    by: "կողմից",
-    role_partner: "գործընկեր",
-    taken_btn: "Ընդունված",
-    missed_btn: "Բաց թողնված",
-
-    addmed: "Ավելացնել դեղ",
-    addmed_hint: "Ինտերֆեյսի լեզուն և դեղի անվան լեզուն անկախ են։ Օրինակ՝ ինտերֆեյս = անգլերեն, դեղի անուն = գերմաներեն/արաբական/չինարեն և այլն։",
-    name_ph: "Անվանում (ցանկացած լեզու)",
-    dose_ph: "Դեղաչափ",
-    schedule_ph: "Ժամանակացույցի տեքստ (կամայական)",
-    add_btn: "Ավելացնել",
-
-    edit_btn: "Խմբագրել",
-    save_btn: "Պահպանել",
-    cancel_btn: "Չեղարկել",
-    delete_btn: "Ջնջել",
-
-    enter_med_name: "Մուտքագրեք դեղի անունը",
-    cannot_add: "Չհաջողվեց ավելացնել դեղը․ ",
-    cannot_update: "Չհաջողվեց թարմացնել դեղը․ ",
-    cannot_delete: "Չհաջողվեց ջնջել դեղը․ ",
-
-    rpc_error: "RPC սխալ․ ",
-    whoami_error: "WhoAmI սխալ․ ",
-    session_missing: "Սեսիա չկա, անցնում ենք մուտքի էջ…",
-
-    med_name_lang_hint_admin: "Դեղի անվան լեզուն կարելի է նշել/խմբագրել ստորև (միայն admin)։",
-    med_name_lang_hint_caregiver: "Դեղի անվան լեզուն փոխում է միայն admin-ը։ Դուք կարող եք նշել Ընդունված/Բաց թողնված։"
-  },
-
-  de: {
-    title: "Affixo MedControl — App",
-    ui_lang_label: "UI-Sprache:",
-    tz_label: "Zeitzone:",
-    logout: "Abmelden",
-    whoami: "Wer bin ich",
-
-    patients: "Patienten",
-    selected_prefix: "Ausgewählter Patient:",
-    selected_none: "Ausgewählter Patient: (keiner)",
-    no_patients: "(keine Patienten für diesen Benutzer sichtbar)",
-
-    medications: "Medikamente",
-    today: "Heute",
-    history: "Verlauf (letzte 7 Tage)",
-    history_note: "Der Verlauf zeigt nur gespeicherte Ereignisse (Eingenommen/Verpasst). Nicht markierte Slots werden hier nicht angezeigt.",
-    no_logs: "(keine Logs in den letzten 7 Tagen)",
-
-    loading: "Lädt…",
-    select_patient_first: "Bitte zuerst Patient auswählen",
-
-    slot: "Zeit",
-    status: "Status",
-    status_not_marked: "nicht markiert",
-    by: "von",
-    role_partner: "Partner",
-    taken_btn: "Eingenommen",
-    missed_btn: "Verpasst",
-
-    addmed: "Medikament hinzufügen",
-    addmed_hint: "UI-Sprache und Sprache des Medikamentennamens sind unabhängig. Beispiel: UI = Deutsch, Medikamentenname = Arabisch/Chinesisch usw.",
-    name_ph: "Name (beliebige Sprache)",
-    dose_ph: "Dosis",
-    schedule_ph: "Zeitplan-Text (optional)",
-    add_btn: "Hinzufügen",
-
-    edit_btn: "Bearbeiten",
-    save_btn: "Speichern",
-    cancel_btn: "Abbrechen",
-    delete_btn: "Löschen",
-
-    enter_med_name: "Medikamentenname eingeben",
-    cannot_add: "Kann Medikament nicht hinzufügen: ",
-    cannot_update: "Kann Medikament nicht aktualisieren: ",
-    cannot_delete: "Kann Medikament nicht löschen: ",
-
-    rpc_error: "RPC-Fehler: ",
-    whoami_error: "WhoAmI-Fehler: ",
-    session_missing: "Keine Session, Weiterleitung zum Login…",
-
-    med_name_lang_hint_admin: "Die Sprache des Medikamentennamens kann unten gesetzt/bearbeitet werden (nur admin).",
-    med_name_lang_hint_caregiver: "Die Sprache des Medikamentennamens kann nur admin ändern. Sie können Taken/Missed markieren."
-  },
-
-  ar: {
-    title: "Affixo MedControl — التطبيق",
-    ui_lang_label: "لغة الواجهة:",
-    tz_label: "المنطقة الزمنية:",
-    logout: "تسجيل الخروج",
-    whoami: "من أنا",
-
-    patients: "المرضى",
-    selected_prefix: "المريض المحدد:",
-    selected_none: "المريض المحدد: (لا يوجد)",
-    no_patients: "(لا يوجد مرضى مرئيون لهذا المستخدم)",
-
-    medications: "الأدوية",
-    today: "اليوم",
-    history: "السجل (آخر 7 أيام)",
-    history_note: "يعرض السجل الأحداث المسجلة فقط (تم/فائت). الفترات غير المحددة لا تظهر هنا.",
-    no_logs: "(لا توجد سجلات خلال آخر 7 أيام)",
-
-    loading: "جارٍ التحميل…",
-    select_patient_first: "اختر المريض أولاً",
-
-    slot: "الوقت",
-    status: "الحالة",
-    status_not_marked: "غير محدد",
-    by: "بواسطة",
-    role_partner: "شريك",
-    taken_btn: "تم",
-    missed_btn: "فائت",
-
-    addmed: "إضافة دواء",
-    addmed_hint: "لغة الواجهة ولغة اسم الدواء مستقلتان. مثال: الواجهة = العربية، اسم الدواء = ألماني/صيني... إلخ.",
-    name_ph: "الاسم (أي لغة)",
-    dose_ph: "الجرعة",
-    schedule_ph: "نص الجدول (اختياري)",
-    add_btn: "إضافة",
-
-    edit_btn: "تعديل",
-    save_btn: "حفظ",
-    cancel_btn: "إلغاء",
-    delete_btn: "حذف",
-
-    enter_med_name: "أدخل اسم الدواء",
-    cannot_add: "تعذر إضافة الدواء: ",
-    cannot_update: "تعذر تحديث الدواء: ",
-    cannot_delete: "تعذر حذف الدواء: ",
-
-    rpc_error: "خطأ RPC: ",
-    whoami_error: "خطأ WhoAmI: ",
-    session_missing: "لا توجد جلسة، جارٍ التحويل إلى تسجيل الدخول…",
-
-    med_name_lang_hint_admin: "يمكن تعيين/تعديل لغة اسم الدواء أدناه (للمسؤول فقط).",
-    med_name_lang_hint_caregiver: "يمكن تغيير لغة اسم الدواء بواسطة المسؤول فقط. يمكنك تحديد تم/فائت."
-  },
-
-  zh: {
-    title: "Affixo MedControl — 应用",
-    ui_lang_label: "界面语言：",
-    tz_label: "时区：",
-    logout: "退出",
-    whoami: "我是谁",
-
-    patients: "患者",
-    selected_prefix: "已选患者：",
-    selected_none: "已选患者：（无）",
-    no_patients: "（此用户看不到任何患者）",
-
-    medications: "药物",
-    today: "今天",
-    history: "历史（最近7天）",
-    history_note: "历史仅显示已记录事件（已服用/未服用）。未标记的时间段不会显示在这里。",
-    no_logs: "（最近7天无记录）",
-
-    loading: "加载中…",
-    select_patient_first: "请先选择患者",
-
-    slot: "时间",
-    status: "状态",
-    status_not_marked: "未标记",
-    by: "记录者",
-    role_partner: "伙伴",
-    taken_btn: "已服用",
-    missed_btn: "未服用",
-
-    addmed: "添加药物",
-    addmed_hint: "界面语言与药物名称语言相互独立。例如：界面=中文，药物名称=德语/阿拉伯语等。",
-    name_ph: "名称（任意语言）",
-    dose_ph: "剂量",
-    schedule_ph: "时间表文本（可选）",
-    add_btn: "添加",
-
-    edit_btn: "编辑",
-    save_btn: "保存",
-    cancel_btn: "取消",
-    delete_btn: "删除",
-
-    enter_med_name: "请输入药物名称",
-    cannot_add: "无法添加药物：",
-    cannot_update: "无法更新药物：",
-    cannot_delete: "无法删除药物：",
-
-    rpc_error: "RPC 错误：",
-    whoami_error: "WhoAmI 错误：",
-    session_missing: "无会话，正在跳转到登录…",
-
-    med_name_lang_hint_admin: "可在下方设置/编辑药物名称语言（仅管理员）。",
-    med_name_lang_hint_caregiver: "药物名称语言只能由管理员更改。你仍可标记已服用/未服用。"
-  },
-
-  ja: {
-    title: "Affixo MedControl — アプリ",
-    ui_lang_label: "UI言語：",
-    tz_label: "タイムゾーン：",
-    logout: "ログアウト",
-    whoami: "私は誰",
-
-    patients: "患者",
-    selected_prefix: "選択中の患者：",
-    selected_none: "選択中の患者：（なし）",
-    no_patients: "（このユーザーに表示できる患者がいません）",
-
-    medications: "薬",
-    today: "今日",
-    history: "履歴（過去7日）",
-    history_note: "履歴には記録されたイベント（服用/未服用）のみ表示します。未記録の枠は表示されません。",
-    no_logs: "（過去7日間の記録なし）",
-
-    loading: "読み込み中…",
-    select_patient_first: "先に患者を選択してください",
-
-    slot: "時間",
-    status: "状態",
-    status_not_marked: "未記録",
-    by: "記録者",
-    role_partner: "パートナー",
-    taken_btn: "服用",
-    missed_btn: "未服用",
-
-    addmed: "薬を追加",
-    addmed_hint: "UI言語と薬名の言語は独立です。例：UI=日本語、薬名=ドイツ語/アラビア語など。",
-    name_ph: "名称（任意の言語）",
-    dose_ph: "用量",
-    schedule_ph: "スケジュール文字列（任意）",
-    add_btn: "追加",
-
-    edit_btn: "編集",
-    save_btn: "保存",
-    cancel_btn: "キャンセル",
-    delete_btn: "削除",
-
-    enter_med_name: "薬の名称を入力してください",
-    cannot_add: "薬を追加できません：",
-    cannot_update: "薬を更新できません：",
-    cannot_delete: "薬を削除できません：",
-
-    rpc_error: "RPC エラー：",
-    whoami_error: "WhoAmI エラー：",
-    session_missing: "セッションがありません。ログインへ移動します…",
-
-    med_name_lang_hint_admin: "薬名の言語は下で設定/編集できます（管理者のみ）。",
-    med_name_lang_hint_caregiver: "薬名の言語変更は管理者のみ可能です。服用/未服用の記録はできます。"
-  }
+}
+
+const {data:sessionData}=await supabase.auth.getSession();
+
+if(!sessionData?.session){
+window.location.replace("/auth-login.html");
+throw new Error("No session");
+}
+
+const {data:profile}=await supabase
+.from("profiles")
+.select("email,role")
+.maybeSingle();
+
+statusEl.textContent=`Logged in as ${profile.email} (${profile.role})`;
+
+async function fetchPatients(){
+
+const {data,error}=await supabase
+.from("patients")
+.select("id,display_name,monitoring_mode,created_at")
+.order("created_at",{ascending:false});
+
+if(error){
+alert(error.message);
+return[];
+}
+
+return data||[];
+
+}
+
+async function renderPatientsList(patients){
+
+patientsEl.innerHTML="";
+
+patients.forEach(p=>{
+
+const li=document.createElement("li");
+
+li.textContent=p.display_name+" — "+(p.monitoring_mode||"standard");
+
+li.onclick=async()=>{
+
+await selectPatient(
+p.id,
+p.display_name,
+p.monitoring_mode
+);
+
 };
 
-function browserLang2() {
-  return (navigator.language || "en").slice(0,2);
-}
-function pickT(lang2) {
-  return I18N[lang2] || I18N.en;
-}
-let T = pickT(browserLang2());
+patientsEl.appendChild(li);
 
-function detectTimezone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
-  } catch {
-    return null;
-  }
+});
+
 }
 
-function applyTexts() {
-  document.getElementById("t_title").textContent = T.title;
-  document.getElementById("t_ui_lang_label").textContent = T.ui_lang_label;
-  document.getElementById("t_tz_label").textContent = T.tz_label;
+async function selectPatient(patientId,displayName,mode="standard"){
 
-  document.getElementById("logout").textContent = T.logout;
-  document.getElementById("whoami").textContent = T.whoami;
+selectedPatientId=patientId;
+selectedMonitoringMode=mode;
 
-  document.getElementById("t_patients").textContent = T.patients;
-  document.getElementById("t_meds").textContent = T.medications;
-  document.getElementById("t_today").textContent = T.today;
-  document.getElementById("t_history").textContent = T.history;
+selectedEl.innerHTML=
+`${displayName}<br>
+Monitoring Mode:
+<select id="mode_select">
+<option value="standard">Standard</option>
+<option value="team">Team</option>
+</select>`;
 
-  historyNoteEl.textContent = T.history_note;
+const modeSelect=document.getElementById("mode_select");
 
-  document.getElementById("t_addmed").textContent = T.addmed;
-  addHintEl.textContent = T.addmed_hint;
+modeSelect.value=(mode==="team")?"team":"standard";
 
-  const nameIn = document.getElementById("medName");
-  const doseIn = document.getElementById("medDose");
-  const schedIn = document.getElementById("medScheduleLegacy");
-  const addBtn = document.getElementById("addMed");
+modeSelect.onchange=async()=>{
 
-  if (nameIn) nameIn.placeholder = T.name_ph;
-  if (doseIn) doseIn.placeholder = T.dose_ph;
-  if (schedIn) schedIn.placeholder = T.schedule_ph;
-  if (addBtn) addBtn.textContent = T.add_btn;
+const newMode=modeSelect.value;
 
-  medNameLangHintEl.textContent = (role === "admin") ? T.med_name_lang_hint_admin : T.med_name_lang_hint_caregiver;
+const {error}=await supabase
+.from("patients")
+.update({monitoring_mode:newMode})
+.eq("id",patientId);
 
-  if (!selectedPatientId) selectedEl.textContent = T.selected_none;
-
-  const sel = document.getElementById("medNameLang");
-  if (sel) {
-    sel.innerHTML = "";
-    const ui = uiLangEl.value === "auto" ? browserLang2() : uiLangEl.value;
-    LANGS.forEach(l => {
-      const opt = document.createElement("option");
-      opt.value = l.code;
-      opt.textContent = l.label[ui] || l.label.en || l.code;
-      sel.appendChild(opt);
-    });
-  }
+if(error){
+alert(error.message);
+return;
 }
 
-function uiStatusText(dbStatus) {
-  if (dbStatus === "taken") return T.taken_btn;
-  if (dbStatus === "missed") return T.missed_btn;
-  return T.status_not_marked;
-}
+cachedPatients=cachedPatients.map(p=>
+p.id===patientId?{...p,monitoring_mode:newMode}:p
+);
 
-function fmtTimeHHMM(t) {
-  if (!t) return "09:00";
-  const s = String(t);
-  return s.length >= 5 ? s.slice(0, 5) : s;
-}
+await renderPatientsList(cachedPatients);
 
-function makeTodaySlotIso(timeStr) {
-  const [hh, mm] = (timeStr || "09:00").split(":").map(x => parseInt(x, 10));
-  const d = new Date();
-  d.setHours(Number.isFinite(hh) ? hh : 9, Number.isFinite(mm) ? mm : 0, 0, 0);
-  return d.toISOString();
-}
+updateModeUI(newMode);
 
-function hhmmLocalFromIso(iso) {
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
-
-function dateLocalFromIso(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString();
-}
-
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-/* ---------------- SESSION ---------------- */
-
-const { data: sessionData } = await supabase.auth.getSession();
-if (!sessionData?.session) {
-  statusEl.textContent = T.session_missing;
-  window.location.replace("/auth-login.html");
-  throw new Error("No session");
-}
-await supabase.rpc("accept_partner_invites_for_me");
-
-/* ---------------- PROFILE ---------------- */
-
-const { data: profile, error: profileError } = await supabase
-  .from("profiles")
-  .select("email, role, ui_lang, timezone")
-  .maybeSingle();
-
-if (profileError) {
-  statusEl.textContent = "Profile load error: " + profileError.message;
-} else {
-  role = profile?.role || "unknown";
-  profileEmail = profile?.email || "";
-  statusEl.textContent = `Logged in as: ${profileEmail} | role: ${role}`;
-
-  const profLang = (profile?.ui_lang || "").trim();
-  if (profLang) {
-    uiLangEl.value = profLang;
-    T = pickT(profLang.slice(0,2));
-  } else {
-    uiLangEl.value = "auto";
-    T = pickT(browserLang2());
-  }
-
-  const tz = (profile?.timezone || "").trim() || detectTimezone() || "";
-  tzLabelEl.textContent = tz || "(unknown)";
-
-  if (!profile?.timezone || !profile?.ui_lang) {
-    const wantLang = (uiLangEl.value === "auto") ? browserLang2() : uiLangEl.value;
-    await supabase.rpc("set_profile_prefs", { _ui_lang: wantLang, _timezone: tz });
-  }
-}
-
-if (role !== "admin") addMedSectionEl.style.display = "none";
-
-/* ---------------- UI lang change ---------------- */
-
-uiLangEl.onchange = async () => {
-  const tz = detectTimezone() || "";
-  const wantLang = (uiLangEl.value === "auto") ? browserLang2() : uiLangEl.value;
-
-  T = pickT(wantLang.slice(0,2));
-  applyTexts();
-
-  const { error } = await supabase.rpc("set_profile_prefs", { _ui_lang: wantLang, _timezone: tz });
-  if (error) alert("Cannot save preferences: " + error.message);
-
-  await loadMeds();
-  await loadToday();
-  await loadHistory();
 };
 
-/* ---------------- WHOAMI (debug) ---------------- */
+updateModeUI(mode);
 
-document.getElementById("whoami").onclick = async () => {
-  const { data, error } = await supabase.rpc("debug_whoami");
-  console.log("WHOAMI:", data, error);
-  if (error) return alert(T.whoami_error + error.message);
-  alert(JSON.stringify(data));
+await loadMeds();
+await loadToday();
+await loadHistory();
+await loadTeamMembers();
+
+}
+
+async function loadTeamMembers(){
+
+if(!selectedPatientId){
+teamMembersListEl.textContent="";
+return;
+}
+
+const {data,error}=await supabase
+.from("patient_partners")
+.select("partner_email")
+.eq("patient_id",selectedPatientId);
+
+if(error){
+teamMembersListEl.textContent=error.message;
+return;
+}
+
+if(!data||data.length===0){
+teamMembersListEl.textContent="No team members";
+return;
+}
+
+teamMembersListEl.textContent=
+"Team members: "+
+data.map(x=>x.partner_email).join(", ");
+
+}
+
+document.getElementById("add-team-member").onclick=async()=>{
+
+if(!selectedPatientId){
+teamEmailStatusEl.textContent="Select patient first";
+return;
+}
+
+const email=teamEmailEl.value.trim().toLowerCase();
+
+if(!email){
+teamEmailStatusEl.textContent="Enter email";
+return;
+}
+
+const {error}=await supabase
+.from("patient_partners")
+.upsert([
+{patient_id:selectedPatientId,partner_email:email}
+],{onConflict:"patient_id,partner_email"});
+
+if(error){
+teamEmailStatusEl.textContent=error.message;
+return;
+}
+
+await supabase
+.from("patient_partner_invites")
+.upsert([
+{
+patient_id:selectedPatientId,
+invited_email:email,
+status:"pending"
+}
+],{onConflict:"patient_id,invited_email"});
+
+teamEmailEl.value="";
+teamEmailStatusEl.textContent="Team member added";
+
+await loadTeamMembers();
+
 };
 
-/* ---------------- PATIENTS ---------------- */
+async function loadMeds(){
 
-async function fetchPatients() {
-  errEl.textContent = "";
-  const { data, error } = await supabase
-    .from("patients")
-    .select("id, display_name, monitoring_mode, created_at")
-    .order("created_at", { ascending: false });
+medsEl.innerHTML="";
 
-  if (error) {
-    errEl.textContent = "PATIENTS ERROR: " + error.message;
-    return [];
-  }
-  return data || [];
+if(!selectedPatientId)return;
+
+const {data}=await supabase
+.from("medications")
+.select("*")
+.eq("patient_id",selectedPatientId);
+
+data.forEach(m=>{
+
+const li=document.createElement("li");
+li.textContent=m.name+" — "+m.dose;
+medsEl.appendChild(li);
+
+});
+
 }
 
-async function renderPatientsList(patients) {
-  patientsEl.innerHTML = "";
-  if (!patients || patients.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = T.no_patients;
-    patientsEl.appendChild(li);
-    return;
-  }
+async function loadToday(){
 
-  patients.forEach((p) => {
-    const li = document.createElement("li");
-    li.textContent = p.display_name + " — Mode: " + (p.monitoring_mode || "standard") + " [" + p.id.slice(0, 8) + "]";
-    li.style.cursor = "pointer";
-    li.style.padding = "6px 8px";
-    li.style.border = "1px solid #ddd";
-    li.style.margin = "6px 0";
-    li.style.borderRadius = "6px";
+todayEl.innerHTML="";
 
-    li.onclick = async () => {
-      await selectPatient(p.id, p.display_name, p.monitoring_mode);
-    };
+if(!selectedPatientId)return;
 
-    patientsEl.appendChild(li);
-  });
+const {data}=await supabase
+.from("medication_logs")
+.select("*")
+.eq("patient_id",selectedPatientId);
+
+data.forEach(r=>{
+
+const div=document.createElement("div");
+div.textContent=r.status+" "+r.scheduled_at;
+todayEl.appendChild(div);
+
+});
+
 }
 
-async function selectPatient(patientId, displayName, monitoringMode = "standard") {
-  const mode = monitoringMode || "standard";
+async function loadHistory(){
 
-  selectedPatientId = patientId;
-  selectedMonitoringMode = mode;
+historyEl.innerHTML="";
 
-  teamEmailEl.value = "";
-  teamEmailStatusEl.textContent = "";
-  teamMembersListEl.textContent = "";
+if(!selectedPatientId)return;
 
-  updateModeUI(mode);
+const {data}=await supabase
+.from("medication_logs")
+.select("*")
+.eq("patient_id",selectedPatientId)
+.order("scheduled_at",{ascending:false})
+.limit(50);
 
-  selectedEl.innerHTML =
-    `${T.selected_prefix} ${displayName} (${patientId})` +
-    `<br><br>` +
-    `Monitoring Mode: <select id="mode_select">` +
-    `<option value="standard">Standard</option>` +
-    `<option value="team">Team</option>` +
-    `</select>`;
+data.forEach(r=>{
 
-  const modeSelect = document.getElementById("mode_select");
-  modeSelect.value = (mode === "team") ? "team" : "standard";
+const div=document.createElement("div");
+div.textContent=r.status+" "+r.scheduled_at;
+historyEl.appendChild(div);
 
-  modeSelect.onchange = async () => {
-    const newMode = modeSelect.value;
-    selectedMonitoringMode = newMode;
+});
 
-    const { error } = await supabase
-      .from("patients")
-      .update({ monitoring_mode: newMode })
-      .eq("id", patientId);
-
-    if (error) {
-      alert("Cannot update mode: " + error.message);
-      return;
-    }
-
-    cachedPatients = cachedPatients.map((p) =>
-      p.id === patientId ? { ...p, monitoring_mode: newMode } : p
-    );
-
-    await renderPatientsList(cachedPatients);
-    updateModeUI(newMode);
-    await selectPatient(patientId, displayName, newMode);
-  };
-
-  await loadMeds();
-  await loadToday();
-  await loadHistory();
-  await loadTeamMembers();
 }
 
-/* ---------------- MEDS (with admin edit) ---------------- */
+document.getElementById("addMed").onclick=async()=>{
 
-async function loadMeds() {
-  medsEl.innerHTML = "";
+const name=document.getElementById("medName").value;
+const dose=document.getElementById("medDose").value;
+const schedule=document.getElementById("medScheduleLegacy").value;
 
-  if (!selectedPatientId) {
-    const li = document.createElement("li");
-    li.textContent = T.select_patient_first;
-    medsEl.appendChild(li);
-    return;
-  }
+await supabase.from("medications").insert({
+patient_id:selectedPatientId,
+name,
+dose,
+schedule
+});
 
-  const { data, error } = await supabase
-    .from("medications")
-    .select("id, name, name_lang, dose, schedule, created_at")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
+await loadMeds();
 
-  if (error) {
-    const li = document.createElement("li");
-    li.textContent = "MEDS ERROR: " + error.message;
-    medsEl.appendChild(li);
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "(no medications for this patient)";
-    medsEl.appendChild(li);
-    return;
-  }
-
-  data.forEach((m) => {
-    const li = document.createElement("li");
-    li.style.marginBottom = "10px";
-
-    const header = document.createElement("div");
-    header.innerHTML = `<span><strong>${m.name}</strong> <span style="color:#666;">[${m.name_lang}]</span> — ${m.dose ?? ""} — ${m.schedule ?? ""}</span>`;
-    li.appendChild(header);
-
-    if (role === "admin") {
-      const btnRow = document.createElement("div");
-      btnRow.style.marginTop = "6px";
-      btnRow.style.display = "flex";
-      btnRow.style.gap = "6px";
-      btnRow.style.flexWrap = "wrap";
-
-      const editBtn = document.createElement("button");
-      editBtn.textContent = T.edit_btn;
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = T.delete_btn;
-
-      btnRow.appendChild(editBtn);
-      btnRow.appendChild(delBtn);
-      li.appendChild(btnRow);
-
-      const editBox = document.createElement("div");
-      editBox.style.display = "none";
-      editBox.style.marginTop = "8px";
-      editBox.style.padding = "8px";
-      editBox.style.border = "1px solid #ddd";
-      editBox.style.borderRadius = "8px";
-
-      editBox.innerHTML = `
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <input data-k="name" style="min-width:240px;" value="${escapeHtml(m.name)}" />
-          <select data-k="name_lang">${renderNameLangOptions(m.name_lang)}</select>
-          <input data-k="dose" style="min-width:140px;" value="${escapeHtml(m.dose ?? "")}" />
-          <input data-k="schedule" style="min-width:220px;" value="${escapeHtml(m.schedule ?? "")}" />
-          <button data-act="save">${T.save_btn}</button>
-          <button data-act="cancel">${T.cancel_btn}</button>
-        </div>
-      `;
-
-      li.appendChild(editBox);
-
-      editBtn.onclick = () => {
-        editBox.style.display = (editBox.style.display === "none") ? "block" : "none";
-      };
-
-      editBox.querySelector('[data-act="cancel"]').onclick = () => {
-        editBox.style.display = "none";
-      };
-
-      editBox.querySelector('[data-act="save"]').onclick = async () => {
-        const name = editBox.querySelector('[data-k="name"]').value.trim();
-        const name_lang = editBox.querySelector('[data-k="name_lang"]').value || "und";
-        const dose = editBox.querySelector('[data-k="dose"]').value.trim();
-        const schedule = editBox.querySelector('[data-k="schedule"]').value.trim();
-
-        if (!name) return alert(T.enter_med_name);
-
-        const { error: updErr } = await supabase
-          .from("medications")
-          .update({ name, name_lang, dose, schedule })
-          .eq("id", m.id);
-
-        if (updErr) return alert(T.cannot_update + updErr.message);
-
-        editBox.style.display = "none";
-        await loadMeds();
-        await loadToday();
-        await loadHistory();
-      };
-
-      delBtn.onclick = async () => {
-        const ok = confirm("Delete this medication?");
-        if (!ok) return;
-
-        const { error: delErr } = await supabase
-          .from("medications")
-          .delete()
-          .eq("id", m.id);
-
-        if (delErr) return alert(T.cannot_delete + delErr.message);
-
-        await loadMeds();
-        await loadToday();
-        await loadHistory();
-      };
-    }
-
-    medsEl.appendChild(li);
-  });
-
-  applyTexts();
-}
-
-function renderNameLangOptions(selected) {
-  const ui = uiLangEl.value === "auto" ? browserLang2() : uiLangEl.value;
-  return LANGS.map(l => {
-    const sel = (l.code === (selected || "und")) ? "selected" : "";
-    const text = l.label[ui] || l.label.en || l.code;
-    return `<option value="${l.code}" ${sel}>${text}</option>`;
-  }).join("");
-}
-
-/* ---------------- TODAY ---------------- */
-
-async function loadToday() {
-  if (!selectedPatientId) {
-    todayEl.innerHTML = "<em>" + T.select_patient_first + "</em>";
-    return;
-  }
-
-  todayEl.innerHTML = T.loading;
-
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const { data: meds, error: medsErr } = await supabase
-    .from("medications")
-    .select("id, name, name_lang, dose")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
-  if (medsErr) return (todayEl.innerHTML = "Today meds error: " + medsErr.message);
-  if (!meds || meds.length === 0) return (todayEl.innerHTML = "(no medications)");
-
-  const medIds = meds.map(m => m.id);
-
-  const { data: times, error: timesErr } = await supabase
-    .from("medication_times")
-    .select("medication_id, time_of_day, is_active")
-    .in("medication_id", medIds)
-    .eq("is_active", true)
-    .order("time_of_day", { ascending: true });
-
-  if (timesErr) return (todayEl.innerHTML = "Today times error: " + timesErr.message);
-
-  const timesByMed = new Map();
-  (times || []).forEach(t => {
-    const arr = timesByMed.get(t.medication_id) || [];
-    arr.push(fmtTimeHHMM(t.time_of_day));
-    timesByMed.set(t.medication_id, arr);
-  });
-
-  const { data: logs, error: logsErr } = await supabase
-    .from("medication_logs")
-    .select("*")
-    .eq("patient_id", selectedPatientId)
-    .gte("scheduled_at", start.toISOString());
-
-  if (logsErr) return (todayEl.innerHTML = "Today logs error: " + logsErr.message);
-
-  todayEl.innerHTML = "";
-
-  meds.forEach((m) => {
-    const slots = timesByMed.get(m.id) || [];
-
-    const container = document.createElement("div");
-    container.style.marginBottom = "12px";
-    container.innerHTML = `<div><strong>${m.name}</strong> <span style="color:#666;">[${m.name_lang}]</span> — ${m.dose ?? ""}</div>`;
-
-    if (slots.length === 0) {
-      const warn = document.createElement("div");
-      warn.style.color = "#b00";
-      warn.textContent = "No time slots configured for this medication.";
-      container.appendChild(warn);
-      container.appendChild(document.createElement("hr"));
-      todayEl.appendChild(container);
-      return;
-    }
-
-    slots.forEach((slot) => {
-      const slotIso = makeTodaySlotIso(slot);
-      const slotMs = new Date(slotIso).getTime();
-
-      const existing = (logs || []).find((l) => {
-        const logMs = new Date(l.scheduled_at).getTime();
-        return l.medication_id === m.id && logMs === slotMs;
-      });
-
-      const statusText = existing ? uiStatusText(existing.status) : T.status_not_marked;
-
-      const row = document.createElement("div");
-      row.style.margin = "6px 0";
-      row.innerHTML = `
-        <div>${T.slot}: ${slot} — ${T.status}: <b>${statusText}</b></div>
-        <button data-act="taken">${T.taken_btn}</button>
-        <button data-act="missed">${T.missed_btn}</button>
-      `;
-
-      row.querySelector('[data-act="taken"]').onclick = () => mark(m.id, "taken", slot);
-      row.querySelector('[data-act="missed"]').onclick = () => mark(m.id, "missed", slot);
-
-      container.appendChild(row);
-    });
-
-    container.appendChild(document.createElement("hr"));
-    todayEl.appendChild(container);
-  });
-
-  applyTexts();
-}
-
-/* ---------------- HISTORY ---------------- */
-
-async function loadHistory() {
-  if (!selectedPatientId) {
-    historyEl.innerHTML = "<em>" + T.select_patient_first + "</em>";
-    return;
-  }
-
-  historyEl.innerHTML = T.loading;
-
-  const since = new Date();
-  since.setDate(since.getDate() - 7);
-  since.setHours(0, 0, 0, 0);
-
-  const { data, error } = await supabase
-    .from("medication_logs")
-    .select("scheduled_at, status, recorded_role")
-    .eq("patient_id", selectedPatientId)
-    .gte("scheduled_at", since.toISOString())
-    .order("scheduled_at", { ascending: false });
-
-  if (error) return (historyEl.innerHTML = "History error: " + error.message);
-
-  if (!data || data.length === 0) {
-    historyEl.innerHTML = T.no_logs;
-    return;
-  }
-
-  historyEl.innerHTML = "";
-  data.forEach((r) => {
-    const row = document.createElement("div");
-    row.style.marginBottom = "6px";
-
-    const d = dateLocalFromIso(r.scheduled_at);
-    const hhmm = hhmmLocalFromIso(r.scheduled_at);
-    const roleLabel = (r.recorded_role === "partner") ? T.role_partner : r.recorded_role;
-
-    row.textContent = `${d} — ${T.slot}: ${hhmm} — ${uiStatusText(r.status)} — ${T.by} ${roleLabel}`;
-    historyEl.appendChild(row);
-  });
-
-  applyTexts();
-}
-
-/* ---------------- MARK (RPC) ---------------- */
-
-async function mark(medId, status, slot) {
-  if (!selectedPatientId) return;
-
-  const slotIso = makeTodaySlotIso(slot);
-
-  const { error } = await supabase.rpc("log_med_intake", {
-    _patient_id: selectedPatientId,
-    _medication_id: medId,
-    _scheduled_at: slotIso,
-    _status: status
-  });
-
-  if (error) return alert(T.rpc_error + error.message);
-
-  await loadToday();
-  await loadHistory();
-}
-
-/* ---------------- TEAM ---------------- */
-
-addTeamMemberBtn.onclick = async () => {
-  if (!selectedPatientId) {
-    teamEmailStatusEl.textContent = "Select patient first";
-    return;
-  }
-
-  const email = (teamEmailEl.value || "").trim().toLowerCase();
-  if (!email) {
-    teamEmailStatusEl.textContent = "Enter team member email";
-    return;
-  }
-
-  const { error: partnerError } = await supabase
-    .from("patient_partners")
-    .upsert(
-      [{ patient_id: selectedPatientId, partner_email: email }],
-      { onConflict: "patient_id,partner_email" }
-    );
-
-  if (partnerError) {
-    teamEmailStatusEl.textContent = "Team link error: " + partnerError.message;
-    return;
-  }
-
-  const { error: inviteError } = await supabase
-    .from("patient_partner_invites")
-    .upsert(
-      [{
-        patient_id: selectedPatientId,
-        invited_email: email,
-        status: "pending"
-      }],
-      { onConflict: "patient_id,invited_email" }
-    );
-
-  if (inviteError) {
-    teamEmailStatusEl.textContent = "Invite save error: " + inviteError.message;
-    return;
-  }
-
-  teamEmailEl.value = "";
-  teamEmailStatusEl.textContent = "Team member added";
-  await loadTeamMembers();
 };
 
-/* ---------------- TEAM LIST ---------------- */
-
-async function loadTeamMembers() {
-  if (!selectedPatientId) {
-    teamMembersListEl.textContent = "";
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from("patient_partners")
-    .select("partner_email")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    teamMembersListEl.textContent = "Team list error: " + error.message;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    teamMembersListEl.textContent = "No team members yet";
-    return;
-  }
-
-  teamMembersListEl.textContent =
-    "Team members: " + data.map(x => x.partner_email).join(", ");
-}
-
-/* ---------------- ADD MED (ADMIN ONLY) ---------------- */
-
-const addBtn = document.getElementById("addMed");
-if (addBtn) {
-  addBtn.onclick = async () => {
-    if (role !== "admin") return;
-    if (!selectedPatientId) return alert(T.select_patient_first);
-
-    const name = document.getElementById("medName").value.trim();
-    const name_lang = document.getElementById("medNameLang").value || "und";
-    const dose = document.getElementById("medDose").value.trim();
-    const schedule = document.getElementById("medScheduleLegacy").value.trim();
-
-    if (!name) return alert(T.enter_med_name);
-
-    const { error } = await supabase.from("medications").insert({
-      patient_id: selectedPatientId,
-      name,
-      name_lang,
-      dose,
-      schedule
-    });
-
-    if (error) return alert("✖ " + T.cannot_add + error.message);
-
-    document.getElementById("medName").value = "";
-    document.getElementById("medDose").value = "";
-    document.getElementById("medScheduleLegacy").value = "";
-    document.getElementById("medNameLang").value = "und";
-
-    await loadMeds();
-    await loadToday();
-    await loadHistory();
-  };
-}
-
-/* ---------------- LOGOUT ---------------- */
-
-document.getElementById("logout").onclick = async () => {
-  await supabase.auth.signOut();
-  window.location.replace("/auth-login.html");
+document.getElementById("logout").onclick=async()=>{
+await supabase.auth.signOut();
+window.location.replace("/auth-login.html");
 };
 
-/* ---------------- INIT ---------------- */
+cachedPatients=await fetchPatients();
+await renderPatientsList(cachedPatients);
 
-cachedPatients = await fetchPatients();
-applyTexts();
-
-if (cachedPatients.length === 1) {
-  const p = cachedPatients[0];
-  patientsSectionEl.style.display = "block";
-  await renderPatientsList(cachedPatients);
-  await selectPatient(p.id, p.display_name, p.monitoring_mode);
-} else {
-  patientsSectionEl.style.display = "block";
-  await renderPatientsList(cachedPatients);
-}
 </script>
 
 </body>
