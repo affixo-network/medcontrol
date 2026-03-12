@@ -1,9 +1,10 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Affixo MedControl</title>
+<meta charset="utf-8">
+<title>Affixo MedControl</title>
 </head>
+
 <body style="font-family:sans-serif;max-width:900px;margin:40px auto;">
 
 <h2>Affixo MedControl — App</h2>
@@ -11,32 +12,31 @@
 <p id="status">Loading...</p>
 
 <div style="margin-bottom:12px;">
-  <button id="logout">Logout</button>
-  <button id="whoami">WhoAmI</button>
+<button id="logout">Logout</button>
+<button id="whoami">WhoAmI</button>
 </div>
 
 <hr>
 
 <div id="patients-section">
-  <h3>People</h3>
-  <p id="selected">(none)</p>
-  <ul id="patients"></ul>
-  <pre id="err" style="white-space:pre-wrap;color:#b00;"></pre>
+<h3>People</h3>
+<p id="selected">(none)</p>
+<ul id="patients"></ul>
+<pre id="err" style="white-space:pre-wrap;color:#b00;"></pre>
 </div>
 
 <hr>
 
-<div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
-  <h3>Team</h3>
-  <p id="team-note" style="margin:0 0 10px 0;">Team mode is active. Multiple people can participate in monitoring.</p>
+<div id="team-box" style="display:none;margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f9f9f9;">
+<h3>Team</h3>
 
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="team-email" placeholder="Team member email">
-    <button id="add-team-member">Add Team Member</button>
-  </div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+<input id="team-email" placeholder="Team member email">
+<button id="add-team-member">Add Team Member</button>
+</div>
 
-  <p id="team-email-status" style="margin-top:8px; color:#555;"></p>
-  <p id="team-members-list" style="margin-top:8px; color:#333;"></p>
+<p id="team-email-status"></p>
+<p id="team-members-list"></p>
 </div>
 
 <h3>Medications</h3>
@@ -51,491 +51,350 @@
 <hr>
 
 <div id="addmed-section">
-  <h3>Add Medication</h3>
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="medName" placeholder="Name">
-    <input id="medDose" placeholder="Dose">
-    <input id="medScheduleLegacy" placeholder="Schedule">
-    <button id="addMed">Add</button>
-  </div>
+<h3>Add Medication</h3>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+<input id="medName" placeholder="Name">
+<input id="medDose" placeholder="Dose">
+<input id="medScheduleLegacy" placeholder="Schedule">
+<button id="addMed">Add</button>
+</div>
+
 </div>
 
 <script type="module">
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const statusEl = document.getElementById("status");
-const patientsEl = document.getElementById("patients");
-const errEl = document.getElementById("err");
-const selectedEl = document.getElementById("selected");
+const supabase = createClient(
+"https://lewdbjjaohqxbirzhrbm.supabase.co",
+"sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ"
+)
 
-const teamBoxEl = document.getElementById("team-box");
-const teamEmailEl = document.getElementById("team-email");
-const teamEmailStatusEl = document.getElementById("team-email-status");
-const teamMembersListEl = document.getElementById("team-members-list");
+const statusEl=document.getElementById("status")
+const patientsEl=document.getElementById("patients")
+const selectedEl=document.getElementById("selected")
+const errEl=document.getElementById("err")
 
-const medsEl = document.getElementById("meds");
-const todayEl = document.getElementById("today-list");
-const historyEl = document.getElementById("history-list");
-const addMedSectionEl = document.getElementById("addmed-section");
+const medsEl=document.getElementById("meds")
+const todayEl=document.getElementById("today-list")
+const historyEl=document.getElementById("history-list")
 
-let selectedPatientId = null;
-let cachedPatients = [];
-let role = "unknown";
+const teamBoxEl=document.getElementById("team-box")
+const teamEmailEl=document.getElementById("team-email")
+const teamEmailStatusEl=document.getElementById("team-email-status")
+const teamMembersListEl=document.getElementById("team-members-list")
 
-function updateModeUI(mode) {
-  teamBoxEl.style.display = mode === "team" ? "block" : "none";
+const addMedSectionEl=document.getElementById("addmed-section")
+
+let selectedPatientId=null
+let role="unknown"
+let cachedPatients=[]
+
+function fmtTimeHHMM(t){
+if(!t)return"09:00"
+return String(t).slice(0,5)
 }
 
-function fmtTimeHHMM(t) {
-  if (!t) return "09:00";
-  const s = String(t);
-  return s.length >= 5 ? s.slice(0, 5) : s;
+function makeTodaySlotIso(t){
+const [h,m]=t.split(":").map(x=>parseInt(x))
+const d=new Date()
+d.setHours(h||9,m||0,0,0)
+return d.toISOString()
 }
 
-function makeTodaySlotIso(timeStr) {
-  const [hh, mm] = (timeStr || "09:00").split(":").map(x => parseInt(x, 10));
-  const d = new Date();
-  d.setHours(Number.isFinite(hh) ? hh : 9, Number.isFinite(mm) ? mm : 0, 0, 0);
-  return d.toISOString();
+async function fetchPatients(){
+
+const{data,error}=await supabase
+.from("patients")
+.select("id,display_name,monitoring_mode,created_at")
+.order("created_at",{ascending:false})
+
+if(error){
+errEl.textContent=error.message
+return[]
 }
 
-async function fetchPatients() {
-  errEl.textContent = "";
+return data||[]
 
-  const { data, error } = await supabase
-    .from("patients")
-    .select("id, display_name, monitoring_mode, created_at")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    errEl.textContent = "PATIENTS ERROR: " + error.message;
-    return [];
-  }
-
-  return data || [];
 }
 
-async function renderPatientsList(patients) {
-  patientsEl.innerHTML = "";
+async function renderPatientsList(list){
 
-  if (!patients || patients.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "(no patients visible for this user)";
-    patientsEl.appendChild(li);
-    return;
-  }
+patientsEl.innerHTML=""
 
-  patients.forEach((p) => {
-    const li = document.createElement("li");
-    li.textContent = `${p.display_name} — ${p.monitoring_mode || "standard"}`;
-    li.style.cursor = "pointer";
-    li.style.padding = "6px 8px";
-    li.style.border = "1px solid #ddd";
-    li.style.margin = "6px 0";
-    li.style.borderRadius = "6px";
-
-    li.onclick = async () => {
-      await selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
-    };
-
-    patientsEl.appendChild(li);
-  });
+if(list.length===0){
+patientsEl.innerHTML="<li>(no patients)</li>"
+return
 }
 
-async function loadTeamMembers() {
-  if (!selectedPatientId) {
-    teamMembersListEl.textContent = "";
-    return;
-  }
+list.forEach(p=>{
 
-  const { data, error } = await supabase
-    .from("patient_partners")
-    .select("partner_email")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
+const li=document.createElement("li")
 
-  if (error) {
-    teamMembersListEl.textContent = "Team list error: " + error.message;
-    return;
-  }
+li.textContent=p.display_name+" — "+(p.monitoring_mode||"standard")
 
-  if (!data || data.length === 0) {
-    teamMembersListEl.textContent = "No team members yet";
-    return;
-  }
+li.style.cursor="pointer"
+li.style.padding="6px"
+li.style.border="1px solid #ddd"
+li.style.margin="6px 0"
+li.style.borderRadius="6px"
 
-  teamMembersListEl.textContent =
-    "Team members: " + data.map(x => x.partner_email).join(", ");
+li.onclick=()=>{
+selectPatient(p.id,p.display_name,p.monitoring_mode)
 }
 
-async function loadMeds() {
-  medsEl.innerHTML = "";
+patientsEl.appendChild(li)
 
-  if (!selectedPatientId) return;
+})
 
-  const { data, error } = await supabase
-    .from("medications")
-    .select("id, name, dose")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    medsEl.innerHTML = `<li>MEDS ERROR: ${error.message}</li>`;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    medsEl.innerHTML = "<li>(no medications for this patient)</li>";
-    return;
-  }
-
-  data.forEach((m) => {
-    const li = document.createElement("li");
-    li.textContent = `${m.name} — ${m.dose || ""}`;
-    medsEl.appendChild(li);
-  });
 }
 
-async function mark(medId, status, slot) {
-  if (!selectedPatientId) return;
+async function loadTeamMembers(){
 
-  const slotIso = makeTodaySlotIso(slot);
+if(!selectedPatientId)return
 
-  const { error } = await supabase.rpc("log_med_intake", {
-    _patient_id: selectedPatientId,
-    _medication_id: medId,
-    _scheduled_at: slotIso,
-    _status: status
-  });
+const{data,error}=await supabase
+.from("patient_partners")
+.select("partner_email")
+.eq("patient_id",selectedPatientId)
 
-  if (error) {
-    alert("RPC error: " + error.message);
-    return;
-  }
-
-  await loadToday();
-  await loadHistory();
+if(error){
+teamMembersListEl.textContent="error"
+return
 }
 
-async function loadToday() {
-  todayEl.innerHTML = "";
+teamMembersListEl.textContent=
+"Team members: "+data.map(x=>x.partner_email).join(", ")
 
-  if (!selectedPatientId) return;
-
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  const { data: meds, error: medsErr } = await supabase
-    .from("medications")
-    .select("id, name, dose")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
-  if (medsErr) {
-    todayEl.textContent = "Today meds error: " + medsErr.message;
-    return;
-  }
-
-  if (!meds || meds.length === 0) {
-    todayEl.textContent = "(no medications)";
-    return;
-  }
-
-  const medIds = meds.map(m => m.id);
-
-  const { data: times, error: timesErr } = await supabase
-    .from("medication_times")
-    .select("medication_id, time_of_day, is_active")
-    .in("medication_id", medIds)
-    .eq("is_active", true)
-    .order("time_of_day", { ascending: true });
-
-  if (timesErr) {
-    todayEl.textContent = "Today times error: " + timesErr.message;
-    return;
-  }
-
-  const timesByMed = new Map();
-  (times || []).forEach(t => {
-    const arr = timesByMed.get(t.medication_id) || [];
-    arr.push(fmtTimeHHMM(t.time_of_day));
-    timesByMed.set(t.medication_id, arr);
-  });
-
-  const { data: logs, error: logsErr } = await supabase
-    .from("medication_logs")
-    .select("medication_id, scheduled_at, status")
-    .eq("patient_id", selectedPatientId)
-    .gte("scheduled_at", start.toISOString())
-    .lte("scheduled_at", end.toISOString());
-
-  if (logsErr) {
-    todayEl.textContent = "Today logs error: " + logsErr.message;
-    return;
-  }
-
-  todayEl.innerHTML = "";
-
-  meds.forEach((m) => {
-    const slots = timesByMed.get(m.id) || [];
-
-    const container = document.createElement("div");
-    container.style.marginBottom = "12px";
-    container.innerHTML = `<div><strong>${m.name}</strong> — ${m.dose || ""}</div>`;
-
-    if (slots.length === 0) {
-      const warn = document.createElement("div");
-      warn.textContent = "No time slots configured for this medication.";
-      warn.style.color = "#b00";
-      container.appendChild(warn);
-      todayEl.appendChild(container);
-      return;
-    }
-
-    slots.forEach((slot) => {
-      const slotIso = makeTodaySlotIso(slot);
-      const slotMs = new Date(slotIso).getTime();
-
-      const existing = (logs || []).find((l) => {
-        const logMs = new Date(l.scheduled_at).getTime();
-        return l.medication_id === m.id && logMs === slotMs;
-      });
-
-      const row = document.createElement("div");
-      row.style.margin = "6px 0";
-
-      const statusText = existing ? existing.status : "not marked";
-
-      row.innerHTML = `
-        <div>${slot} — <b>${statusText}</b></div>
-        <button data-act="taken">Taken</button>
-        <button data-act="missed">Missed</button>
-      `;
-
-      row.querySelector('[data-act="taken"]').onclick = () => mark(m.id, "taken", slot);
-      row.querySelector('[data-act="missed"]').onclick = () => mark(m.id, "missed", slot);
-
-      container.appendChild(row);
-    });
-
-    todayEl.appendChild(container);
-  });
 }
 
-async function loadHistory() {
-  historyEl.innerHTML = "";
+async function loadMeds(){
 
-  if (!selectedPatientId) return;
+if(!selectedPatientId)return
 
-  const { data, error } = await supabase
-    .from("medication_logs")
-    .select("status, scheduled_at, recorded_role")
-    .eq("patient_id", selectedPatientId)
-    .order("scheduled_at", { ascending: false })
-    .limit(50);
+const{data,error}=await supabase
+.from("medications")
+.select("id,name,dose")
+.eq("patient_id",selectedPatientId)
 
-  if (error) {
-    historyEl.textContent = "History error: " + error.message;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    historyEl.textContent = "(no history)";
-    return;
-  }
-
-  data.forEach((r) => {
-    const div = document.createElement("div");
-    div.textContent = `${r.status} ${r.scheduled_at}${r.recorded_role ? " — " + r.recorded_role : ""}`;
-    historyEl.appendChild(div);
-  });
+if(error){
+medsEl.innerHTML="<li>"+error.message+"</li>"
+return
 }
 
-async function selectPatient(patientId, displayName, monitoringMode = "standard") {
-  selectedPatientId = patientId;
+medsEl.innerHTML=""
 
-  selectedEl.innerHTML =
-    `${displayName}<br><br>` +
-    `Monitoring Mode: <select id="mode_select">` +
-    `<option value="standard">Standard</option>` +
-    `<option value="team">Team</option>` +
-    `</select>`;
+data.forEach(m=>{
+const li=document.createElement("li")
+li.textContent=m.name+" — "+(m.dose||"")
+medsEl.appendChild(li)
+})
 
-  const modeSelect = document.getElementById("mode_select");
-  modeSelect.value = monitoringMode === "team" ? "team" : "standard";
-
-  updateModeUI(modeSelect.value);
-
-  modeSelect.onchange = async () => {
-    const newMode = modeSelect.value;
-
-    const { error } = await supabase
-      .from("patients")
-      .update({ monitoring_mode: newMode })
-      .eq("id", patientId);
-
-    if (error) {
-      alert("Cannot update mode: " + error.message);
-      return;
-    }
-
-    cachedPatients = cachedPatients.map((p) =>
-      p.id === patientId ? { ...p, monitoring_mode: newMode } : p
-    );
-
-    await renderPatientsList(cachedPatients);
-    updateModeUI(newMode);
-  };
-
-  await loadMeds();
-  await loadToday();
-  await loadHistory();
-  await loadTeamMembers();
 }
 
-document.getElementById("add-team-member").onclick = async () => {
-  if (!selectedPatientId) {
-    teamEmailStatusEl.textContent = "Select patient first";
-    return;
-  }
+async function mark(medId,status,slot){
 
-  const email = (teamEmailEl.value || "").trim().toLowerCase();
-  if (!email) {
-    teamEmailStatusEl.textContent = "Enter team member email";
-    return;
-  }
+const iso=makeTodaySlotIso(slot)
 
-  const { error: linkError } = await supabase
-    .from("patient_partners")
-    .upsert(
-      [{ patient_id: selectedPatientId, partner_email: email }],
-      { onConflict: "patient_id,partner_email" }
-    );
+await supabase.rpc("log_med_intake",{
+_patient_id:selectedPatientId,
+_medication_id:medId,
+_scheduled_at:iso,
+_status:status
+})
 
-  if (linkError) {
-    teamEmailStatusEl.textContent = "Team link error: " + linkError.message;
-    return;
-  }
+loadToday()
+loadHistory()
 
-  const { error: inviteError } = await supabase
-    .from("patient_partner_invites")
-    .upsert(
-      [{
-        patient_id: selectedPatientId,
-        invited_email: email,
-        status: "pending"
-      }],
-      { onConflict: "patient_id,invited_email" }
-    );
-
-  if (inviteError) {
-    teamEmailStatusEl.textContent = "Invite save error: " + inviteError.message;
-    return;
-  }
-
-  teamEmailEl.value = "";
-  teamEmailStatusEl.textContent = "Team member added";
-  await loadTeamMembers();
-};
-
-document.getElementById("addMed").onclick = async () => {
-  if (role !== "admin") return;
-  if (!selectedPatientId) {
-    alert("Select patient first");
-    return;
-  }
-
-  const name = document.getElementById("medName").value.trim();
-  const dose = document.getElementById("medDose").value.trim();
-  const schedule = document.getElementById("medScheduleLegacy").value.trim();
-
-  if (!name) {
-    alert("Enter medication name");
-    return;
-  }
-
-  const { error } = await supabase.from("medications").insert({
-    patient_id: selectedPatientId,
-    name,
-    dose,
-    schedule
-  });
-
-  if (error) {
-    alert("Cannot add medication: " + error.message);
-    return;
-  }
-
-  document.getElementById("medName").value = "";
-  document.getElementById("medDose").value = "";
-  document.getElementById("medScheduleLegacy").value = "";
-
-  await loadMeds();
-  await loadToday();
-};
-
-document.getElementById("whoami").onclick = async () => {
-  const { data, error } = await supabase.rpc("debug_whoami");
-  if (error) {
-    alert(error.message);
-    return;
-  }
-  alert(JSON.stringify(data));
-};
-
-document.getElementById("logout").onclick = async () => {
-  await supabase.auth.signOut();
-  window.location.replace("/auth-login.html");
-};
-
-async function init() {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-
-    if (!sessionData?.session) {
-      statusEl.textContent = "No session, redirecting to login…";
-      window.location.replace("/auth-login.html");
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("email, role")
-      .maybeSingle();
-
-    if (profileError) {
-      statusEl.textContent = "Profile load error: " + profileError.message;
-      return;
-    }
-
-    const email = profile?.email || "(no email)";
-    role = profile?.role || "unknown";
-    statusEl.textContent = `Logged in as ${email} (${role})`;
-
-    if (role !== "admin") {
-      addMedSectionEl.style.display = "none";
-    }
-
-    cachedPatients = await fetchPatients();
-    await renderPatientsList(cachedPatients);
-
-    if (cachedPatients.length > 0) {
-      const p = cachedPatients[0];
-      await selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
-    }
-  } catch (e) {
-    statusEl.textContent = "Init error: " + (e?.message || String(e));
-  }
 }
 
-await init();
+async function loadToday(){
+
+if(!selectedPatientId)return
+
+todayEl.innerHTML=""
+
+const{data:meds}=await supabase
+.from("medications")
+.select("id,name,dose")
+.eq("patient_id",selectedPatientId)
+
+if(!meds)return
+
+const medIds=meds.map(m=>m.id)
+
+const{data:times}=await supabase
+.from("medication_times")
+.select("medication_id,time_of_day")
+.in("medication_id",medIds)
+
+const map=new Map()
+
+times.forEach(t=>{
+const arr=map.get(t.medication_id)||[]
+arr.push(fmtTimeHHMM(t.time_of_day))
+map.set(t.medication_id,arr)
+})
+
+const{data:logs}=await supabase
+.from("medication_logs")
+.select("medication_id,scheduled_at,status")
+.eq("patient_id",selectedPatientId)
+
+meds.forEach(m=>{
+
+const box=document.createElement("div")
+box.innerHTML="<b>"+m.name+"</b> — "+(m.dose||"")
+
+const slots=map.get(m.id)||[]
+
+slots.forEach(slot=>{
+
+const row=document.createElement("div")
+
+const iso=makeTodaySlotIso(slot)
+const log=logs.find(l=>l.scheduled_at===iso)
+
+row.innerHTML=slot+" — <b>"+(log?log.status:"not marked")+"</b>"
+
+const b1=document.createElement("button")
+b1.textContent="Taken"
+b1.onclick=()=>mark(m.id,"taken",slot)
+
+const b2=document.createElement("button")
+b2.textContent="Missed"
+b2.onclick=()=>mark(m.id,"missed",slot)
+
+row.appendChild(b1)
+row.appendChild(b2)
+
+box.appendChild(row)
+
+})
+
+todayEl.appendChild(box)
+
+})
+
+}
+
+async function loadHistory(){
+
+const{data}=await supabase
+.from("medication_logs")
+.select("status,scheduled_at,recorded_role")
+.eq("patient_id",selectedPatientId)
+.order("scheduled_at",{ascending:false})
+.limit(50)
+
+historyEl.innerHTML=""
+
+data.forEach(r=>{
+
+const d=document.createElement("div")
+d.textContent=r.status+" "+r.scheduled_at+" — "+r.recorded_role
+historyEl.appendChild(d)
+
+})
+
+}
+
+async function selectPatient(id,name,mode){
+
+selectedPatientId=id
+
+selectedEl.innerHTML=name
+
+teamBoxEl.style.display=mode==="team"?"block":"none"
+
+loadMeds()
+loadToday()
+loadHistory()
+loadTeamMembers()
+
+}
+
+document.getElementById("add-team-member").onclick=async()=>{
+
+const email=teamEmailEl.value.trim()
+
+if(!email)return
+
+await supabase
+.from("patient_partners")
+.upsert({patient_id:selectedPatientId,partner_email:email})
+
+teamEmailEl.value=""
+teamEmailStatusEl.textContent="added"
+
+loadTeamMembers()
+
+}
+
+document.getElementById("addMed").onclick=async()=>{
+
+if(role!=="admin")return
+
+const name=document.getElementById("medName").value
+const dose=document.getElementById("medDose").value
+const schedule=document.getElementById("medScheduleLegacy").value
+
+await supabase.from("medications").insert({
+patient_id:selectedPatientId,
+name,
+dose,
+schedule
+})
+
+loadMeds()
+loadToday()
+
+}
+
+document.getElementById("logout").onclick=async()=>{
+await supabase.auth.signOut()
+location.href="/auth-login.html"
+}
+
+document.getElementById("whoami").onclick=async()=>{
+const{data}=await supabase.rpc("debug_whoami")
+alert(JSON.stringify(data))
+}
+
+async function init(){
+
+const{data:session}=await supabase.auth.getSession()
+
+if(!session.session){
+location.href="/auth-login.html"
+return
+}
+
+const{data:profile}=await supabase
+.from("profiles")
+.select("email,role")
+.maybeSingle()
+
+role=profile.role
+
+statusEl.textContent="Logged in as "+profile.email+" ("+role+")"
+
+if(role!=="admin")addMedSectionEl.style.display="none"
+
+cachedPatients=await fetchPatients()
+
+renderPatientsList(cachedPatients)
+
+if(cachedPatients.length){
+const p=cachedPatients[0]
+selectPatient(p.id,p.display_name,p.monitoring_mode)
+}
+
+}
+
+init()
+
 </script>
 
 </body>
