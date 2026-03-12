@@ -149,54 +149,6 @@ async function renderPatientsList(patients) {
 async function loadTeamMembers() {
   if (!selectedPatientId) {
     teamMembersListEl.textContent = "";
-    teamInviteStatusEl.textContent = "";
-    return;
-  }
-
-  const { data: members, error: membersError } = await supabase
-    .from("patient_partners")
-    .select("partner_email")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
-  if (membersError) {
-    teamMembersListEl.textContent = "Team list error: " + membersError.message;
-    teamInviteStatusEl.textContent = "";
-    return;
-  }
-
-  if (!members || members.length === 0) {
-    teamMembersListEl.textContent = "No team members yet";
-    teamInviteStatusEl.textContent = "Invite status: none";
-    return;
-  }
-
-  teamMembersListEl.textContent =
-    "Team members: " + members.map(x => x.partner_email).join(", ");
-
-  const { data: invites, error: invitesError } = await supabase
-    .from("patient_partner_invites")
-    .select("invited_email, status")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (invitesError) {
-    teamInviteStatusEl.textContent = "Invite status error: " + invitesError.message;
-    return;
-  }
-
-  if (!invites || invites.length === 0) {
-    teamInviteStatusEl.textContent = "Invite status: none";
-    return;
-  }
-
-  const row = invites[0];
-  teamInviteStatusEl.textContent =
-    "Invite status: " + row.status + " (" + row.invited_email + ")";
-}
-  if (!selectedPatientId) {
-    teamMembersListEl.textContent = "";
     return;
   }
 
@@ -401,7 +353,7 @@ async function loadHistory() {
 
   data.forEach((r) => {
     const div = document.createElement("div");
-    div.textContent = `${r.status} ${r.scheduled_at} ${r.recorded_role ? "— " + r.recorded_role : ""}`;
+    div.textContent = `${r.status} ${r.scheduled_at}${r.recorded_role ? " — " + r.recorded_role : ""}`;
     historyEl.appendChild(div);
   });
 }
