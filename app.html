@@ -44,6 +44,7 @@
 
   <p id="team-email-status" style="margin-top:8px; color:#555;"></p>
   <p id="team-members-list" style="margin-top:8px; color:#333;"></p>
+  <p id="team-invite-status" style="margin-top:8px; color:#555;"></p>
 </div>
 
 <h3>Today</h3>
@@ -56,7 +57,6 @@
 
 <div id="addmed-section">
   <h3>Add Medication</h3>
-
   <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
     <input id="medName" placeholder="Name">
     <input id="medDose" placeholder="Dose">
@@ -88,11 +88,13 @@ const teamEmailEl = document.getElementById("team-email");
 const addTeamMemberBtn = document.getElementById("add-team-member");
 const teamEmailStatusEl = document.getElementById("team-email-status");
 const teamMembersListEl = document.getElementById("team-members-list");
+const teamInviteStatusEl = document.getElementById("team-invite-status");
 
 let selectedPatientId = null;
 let cachedPatients = [];
 let role = "unknown";
 let profileEmail = "";
+let currentUserId = null;
 
 /* ---------- helpers ---------- */
 
@@ -126,6 +128,14 @@ function detectTimezone() {
   }
 }
 
+function fmtLocalDateTime(iso) {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return String(iso || "");
+  }
+}
+
 /* ---------- auth/profile ---------- */
 
 async function loadProfile() {
@@ -136,6 +146,10 @@ async function loadProfile() {
     window.location.replace("/auth-login.html");
     throw new Error("No session");
   }
+
+  currentUserId = sessionData.session.user.id;
+
+  const detectedTz = detectTimezone();
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -149,13 +163,31 @@ async function loadProfile() {
 
   profileEmail = profile?.email || "(no email)";
   role = profile?.role || "unknown";
-  statusEl.textContent = `Logged in as ${profileEmail} (${role})`;
 
-  const tz = (profile?.timezone || "").trim() || detectTimezone() || "(unknown)";
-  tzLabelEl.textContent = tz;
+  let timezone = (profile?.timezone || "").trim();
+
+  if (!timezone && detectedTz && currentUserId) {
+    const { error: tzSaveError } = await supabase
+      .from("profiles")
+      .update({ timezone: detectedTz })
+      .eq("id", currentUserId);
+
+    if (!tzSaveError) {
+      timezone = detectedTz;
+    }
+  }
+
+  tzLabelEl.textContent = timezone || detectedTz || "(unknown)";
+  statusEl.textContent = `Logged in as ${profileEmail} (${role})`;
 
   if (role !== "admin") {
     addMedSectionEl.style.display = "none";
+  }
+
+  try {
+    await supabase.rpc("accept_team_invites_for_me");
+  } catch (_) {
+    /* ignore */
   }
 }
 
@@ -418,7 +450,7 @@ async function loadHistory() {
 
   const { data, error } = await supabase
     .from("medication_logs")
-    .select("status, scheduled_at, recorded_role")
+    .select("status, scheduled_at, recorded_role, recorded_by")
     .eq("patient_id", selectedPatientId)
     .order("scheduled_at", { ascending: false })
     .limit(50);
@@ -433,9 +465,27 @@ async function loadHistory() {
     return;
   }
 
+  const userIds = [...new Set((data || []).map(x => x.recorded_by).filter(Boolean))];
+  const emailById = new Map();
+
+  if (userIds.length > 0) {
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, email")
+      .in("id", userIds);
+
+    (profilesData || []).forEach((p) => {
+      emailById.set(p.id, p.email || "");
+    });
+  }
+
   data.forEach((r) => {
     const div = document.createElement("div");
-    div.textContent = `${r.status} ${r.scheduled_at}${r.recorded_role ? " — " + r.recorded_role : ""}`;
+    const localTime = fmtLocalDateTime(r.scheduled_at);
+    const email = r.recorded_by ? (emailById.get(r.recorded_by) || "") : "";
+    const rolePart = r.recorded_role ? ` — ${r.recorded_role}` : "";
+    const emailPart = email ? ` — ${email}` : "";
+    div.textContent = `${r.status} ${localTime}${rolePart}${emailPart}`;
     historyEl.appendChild(div);
   });
 }
@@ -444,27 +494,63 @@ async function loadHistory() {
 
 async function loadTeamMembers() {
   teamMembersListEl.textContent = "";
+  teamInviteStatusEl.textContent = "";
 
   if (!selectedPatientId) return;
 
-  const { data, error } = await supabase
+  const { data: members, error: membersError } = await supabase
     .from("patient_partners")
     .select("partner_email")
     .eq("patient_id", selectedPatientId)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    teamMembersListEl.textContent = "Team list error: " + error.message;
+  if (membersError) {
+    teamMembersListEl.textContent = "Team list error: " + membersError.message;
     return;
   }
 
-  if (!data || data.length === 0) {
+  if (!members || members.length === 0) {
     teamMembersListEl.textContent = "No team members yet";
+    teamInviteStatusEl.textContent = "Invite status: none";
     return;
   }
 
   teamMembersListEl.textContent =
-    "Team members: " + data.map(x => x.partner_email).join(", ");
+    "Team members: " + members.map(x => x.partner_email).join(", ");
+
+  const { data: invites, error: invitesError } = await supabase
+    .from("patient_partner_invites")
+    .select("invited_email, status")
+    .eq("patient_id", selectedPatientId)
+    .order("created_at", { ascending: false });
+
+  if (invitesError) {
+    teamInviteStatusEl.textContent = "Invite status error: " + invitesError.message;
+    return;
+  }
+
+  if (!invites || invites.length === 0) {
+    teamInviteStatusEl.textContent = "Invite status: none";
+    return;
+  }
+
+  const latestByEmail = new Map();
+
+  invites.forEach((row) => {
+    const email = (row.invited_email || "").toLowerCase();
+    if (!latestByEmail.has(email)) {
+      latestByEmail.set(email, row.status || "pending");
+    }
+  });
+
+  const statusLines = members.map((m) => {
+    const email = (m.partner_email || "").toLowerCase();
+    const status = latestByEmail.get(email) || "accepted";
+    return `${email} — ${status}`;
+  });
+
+  teamInviteStatusEl.textContent =
+    "Invite status: " + statusLines.join(", ");
 }
 
 addTeamMemberBtn.onclick = async () => {
@@ -588,5 +674,5 @@ async function init() {
 await init();
 </script>
 
-  </body>
+</body>
 </html>
