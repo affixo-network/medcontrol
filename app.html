@@ -14,7 +14,10 @@
 <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
   <button id="logout">Logout</button>
   <button id="whoami">WhoAmI</button>
+  <a href="/demo.html"><button>Demo</button></a>
   <a href="/settings.html"><button>Settings</button></a>
+  <span style="margin-left:10px;">Timezone:</span>
+  <span id="tzLabel" style="color:#555;"></span>
 </div>
 
 <hr>
@@ -77,6 +80,7 @@ const historyEl = document.getElementById("history-list");
 const errEl = document.getElementById("err");
 const selectedEl = document.getElementById("selected");
 const addMedSectionEl = document.getElementById("addmed-section");
+const tzLabelEl = document.getElementById("tzLabel");
 
 const teamBoxEl = document.getElementById("team-box");
 const teamNoteEl = document.getElementById("team-note");
@@ -114,6 +118,14 @@ function makeTodaySlotIso(timeStr) {
   return d.toISOString();
 }
 
+function detectTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+}
+
 /* ---------- auth/profile ---------- */
 
 async function loadProfile() {
@@ -127,7 +139,7 @@ async function loadProfile() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("email, role")
+    .select("email, role, timezone")
     .maybeSingle();
 
   if (profileError) {
@@ -138,6 +150,9 @@ async function loadProfile() {
   profileEmail = profile?.email || "(no email)";
   role = profile?.role || "unknown";
   statusEl.textContent = `Logged in as ${profileEmail} (${role})`;
+
+  const tz = (profile?.timezone || "").trim() || detectTimezone() || "(unknown)";
+  tzLabelEl.textContent = tz;
 
   if (role !== "admin") {
     addMedSectionEl.style.display = "none";
@@ -573,5 +588,5 @@ async function init() {
 await init();
 </script>
 
-</body>
+  </body>
 </html>
