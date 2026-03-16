@@ -3,122 +3,79 @@
 <head>
 <meta charset="utf-8">
 <title>MedControl Demo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
 
-<body style="font-family:sans-serif;max-width:900px;margin:40px auto;">
+<body style="font-family:sans-serif;max-width:900px;margin:40px auto;line-height:1.5;">
 
-<h2>MedControl — Demo</h2>
+<h1>MedControl Demo</h1>
 
-<p>Try how medication control works.</p>
-
-<hr>
-
-<h3>Select Mode</h3>
-
-<button onclick="loadStandard()">Standard</button>
-<button onclick="loadPartner()">Partner</button>
-<button onclick="loadTeam()">Team</button>
+<p><b>Two monitoring modes.</b></p>
 
 <hr>
 
-<div id="demo"></div>
+<h2>Standard Mode</h2>
 
-<script>
+<p>One person manages their own medication routine.</p>
 
-function render(persons){
-
-let html="";
-
-persons.forEach(p=>{
-
-html+=`<h3>${p.name}</h3>`;
-
-p.meds.forEach(m=>{
-
-html+=`<div><b>${m.name}</b></div>`;
-
-m.times.forEach(t=>{
-
-html+=`
-<div style="margin:6px 0">
-Slot ${t} — Status: <b id="${p.name}-${t}">not marked</b>
-<button onclick="mark('${p.name}','${t}','taken')">Taken</button>
-<button onclick="mark('${p.name}','${t}','missed')">Missed</button>
+<h3>Patient</h3>
+<div style="border:1px solid #ddd;padding:10px;border-radius:6px;margin-bottom:10px;">
+John Smith
 </div>
-`;
 
-});
+<h3>Medication Schedule</h3>
 
-});
+<div>09:00 — <b>Taken</b></div>
+<div>14:00 — <b>Missed</b></div>
+<div>20:00 — <b>Taken</b></div>
 
-html+="<hr>";
+<h3>History</h3>
 
-});
+<div>taken — admin</div>
+<div>missed — admin</div>
 
-document.getElementById("demo").innerHTML=html;
+<hr>
 
-}
+<h2>Team Mode</h2>
 
-function mark(name,time,status){
+<p>
+One coordinator manages several patients.  
+Team members may work in shifts.
+</p>
 
-document.getElementById(name+"-"+time).innerText=status;
+<h3>Patients</h3>
 
-}
+<div style="border:1px solid #ddd;padding:10px;border-radius:6px;margin-bottom:10px;">
+John Smith
+</div>
 
-function loadStandard(){
+<div style="border:1px solid #ddd;padding:10px;border-radius:6px;margin-bottom:10px;">
+Mary Brown
+</div>
 
-render([
-{
-name:"Maria",
-meds:[
-{name:"Aspirin",times:["09:00","14:00","20:00"]}
-]
-}
-]);
+<h3>Team Members</h3>
 
-}
+<div>anna@clinic.org — accepted</div>
+<div>mike@clinic.org — accepted</div>
+<div>nightshift@clinic.org — pending</div>
 
-function loadPartner(){
+<h3>Example Shift Work</h3>
 
-render([
-{
-name:"Maria",
-meds:[
-{name:"Aspirin",times:["09:00","20:00"]}
-]
-}
-]);
+<div>09:00 — taken — team_member</div>
+<div>14:00 — missed — caregiver</div>
+<div>20:00 — taken — team_member</div>
 
-alert("Partner will be notified if medication is not confirmed.");
+<h3>History Transparency</h3>
 
-}
+<div>Every action records who confirmed the medication.</div>
 
-function loadTeam(){
+<hr>
 
-render([
-{
-name:"Maria",
-meds:[
-{name:"Aspirin",times:["09:00"]}
-]
-},
-{
-name:"Ivan",
-meds:[
-{name:"Vitamin D",times:["10:00"]}
-]
-},
-{
-name:"Anna",
-meds:[
-{name:"Metformin",times:["12:00"]}
-]
-}
-]);
-
-}
-
-</script>
+<p>
+<a href="/auth-login.html">
+<button>Start Using MedControl</button>
+</a>
+</p>
 
 </body>
 </html>
