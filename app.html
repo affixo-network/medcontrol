@@ -5,36 +5,44 @@
   <title>Affixo MedControl</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
-<body style="font-family:sans-serif;max-width:900px;margin:40px auto;line-height:1.5;">
+<body style="font-family:sans-serif;max-width:980px;margin:40px auto;line-height:1.5;">
 
-<h2>Affixo MedControl — App</h2>
+<h2 id="t_title">Affixo MedControl — App</h2>
 
 <p id="status">Loading...</p>
 
 <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
   <button id="logout">Logout</button>
   <button id="whoami">WhoAmI</button>
-  <a href="/demo.html"><button>Demo</button></a>
-  <a href="/settings.html"><button>Settings</button></a>
-  <span style="margin-left:10px;">Timezone:</span>
+  <a href="/demo.html"><button id="demoBtn">Demo</button></a>
+  <a href="/settings.html"><button id="settingsBtn">Settings</button></a>
+
+  <span id="uiLangLabel" style="margin-left:10px;">Language:</span>
+  <select id="uiLang">
+    <option value="en">English</option>
+    <option value="ru">Русский</option>
+    <option value="de">Deutsch</option>
+  </select>
+
+  <span id="tzText" style="margin-left:10px;">Timezone:</span>
   <span id="tzLabel" style="color:#555;"></span>
 </div>
 
 <hr>
 
 <div id="patients-section">
-  <h3>People</h3>
+  <h3 id="t_people">People</h3>
   <p id="selected" style="margin:6px 0;color:#555;">Selected patient: (none)</p>
   <ul id="patients"></ul>
   <pre id="err" style="margin-top:12px;white-space:pre-wrap;color:#b00;"></pre>
   <hr>
 </div>
 
-<h3>Medications</h3>
+<h3 id="t_meds">Medications</h3>
 <ul id="meds"></ul>
 
 <div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
-  <h3>Team</h3>
+  <h3 id="t_team">Team</h3>
   <p id="team-note" style="margin:0 0 10px 0;">Team mode is active. Multiple people can participate in monitoring.</p>
 
   <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -47,16 +55,17 @@
   <p id="team-invite-status" style="margin-top:8px; color:#555;"></p>
 </div>
 
-<h3>Today</h3>
+<h3 id="t_today">Today</h3>
 <div id="today-list" style="padding:8px 0;"></div>
 
-<h3>History</h3>
+<h3 id="t_history">History</h3>
 <div id="history-list" style="padding:8px 0;"></div>
 
 <hr>
 
 <div id="addmed-section">
-  <h3>Add Medication</h3>
+  <h3 id="t_addmed">Add Medication</h3>
+
   <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
     <input id="medName" placeholder="Name">
     <input id="medDose" placeholder="Dose">
@@ -72,6 +81,183 @@ const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const I18N = {
+  en: {
+    title: "Affixo MedControl — App",
+    logout: "Logout",
+    whoami: "WhoAmI",
+    demo: "Demo",
+    settings: "Settings",
+    language: "Language:",
+    timezone: "Timezone:",
+    people: "People",
+    selected_none: "Selected patient: (none)",
+    selected_prefix: "Selected patient:",
+    meds: "Medications",
+    team: "Team",
+    team_note: "Team mode is active. Multiple people can participate in monitoring.",
+    team_email_ph: "Team member email",
+    add_team_member: "Add Team Member",
+    today: "Today",
+    history: "History",
+    add_med: "Add Medication",
+    med_name_ph: "Name",
+    med_dose_ph: "Dose",
+    med_schedule_ph: "Schedule",
+    add: "Add",
+    mode_label: "Monitoring Mode:",
+    standard: "Standard",
+    team_mode: "Team",
+    no_patients: "(no patients visible for this user)",
+    no_meds: "(no medications for this patient)",
+    no_history: "(no history)",
+    no_team_members: "No team members yet",
+    invite_none: "Invite status: none",
+    team_members: "Team members:",
+    invite_status: "Invite status:",
+    team_added: "Team member added",
+    select_patient_first: "Select patient first",
+    enter_team_email: "Enter team member email",
+    today_no_meds: "(no medications)",
+    no_slots: "No time slots configured for this medication.",
+    not_marked: "not marked",
+    taken: "Taken",
+    missed: "Missed",
+    history_error: "History error: ",
+    today_error: "Today logs error: ",
+    meds_error: "MEDS ERROR: ",
+    patients_error: "PATIENTS ERROR: ",
+    cannot_update_mode: "Cannot update mode: ",
+    rpc_error: "RPC error: ",
+    team_list_error: "Team list error: ",
+    invite_status_error: "Invite status error: ",
+    team_link_error: "Team link error: ",
+    invite_save_error: "Invite save error: ",
+    cannot_add_med: "Cannot add medication: ",
+    enter_med_name: "Enter medication name",
+    profile_error: "Profile load error: ",
+    no_session: "No session, redirecting to login…",
+    init_error: "Init error: ",
+    loading: "Loading..."
+  },
+  ru: {
+    title: "Affixo MedControl — Приложение",
+    logout: "Выйти",
+    whoami: "Кто я",
+    demo: "Демо",
+    settings: "Настройки",
+    language: "Язык:",
+    timezone: "Часовой пояс:",
+    people: "Люди",
+    selected_none: "Выбран пациент: (нет)",
+    selected_prefix: "Выбран пациент:",
+    meds: "Лекарства",
+    team: "Команда",
+    team_note: "Режим команды активен. Несколько людей могут участвовать в контроле.",
+    team_email_ph: "Email участника команды",
+    add_team_member: "Добавить участника",
+    today: "Сегодня",
+    history: "История",
+    add_med: "Добавить лекарство",
+    med_name_ph: "Название",
+    med_dose_ph: "Доза",
+    med_schedule_ph: "Расписание",
+    add: "Добавить",
+    mode_label: "Режим контроля:",
+    standard: "Стандарт",
+    team_mode: "Команда",
+    no_patients: "(нет доступных пациентов)",
+    no_meds: "(у пациента нет лекарств)",
+    no_history: "(история пуста)",
+    no_team_members: "Участников команды пока нет",
+    invite_none: "Статус приглашения: нет",
+    team_members: "Участники команды:",
+    invite_status: "Статус приглашения:",
+    team_added: "Участник добавлен",
+    select_patient_first: "Сначала выберите пациента",
+    enter_team_email: "Введите email участника",
+    today_no_meds: "(нет лекарств)",
+    no_slots: "Для этого лекарства не настроено время.",
+    not_marked: "не отмечено",
+    taken: "Принято",
+    missed: "Пропущено",
+    history_error: "Ошибка истории: ",
+    today_error: "Ошибка логов сегодня: ",
+    meds_error: "Ошибка лекарств: ",
+    patients_error: "Ошибка пациентов: ",
+    cannot_update_mode: "Не удалось изменить режим: ",
+    rpc_error: "Ошибка RPC: ",
+    team_list_error: "Ошибка списка команды: ",
+    invite_status_error: "Ошибка статуса приглашения: ",
+    team_link_error: "Ошибка связи команды: ",
+    invite_save_error: "Ошибка сохранения приглашения: ",
+    cannot_add_med: "Не удалось добавить лекарство: ",
+    enter_med_name: "Введите название лекарства",
+    profile_error: "Ошибка загрузки профиля: ",
+    no_session: "Нет сессии, переход на вход…",
+    init_error: "Ошибка запуска: ",
+    loading: "Загрузка..."
+  },
+  de: {
+    title: "Affixo MedControl — App",
+    logout: "Abmelden",
+    whoami: "Wer bin ich",
+    demo: "Demo",
+    settings: "Einstellungen",
+    language: "Sprache:",
+    timezone: "Zeitzone:",
+    people: "Personen",
+    selected_none: "Ausgewählter Patient: (keiner)",
+    selected_prefix: "Ausgewählter Patient:",
+    meds: "Medikamente",
+    team: "Team",
+    team_note: "Team-Modus ist aktiv. Mehrere Personen können an der Überwachung teilnehmen.",
+    team_email_ph: "E-Mail des Teammitglieds",
+    add_team_member: "Teammitglied hinzufügen",
+    today: "Heute",
+    history: "Verlauf",
+    add_med: "Medikament hinzufügen",
+    med_name_ph: "Name",
+    med_dose_ph: "Dosis",
+    med_schedule_ph: "Plan",
+    add: "Hinzufügen",
+    mode_label: "Überwachungsmodus:",
+    standard: "Standard",
+    team_mode: "Team",
+    no_patients: "(keine sichtbaren Patienten)",
+    no_meds: "(keine Medikamente für diesen Patienten)",
+    no_history: "(kein Verlauf)",
+    no_team_members: "Noch keine Teammitglieder",
+    invite_none: "Einladungsstatus: keiner",
+    team_members: "Teammitglieder:",
+    invite_status: "Einladungsstatus:",
+    team_added: "Teammitglied hinzugefügt",
+    select_patient_first: "Bitte zuerst Patienten auswählen",
+    enter_team_email: "Bitte E-Mail eingeben",
+    today_no_meds: "(keine Medikamente)",
+    no_slots: "Für dieses Medikament sind keine Zeiten konfiguriert.",
+    not_marked: "nicht markiert",
+    taken: "Eingenommen",
+    missed: "Verpasst",
+    history_error: "Verlaufsfehler: ",
+    today_error: "Fehler bei heutigen Logs: ",
+    meds_error: "Medikamentenfehler: ",
+    patients_error: "Patientenfehler: ",
+    cannot_update_mode: "Modus konnte nicht geändert werden: ",
+    rpc_error: "RPC-Fehler: ",
+    team_list_error: "Teamlistenfehler: ",
+    invite_status_error: "Fehler beim Einladungsstatus: ",
+    team_link_error: "Team-Link-Fehler: ",
+    invite_save_error: "Fehler beim Speichern der Einladung: ",
+    cannot_add_med: "Medikament konnte nicht hinzugefügt werden: ",
+    enter_med_name: "Bitte Medikamentennamen eingeben",
+    profile_error: "Profilfehler: ",
+    no_session: "Keine Sitzung, Weiterleitung zum Login…",
+    init_error: "Startfehler: ",
+    loading: "Lädt..."
+  }
+};
+
 const statusEl = document.getElementById("status");
 const patientsEl = document.getElementById("patients");
 const medsEl = document.getElementById("meds");
@@ -81,6 +267,7 @@ const errEl = document.getElementById("err");
 const selectedEl = document.getElementById("selected");
 const addMedSectionEl = document.getElementById("addmed-section");
 const tzLabelEl = document.getElementById("tzLabel");
+const uiLangEl = document.getElementById("uiLang");
 
 const teamBoxEl = document.getElementById("team-box");
 const teamNoteEl = document.getElementById("team-note");
@@ -96,20 +283,91 @@ let role = "unknown";
 let profileEmail = "";
 let currentUserId = null;
 
-/* ---------- helpers ---------- */
+const savedLang = localStorage.getItem("mc_ui_lang");
+const browserLang = (navigator.language || "en").slice(0, 2).toLowerCase();
+let currentLang = savedLang || (I18N[browserLang] ? browserLang : "en");
+let currentPatientName = "";
+let currentMode = "standard";
+
+uiLangEl.value = currentLang;
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+}
+
+function applyTexts() {
+  document.getElementById("t_title").textContent = t("title");
+  document.getElementById("logout").textContent = t("logout");
+  document.getElementById("whoami").textContent = t("whoami");
+  document.getElementById("demoBtn").textContent = t("demo");
+  document.getElementById("settingsBtn").textContent = t("settings");
+  document.getElementById("uiLangLabel").textContent = t("language");
+  document.getElementById("tzText").textContent = t("timezone");
+  document.getElementById("t_people").textContent = t("people");
+  document.getElementById("t_meds").textContent = t("meds");
+  document.getElementById("t_team").textContent = t("team");
+  document.getElementById("t_today").textContent = t("today");
+  document.getElementById("t_history").textContent = t("history");
+  document.getElementById("t_addmed").textContent = t("add_med");
+  document.getElementById("addMed").textContent = t("add");
+  document.getElementById("medName").placeholder = t("med_name_ph");
+  document.getElementById("medDose").placeholder = t("med_dose_ph");
+  document.getElementById("medScheduleLegacy").placeholder = t("med_schedule_ph");
+  teamNoteEl.textContent = t("team_note");
+  teamEmailEl.placeholder = t("team_email_ph");
+  addTeamMemberBtn.textContent = t("add_team_member");
+
+  if (!selectedPatientId) {
+    selectedEl.textContent = t("selected_none");
+  } else {
+    selectedEl.innerHTML =
+      `${t("selected_prefix")} ${currentPatientName}<br><br>` +
+      `${t("mode_label")} <select id="mode_select">` +
+      `<option value="standard">${t("standard")}</option>` +
+      `<option value="team">${t("team_mode")}</option>` +
+      `</select>`;
+    const modeSelect = document.getElementById("mode_select");
+    if (modeSelect) {
+      modeSelect.value = currentMode === "team" ? "team" : "standard";
+      modeSelect.onchange = async () => {
+        const newMode = modeSelect.value;
+
+        const { error } = await supabase
+          .from("patients")
+          .update({ monitoring_mode: newMode })
+          .eq("id", selectedPatientId);
+
+        if (error) {
+          alert(t("cannot_update_mode") + error.message);
+          modeSelect.value = currentMode;
+          return;
+        }
+
+        currentMode = newMode;
+
+        cachedPatients = cachedPatients.map((p) =>
+          p.id === selectedPatientId ? { ...p, monitoring_mode: newMode } : p
+        );
+
+        await renderPatientsList(cachedPatients);
+        updateModeUI(newMode);
+      };
+    }
+  }
+}
 
 function updateModeUI(mode) {
   if (mode === "team") {
     teamBoxEl.style.display = "block";
-    teamNoteEl.textContent = "Team mode is active. Multiple people can participate in monitoring.";
+    teamNoteEl.textContent = t("team_note");
   } else {
     teamBoxEl.style.display = "none";
   }
 }
 
-function fmtTimeHHMM(t) {
-  if (!t) return "09:00";
-  const s = String(t);
+function fmtTimeHHMM(tod) {
+  if (!tod) return "09:00";
+  const s = String(tod);
   return s.length >= 5 ? s.slice(0, 5) : s;
 }
 
@@ -130,19 +388,35 @@ function detectTimezone() {
 
 function fmtLocalDateTime(iso) {
   try {
-    return new Date(iso).toLocaleString();
+    return new Intl.DateTimeFormat(currentLang, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    }).format(new Date(iso));
   } catch {
     return String(iso || "");
   }
 }
 
-/* ---------- auth/profile ---------- */
+uiLangEl.onchange = () => {
+  currentLang = uiLangEl.value;
+  localStorage.setItem("mc_ui_lang", currentLang);
+  applyTexts();
+  renderPatientsList(cachedPatients);
+  loadMeds();
+  loadToday();
+  loadHistory();
+  loadTeamMembers();
+};
 
 async function loadProfile() {
   const { data: sessionData } = await supabase.auth.getSession();
 
   if (!sessionData?.session) {
-    statusEl.textContent = "No session, redirecting to login…";
+    statusEl.textContent = t("no_session");
     window.location.replace("/auth-login.html");
     throw new Error("No session");
   }
@@ -157,7 +431,7 @@ async function loadProfile() {
     .maybeSingle();
 
   if (profileError) {
-    statusEl.textContent = "Profile load error: " + profileError.message;
+    statusEl.textContent = t("profile_error") + profileError.message;
     throw profileError;
   }
 
@@ -187,11 +461,8 @@ async function loadProfile() {
   try {
     await supabase.rpc("accept_team_invites_for_me");
   } catch (_) {
-    /* ignore */
   }
 }
-
-/* ---------- patients ---------- */
 
 async function fetchPatients() {
   errEl.textContent = "";
@@ -202,7 +473,7 @@ async function fetchPatients() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    errEl.textContent = "PATIENTS ERROR: " + error.message;
+    errEl.textContent = t("patients_error") + error.message;
     return [];
   }
 
@@ -214,7 +485,7 @@ async function renderPatientsList(patients) {
 
   if (!patients || patients.length === 0) {
     const li = document.createElement("li");
-    li.textContent = "(no patients visible for this user)";
+    li.textContent = t("no_patients");
     patientsEl.appendChild(li);
     return;
   }
@@ -238,47 +509,17 @@ async function renderPatientsList(patients) {
 
 async function selectPatient(patientId, displayName, monitoringMode = "standard") {
   selectedPatientId = patientId;
+  currentPatientName = displayName;
+  currentMode = monitoringMode === "team" ? "team" : "standard";
 
-  selectedEl.innerHTML =
-    `${displayName}<br><br>` +
-    `Monitoring Mode: <select id="mode_select">` +
-    `<option value="standard">Standard</option>` +
-    `<option value="team">Team</option>` +
-    `</select>`;
-
-  const modeSelect = document.getElementById("mode_select");
-  modeSelect.value = monitoringMode === "team" ? "team" : "standard";
-
-  updateModeUI(modeSelect.value);
-
-  modeSelect.onchange = async () => {
-    const newMode = modeSelect.value;
-
-    const { error } = await supabase
-      .from("patients")
-      .update({ monitoring_mode: newMode })
-      .eq("id", patientId);
-
-    if (error) {
-      alert("Cannot update mode: " + error.message);
-      return;
-    }
-
-    cachedPatients = cachedPatients.map((p) =>
-      p.id === patientId ? { ...p, monitoring_mode: newMode } : p
-    );
-
-    await renderPatientsList(cachedPatients);
-    updateModeUI(newMode);
-  };
+  applyTexts();
+  updateModeUI(currentMode);
 
   await loadMeds();
   await loadToday();
   await loadHistory();
   await loadTeamMembers();
 }
-
-/* ---------- medications ---------- */
 
 async function loadMeds() {
   medsEl.innerHTML = "";
@@ -293,14 +534,14 @@ async function loadMeds() {
 
   if (error) {
     const li = document.createElement("li");
-    li.textContent = "MEDS ERROR: " + error.message;
+    li.textContent = t("meds_error") + error.message;
     medsEl.appendChild(li);
     return;
   }
 
   if (!data || data.length === 0) {
     const li = document.createElement("li");
-    li.textContent = "(no medications for this patient)";
+    li.textContent = t("no_meds");
     medsEl.appendChild(li);
     return;
   }
@@ -311,8 +552,6 @@ async function loadMeds() {
     medsEl.appendChild(li);
   });
 }
-
-/* ---------- today ---------- */
 
 async function mark(medId, status, slot) {
   if (!selectedPatientId) return;
@@ -327,7 +566,7 @@ async function mark(medId, status, slot) {
   });
 
   if (error) {
-    alert("RPC error: " + error.message);
+    alert(t("rpc_error") + error.message);
     return;
   }
 
@@ -353,12 +592,12 @@ async function loadToday() {
     .order("created_at", { ascending: false });
 
   if (medsErr) {
-    todayEl.textContent = "Today meds error: " + medsErr.message;
+    todayEl.textContent = t("today_error") + medsErr.message;
     return;
   }
 
   if (!meds || meds.length === 0) {
-    todayEl.textContent = "(no medications)";
+    todayEl.textContent = t("today_no_meds");
     return;
   }
 
@@ -377,10 +616,10 @@ async function loadToday() {
   }
 
   const timesByMed = new Map();
-  (times || []).forEach(t => {
-    const arr = timesByMed.get(t.medication_id) || [];
-    arr.push(fmtTimeHHMM(t.time_of_day));
-    timesByMed.set(t.medication_id, arr);
+  (times || []).forEach(ti => {
+    const arr = timesByMed.get(ti.medication_id) || [];
+    arr.push(fmtTimeHHMM(ti.time_of_day));
+    timesByMed.set(ti.medication_id, arr);
   });
 
   const { data: logs, error: logsErr } = await supabase
@@ -391,7 +630,7 @@ async function loadToday() {
     .lte("scheduled_at", end.toISOString());
 
   if (logsErr) {
-    todayEl.textContent = "Today logs error: " + logsErr.message;
+    todayEl.textContent = t("today_error") + logsErr.message;
     return;
   }
 
@@ -404,7 +643,7 @@ async function loadToday() {
 
     if (slots.length === 0) {
       const warn = document.createElement("div");
-      warn.textContent = "No time slots configured for this medication.";
+      warn.textContent = t("no_slots");
       warn.style.color = "#b00";
       container.appendChild(warn);
       todayEl.appendChild(container);
@@ -423,12 +662,12 @@ async function loadToday() {
       const row = document.createElement("div");
       row.style.margin = "6px 0";
 
-      const statusText = existing ? existing.status : "not marked";
+      const statusText = existing ? existing.status : t("not_marked");
 
       row.innerHTML = `
         <div>${slot} — <b>${statusText}</b></div>
-        <button data-act="taken">Taken</button>
-        <button data-act="missed">Missed</button>
+        <button data-act="taken">${t("taken")}</button>
+        <button data-act="missed">${t("missed")}</button>
       `;
 
       row.querySelector('[data-act="taken"]').onclick = () => mark(m.id, "taken", slot);
@@ -440,8 +679,6 @@ async function loadToday() {
     todayEl.appendChild(container);
   });
 }
-
-/* ---------- history ---------- */
 
 async function loadHistory() {
   historyEl.innerHTML = "";
@@ -456,12 +693,12 @@ async function loadHistory() {
     .limit(50);
 
   if (error) {
-    historyEl.textContent = "History error: " + error.message;
+    historyEl.textContent = t("history_error") + error.message;
     return;
   }
 
   if (!data || data.length === 0) {
-    historyEl.textContent = "(no history)";
+    historyEl.textContent = t("no_history");
     return;
   }
 
@@ -490,8 +727,6 @@ async function loadHistory() {
   });
 }
 
-/* ---------- team ---------- */
-
 async function loadTeamMembers() {
   teamMembersListEl.textContent = "";
   teamInviteStatusEl.textContent = "";
@@ -505,18 +740,18 @@ async function loadTeamMembers() {
     .order("created_at", { ascending: false });
 
   if (membersError) {
-    teamMembersListEl.textContent = "Team list error: " + membersError.message;
+    teamMembersListEl.textContent = t("team_list_error") + membersError.message;
     return;
   }
 
   if (!members || members.length === 0) {
-    teamMembersListEl.textContent = "No team members yet";
-    teamInviteStatusEl.textContent = "Invite status: none";
+    teamMembersListEl.textContent = t("no_team_members");
+    teamInviteStatusEl.textContent = t("invite_none");
     return;
   }
 
   teamMembersListEl.textContent =
-    "Team members: " + members.map(x => x.partner_email).join(", ");
+    `${t("team_members")} ` + members.map(x => x.partner_email).join(", ");
 
   const { data: invites, error: invitesError } = await supabase
     .from("patient_partner_invites")
@@ -525,12 +760,12 @@ async function loadTeamMembers() {
     .order("created_at", { ascending: false });
 
   if (invitesError) {
-    teamInviteStatusEl.textContent = "Invite status error: " + invitesError.message;
+    teamInviteStatusEl.textContent = t("invite_status_error") + invitesError.message;
     return;
   }
 
   if (!invites || invites.length === 0) {
-    teamInviteStatusEl.textContent = "Invite status: none";
+    teamInviteStatusEl.textContent = t("invite_none");
     return;
   }
 
@@ -550,18 +785,18 @@ async function loadTeamMembers() {
   });
 
   teamInviteStatusEl.textContent =
-    "Invite status: " + statusLines.join(", ");
+    `${t("invite_status")} ` + statusLines.join(", ");
 }
 
 addTeamMemberBtn.onclick = async () => {
   if (!selectedPatientId) {
-    teamEmailStatusEl.textContent = "Select patient first";
+    teamEmailStatusEl.textContent = t("select_patient_first");
     return;
   }
 
   const email = (teamEmailEl.value || "").trim().toLowerCase();
   if (!email) {
-    teamEmailStatusEl.textContent = "Enter team member email";
+    teamEmailStatusEl.textContent = t("enter_team_email");
     return;
   }
 
@@ -573,7 +808,7 @@ addTeamMemberBtn.onclick = async () => {
     );
 
   if (linkError) {
-    teamEmailStatusEl.textContent = "Team link error: " + linkError.message;
+    teamEmailStatusEl.textContent = t("team_link_error") + linkError.message;
     return;
   }
 
@@ -589,22 +824,20 @@ addTeamMemberBtn.onclick = async () => {
     );
 
   if (inviteError) {
-    teamEmailStatusEl.textContent = "Invite save error: " + inviteError.message;
+    teamEmailStatusEl.textContent = t("invite_save_error") + inviteError.message;
     return;
   }
 
   teamEmailEl.value = "";
-  teamEmailStatusEl.textContent = "Team member added";
+  teamEmailStatusEl.textContent = t("team_added");
   await loadTeamMembers();
 };
-
-/* ---------- add medication ---------- */
 
 document.getElementById("addMed").onclick = async () => {
   if (role !== "admin") return;
 
   if (!selectedPatientId) {
-    alert("Select patient first");
+    alert(t("select_patient_first"));
     return;
   }
 
@@ -613,7 +846,7 @@ document.getElementById("addMed").onclick = async () => {
   const schedule = document.getElementById("medScheduleLegacy").value.trim();
 
   if (!name) {
-    alert("Enter medication name");
+    alert(t("enter_med_name"));
     return;
   }
 
@@ -625,7 +858,7 @@ document.getElementById("addMed").onclick = async () => {
   });
 
   if (error) {
-    alert("Cannot add medication: " + error.message);
+    alert(t("cannot_add_med") + error.message);
     return;
   }
 
@@ -636,8 +869,6 @@ document.getElementById("addMed").onclick = async () => {
   await loadMeds();
   await loadToday();
 };
-
-/* ---------- misc ---------- */
 
 document.getElementById("whoami").onclick = async () => {
   const { data, error } = await supabase.rpc("debug_whoami");
@@ -653,10 +884,10 @@ document.getElementById("logout").onclick = async () => {
   window.location.replace("/auth-login.html");
 };
 
-/* ---------- init ---------- */
-
 async function init() {
   try {
+    statusEl.textContent = t("loading");
+    applyTexts();
     await loadProfile();
 
     cachedPatients = await fetchPatients();
@@ -665,9 +896,11 @@ async function init() {
     if (cachedPatients.length > 0) {
       const p = cachedPatients[0];
       await selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
+    } else {
+      applyTexts();
     }
   } catch (e) {
-    statusEl.textContent = "Init error: " + (e?.message || String(e));
+    statusEl.textContent = t("init_error") + (e?.message || String(e));
   }
 }
 
