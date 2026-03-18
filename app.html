@@ -152,7 +152,8 @@ const I18N = {
     init_error: "Init error: ",
     loading: "Loading...",
     planned: "planned",
-    actual: "actual"
+    actual: "actual",
+    by: "by"
   },
   ru: {
     title: "Affixo MedControl — Приложение",
@@ -217,7 +218,8 @@ const I18N = {
     init_error: "Ошибка запуска: ",
     loading: "Загрузка...",
     planned: "план",
-    actual: "факт"
+    actual: "факт",
+    by: "от"
   },
   de: {
     title: "Affixo MedControl — App",
@@ -282,7 +284,272 @@ const I18N = {
     init_error: "Startfehler: ",
     loading: "Lädt...",
     planned: "geplant",
-    actual: "tatsächlich"
+    actual: "tatsächlich",
+    by: "von"
+  },
+  fr: {
+    title: "Affixo MedControl — Application",
+    logout: "Déconnexion",
+    whoami: "Qui suis-je",
+    demo: "Démo",
+    settings: "Paramètres",
+    language: "Langue :",
+    timezone: "Fuseau horaire :",
+    local_time: "Heure locale :",
+    people: "Personnes",
+    selected_none: "Patient sélectionné : (aucun)",
+    selected_prefix: "Patient sélectionné :",
+    meds: "Médicaments",
+    team: "Équipe",
+    team_note: "Le mode équipe est actif. Plusieurs personnes peuvent participer au suivi.",
+    team_email_ph: "E-mail du membre",
+    add_team_member: "Ajouter un membre",
+    today: "Aujourd'hui",
+    history: "Historique",
+    add_med: "Ajouter un médicament",
+    med_name_ph: "Nom",
+    med_dose_ph: "Dose",
+    med_schedule_ph: "Programme",
+    add: "Ajouter",
+    mode_label: "Mode de suivi :",
+    standard: "Standard",
+    team_mode: "Équipe",
+    no_patients: "(aucun patient visible)",
+    no_meds: "(aucun médicament pour ce patient)",
+    no_history: "(aucun historique)",
+    no_team_members: "Aucun membre d'équipe",
+    invite_none: "Statut d'invitation : aucun",
+    team_members: "Membres de l'équipe :",
+    invite_status: "Statut d'invitation :",
+    team_added: "Membre ajouté",
+    select_patient_first: "Sélectionnez d'abord un patient",
+    enter_team_email: "Entrez l'e-mail du membre",
+    today_no_meds: "(aucun médicament)",
+    no_slots: "Aucun horaire configuré pour ce médicament.",
+    not_marked: "non marqué",
+    taken: "Pris",
+    missed: "Manqué",
+    waiting: "en attente",
+    early: "pris en avance",
+    on_time: "à l'heure",
+    late: "en retard",
+    history_error: "Erreur d'historique : ",
+    today_error: "Erreur des journaux du jour : ",
+    meds_error: "Erreur médicaments : ",
+    patients_error: "Erreur patients : ",
+    cannot_update_mode: "Impossible de changer le mode : ",
+    rpc_error: "Erreur RPC : ",
+    team_list_error: "Erreur liste équipe : ",
+    invite_status_error: "Erreur statut invitation : ",
+    team_link_error: "Erreur lien équipe : ",
+    invite_save_error: "Erreur sauvegarde invitation : ",
+    cannot_add_med: "Impossible d'ajouter le médicament : ",
+    enter_med_name: "Entrez le nom du médicament",
+    profile_error: "Erreur profil : ",
+    no_session: "Aucune session, redirection…",
+    init_error: "Erreur d'initialisation : ",
+    loading: "Chargement...",
+    planned: "prévu",
+    actual: "réel",
+    by: "par"
+  },
+  hy: {
+    title: "Affixo MedControl — Հավելված",
+    logout: "Ելք",
+    whoami: "Ո՞վ եմ ես",
+    demo: "Դեմո",
+    settings: "Կարգավորումներ",
+    language: "Լեզու՝",
+    timezone: "Ժամային գոտի՝",
+    local_time: "Տեղական ժամանակ՝",
+    people: "Մարդիկ",
+    selected_none: "Ընտրված պացիենտ՝ (չկա)",
+    selected_prefix: "Ընտրված պացիենտ՝",
+    meds: "Դեղեր",
+    team: "Թիմ",
+    team_note: "Թիմային ռեժիմն ակտիվ է։ Մի քանի մարդ կարող է մասնակցել վերահսկմանը։",
+    team_email_ph: "Թիմի անդամի email",
+    add_team_member: "Ավելացնել անդամ",
+    today: "Այսօր",
+    history: "Պատմություն",
+    add_med: "Ավելացնել դեղ",
+    med_name_ph: "Անուն",
+    med_dose_ph: "Դոզա",
+    med_schedule_ph: "Ժամացույց",
+    add: "Ավելացնել",
+    mode_label: "Վերահսկման ռեժիմ՝",
+    standard: "Ստանդարտ",
+    team_mode: "Թիմ",
+    no_patients: "(հասանելի պացիենտ չկա)",
+    no_meds: "(պացիենտի համար դեղ չկա)",
+    no_history: "(պատմություն չկա)",
+    no_team_members: "Թիմի անդամներ դեռ չկան",
+    invite_none: "Հրավերի կարգավիճակ՝ չկա",
+    team_members: "Թիմի անդամներ՝",
+    invite_status: "Հրավերի կարգավիճակ՝",
+    team_added: "Անդամը ավելացվել է",
+    select_patient_first: "Սկզբում ընտրեք պացիենտին",
+    enter_team_email: "Մուտքագրեք անդամի email-ը",
+    today_no_meds: "(դեղ չկա)",
+    no_slots: "Այս դեղի համար ժամեր չեն կարգավորված։",
+    not_marked: "նշված չէ",
+    taken: "Ընդունված",
+    missed: "Բաց թողնված",
+    waiting: "սպասման մեջ",
+    early: "վաղ",
+    on_time: "ժամանակին",
+    late: "ուշացումով",
+    history_error: "Պատմության սխալ՝ ",
+    today_error: "Այսօրվա գրանցումների սխալ՝ ",
+    meds_error: "Դեղերի սխալ՝ ",
+    patients_error: "Պացիենտների սխալ՝ ",
+    cannot_update_mode: "Չհաջողվեց փոխել ռեժիմը՝ ",
+    rpc_error: "RPC սխալ՝ ",
+    team_list_error: "Թիմի ցանկի սխալ՝ ",
+    invite_status_error: "Հրավերի կարգավիճակի սխալ՝ ",
+    team_link_error: "Թիմի կապի սխալ՝ ",
+    invite_save_error: "Հրավերի պահպանման սխալ՝ ",
+    cannot_add_med: "Չհաջողվեց ավելացնել դեղը՝ ",
+    enter_med_name: "Մուտքագրեք դեղի անունը",
+    profile_error: "Պրոֆիլի սխալ՝ ",
+    no_session: "Սեսիա չկա, փոխանցում մուտք…",
+    init_error: "Մեկնարկի սխալ՝ ",
+    loading: "Բեռնվում է...",
+    planned: "պլան",
+    actual: "փաստ",
+    by: "կողմից"
+  },
+  zh: {
+    title: "Affixo MedControl — 应用",
+    logout: "退出",
+    whoami: "我是谁",
+    demo: "演示",
+    settings: "设置",
+    language: "语言：",
+    timezone: "时区：",
+    local_time: "本地时间：",
+    people: "人员",
+    selected_none: "已选患者：（无）",
+    selected_prefix: "已选患者：",
+    meds: "药物",
+    team: "团队",
+    team_note: "团队模式已启用。多人可参与监控。",
+    team_email_ph: "团队成员邮箱",
+    add_team_member: "添加成员",
+    today: "今天",
+    history: "历史",
+    add_med: "添加药物",
+    med_name_ph: "名称",
+    med_dose_ph: "剂量",
+    med_schedule_ph: "计划",
+    add: "添加",
+    mode_label: "监控模式：",
+    standard: "标准",
+    team_mode: "团队",
+    no_patients: "（无可见患者）",
+    no_meds: "（该患者无药物）",
+    no_history: "（无历史）",
+    no_team_members: "暂无团队成员",
+    invite_none: "邀请状态：无",
+    team_members: "团队成员：",
+    invite_status: "邀请状态：",
+    team_added: "成员已添加",
+    select_patient_first: "请先选择患者",
+    enter_team_email: "请输入成员邮箱",
+    today_no_meds: "（无药物）",
+    no_slots: "该药物未配置时间。",
+    not_marked: "未标记",
+    taken: "已服用",
+    missed: "未服用",
+    waiting: "等待中",
+    early: "提前",
+    on_time: "准时",
+    late: "延迟",
+    history_error: "历史错误：",
+    today_error: "今日日志错误：",
+    meds_error: "药物错误：",
+    patients_error: "患者错误：",
+    cannot_update_mode: "无法更改模式：",
+    rpc_error: "RPC 错误：",
+    team_list_error: "团队列表错误：",
+    invite_status_error: "邀请状态错误：",
+    team_link_error: "团队关联错误：",
+    invite_save_error: "邀请保存错误：",
+    cannot_add_med: "无法添加药物：",
+    enter_med_name: "请输入药物名称",
+    profile_error: "资料错误：",
+    no_session: "无会话，正在跳转…",
+    init_error: "初始化错误：",
+    loading: "加载中...",
+    planned: "计划",
+    actual: "实际",
+    by: "由"
+  },
+  ja: {
+    title: "Affixo MedControl — アプリ",
+    logout: "ログアウト",
+    whoami: "私は誰",
+    demo: "デモ",
+    settings: "設定",
+    language: "言語：",
+    timezone: "タイムゾーン：",
+    local_time: "現地時刻：",
+    people: "人",
+    selected_none: "選択中の患者：（なし）",
+    selected_prefix: "選択中の患者：",
+    meds: "薬",
+    team: "チーム",
+    team_note: "チームモードが有効です。複数人が監視に参加できます。",
+    team_email_ph: "チームメンバーのメール",
+    add_team_member: "メンバー追加",
+    today: "今日",
+    history: "履歴",
+    add_med: "薬を追加",
+    med_name_ph: "名前",
+    med_dose_ph: "用量",
+    med_schedule_ph: "予定",
+    add: "追加",
+    mode_label: "監視モード：",
+    standard: "標準",
+    team_mode: "チーム",
+    no_patients: "（表示できる患者がいません）",
+    no_meds: "（この患者に薬はありません）",
+    no_history: "（履歴なし）",
+    no_team_members: "チームメンバーはいません",
+    invite_none: "招待状況：なし",
+    team_members: "チームメンバー：",
+    invite_status: "招待状況：",
+    team_added: "メンバーを追加しました",
+    select_patient_first: "先に患者を選択してください",
+    enter_team_email: "メールを入力してください",
+    today_no_meds: "（薬なし）",
+    no_slots: "この薬の時間が設定されていません。",
+    not_marked: "未記録",
+    taken: "服用",
+    missed: "未服用",
+    waiting: "待機中",
+    early: "早い",
+    on_time: "時間通り",
+    late: "遅い",
+    history_error: "履歴エラー：",
+    today_error: "今日のログエラー：",
+    meds_error: "薬エラー：",
+    patients_error: "患者エラー：",
+    cannot_update_mode: "モード変更できません：",
+    rpc_error: "RPC エラー：",
+    team_list_error: "チーム一覧エラー：",
+    invite_status_error: "招待状況エラー：",
+    team_link_error: "チームリンクエラー：",
+    invite_save_error: "招待保存エラー：",
+    cannot_add_med: "薬を追加できません：",
+    enter_med_name: "薬名を入力してください",
+    profile_error: "プロフィールエラー：",
+    no_session: "セッションがありません。移動します…",
+    init_error: "初期化エラー：",
+    loading: "読み込み中...",
+    planned: "予定",
+    actual: "実際",
+    by: "記録者"
   }
 };
 
@@ -315,10 +582,6 @@ let currentTimezone = "";
 let localTimeTimer = null;
 let currentPatientName = "";
 let currentMode = "standard";
-
-const savedLang = localStorage.getItem("mc_ui_lang");
-const browserLang = (navigator.language || "en").slice(0, 2).toLowerCase();
-let currentLang = savedLang || (I18N[browserLang] ? browserLang : "en");
 
 uiLangEl.value = currentLang;
 
@@ -461,15 +724,23 @@ function updateModeUI(mode) {
   }
 }
 
-uiLangEl.onchange = () => {
+uiLangEl.onchange = async () => {
   currentLang = uiLangEl.value;
   localStorage.setItem("mc_ui_lang", currentLang);
+
+  if (currentUserId) {
+    await supabase
+      .from("profiles")
+      .update({ ui_lang: currentLang })
+      .eq("id", currentUserId);
+  }
+
   applyTexts();
-  renderPatientsList(cachedPatients);
-  loadMeds();
-  loadToday();
-  loadHistory();
-  loadTeamMembers();
+  await renderPatientsList(cachedPatients);
+  await loadMeds();
+  await loadToday();
+  await loadHistory();
+  await loadTeamMembers();
 };
 
 async function loadProfile() {
@@ -512,9 +783,7 @@ async function loadProfile() {
       .update({ timezone: detectedTz })
       .eq("id", currentUserId);
 
-    if (!tzSaveError) {
-      timezone = detectedTz;
-    }
+    if (!tzSaveError) timezone = detectedTz;
   }
 
   currentTimezone = timezone || detectedTz || "(unknown)";
@@ -731,7 +1000,7 @@ async function loadToday() {
       const row = document.createElement("div");
       row.style.margin = "6px 0";
 
-      let statusText = t("not_marked");
+      let statusText = t("waiting");
       if (existing) {
         const timing = getTimingStatus(existing.scheduled_at, existing.created_at || existing.scheduled_at);
         statusText = `${existing.status} (${timing})`;
@@ -762,7 +1031,7 @@ async function loadHistory() {
     .from("medication_logs")
     .select("status, scheduled_at, recorded_role, recorded_by, created_at")
     .eq("patient_id", selectedPatientId)
-    .order("scheduled_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) {
