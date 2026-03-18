@@ -1,14 +1,15 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>MedControl Settings</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <title>MedControl Settings</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
-
 <body style="font-family:sans-serif;max-width:900px;margin:40px auto;line-height:1.5;">
 
 <h1>Settings</h1>
+
+<p id="status">Loading...</p>
 
 <hr>
 
@@ -20,28 +21,25 @@
 
 <h3>Region & Preferences</h3>
 
-<div style="margin-bottom:10px;">
-  <label>Country</label><br>
+<div style="margin-bottom:12px;">
+  <label for="country">Country</label><br>
   <select id="country"></select>
 </div>
 
-<div style="margin-bottom:10px;">
-  <label>Language</label><br>
+<div style="margin-bottom:12px;">
+  <label for="language">Language</label><br>
   <select id="language"></select>
 </div>
 
-<div style="margin-bottom:10px;">
-  <label>Timezone</label><br>
+<div style="margin-bottom:12px;">
+  <label for="timezone">Timezone</label><br>
   <select id="timezone"></select>
 </div>
 
-<hr>
-
-<p>
-<a href="/app.html">
-<button>Back to App</button>
-</a>
-</p>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">
+  <button id="saveBtn">Save Settings</button>
+  <a href="/app.html"><button type="button">Back to App</button></a>
+</div>
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -51,142 +49,199 @@ const supabase = createClient(
   "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ"
 );
 
+const statusEl = document.getElementById("status");
+const accountEmailEl = document.getElementById("accountEmail");
+const accountRoleEl = document.getElementById("accountRole");
 const countryEl = document.getElementById("country");
 const languageEl = document.getElementById("language");
 const timezoneEl = document.getElementById("timezone");
+const saveBtn = document.getElementById("saveBtn");
 
-const COUNTRIES = {
+const COUNTRY_CONFIG = {
   Armenia: {
-    language: "Armenian",
-    timezone: "Asia/Yerevan"
+    language: "hy",
+    timezones: ["Asia/Yerevan"]
   },
   Germany: {
-    language: "German",
-    timezone: "Europe/Berlin"
+    language: "de",
+    timezones: ["Europe/Berlin"]
   },
   Russia: {
-    language: "Russian",
-    timezone: "Europe/Moscow"
+    language: "ru",
+    timezones: ["Europe/Moscow", "Asia/Yekaterinburg", "Asia/Novosibirsk", "Asia/Vladivostok"]
   },
   USA: {
-    language: "English",
-    timezones: [
-      "America/New_York",
-      "America/Chicago",
-      "America/Denver",
-      "America/Los_Angeles"
-    ]
+    language: "en",
+    timezones: ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles"]
   },
   France: {
-    language: "French",
-    timezone: "Europe/Paris"
+    language: "fr",
+    timezones: ["Europe/Paris"]
+  },
+  United_Kingdom: {
+    language: "en",
+    timezones: ["Europe/London"]
+  },
+  China: {
+    language: "zh",
+    timezones: ["Asia/Shanghai"]
+  },
+  Japan: {
+    language: "ja",
+    timezones: ["Asia/Tokyo"]
   }
 };
 
-const LANGUAGES = [
-  "English",
-  "Русский",
-  "Deutsch",
-  "Français",
-  "Հայերեն"
-];
+const LANGUAGE_LABELS = {
+  en: "English",
+  ru: "Русский",
+  de: "Deutsch",
+  fr: "Français",
+  hy: "Հայերեն",
+  zh: "中文",
+  ja: "日本語"
+};
+
+function detectTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+}
+
+function detectLanguageCode() {
+  const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
+  return LANGUAGE_LABELS[lang] ? lang : "en";
+}
 
 function fillCountries() {
   countryEl.innerHTML = "";
-  Object.keys(COUNTRIES).forEach(c => {
+  Object.keys(COUNTRY_CONFIG).forEach((country) => {
     const opt = document.createElement("option");
-    opt.value = c;
-    opt.textContent = c;
+    opt.value = country;
+    opt.textContent = country.replaceAll("_", " ");
     countryEl.appendChild(opt);
   });
 }
 
-function fillLanguages(selected) {
+function fillLanguages(selectedCode = "en") {
   languageEl.innerHTML = "";
-  LANGUAGES.forEach(l => {
+  Object.entries(LANGUAGE_LABELS).forEach(([code, label]) => {
     const opt = document.createElement("option");
-    opt.value = l;
-    opt.textContent = l;
-    if (l === selected) opt.selected = true;
+    opt.value = code;
+    opt.textContent = label;
+    if (code === selectedCode) opt.selected = true;
     languageEl.appendChild(opt);
   });
 }
 
-function fillTimezones(country) {
+function fillTimezones(countryKey, selectedTimezone = "") {
   timezoneEl.innerHTML = "";
-
-  const data = COUNTRIES[country];
-
-  if (data.timezones) {
-    data.timezones.forEach(tz => {
-      const opt = document.createElement("option");
-      opt.value = tz;
-      opt.textContent = tz;
-      timezoneEl.appendChild(opt);
-    });
-  } else {
+  const list = COUNTRY_CONFIG[countryKey]?.timezones || [];
+  list.forEach((tz) => {
     const opt = document.createElement("option");
-    opt.value = data.timezone;
-    opt.textContent = data.timezone;
+    opt.value = tz;
+    opt.textContent = tz;
+    if (tz === selectedTimezone) opt.selected = true;
+    timezoneEl.appendChild(opt);
+  });
+  if (selectedTimezone && !list.includes(selectedTimezone)) {
+    const opt = document.createElement("option");
+    opt.value = selectedTimezone;
+    opt.textContent = selectedTimezone;
+    opt.selected = true;
     timezoneEl.appendChild(opt);
   }
 }
 
-countryEl.onchange = () => {
-  const c = countryEl.value;
-  const data = COUNTRIES[c];
+function findCountryByTimezone(tz) {
+  for (const [country, cfg] of Object.entries(COUNTRY_CONFIG)) {
+    if ((cfg.timezones || []).includes(tz)) return country;
+  }
+  return "Germany";
+}
 
-  fillLanguages(data.language);
-  fillTimezones(c);
+countryEl.onchange = () => {
+  const country = countryEl.value;
+  const cfg = COUNTRY_CONFIG[country];
+  fillLanguages(cfg.language);
+  fillTimezones(country, cfg.timezones[0] || "");
 };
 
-async function loadProfile() {
-  const { data: session } = await supabase.auth.getSession();
+saveBtn.onclick = async () => {
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
 
-  if (!session?.session) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData?.session?.user?.id;
+
+  if (!userId) {
+    statusEl.textContent = "No session";
+    saveBtn.disabled = false;
+    return;
+  }
+
+  const payload = {
+    country: countryEl.value,
+    ui_lang: languageEl.value,
+    timezone: timezoneEl.value
+  };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId);
+
+  if (error) {
+    statusEl.textContent = "Save error: " + error.message;
+    saveBtn.disabled = false;
+    return;
+  }
+
+  localStorage.setItem("mc_ui_lang", languageEl.value);
+  statusEl.textContent = "Settings saved";
+  saveBtn.disabled = false;
+};
+
+async function init() {
+  const { data: sessionData } = await supabase.auth.getSession();
+
+  if (!sessionData?.session) {
     window.location.replace("/auth-login.html");
     return;
   }
 
-  const userId = session.session.user.id;
+  const userId = sessionData.session.user.id;
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
-    .select("email, role, timezone")
+    .select("email, role, timezone, ui_lang, country")
     .eq("id", userId)
     .single();
 
-  document.getElementById("accountEmail").textContent =
-    "Email: " + (profile?.email || "");
-  document.getElementById("accountRole").textContent =
-    "Role: " + (profile?.role || "");
+  if (error) {
+    statusEl.textContent = "Profile error: " + error.message;
+    return;
+  }
+
+  accountEmailEl.textContent = "Email: " + (profile?.email || "");
+  accountRoleEl.textContent = "Role: " + (profile?.role || "");
 
   fillCountries();
 
-  const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = (profile?.timezone || "").trim() || detectTimezone();
+  const lang = (profile?.ui_lang || "").trim() || detectLanguageCode();
+  const country = (profile?.country || "").trim() || findCountryByTimezone(tz);
 
-  let defaultCountry = "Germany";
+  countryEl.value = COUNTRY_CONFIG[country] ? country : "Germany";
+  fillLanguages(lang);
+  fillTimezones(countryEl.value, tz);
 
-  for (const c in COUNTRIES) {
-    const data = COUNTRIES[c];
-    if (data.timezone === detectedTz) {
-      defaultCountry = c;
-    }
-  }
-
-  countryEl.value = defaultCountry;
-
-  const countryData = COUNTRIES[defaultCountry];
-
-  fillLanguages(countryData.language);
-  fillTimezones(defaultCountry);
-
-  if (profile?.timezone) {
-    timezoneEl.value = profile.timezone;
-  }
+  statusEl.textContent = "Ready";
 }
 
-await loadProfile();
+await init();
 </script>
 
 </body>
