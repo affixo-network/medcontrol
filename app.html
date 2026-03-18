@@ -26,6 +26,9 @@
 
   <span id="tzText" style="margin-left:10px;">Timezone:</span>
   <span id="tzLabel" style="color:#555;"></span>
+
+  <span id="localTimeText" style="margin-left:10px;">Local time:</span>
+  <span id="localTimeLabel" style="color:#555;"></span>
 </div>
 
 <hr>
@@ -90,6 +93,7 @@ const I18N = {
     settings: "Settings",
     language: "Language:",
     timezone: "Timezone:",
+    local_time: "Local time:",
     people: "People",
     selected_none: "Selected patient: (none)",
     selected_prefix: "Selected patient:",
@@ -148,6 +152,7 @@ const I18N = {
     settings: "Настройки",
     language: "Язык:",
     timezone: "Часовой пояс:",
+    local_time: "Местное время:",
     people: "Люди",
     selected_none: "Выбран пациент: (нет)",
     selected_prefix: "Выбран пациент:",
@@ -206,6 +211,7 @@ const I18N = {
     settings: "Einstellungen",
     language: "Sprache:",
     timezone: "Zeitzone:",
+    local_time: "Lokale Zeit:",
     people: "Personen",
     selected_none: "Ausgewählter Patient: (keiner)",
     selected_prefix: "Ausgewählter Patient:",
@@ -267,6 +273,7 @@ const errEl = document.getElementById("err");
 const selectedEl = document.getElementById("selected");
 const addMedSectionEl = document.getElementById("addmed-section");
 const tzLabelEl = document.getElementById("tzLabel");
+const localTimeLabelEl = document.getElementById("localTimeLabel");
 const uiLangEl = document.getElementById("uiLang");
 
 const teamBoxEl = document.getElementById("team-box");
@@ -282,6 +289,8 @@ let cachedPatients = [];
 let role = "unknown";
 let profileEmail = "";
 let currentUserId = null;
+let currentTimezone = "";
+let localTimeTimer = null;
 
 const savedLang = localStorage.getItem("mc_ui_lang");
 const browserLang = (navigator.language || "en").slice(0, 2).toLowerCase();
@@ -295,6 +304,54 @@ function t(key) {
   return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
 }
 
+function fmtTimeHHMM(tod) {
+  if (!tod) return "09:00";
+  const s = String(tod);
+  return s.length >= 5 ? s.slice(0, 5) : s;
+}
+
+function makeTodaySlotIso(timeStr) {
+  const [hh, mm] = (timeStr || "09:00").split(":").map(x => parseInt(x, 10));
+  const d = new Date();
+  d.setHours(Number.isFinite(hh) ? hh : 9, Number.isFinite(mm) ? mm : 0, 0, 0);
+  return d.toISOString();
+}
+
+function detectTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+}
+
+function fmtLocalDateTime(iso) {
+  try {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+  } catch {
+    return String(iso || "");
+  }
+}
+
+function updateLocalClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  localTimeLabelEl.textContent = `${hh}:${mm}`;
+}
+
+function startLocalClock() {
+  updateLocalClock();
+  if (localTimeTimer) clearInterval(localTimeTimer);
+  localTimeTimer = setInterval(updateLocalClock, 30000);
+}
+
 function applyTexts() {
   document.getElementById("t_title").textContent = t("title");
   document.getElementById("logout").textContent = t("logout");
@@ -303,6 +360,7 @@ function applyTexts() {
   document.getElementById("settingsBtn").textContent = t("settings");
   document.getElementById("uiLangLabel").textContent = t("language");
   document.getElementById("tzText").textContent = t("timezone");
+  document.getElementById("localTimeText").textContent = t("local_time");
   document.getElementById("t_people").textContent = t("people");
   document.getElementById("t_meds").textContent = t("meds");
   document.getElementById("t_team").textContent = t("team");
@@ -326,6 +384,7 @@ function applyTexts() {
       `<option value="standard">${t("standard")}</option>` +
       `<option value="team">${t("team_mode")}</option>` +
       `</select>`;
+
     const modeSelect = document.getElementById("mode_select");
     if (modeSelect) {
       modeSelect.value = currentMode === "team" ? "team" : "standard";
@@ -362,42 +421,6 @@ function updateModeUI(mode) {
     teamNoteEl.textContent = t("team_note");
   } else {
     teamBoxEl.style.display = "none";
-  }
-}
-
-function fmtTimeHHMM(tod) {
-  if (!tod) return "09:00";
-  const s = String(tod);
-  return s.length >= 5 ? s.slice(0, 5) : s;
-}
-
-function makeTodaySlotIso(timeStr) {
-  const [hh, mm] = (timeStr || "09:00").split(":").map(x => parseInt(x, 10));
-  const d = new Date();
-  d.setHours(Number.isFinite(hh) ? hh : 9, Number.isFinite(mm) ? mm : 0, 0, 0);
-  return d.toISOString();
-}
-
-function detectTimezone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-  } catch {
-    return "";
-  }
-}
-
-function fmtLocalDateTime(iso) {
-  try {
-    return new Intl.DateTimeFormat(currentLang, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    }).format(new Date(iso));
-  } catch {
-    return String(iso || "");
   }
 }
 
@@ -451,7 +474,10 @@ async function loadProfile() {
     }
   }
 
-  tzLabelEl.textContent = timezone || detectedTz || "(unknown)";
+  currentTimezone = timezone || detectedTz || "(unknown)";
+  tzLabelEl.textContent = currentTimezone;
+  startLocalClock();
+
   statusEl.textContent = `Logged in as ${profileEmail} (${role})`;
 
   if (role !== "admin") {
@@ -616,7 +642,7 @@ async function loadToday() {
   }
 
   const timesByMed = new Map();
-  (times || []).forEach(ti => {
+  (times || []).forEach((ti) => {
     const arr = timesByMed.get(ti.medication_id) || [];
     arr.push(fmtTimeHHMM(ti.time_of_day));
     timesByMed.set(ti.medication_id, arr);
@@ -909,3 +935,4 @@ await init();
 
 </body>
 </html>
+  
