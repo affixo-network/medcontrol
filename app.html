@@ -22,6 +22,10 @@
     <option value="en">English</option>
     <option value="ru">Русский</option>
     <option value="de">Deutsch</option>
+    <option value="fr">Français</option>
+    <option value="hy">Հայերեն</option>
+    <option value="zh">中文</option>
+    <option value="ja">日本語</option>
   </select>
 
   <span id="tzText" style="margin-left:10px;">Timezone:</span>
@@ -127,6 +131,10 @@ const I18N = {
     not_marked: "not marked",
     taken: "Taken",
     missed: "Missed",
+    waiting: "waiting",
+    early: "early",
+    on_time: "on time",
+    late: "late",
     history_error: "History error: ",
     today_error: "Today logs error: ",
     meds_error: "MEDS ERROR: ",
@@ -142,7 +150,9 @@ const I18N = {
     profile_error: "Profile load error: ",
     no_session: "No session, redirecting to login…",
     init_error: "Init error: ",
-    loading: "Loading..."
+    loading: "Loading...",
+    planned: "planned",
+    actual: "actual"
   },
   ru: {
     title: "Affixo MedControl — Приложение",
@@ -186,6 +196,10 @@ const I18N = {
     not_marked: "не отмечено",
     taken: "Принято",
     missed: "Пропущено",
+    waiting: "ожидание",
+    early: "принято рано",
+    on_time: "вовремя",
+    late: "с опозданием",
     history_error: "Ошибка истории: ",
     today_error: "Ошибка логов сегодня: ",
     meds_error: "Ошибка лекарств: ",
@@ -201,7 +215,9 @@ const I18N = {
     profile_error: "Ошибка загрузки профиля: ",
     no_session: "Нет сессии, переход на вход…",
     init_error: "Ошибка запуска: ",
-    loading: "Загрузка..."
+    loading: "Загрузка...",
+    planned: "план",
+    actual: "факт"
   },
   de: {
     title: "Affixo MedControl — App",
@@ -245,6 +261,10 @@ const I18N = {
     not_marked: "nicht markiert",
     taken: "Eingenommen",
     missed: "Verpasst",
+    waiting: "wartet",
+    early: "früh",
+    on_time: "pünktlich",
+    late: "verspätet",
     history_error: "Verlaufsfehler: ",
     today_error: "Fehler bei heutigen Logs: ",
     meds_error: "Medikamentenfehler: ",
@@ -260,7 +280,9 @@ const I18N = {
     profile_error: "Profilfehler: ",
     no_session: "Keine Sitzung, Weiterleitung zum Login…",
     init_error: "Startfehler: ",
-    loading: "Lädt..."
+    loading: "Lädt...",
+    planned: "geplant",
+    actual: "tatsächlich"
   }
 };
 
@@ -291,17 +313,25 @@ let profileEmail = "";
 let currentUserId = null;
 let currentTimezone = "";
 let localTimeTimer = null;
+let currentPatientName = "";
+let currentMode = "standard";
 
 const savedLang = localStorage.getItem("mc_ui_lang");
 const browserLang = (navigator.language || "en").slice(0, 2).toLowerCase();
 let currentLang = savedLang || (I18N[browserLang] ? browserLang : "en");
-let currentPatientName = "";
-let currentMode = "standard";
 
 uiLangEl.value = currentLang;
 
 function t(key) {
   return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+}
+
+function detectTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
 }
 
 function fmtTimeHHMM(tod) {
@@ -317,39 +347,46 @@ function makeTodaySlotIso(timeStr) {
   return d.toISOString();
 }
 
-function detectTimezone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-  } catch {
-    return "";
-  }
+function fmtLocalClock(date) {
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function fmtLocalDate(date) {
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
 }
 
 function fmtLocalDateTime(iso) {
   try {
     const d = new Date(iso);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2, "0");
-    const min = String(d.getMinutes()).padStart(2, "0");
-    return `${dd}.${mm}.${yyyy}, ${hh}:${min}`;
+    return `${fmtLocalDate(d)}, ${fmtLocalClock(d)}`;
   } catch {
     return String(iso || "");
   }
 }
 
 function updateLocalClock() {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  localTimeLabelEl.textContent = `${hh}:${mm}`;
+  localTimeLabelEl.textContent = fmtLocalClock(new Date());
 }
 
 function startLocalClock() {
   updateLocalClock();
   if (localTimeTimer) clearInterval(localTimeTimer);
   localTimeTimer = setInterval(updateLocalClock, 30000);
+}
+
+function getTimingStatus(scheduledIso, actualIso) {
+  const scheduled = new Date(scheduledIso).getTime();
+  const actual = new Date(actualIso).getTime();
+  const diffMin = Math.round((actual - scheduled) / 60000);
+
+  if (diffMin < -10) return t("early");
+  if (diffMin <= 10) return t("on_time");
+  return t("late");
 }
 
 function applyTexts() {
@@ -450,7 +487,7 @@ async function loadProfile() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("email, role, timezone")
+    .select("email, role, timezone, ui_lang")
     .maybeSingle();
 
   if (profileError) {
@@ -460,6 +497,12 @@ async function loadProfile() {
 
   profileEmail = profile?.email || "(no email)";
   role = profile?.role || "unknown";
+
+  const profileLang = (profile?.ui_lang || "").trim();
+  if (profileLang && I18N[profileLang]) {
+    currentLang = profileLang;
+    uiLangEl.value = currentLang;
+  }
 
   let timezone = (profile?.timezone || "").trim();
 
@@ -650,7 +693,7 @@ async function loadToday() {
 
   const { data: logs, error: logsErr } = await supabase
     .from("medication_logs")
-    .select("medication_id, scheduled_at, status")
+    .select("medication_id, scheduled_at, status, created_at")
     .eq("patient_id", selectedPatientId)
     .gte("scheduled_at", start.toISOString())
     .lte("scheduled_at", end.toISOString());
@@ -688,7 +731,11 @@ async function loadToday() {
       const row = document.createElement("div");
       row.style.margin = "6px 0";
 
-      const statusText = existing ? existing.status : t("not_marked");
+      let statusText = t("not_marked");
+      if (existing) {
+        const timing = getTimingStatus(existing.scheduled_at, existing.created_at || existing.scheduled_at);
+        statusText = `${existing.status} (${timing})`;
+      }
 
       row.innerHTML = `
         <div>${slot} — <b>${statusText}</b></div>
@@ -713,7 +760,7 @@ async function loadHistory() {
 
   const { data, error } = await supabase
     .from("medication_logs")
-    .select("status, scheduled_at, recorded_role, recorded_by")
+    .select("status, scheduled_at, recorded_role, recorded_by, created_at")
     .eq("patient_id", selectedPatientId)
     .order("scheduled_at", { ascending: false })
     .limit(50);
@@ -744,11 +791,13 @@ async function loadHistory() {
 
   data.forEach((r) => {
     const div = document.createElement("div");
-    const localTime = fmtLocalDateTime(r.scheduled_at);
+    const plannedTime = fmtLocalDateTime(r.scheduled_at);
+    const actualTime = fmtLocalDateTime(r.created_at || r.scheduled_at);
+    const timing = getTimingStatus(r.scheduled_at, r.created_at || r.scheduled_at);
     const email = r.recorded_by ? (emailById.get(r.recorded_by) || "") : "";
     const rolePart = r.recorded_role ? ` — ${r.recorded_role}` : "";
     const emailPart = email ? ` — ${email}` : "";
-    div.textContent = `${r.status} ${localTime}${rolePart}${emailPart}`;
+    div.textContent = `${r.status} ${plannedTime} (${t("planned")}) → ${actualTime} (${t("actual")}) — ${timing}${rolePart}${emailPart}`;
     historyEl.appendChild(div);
   });
 }
@@ -915,6 +964,7 @@ async function init() {
     statusEl.textContent = t("loading");
     applyTexts();
     await loadProfile();
+    applyTexts();
 
     cachedPatients = await fetchPatients();
     await renderPatientsList(cachedPatients);
@@ -935,4 +985,3 @@ await init();
 
 </body>
 </html>
-  
