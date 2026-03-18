@@ -13,65 +13,181 @@
 <hr>
 
 <h3>Account</h3>
+<div id="accountEmail">Email: ...</div>
+<div id="accountRole">Role: ...</div>
 
-<div>
-Email: user@example.com
+<hr>
+
+<h3>Region & Preferences</h3>
+
+<div style="margin-bottom:10px;">
+  <label>Country</label><br>
+  <select id="country"></select>
 </div>
 
-<div>
-Role: admin
+<div style="margin-bottom:10px;">
+  <label>Language</label><br>
+  <select id="language"></select>
 </div>
 
-<hr>
-
-<h3>Interface Language</h3>
-
-<select>
-<option>English</option>
-<option>Deutsch</option>
-<option>Русский</option>
-<option>中文</option>
-<option>日本語</option>
-</select>
-
-<hr>
-
-<h3>Timezone</h3>
-
-<select>
-<option>Europe/Berlin</option>
-<option>Europe/London</option>
-<option>America/New_York</option>
-<option>Asia/Tokyo</option>
-<option>Asia/Yerevan</option>
-</select>
-
-<p>
-Timezone determines how medication times are displayed.
-</p>
-
-<hr>
-
-<h3>Team Operation</h3>
-
-<p>
-In Team mode:
-</p>
-
-<ul>
-<li>One coordinator manages the medication plan.</li>
-<li>Multiple team members may confirm medication intake.</li>
-<li>Team members may work in shifts.</li>
-<li>Every action is recorded in the history log.</li>
-</ul>
+<div style="margin-bottom:10px;">
+  <label>Timezone</label><br>
+  <select id="timezone"></select>
+</div>
 
 <hr>
 
 <p>
 <a href="/app.html">
-<button>Back to MedControl</button>
+<button>Back to App</button>
 </a>
 </p>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  "https://lewdbjjaohqxbirzhrbm.supabase.co",
+  "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ"
+);
+
+const countryEl = document.getElementById("country");
+const languageEl = document.getElementById("language");
+const timezoneEl = document.getElementById("timezone");
+
+const COUNTRIES = {
+  Armenia: {
+    language: "Armenian",
+    timezone: "Asia/Yerevan"
+  },
+  Germany: {
+    language: "German",
+    timezone: "Europe/Berlin"
+  },
+  Russia: {
+    language: "Russian",
+    timezone: "Europe/Moscow"
+  },
+  USA: {
+    language: "English",
+    timezones: [
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles"
+    ]
+  },
+  France: {
+    language: "French",
+    timezone: "Europe/Paris"
+  }
+};
+
+const LANGUAGES = [
+  "English",
+  "Русский",
+  "Deutsch",
+  "Français",
+  "Հայերեն"
+];
+
+function fillCountries() {
+  countryEl.innerHTML = "";
+  Object.keys(COUNTRIES).forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    countryEl.appendChild(opt);
+  });
+}
+
+function fillLanguages(selected) {
+  languageEl.innerHTML = "";
+  LANGUAGES.forEach(l => {
+    const opt = document.createElement("option");
+    opt.value = l;
+    opt.textContent = l;
+    if (l === selected) opt.selected = true;
+    languageEl.appendChild(opt);
+  });
+}
+
+function fillTimezones(country) {
+  timezoneEl.innerHTML = "";
+
+  const data = COUNTRIES[country];
+
+  if (data.timezones) {
+    data.timezones.forEach(tz => {
+      const opt = document.createElement("option");
+      opt.value = tz;
+      opt.textContent = tz;
+      timezoneEl.appendChild(opt);
+    });
+  } else {
+    const opt = document.createElement("option");
+    opt.value = data.timezone;
+    opt.textContent = data.timezone;
+    timezoneEl.appendChild(opt);
+  }
+}
+
+countryEl.onchange = () => {
+  const c = countryEl.value;
+  const data = COUNTRIES[c];
+
+  fillLanguages(data.language);
+  fillTimezones(c);
+};
+
+async function loadProfile() {
+  const { data: session } = await supabase.auth.getSession();
+
+  if (!session?.session) {
+    window.location.replace("/auth-login.html");
+    return;
+  }
+
+  const userId = session.session.user.id;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email, role, timezone")
+    .eq("id", userId)
+    .single();
+
+  document.getElementById("accountEmail").textContent =
+    "Email: " + (profile?.email || "");
+  document.getElementById("accountRole").textContent =
+    "Role: " + (profile?.role || "");
+
+  fillCountries();
+
+  const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  let defaultCountry = "Germany";
+
+  for (const c in COUNTRIES) {
+    const data = COUNTRIES[c];
+    if (data.timezone === detectedTz) {
+      defaultCountry = c;
+    }
+  }
+
+  countryEl.value = defaultCountry;
+
+  const countryData = COUNTRIES[defaultCountry];
+
+  fillLanguages(countryData.language);
+  fillTimezones(defaultCountry);
+
+  if (profile?.timezone) {
+    timezoneEl.value = profile.timezone;
+  }
+}
+
+await loadProfile();
+</script>
 
 </body>
 </html>
