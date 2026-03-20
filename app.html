@@ -1,85 +1,111 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Affixo MedControl</title>
+  <title>Affixo MedControl — App</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 32px auto; padding: 0 16px; line-height: 1.45; color: #111; }
+    h1,h2,h3 { margin: 0 0 12px; }
+    .topbar, .card, .row-card { border: 1px solid #ddd; border-radius: 12px; background: #fff; }
+    .topbar { padding: 12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+    .stack { display:grid; gap:16px; }
+    .grid2 { display:grid; grid-template-columns: 280px 1fr; gap:16px; }
+    .card { padding: 14px; }
+    .patients li, .meds li, .team-list li { padding: 8px 10px; border:1px solid #ddd; border-radius: 8px; margin: 8px 0; list-style:none; }
+    .patients li { cursor:pointer; }
+    .patients li.active { border-color:#111; background:#f5f5f5; }
+    .muted { color:#666; }
+    .status-chip { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid #ddd; background:#fafafa; }
+    .slot { border:1px solid #ddd; border-radius:10px; padding:10px; margin:10px 0; }
+    .slot-head { display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
+    .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    button, select, input { font: inherit; }
+    button { padding:8px 12px; cursor:pointer; }
+    input, select { padding:8px 10px; }
+    a.btn { text-decoration:none; color:inherit; border:1px solid #ddd; border-radius:8px; padding:8px 12px; display:inline-block; }
+    .danger { color:#b00020; }
+    .good { color:#1f6f3f; }
+    .history-item { border-bottom:1px solid #eee; padding:10px 0; }
+    .history-item:last-child { border-bottom:none; }
+    .small { font-size: 12px; }
+    @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  </style>
 </head>
-<body style="font-family:sans-serif;max-width:980px;margin:40px auto;line-height:1.5;">
+<body>
+  <h1 id="t_title">Affixo MedControl — App</h1>
+  <p id="status">Loading...</p>
 
-<h2 id="t_title">Affixo MedControl — App</h2>
+  <div class="topbar">
+    <button id="logout">Logout</button>
+    <button id="whoami">WhoAmI</button>
+    <a class="btn" id="demoBtn" href="/demo.html">Demo</a>
+    <a class="btn" id="settingsBtn" href="/settings.html">Settings</a>
 
-<p id="status">Loading...</p>
+    <span id="countryText" style="margin-left:8px;">Country:</span>
+    <span id="countryLabel" class="muted"></span>
 
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
-  <button id="logout">Logout</button>
-  <button id="whoami">WhoAmI</button>
-  <a href="/demo.html"><button id="demoBtn">Demo</button></a>
-  <a href="/settings.html"><button id="settingsBtn">Settings</button></a>
+    <span id="uiLangLabel" style="margin-left:8px;">Language:</span>
+    <select id="uiLang"></select>
 
-  <span id="uiLangLabel" style="margin-left:10px;">Language:</span>
-  <select id="uiLang">
-    <option value="en">English</option>
-    <option value="ru">Русский</option>
-    <option value="de">Deutsch</option>
-    <option value="fr">Français</option>
-    <option value="hy">Հայերեն</option>
-    <option value="zh">中文</option>
-    <option value="ja">日本語</option>
-  </select>
+    <span id="tzText" style="margin-left:8px;">Timezone:</span>
+    <span id="tzLabel" class="muted"></span>
 
-  <span id="tzText" style="margin-left:10px;">Timezone:</span>
-  <span id="tzLabel" style="color:#555;"></span>
-
-  <span id="localTimeText" style="margin-left:10px;">Local time:</span>
-  <span id="localTimeLabel" style="color:#555;"></span>
-</div>
-
-<hr>
-
-<div id="patients-section">
-  <h3 id="t_people">People</h3>
-  <p id="selected" style="margin:6px 0;color:#555;">Selected patient: (none)</p>
-  <ul id="patients"></ul>
-  <pre id="err" style="margin-top:12px;white-space:pre-wrap;color:#b00;"></pre>
-  <hr>
-</div>
-
-<h3 id="t_meds">Medications</h3>
-<ul id="meds"></ul>
-
-<div id="team-box" style="display:none; margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px; background:#f9f9f9;">
-  <h3 id="t_team">Team</h3>
-  <p id="team-note" style="margin:0 0 10px 0;">Team mode is active. Multiple people can participate in monitoring.</p>
-
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="team-email" placeholder="Team member email">
-    <button id="add-team-member">Add Team Member</button>
+    <span id="localTimeText" style="margin-left:8px;">Local time:</span>
+    <span id="localTimeLabel" class="muted"></span>
   </div>
 
-  <p id="team-email-status" style="margin-top:8px; color:#555;"></p>
-  <p id="team-members-list" style="margin-top:8px; color:#333;"></p>
-  <p id="team-invite-status" style="margin-top:8px; color:#555;"></p>
-</div>
+  <div class="grid2">
+    <div class="stack">
+      <section class="card">
+        <h2 id="t_people">People</h2>
+        <p id="selected" class="muted">Selected patient: (none)</p>
+        <ul id="patients" class="patients" style="padding:0;margin:0;"></ul>
+        <pre id="err" class="danger" style="white-space:pre-wrap;"></pre>
+      </section>
 
-<h3 id="t_today">Today</h3>
-<div id="today-list" style="padding:8px 0;"></div>
+      <section class="card">
+        <h2 id="t_meds">Medications</h2>
+        <ul id="meds" class="meds" style="padding:0;margin:0;"></ul>
+      </section>
 
-<h3 id="t_history">History</h3>
-<div id="history-list" style="padding:8px 0;"></div>
+      <section class="card" id="addmed-section">
+        <h2 id="t_addmed">Add Medication</h2>
+        <div class="inline">
+          <input id="medName" placeholder="Medication name" />
+          <input id="medDose" placeholder="Dose" />
+          <input id="medSlots" placeholder="09:00, 14:00, 22:00" />
+          <button id="addMed">Add</button>
+        </div>
+        <p id="medHelp" class="small muted">Medication name may be entered fully or partially in any language. System labels follow the selected interface language.</p>
+      </section>
+    </div>
 
-<hr>
+    <div class="stack">
+      <section class="card">
+        <h2 id="t_today">Today</h2>
+        <div id="today-list"></div>
+      </section>
 
-<div id="addmed-section">
-  <h3 id="t_addmed">Add Medication</h3>
+      <section class="card" id="team-box" style="display:none;">
+        <h2 id="t_team">Team</h2>
+        <p id="team-note" class="muted">Team mode is active. Multiple people can participate in monitoring.</p>
+        <div class="inline">
+          <input id="team-email" placeholder="Team member email" />
+          <button id="add-team-member">Add Team Member</button>
+        </div>
+        <p id="team-email-status" class="small muted"></p>
+        <ul id="team-members-list" class="team-list" style="padding:0;margin:10px 0 0;"></ul>
+        <p id="team-invite-status" class="small muted"></p>
+      </section>
 
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input id="medName" placeholder="Name">
-    <input id="medDose" placeholder="Dose">
-    <input id="medScheduleLegacy" placeholder="Schedule">
-    <button id="addMed">Add</button>
+      <section class="card">
+        <h2 id="t_history">History</h2>
+        <div id="history-list"></div>
+      </section>
+    </div>
   </div>
-</div>
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -88,470 +114,99 @@ const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const COUNTRY_CONFIG = {
+  AM: { countryName: "Armenia", timeZone: "Asia/Yerevan", lang: "hy" },
+  DE: { countryName: "Germany", timeZone: "Europe/Berlin", lang: "de" },
+  FR: { countryName: "France", timeZone: "Europe/Paris", lang: "fr" },
+  GB: { countryName: "United Kingdom", timeZone: "Europe/London", lang: "en" },
+  US: { countryName: "United States", timeZone: "America/New_York", lang: "en" },
+  RU: { countryName: "Russia", timeZone: "Europe/Moscow", lang: "ru" },
+  CN: { countryName: "China", timeZone: "Asia/Shanghai", lang: "zh" },
+  JP: { countryName: "Japan", timeZone: "Asia/Tokyo", lang: "ja" },
+  AE: { countryName: "United Arab Emirates", timeZone: "Asia/Dubai", lang: "ar" }
+};
+
 const I18N = {
   en: {
-    title: "Affixo MedControl — App",
-    logout: "Logout",
-    whoami: "WhoAmI",
-    demo: "Demo",
-    settings: "Settings",
-    language: "Language:",
-    timezone: "Timezone:",
-    local_time: "Local time:",
-    people: "People",
-    selected_none: "Selected patient: (none)",
-    selected_prefix: "Selected patient:",
-    meds: "Medications",
-    team: "Team",
-    team_note: "Team mode is active. Multiple people can participate in monitoring.",
-    team_email_ph: "Team member email",
-    add_team_member: "Add Team Member",
-    today: "Today",
-    history: "History",
-    add_med: "Add Medication",
-    med_name_ph: "Name",
-    med_dose_ph: "Dose",
-    med_schedule_ph: "Schedule",
-    add: "Add",
-    mode_label: "Monitoring Mode:",
-    standard: "Standard",
-    team_mode: "Team",
-    no_patients: "(no patients visible for this user)",
-    no_meds: "(no medications for this patient)",
-    no_history: "(no history)",
-    no_team_members: "No team members yet",
-    invite_none: "Invite status: none",
-    team_members: "Team members:",
-    invite_status: "Invite status:",
-    team_added: "Team member added",
-    select_patient_first: "Select patient first",
-    enter_team_email: "Enter team member email",
-    today_no_meds: "(no medications)",
-    no_slots: "No time slots configured for this medication.",
-    not_marked: "not marked",
-    taken: "Taken",
-    missed: "Missed",
-    waiting: "waiting",
-    early: "early",
-    on_time: "on time",
-    late: "late",
-    history_error: "History error: ",
-    today_error: "Today logs error: ",
-    meds_error: "MEDS ERROR: ",
-    patients_error: "PATIENTS ERROR: ",
-    cannot_update_mode: "Cannot update mode: ",
-    rpc_error: "RPC error: ",
-    team_list_error: "Team list error: ",
-    invite_status_error: "Invite status error: ",
-    team_link_error: "Team link error: ",
-    invite_save_error: "Invite save error: ",
-    cannot_add_med: "Cannot add medication: ",
-    enter_med_name: "Enter medication name",
-    profile_error: "Profile load error: ",
-    no_session: "No session, redirecting to login…",
-    init_error: "Init error: ",
-    loading: "Loading...",
-    planned: "planned",
-    actual: "actual",
-    by: "by"
+    lang_native: "English", title: "Affixo MedControl — App", loading: "Loading...", country: "Country:", language: "Language:", timezone: "Timezone:", local_time: "Local time:",
+    logout: "Logout", whoami: "WhoAmI", demo: "Demo", settings: "Settings", people: "People", selected_none: "Selected patient: (none)", selected_prefix: "Selected patient:",
+    mode_label: "Monitoring mode:", standard: "Standard", team_mode: "Team", meds: "Medications", add_med: "Add Medication", med_name_ph: "Medication name",
+    med_dose_ph: "Dose", med_slots_ph: "09:00, 14:00, 22:00", add: "Add", med_help: "Medication name may be entered fully or partially in any language. System labels follow the selected interface language.",
+    team: "Team", team_note: "Team mode is active. Multiple people can participate in monitoring.", team_email_ph: "Team member email", add_team_member: "Add Team Member",
+    team_members: "Team members", invite_status: "Invite status", no_team_members: "No team members yet", no_invites: "No invite statuses yet",
+    today: "Today", history: "History", history_hint: "History shows the actual action time.", no_patients: "(no patients visible for this user)", no_meds: "(no medications for this patient)",
+    waiting: "Waiting", overdue: "Overdue", taken_early: "Taken early", taken_on_time: "Taken on time", taken_late: "Taken late", expired_0000: "Overdue until 00:00",
+    taken: "Taken", missed: "Missed", missed_status: "Missed", actual: "Actual", planned: "Planned", role_unknown: "role unknown",
+    team_added: "Team member added", select_patient_first: "Select patient first", enter_team_email: "Enter team member email", team_link_error: "Team link error: ",
+    invite_save_error: "Invite save error: ", team_list_error: "Team list error: ", invite_status_error: "Invite status error: ",
+    patients_error: "Patients error: ", meds_error: "Medications error: ", today_error: "Today error: ", history_error: "History error: ", profile_error: "Profile load error: ",
+    init_error: "Init error: ", no_session: "No session, redirecting to login…", cannot_add_med: "Cannot add medication: ", cannot_update_mode: "Cannot update mode: ",
+    enter_med_name: "Enter medication name", enter_med_slots: "Enter at least one time slot", bad_time_list: "Time format must use HH:mm, separated by commas.",
+    no_slots: "No time slots configured for this medication.", no_history: "(no history yet)", logged_in_as: "Logged in as", pending: "Pending", accepted: "Accepted", status_label: "Status",
+    time_range: "Window", planned_slot: "Planned slot", actual_action: "Actual action", by_actor: "Recorded by"
   },
   ru: {
-    title: "Affixo MedControl — Приложение",
-    logout: "Выйти",
-    whoami: "Кто я",
-    demo: "Демо",
-    settings: "Настройки",
-    language: "Язык:",
-    timezone: "Часовой пояс:",
-    local_time: "Местное время:",
-    people: "Люди",
-    selected_none: "Выбран пациент: (нет)",
-    selected_prefix: "Выбран пациент:",
-    meds: "Лекарства",
-    team: "Команда",
-    team_note: "Режим команды активен. Несколько людей могут участвовать в контроле.",
-    team_email_ph: "Email участника команды",
-    add_team_member: "Добавить участника",
-    today: "Сегодня",
-    history: "История",
-    add_med: "Добавить лекарство",
-    med_name_ph: "Название",
-    med_dose_ph: "Доза",
-    med_schedule_ph: "Расписание",
-    add: "Добавить",
-    mode_label: "Режим контроля:",
-    standard: "Стандарт",
-    team_mode: "Команда",
-    no_patients: "(нет доступных пациентов)",
-    no_meds: "(у пациента нет лекарств)",
-    no_history: "(история пуста)",
-    no_team_members: "Участников команды пока нет",
-    invite_none: "Статус приглашения: нет",
-    team_members: "Участники команды:",
-    invite_status: "Статус приглашения:",
-    team_added: "Участник добавлен",
-    select_patient_first: "Сначала выберите пациента",
-    enter_team_email: "Введите email участника",
-    today_no_meds: "(нет лекарств)",
-    no_slots: "Для этого лекарства не настроено время.",
-    not_marked: "не отмечено",
-    taken: "Принято",
-    missed: "Пропущено",
-    waiting: "ожидание",
-    early: "принято рано",
-    on_time: "вовремя",
-    late: "с опозданием",
-    history_error: "Ошибка истории: ",
-    today_error: "Ошибка логов сегодня: ",
-    meds_error: "Ошибка лекарств: ",
-    patients_error: "Ошибка пациентов: ",
-    cannot_update_mode: "Не удалось изменить режим: ",
-    rpc_error: "Ошибка RPC: ",
-    team_list_error: "Ошибка списка команды: ",
-    invite_status_error: "Ошибка статуса приглашения: ",
-    team_link_error: "Ошибка связи команды: ",
-    invite_save_error: "Ошибка сохранения приглашения: ",
-    cannot_add_med: "Не удалось добавить лекарство: ",
-    enter_med_name: "Введите название лекарства",
-    profile_error: "Ошибка загрузки профиля: ",
-    no_session: "Нет сессии, переход на вход…",
-    init_error: "Ошибка запуска: ",
-    loading: "Загрузка...",
-    planned: "план",
-    actual: "факт",
-    by: "от"
+    lang_native: "Русский", title: "Affixo MedControl — Приложение", loading: "Загрузка...", country: "Страна:", language: "Язык:", timezone: "Часовой пояс:", local_time: "Местное время:",
+    logout: "Выйти", whoami: "Кто я", demo: "Демо", settings: "Настройки", people: "Люди", selected_none: "Выбран пациент: (нет)", selected_prefix: "Выбран пациент:",
+    mode_label: "Режим наблюдения:", standard: "Standard", team_mode: "Team", meds: "Лекарства", add_med: "Добавить препарат", med_name_ph: "Название препарата",
+    med_dose_ph: "Доза", med_slots_ph: "09:00, 14:00, 22:00", add: "Добавить", med_help: "Название препарата можно вводить полностью или частично на любом языке. Системные подписи идут на языке интерфейса.",
+    team: "Команда", team_note: "Командный режим активен. Несколько людей могут участвовать в наблюдении.", team_email_ph: "Email участника команды", add_team_member: "Добавить участника",
+    team_members: "Участники команды", invite_status: "Статус приглашений", no_team_members: "Участников команды пока нет", no_invites: "Статусы приглашений пока отсутствуют",
+    today: "Сегодня", history: "История", history_hint: "История показывает фактическое время действия.", no_patients: "(для этого пользователя пациенты не видны)", no_meds: "(для этого пациента нет препаратов)",
+    waiting: "Ожидание", overdue: "Просрочено", taken_early: "Принял досрочно", taken_on_time: "Принял вовремя", taken_late: "Принял с опозданием", expired_0000: "Просрочено до 00:00",
+    taken: "Принял", missed: "Не принял", missed_status: "Не принял", actual: "Факт", planned: "План", role_unknown: "роль не указана",
+    team_added: "Участник добавлен", select_patient_first: "Сначала выберите пациента", enter_team_email: "Введите email участника", team_link_error: "Ошибка привязки участника: ",
+    invite_save_error: "Ошибка сохранения приглашения: ", team_list_error: "Ошибка списка команды: ", invite_status_error: "Ошибка статусов приглашений: ",
+    patients_error: "Ошибка пациентов: ", meds_error: "Ошибка препаратов: ", today_error: "Ошибка блока Сегодня: ", history_error: "Ошибка истории: ", profile_error: "Ошибка профиля: ",
+    init_error: "Ошибка запуска: ", no_session: "Сессия отсутствует, переход на вход…", cannot_add_med: "Не удалось добавить препарат: ", cannot_update_mode: "Не удалось изменить режим: ",
+    enter_med_name: "Введите название препарата", enter_med_slots: "Введите хотя бы один слот", bad_time_list: "Формат времени должен быть HH:mm, через запятую.",
+    no_slots: "Для этого препарата не настроены временные слоты.", no_history: "(истории пока нет)", logged_in_as: "Вход выполнен как", pending: "Ожидает", accepted: "Подтверждено", status_label: "Статус",
+    time_range: "Окно", planned_slot: "Плановый слот", actual_action: "Фактическое действие", by_actor: "Отметил"
   },
   de: {
-    title: "Affixo MedControl — App",
-    logout: "Abmelden",
-    whoami: "Wer bin ich",
-    demo: "Demo",
-    settings: "Einstellungen",
-    language: "Sprache:",
-    timezone: "Zeitzone:",
-    local_time: "Lokale Zeit:",
-    people: "Personen",
-    selected_none: "Ausgewählter Patient: (keiner)",
-    selected_prefix: "Ausgewählter Patient:",
-    meds: "Medikamente",
-    team: "Team",
-    team_note: "Team-Modus ist aktiv. Mehrere Personen können an der Überwachung teilnehmen.",
-    team_email_ph: "E-Mail des Teammitglieds",
-    add_team_member: "Teammitglied hinzufügen",
-    today: "Heute",
-    history: "Verlauf",
-    add_med: "Medikament hinzufügen",
-    med_name_ph: "Name",
-    med_dose_ph: "Dosis",
-    med_schedule_ph: "Plan",
-    add: "Hinzufügen",
-    mode_label: "Überwachungsmodus:",
-    standard: "Standard",
-    team_mode: "Team",
-    no_patients: "(keine sichtbaren Patienten)",
-    no_meds: "(keine Medikamente für diesen Patienten)",
-    no_history: "(kein Verlauf)",
-    no_team_members: "Noch keine Teammitglieder",
-    invite_none: "Einladungsstatus: keiner",
-    team_members: "Teammitglieder:",
-    invite_status: "Einladungsstatus:",
-    team_added: "Teammitglied hinzugefügt",
-    select_patient_first: "Bitte zuerst Patienten auswählen",
-    enter_team_email: "Bitte E-Mail eingeben",
-    today_no_meds: "(keine Medikamente)",
-    no_slots: "Für dieses Medikament sind keine Zeiten konfiguriert.",
-    not_marked: "nicht markiert",
-    taken: "Eingenommen",
-    missed: "Verpasst",
-    waiting: "wartet",
-    early: "früh",
-    on_time: "pünktlich",
-    late: "verspätet",
-    history_error: "Verlaufsfehler: ",
-    today_error: "Fehler bei heutigen Logs: ",
-    meds_error: "Medikamentenfehler: ",
-    patients_error: "Patientenfehler: ",
-    cannot_update_mode: "Modus konnte nicht geändert werden: ",
-    rpc_error: "RPC-Fehler: ",
-    team_list_error: "Teamlistenfehler: ",
-    invite_status_error: "Fehler beim Einladungsstatus: ",
-    team_link_error: "Team-Link-Fehler: ",
-    invite_save_error: "Fehler beim Speichern der Einladung: ",
-    cannot_add_med: "Medikament konnte nicht hinzugefügt werden: ",
-    enter_med_name: "Bitte Medikamentennamen eingeben",
-    profile_error: "Profilfehler: ",
-    no_session: "Keine Sitzung, Weiterleitung zum Login…",
-    init_error: "Startfehler: ",
-    loading: "Lädt...",
-    planned: "geplant",
-    actual: "tatsächlich",
-    by: "von"
-  },
-  fr: {
-    title: "Affixo MedControl — Application",
-    logout: "Déconnexion",
-    whoami: "Qui suis-je",
-    demo: "Démo",
-    settings: "Paramètres",
-    language: "Langue :",
-    timezone: "Fuseau horaire :",
-    local_time: "Heure locale :",
-    people: "Personnes",
-    selected_none: "Patient sélectionné : (aucun)",
-    selected_prefix: "Patient sélectionné :",
-    meds: "Médicaments",
-    team: "Équipe",
-    team_note: "Le mode équipe est actif. Plusieurs personnes peuvent participer au suivi.",
-    team_email_ph: "E-mail du membre",
-    add_team_member: "Ajouter un membre",
-    today: "Aujourd'hui",
-    history: "Historique",
-    add_med: "Ajouter un médicament",
-    med_name_ph: "Nom",
-    med_dose_ph: "Dose",
-    med_schedule_ph: "Programme",
-    add: "Ajouter",
-    mode_label: "Mode de suivi :",
-    standard: "Standard",
-    team_mode: "Équipe",
-    no_patients: "(aucun patient visible)",
-    no_meds: "(aucun médicament pour ce patient)",
-    no_history: "(aucun historique)",
-    no_team_members: "Aucun membre d'équipe",
-    invite_none: "Statut d'invitation : aucun",
-    team_members: "Membres de l'équipe :",
-    invite_status: "Statut d'invitation :",
-    team_added: "Membre ajouté",
-    select_patient_first: "Sélectionnez d'abord un patient",
-    enter_team_email: "Entrez l'e-mail du membre",
-    today_no_meds: "(aucun médicament)",
-    no_slots: "Aucun horaire configuré pour ce médicament.",
-    not_marked: "non marqué",
-    taken: "Pris",
-    missed: "Manqué",
-    waiting: "en attente",
-    early: "pris en avance",
-    on_time: "à l'heure",
-    late: "en retard",
-    history_error: "Erreur d'historique : ",
-    today_error: "Erreur des journaux du jour : ",
-    meds_error: "Erreur médicaments : ",
-    patients_error: "Erreur patients : ",
-    cannot_update_mode: "Impossible de changer le mode : ",
-    rpc_error: "Erreur RPC : ",
-    team_list_error: "Erreur liste équipe : ",
-    invite_status_error: "Erreur statut invitation : ",
-    team_link_error: "Erreur lien équipe : ",
-    invite_save_error: "Erreur sauvegarde invitation : ",
-    cannot_add_med: "Impossible d'ajouter le médicament : ",
-    enter_med_name: "Entrez le nom du médicament",
-    profile_error: "Erreur profil : ",
-    no_session: "Aucune session, redirection…",
-    init_error: "Erreur d'initialisation : ",
-    loading: "Chargement...",
-    planned: "prévu",
-    actual: "réel",
-    by: "par"
+    lang_native: "Deutsch", title: "Affixo MedControl — Anwendung", loading: "Lädt...", country: "Land:", language: "Sprache:", timezone: "Zeitzone:", local_time: "Lokale Zeit:",
+    logout: "Abmelden", whoami: "Wer bin ich", demo: "Demo", settings: "Einstellungen", people: "Personen", selected_none: "Ausgewählter Patient: (keiner)", selected_prefix: "Ausgewählter Patient:",
+    mode_label: "Überwachungsmodus:", standard: "Standard", team_mode: "Team", meds: "Medikamente", add_med: "Medikament hinzufügen", med_name_ph: "Medikamentenname",
+    med_dose_ph: "Dosis", med_slots_ph: "09:00, 14:00, 22:00", add: "Hinzufügen", med_help: "Der Medikamentenname kann vollständig oder teilweise in jeder Sprache eingegeben werden. Systemtexte folgen der gewählten Oberflächensprache.",
+    team: "Team", team_note: "Der Teammodus ist aktiv. Mehrere Personen können an der Überwachung teilnehmen.", team_email_ph: "E-Mail des Teammitglieds", add_team_member: "Teammitglied hinzufügen",
+    team_members: "Teammitglieder", invite_status: "Einladungsstatus", no_team_members: "Noch keine Teammitglieder", no_invites: "Noch keine Einladungsstatus",
+    today: "Heute", history: "Verlauf", history_hint: "Der Verlauf zeigt die tatsächliche Aktionszeit.", no_patients: "(keine sichtbaren Patienten)", no_meds: "(keine Medikamente für diesen Patienten)",
+    waiting: "Warten", overdue: "Überfällig", taken_early: "Früh eingenommen", taken_on_time: "Pünktlich eingenommen", taken_late: "Verspätet eingenommen", expired_0000: "Überfällig bis 00:00",
+    taken: "Eingenommen", missed: "Ausgelassen", missed_status: "Ausgelassen", actual: "Ist", planned: "Plan", role_unknown: "Rolle unbekannt",
+    team_added: "Teammitglied hinzugefügt", select_patient_first: "Bitte zuerst Patient auswählen", enter_team_email: "Bitte E-Mail eingeben", team_link_error: "Fehler bei Teamzuordnung: ",
+    invite_save_error: "Fehler beim Speichern der Einladung: ", team_list_error: "Fehler in Teamliste: ", invite_status_error: "Fehler bei Einladungsstatus: ",
+    patients_error: "Patientenfehler: ", meds_error: "Medikamentenfehler: ", today_error: "Heute-Fehler: ", history_error: "Verlaufsfehler: ", profile_error: "Profilfehler: ",
+    init_error: "Startfehler: ", no_session: "Keine Sitzung, Weiterleitung zum Login…", cannot_add_med: "Medikament konnte nicht hinzugefügt werden: ", cannot_update_mode: "Modus konnte nicht geändert werden: ",
+    enter_med_name: "Bitte Medikamentenname eingeben", enter_med_slots: "Bitte mindestens ein Zeitfenster eingeben", bad_time_list: "Zeitformat muss HH:mm sein, mit Komma getrennt.",
+    no_slots: "Für dieses Medikament sind keine Zeitfenster konfiguriert.", no_history: "(noch kein Verlauf)", logged_in_as: "Angemeldet als", pending: "Ausstehend", accepted: "Bestätigt", status_label: "Status",
+    time_range: "Fenster", planned_slot: "Geplanter Slot", actual_action: "Tatsächliche Aktion", by_actor: "Erfasst von"
   },
   hy: {
-    title: "Affixo MedControl — Հավելված",
-    logout: "Ելք",
-    whoami: "Ո՞վ եմ ես",
-    demo: "Դեմո",
-    settings: "Կարգավորումներ",
-    language: "Լեզու՝",
-    timezone: "Ժամային գոտի՝",
-    local_time: "Տեղական ժամանակ՝",
-    people: "Մարդիկ",
-    selected_none: "Ընտրված պացիենտ՝ (չկա)",
-    selected_prefix: "Ընտրված պացիենտ՝",
-    meds: "Դեղեր",
-    team: "Թիմ",
-    team_note: "Թիմային ռեժիմն ակտիվ է։ Մի քանի մարդ կարող է մասնակցել վերահսկմանը։",
-    team_email_ph: "Թիմի անդամի email",
-    add_team_member: "Ավելացնել անդամ",
-    today: "Այսօր",
-    history: "Պատմություն",
-    add_med: "Ավելացնել դեղ",
-    med_name_ph: "Անուն",
-    med_dose_ph: "Դոզա",
-    med_schedule_ph: "Ժամացույց",
-    add: "Ավելացնել",
-    mode_label: "Վերահսկման ռեժիմ՝",
-    standard: "Ստանդարտ",
-    team_mode: "Թիմ",
-    no_patients: "(հասանելի պացիենտ չկա)",
-    no_meds: "(պացիենտի համար դեղ չկա)",
-    no_history: "(պատմություն չկա)",
-    no_team_members: "Թիմի անդամներ դեռ չկան",
-    invite_none: "Հրավերի կարգավիճակ՝ չկա",
-    team_members: "Թիմի անդամներ՝",
-    invite_status: "Հրավերի կարգավիճակ՝",
-    team_added: "Անդամը ավելացվել է",
-    select_patient_first: "Սկզբում ընտրեք պացիենտին",
-    enter_team_email: "Մուտքագրեք անդամի email-ը",
-    today_no_meds: "(դեղ չկա)",
-    no_slots: "Այս դեղի համար ժամեր չեն կարգավորված։",
-    not_marked: "նշված չէ",
-    taken: "Ընդունված",
-    missed: "Բաց թողնված",
-    waiting: "սպասման մեջ",
-    early: "վաղ",
-    on_time: "ժամանակին",
-    late: "ուշացումով",
-    history_error: "Պատմության սխալ՝ ",
-    today_error: "Այսօրվա գրանցումների սխալ՝ ",
-    meds_error: "Դեղերի սխալ՝ ",
-    patients_error: "Պացիենտների սխալ՝ ",
-    cannot_update_mode: "Չհաջողվեց փոխել ռեժիմը՝ ",
-    rpc_error: "RPC սխալ՝ ",
-    team_list_error: "Թիմի ցանկի սխալ՝ ",
-    invite_status_error: "Հրավերի կարգավիճակի սխալ՝ ",
-    team_link_error: "Թիմի կապի սխալ՝ ",
-    invite_save_error: "Հրավերի պահպանման սխալ՝ ",
-    cannot_add_med: "Չհաջողվեց ավելացնել դեղը՝ ",
-    enter_med_name: "Մուտքագրեք դեղի անունը",
-    profile_error: "Պրոֆիլի սխալ՝ ",
-    no_session: "Սեսիա չկա, փոխանցում մուտք…",
-    init_error: "Մեկնարկի սխալ՝ ",
-    loading: "Բեռնվում է...",
-    planned: "պլան",
-    actual: "փաստ",
-    by: "կողմից"
+    lang_native: "Հայերեն", title: "Affixo MedControl — Հավելված", loading: "Բեռնվում է...", country: "Երկիր՝", language: "Լեզու՝", timezone: "Ժամային գոտի՝", local_time: "Տեղական ժամանակ՝",
+    logout: "Ելք", whoami: "Ո՞վ եմ ես", demo: "Դեմո", settings: "Կարգավորումներ", people: "Մարդիկ", selected_none: "Ընտրված պացիենտ՝ (չկա)", selected_prefix: "Ընտրված պացիենտ՝",
+    mode_label: "Հսկման ռեժիմ՝", standard: "Standard", team_mode: "Team", meds: "Դեղեր", add_med: "Ավելացնել դեղ", med_name_ph: "Դեղի անվանում",
+    med_dose_ph: "Դոզա", med_slots_ph: "09:00, 14:00, 22:00", add: "Ավելացնել", med_help: "Դեղի անունը կարելի է գրել լրիվ կամ մասամբ ցանկացած լեզվով։ Համակարգային գրությունները գնում են ընտրված ինտերֆեյսի լեզվով։",
+    team: "Թիմ", team_note: "Թիմային ռեժիմն ակտիվ է։ Մի քանի մարդ կարող է մասնակցել հսկմանը։", team_email_ph: "Թիմի անդամի email", add_team_member: "Ավելացնել անդամ",
+    team_members: "Թիմի անդամներ", invite_status: "Հրավերի կարգավիճակ", no_team_members: "Թիմի անդամներ դեռ չկան", no_invites: "Հրավերի կարգավիճակներ դեռ չկան",
+    today: "Այսօր", history: "Պատմություն", history_hint: "Պատմությունը ցույց է տալիս գործողության փաստացի ժամանակը։", no_patients: "(հասանելի պացիենտ չկա)", no_meds: "(այս պացիենտի համար դեղ չկա)",
+    waiting: "Սպասում", overdue: "Ժամկետանց", taken_early: "Ընդունել է շուտ", taken_on_time: "Ընդունել է ժամանակին", taken_late: "Ընդունել է ուշացումով", expired_0000: "Ժամկետանց մինչև 00:00",
+    taken: "Ընդունված", missed: "Բաց թողնված", missed_status: "Բաց թողնված", actual: "Փաստ", planned: "Պլան", role_unknown: "դերը հայտնի չէ",
+    team_added: "Անդամը ավելացվել է", select_patient_first: "Սկզբում ընտրեք պացիենտին", enter_team_email: "Մուտքագրեք անդամի email-ը", team_link_error: "Թիմի կապի սխալ՝ ",
+    invite_save_error: "Հրավերի պահպանման սխալ՝ ", team_list_error: "Թիմի ցանկի սխալ՝ ", invite_status_error: "Հրավերի կարգավիճակի սխալ՝ ",
+    patients_error: "Պացիենտների սխալ՝ ", meds_error: "Դեղերի սխալ՝ ", today_error: "Այսօրվա սխալ՝ ", history_error: "Պատմության սխալ՝ ", profile_error: "Պրոֆիլի սխալ՝ ",
+    init_error: "Մեկնարկի սխալ՝ ", no_session: "Սեսիա չկա, փոխանցում մուտք…", cannot_add_med: "Չհաջողվեց ավելացնել դեղը՝ ", cannot_update_mode: "Չհաջողվեց փոխել ռեժիմը՝ ",
+    enter_med_name: "Մուտքագրեք դեղի անունը", enter_med_slots: "Մուտքագրեք առնվազն մեկ ժամային սլոթ", bad_time_list: "Ժամի ձևաչափը պետք է լինի HH:mm՝ ստորակետերով բաժանված։",
+    no_slots: "Այս դեղի համար ժամային սլոթներ չկան։", no_history: "(պատմություն դեռ չկա)", logged_in_as: "Մուտք է գործվել որպես", pending: "Սպասման մեջ", accepted: "Հաստատված", status_label: "Կարգավիճակ",
+    time_range: "Պատուհան", planned_slot: "Պլանային սլոթ", actual_action: "Փաստացի գործողություն", by_actor: "Նշել է"
   },
-  zh: {
-    title: "Affixo MedControl — 应用",
-    logout: "退出",
-    whoami: "我是谁",
-    demo: "演示",
-    settings: "设置",
-    language: "语言：",
-    timezone: "时区：",
-    local_time: "本地时间：",
-    people: "人员",
-    selected_none: "已选患者：（无）",
-    selected_prefix: "已选患者：",
-    meds: "药物",
-    team: "团队",
-    team_note: "团队模式已启用。多人可参与监控。",
-    team_email_ph: "团队成员邮箱",
-    add_team_member: "添加成员",
-    today: "今天",
-    history: "历史",
-    add_med: "添加药物",
-    med_name_ph: "名称",
-    med_dose_ph: "剂量",
-    med_schedule_ph: "计划",
-    add: "添加",
-    mode_label: "监控模式：",
-    standard: "标准",
-    team_mode: "团队",
-    no_patients: "（无可见患者）",
-    no_meds: "（该患者无药物）",
-    no_history: "（无历史）",
-    no_team_members: "暂无团队成员",
-    invite_none: "邀请状态：无",
-    team_members: "团队成员：",
-    invite_status: "邀请状态：",
-    team_added: "成员已添加",
-    select_patient_first: "请先选择患者",
-    enter_team_email: "请输入成员邮箱",
-    today_no_meds: "（无药物）",
-    no_slots: "该药物未配置时间。",
-    not_marked: "未标记",
-    taken: "已服用",
-    missed: "未服用",
-    waiting: "等待中",
-    early: "提前",
-    on_time: "准时",
-    late: "延迟",
-    history_error: "历史错误：",
-    today_error: "今日日志错误：",
-    meds_error: "药物错误：",
-    patients_error: "患者错误：",
-    cannot_update_mode: "无法更改模式：",
-    rpc_error: "RPC 错误：",
-    team_list_error: "团队列表错误：",
-    invite_status_error: "邀请状态错误：",
-    team_link_error: "团队关联错误：",
-    invite_save_error: "邀请保存错误：",
-    cannot_add_med: "无法添加药物：",
-    enter_med_name: "请输入药物名称",
-    profile_error: "资料错误：",
-    no_session: "无会话，正在跳转…",
-    init_error: "初始化错误：",
-    loading: "加载中...",
-    planned: "计划",
-    actual: "实际",
-    by: "由"
-  },
-  ja: {
-    title: "Affixo MedControl — アプリ",
-    logout: "ログアウト",
-    whoami: "私は誰",
-    demo: "デモ",
-    settings: "設定",
-    language: "言語：",
-    timezone: "タイムゾーン：",
-    local_time: "現地時刻：",
-    people: "人",
-    selected_none: "選択中の患者：（なし）",
-    selected_prefix: "選択中の患者：",
-    meds: "薬",
-    team: "チーム",
-    team_note: "チームモードが有効です。複数人が監視に参加できます。",
-    team_email_ph: "チームメンバーのメール",
-    add_team_member: "メンバー追加",
-    today: "今日",
-    history: "履歴",
-    add_med: "薬を追加",
-    med_name_ph: "名前",
-    med_dose_ph: "用量",
-    med_schedule_ph: "予定",
-    add: "追加",
-    mode_label: "監視モード：",
-    standard: "標準",
-    team_mode: "チーム",
-    no_patients: "（表示できる患者がいません）",
-    no_meds: "（この患者に薬はありません）",
-    no_history: "（履歴なし）",
-    no_team_members: "チームメンバーはいません",
-    invite_none: "招待状況：なし",
-    team_members: "チームメンバー：",
-    invite_status: "招待状況：",
-    team_added: "メンバーを追加しました",
-    select_patient_first: "先に患者を選択してください",
-    enter_team_email: "メールを入力してください",
-    today_no_meds: "（薬なし）",
-    no_slots: "この薬の時間が設定されていません。",
-    not_marked: "未記録",
-    taken: "服用",
-    missed: "未服用",
-    waiting: "待機中",
-    early: "早い",
-    on_time: "時間通り",
-    late: "遅い",
-    history_error: "履歴エラー：",
-    today_error: "今日のログエラー：",
-    meds_error: "薬エラー：",
-    patients_error: "患者エラー：",
-    cannot_update_mode: "モード変更できません：",
-    rpc_error: "RPC エラー：",
-    team_list_error: "チーム一覧エラー：",
-    invite_status_error: "招待状況エラー：",
-    team_link_error: "チームリンクエラー：",
-    invite_save_error: "招待保存エラー：",
-    cannot_add_med: "薬を追加できません：",
-    enter_med_name: "薬名を入力してください",
-    profile_error: "プロフィールエラー：",
-    no_session: "セッションがありません。移動します…",
-    init_error: "初期化エラー：",
-    loading: "読み込み中...",
-    planned: "予定",
-    actual: "実際",
-    by: "記録者"
-  }
+  fr: { lang_native: "Français" }, ar: { lang_native: "العربية" }, zh: { lang_native: "中文" }, ja: { lang_native: "日本語" }
 };
+
+["fr","ar","zh","ja"].forEach((k) => {
+  Object.keys(I18N.en).forEach((key) => {
+    if (!(key in I18N[k])) I18N[k][key] = I18N.en[key];
+  });
+});
 
 const statusEl = document.getElementById("status");
 const patientsEl = document.getElementById("patients");
@@ -564,6 +219,7 @@ const addMedSectionEl = document.getElementById("addmed-section");
 const tzLabelEl = document.getElementById("tzLabel");
 const localTimeLabelEl = document.getElementById("localTimeLabel");
 const uiLangEl = document.getElementById("uiLang");
+const countryLabelEl = document.getElementById("countryLabel");
 
 const teamBoxEl = document.getElementById("team-box");
 const teamNoteEl = document.getElementById("team-note");
@@ -578,187 +234,186 @@ let cachedPatients = [];
 let role = "unknown";
 let profileEmail = "";
 let currentUserId = null;
-let currentTimezone = "";
+let currentTimezone = "UTC";
+let currentCountry = "DE";
 let localTimeTimer = null;
 let currentPatientName = "";
 let currentMode = "standard";
+let currentLang = "en";
+let displayedLangPreference = "en";
+let cachedTodayRows = [];
 
-uiLangEl.value = currentLang;
+function bootstrapLanguageSelect() {
+  const keys = Object.keys(I18N).filter((k) => I18N[k].lang_native);
+  uiLangEl.innerHTML = keys.map((k) => `<option value="${k}">${I18N[k].lang_native}</option>`).join("");
+}
+bootstrapLanguageSelect();
 
 function t(key) {
   return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
 }
-
-function detectTimezone() {
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function normalizeLang(lang) {
+  const short = String(lang || "").toLowerCase().split("-")[0];
+  return I18N[short] ? short : "en";
+}
+function detectCountryByTimeZone(tz) {
+  const found = Object.entries(COUNTRY_CONFIG).find(([, v]) => v.timeZone === tz);
+  return found ? found[0] : "DE";
+}
+function parseOffsetMinutes(str) {
+  const m = String(str || "").match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
+  if (!m) return 0;
+  const sign = m[1] === "-" ? -1 : 1;
+  return sign * (parseInt(m[2], 10) * 60 + parseInt(m[3] || "0", 10));
+}
+function getOffsetMinutesAt(timeZone, date) {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    const dtf = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortOffset", hour: "2-digit" });
+    const part = dtf.formatToParts(date).find((p) => p.type === "timeZoneName");
+    return parseOffsetMinutes(part?.value || "GMT+00:00");
   } catch {
-    return "";
+    return 0;
   }
 }
-
-function fmtTimeHHMM(tod) {
-  if (!tod) return "09:00";
-  const s = String(tod);
-  return s.length >= 5 ? s.slice(0, 5) : s;
+function zonedDateTimeToUtcMs(timeZone, y, m, d, hh, mm, ss = 0) {
+  const approxUtc = Date.UTC(y, m - 1, d, hh, mm, ss, 0);
+  const offsetMin = getOffsetMinutesAt(timeZone, new Date(approxUtc));
+  return approxUtc - offsetMin * 60000;
 }
-
-function makeTodaySlotIso(timeStr) {
-  const [hh, mm] = (timeStr || "09:00").split(":").map(x => parseInt(x, 10));
-  const d = new Date();
-  d.setHours(Number.isFinite(hh) ? hh : 9, Number.isFinite(mm) ? mm : 0, 0, 0);
-  return d.toISOString();
+function zonedNowParts(timeZone, date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false
+  }).formatToParts(date);
+  const val = (type) => parts.find((p) => p.type === type)?.value || "00";
+  return { year:+val("year"), month:+val("month"), day:+val("day"), hour:+val("hour"), minute:+val("minute"), second:+val("second") };
 }
-
-function fmtLocalClock(date) {
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
+function getZonedSlotMs(timeZone, hhmm, refDate = new Date()) {
+  const nowP = zonedNowParts(timeZone, refDate);
+  const [hh, mm] = String(hhmm || "09:00").split(":").map((x) => parseInt(x, 10));
+  return zonedDateTimeToUtcMs(timeZone, nowP.year, nowP.month, nowP.day, hh || 0, mm || 0, 0);
 }
-
-function fmtLocalDate(date) {
-  const dd = String(date.getDate()).padStart(2, "0");
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const yyyy = date.getFullYear();
-  return `${dd}.${mm}.${yyyy}`;
+function getZonedDayRange(timeZone, refDate = new Date()) {
+  const p = zonedNowParts(timeZone, refDate);
+  const start = zonedDateTimeToUtcMs(timeZone, p.year, p.month, p.day, 0, 0, 0);
+  const next = zonedDateTimeToUtcMs(timeZone, p.year, p.month, p.day + 1, 0, 0, 0);
+  return { startIso: new Date(start).toISOString(), endIso: new Date(next - 1).toISOString(), startMs: start, nextStartMs: next };
 }
-
-function fmtLocalDateTime(iso) {
-  try {
-    const d = new Date(iso);
-    return `${fmtLocalDate(d)}, ${fmtLocalClock(d)}`;
-  } catch {
-    return String(iso || "");
-  }
+function formatInTimeZone(iso, timeZone) {
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat(currentLang === "en" ? "en-GB" : "en-GB", {
+    timeZone, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false
+  }).format(d).replace(",", "");
 }
-
-function updateLocalClock() {
-  localTimeLabelEl.textContent = fmtLocalClock(new Date());
+function formatClockInTimeZone(date, timeZone) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
 }
-
 function startLocalClock() {
-  updateLocalClock();
   if (localTimeTimer) clearInterval(localTimeTimer);
-  localTimeTimer = setInterval(updateLocalClock, 30000);
+  const tick = () => { localTimeLabelEl.textContent = formatClockInTimeZone(new Date(), currentTimezone); };
+  tick();
+  localTimeTimer = setInterval(tick, 1000);
 }
-
-function getTimingStatus(scheduledIso, actualIso) {
-  const scheduled = new Date(scheduledIso).getTime();
-  const actual = new Date(actualIso).getTime();
-  const diffMin = Math.round((actual - scheduled) / 60000);
-
-  if (diffMin < -10) return t("early");
-  if (diffMin <= 10) return t("on_time");
-  return t("late");
+function parseSlotList(text) {
+  return String(text || "").split(",").map((s) => s.trim()).filter(Boolean);
 }
-
+function isValidHHMM(s) {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(s));
+}
+function computeRecordedStatus(slotMs, nextSlotMs, log) {
+  const actualMs = new Date(log.created_at || log.scheduled_at).getTime();
+  if (log.status === "missed") return t("missed_status");
+  if (actualMs < slotMs) return t("taken_early");
+  if (actualMs <= slotMs + 10 * 60 * 1000) return t("taken_on_time");
+  if (nextSlotMs && actualMs < nextSlotMs) return t("taken_late");
+  return t("taken_late");
+}
+function computeLiveStatus(slotMs, nextSlotMs, hasLog, isLastSlot, nowMs) {
+  if (hasLog) return "";
+  if (nowMs < slotMs) return t("waiting");
+  if (isLastSlot) return t("expired_0000");
+  if (nextSlotMs && nowMs < nextSlotMs) return t("overdue");
+  return t("overdue");
+}
+function setLanguage(langCode, storeOnly = false) {
+  displayedLangPreference = normalizeLang(langCode);
+  currentLang = displayedLangPreference;
+  uiLangEl.value = displayedLangPreference;
+  localStorage.setItem("mc_ui_lang", displayedLangPreference);
+  if (!storeOnly) applyTexts();
+}
 function applyTexts() {
+  document.documentElement.lang = currentLang;
+  document.title = t("title");
   document.getElementById("t_title").textContent = t("title");
   document.getElementById("logout").textContent = t("logout");
   document.getElementById("whoami").textContent = t("whoami");
   document.getElementById("demoBtn").textContent = t("demo");
   document.getElementById("settingsBtn").textContent = t("settings");
+  document.getElementById("countryText").textContent = t("country");
   document.getElementById("uiLangLabel").textContent = t("language");
   document.getElementById("tzText").textContent = t("timezone");
   document.getElementById("localTimeText").textContent = t("local_time");
   document.getElementById("t_people").textContent = t("people");
   document.getElementById("t_meds").textContent = t("meds");
-  document.getElementById("t_team").textContent = t("team");
-  document.getElementById("t_today").textContent = t("today");
-  document.getElementById("t_history").textContent = t("history");
   document.getElementById("t_addmed").textContent = t("add_med");
-  document.getElementById("addMed").textContent = t("add");
   document.getElementById("medName").placeholder = t("med_name_ph");
   document.getElementById("medDose").placeholder = t("med_dose_ph");
-  document.getElementById("medScheduleLegacy").placeholder = t("med_schedule_ph");
+  document.getElementById("medSlots").placeholder = t("med_slots_ph");
+  document.getElementById("addMed").textContent = t("add");
+  document.getElementById("medHelp").textContent = t("med_help");
+  document.getElementById("t_today").textContent = t("today");
+  document.getElementById("t_team").textContent = t("team");
+  document.getElementById("t_history").textContent = t("history");
   teamNoteEl.textContent = t("team_note");
   teamEmailEl.placeholder = t("team_email_ph");
   addTeamMemberBtn.textContent = t("add_team_member");
-
+  if (!selectedPatientId) selectedEl.textContent = t("selected_none");
+}
+function updateModeUI(mode) {
+  teamBoxEl.style.display = mode === "team" ? "block" : "none";
+}
+async function renderSelectedHeader() {
   if (!selectedPatientId) {
     selectedEl.textContent = t("selected_none");
-  } else {
-    selectedEl.innerHTML =
-      `${t("selected_prefix")} ${currentPatientName}<br><br>` +
-      `${t("mode_label")} <select id="mode_select">` +
-      `<option value="standard">${t("standard")}</option>` +
-      `<option value="team">${t("team_mode")}</option>` +
-      `</select>`;
-
-    const modeSelect = document.getElementById("mode_select");
-    if (modeSelect) {
-      modeSelect.value = currentMode === "team" ? "team" : "standard";
-      modeSelect.onchange = async () => {
-        const newMode = modeSelect.value;
-
-        const { error } = await supabase
-          .from("patients")
-          .update({ monitoring_mode: newMode })
-          .eq("id", selectedPatientId);
-
-        if (error) {
-          alert(t("cannot_update_mode") + error.message);
-          modeSelect.value = currentMode;
-          return;
-        }
-
-        currentMode = newMode;
-
-        cachedPatients = cachedPatients.map((p) =>
-          p.id === selectedPatientId ? { ...p, monitoring_mode: newMode } : p
-        );
-
-        await renderPatientsList(cachedPatients);
-        updateModeUI(newMode);
-      };
+    return;
+  }
+  selectedEl.innerHTML = `${t("selected_prefix")} <strong>${escapeHtml(currentPatientName)}</strong><br><br>
+    ${t("mode_label")} <select id="mode_select">
+      <option value="standard">${t("standard")}</option>
+      <option value="team">${t("team_mode")}</option>
+    </select>`;
+  const modeSelect = document.getElementById("mode_select");
+  modeSelect.value = currentMode;
+  modeSelect.onchange = async () => {
+    const newMode = modeSelect.value;
+    const { error } = await supabase.from("patients").update({ monitoring_mode: newMode }).eq("id", selectedPatientId);
+    if (error) {
+      alert(t("cannot_update_mode") + error.message);
+      modeSelect.value = currentMode;
+      return;
     }
-  }
+    currentMode = newMode;
+    cachedPatients = cachedPatients.map((p) => p.id === selectedPatientId ? { ...p, monitoring_mode: newMode } : p);
+    await renderPatientsList(cachedPatients);
+    updateModeUI(newMode);
+  };
 }
-
-function updateModeUI(mode) {
-  if (mode === "team") {
-    teamBoxEl.style.display = "block";
-    teamNoteEl.textContent = t("team_note");
-  } else {
-    teamBoxEl.style.display = "none";
-  }
-}
-
-uiLangEl.onchange = async () => {
-  currentLang = uiLangEl.value;
-  localStorage.setItem("mc_ui_lang", currentLang);
-
-  if (currentUserId) {
-    await supabase
-      .from("profiles")
-      .update({ ui_lang: currentLang })
-      .eq("id", currentUserId);
-  }
-
-  applyTexts();
-  await renderPatientsList(cachedPatients);
-  await loadMeds();
-  await loadToday();
-  await loadHistory();
-  await loadTeamMembers();
-};
-
 async function loadProfile() {
   const { data: sessionData } = await supabase.auth.getSession();
-
   if (!sessionData?.session) {
     statusEl.textContent = t("no_session");
     window.location.replace("/auth-login.html");
     throw new Error("No session");
   }
-
   currentUserId = sessionData.session.user.id;
-
-  const detectedTz = detectTimezone();
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("email, role, timezone, ui_lang")
+    .select("id, email, role, country, timezone, ui_lang")
+    .eq("id", currentUserId)
     .maybeSingle();
 
   if (profileError) {
@@ -766,491 +421,375 @@ async function loadProfile() {
     throw profileError;
   }
 
-  profileEmail = profile?.email || "(no email)";
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  currentCountry = (profile?.country || detectCountryByTimeZone(profile?.timezone || browserTz) || "DE").toUpperCase();
+  const countryConfig = COUNTRY_CONFIG[currentCountry] || COUNTRY_CONFIG.DE;
+  currentTimezone = (profile?.timezone || countryConfig.timeZone || browserTz || "UTC").trim();
+  profileEmail = profile?.email || sessionData.session.user.email || "(no email)";
   role = profile?.role || "unknown";
+  const profileLang = normalizeLang(profile?.ui_lang || countryConfig.lang || localStorage.getItem("mc_ui_lang") || "en");
+  setLanguage(profileLang, true);
+  applyTexts();
 
-  const profileLang = (profile?.ui_lang || "").trim();
-  if (profileLang && I18N[profileLang]) {
-    currentLang = profileLang;
-    uiLangEl.value = currentLang;
-  }
-
-  let timezone = (profile?.timezone || "").trim();
-
-  if (!timezone && detectedTz && currentUserId) {
-    const { error: tzSaveError } = await supabase
-      .from("profiles")
-      .update({ timezone: detectedTz })
-      .eq("id", currentUserId);
-
-    if (!tzSaveError) timezone = detectedTz;
-  }
-
-  currentTimezone = timezone || detectedTz || "(unknown)";
   tzLabelEl.textContent = currentTimezone;
+  countryLabelEl.textContent = countryConfig.countryName;
   startLocalClock();
 
-  statusEl.textContent = `Logged in as ${profileEmail} (${role})`;
+  statusEl.textContent = `${t("logged_in_as")} ${profileEmail} (${role})`;
+  if (role !== "admin") addMedSectionEl.style.display = "none";
 
-  if (role !== "admin") {
-    addMedSectionEl.style.display = "none";
-  }
-
-  try {
-    await supabase.rpc("accept_team_invites_for_me");
-  } catch (_) {
-  }
+  await supabase.from("profiles").update({
+    country: currentCountry, timezone: currentTimezone, ui_lang: currentLang
+  }).eq("id", currentUserId);
 }
-
 async function fetchPatients() {
   errEl.textContent = "";
-
-  const { data, error } = await supabase
-    .from("patients")
-    .select("id, display_name, monitoring_mode, created_at")
-    .order("created_at", { ascending: false });
-
+  const { data, error } = await supabase.from("patients")
+    .select("id, display_name, monitoring_mode, created_at").order("created_at", { ascending: false });
   if (error) {
     errEl.textContent = t("patients_error") + error.message;
     return [];
   }
-
   return data || [];
 }
-
 async function renderPatientsList(patients) {
   patientsEl.innerHTML = "";
-
-  if (!patients || patients.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = t("no_patients");
-    patientsEl.appendChild(li);
+  if (!patients.length) {
+    patientsEl.innerHTML = `<li>${escapeHtml(t("no_patients"))}</li>`;
     return;
   }
-
   patients.forEach((p) => {
     const li = document.createElement("li");
+    li.className = selectedPatientId === p.id ? "active" : "";
     li.textContent = `${p.display_name} — ${p.monitoring_mode || "standard"}`;
-    li.style.cursor = "pointer";
-    li.style.padding = "6px 8px";
-    li.style.border = "1px solid #ddd";
-    li.style.margin = "6px 0";
-    li.style.borderRadius = "6px";
-
-    li.onclick = async () => {
-      await selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
-    };
-
+    li.onclick = async () => selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
     patientsEl.appendChild(li);
   });
 }
-
 async function selectPatient(patientId, displayName, monitoringMode = "standard") {
   selectedPatientId = patientId;
   currentPatientName = displayName;
   currentMode = monitoringMode === "team" ? "team" : "standard";
-
+  await renderSelectedHeader();
   applyTexts();
   updateModeUI(currentMode);
-
   await loadMeds();
   await loadToday();
   await loadHistory();
   await loadTeamMembers();
 }
-
 async function loadMeds() {
   medsEl.innerHTML = "";
-
   if (!selectedPatientId) return;
-
-  const { data, error } = await supabase
-    .from("medications")
-    .select("id, name, dose")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
-
+  const { data, error } = await supabase.from("medications")
+    .select("id, name, dose").eq("patient_id", selectedPatientId).order("created_at", { ascending: false });
   if (error) {
-    const li = document.createElement("li");
-    li.textContent = t("meds_error") + error.message;
-    medsEl.appendChild(li);
+    medsEl.innerHTML = `<li>${escapeHtml(t("meds_error") + error.message)}</li>`;
     return;
   }
-
-  if (!data || data.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = t("no_meds");
-    medsEl.appendChild(li);
+  if (!data?.length) {
+    medsEl.innerHTML = `<li>${escapeHtml(t("no_meds"))}</li>`;
     return;
   }
-
   data.forEach((m) => {
     const li = document.createElement("li");
     li.textContent = `${m.name} — ${m.dose || ""}`;
     medsEl.appendChild(li);
   });
 }
-
-async function mark(medId, status, slot) {
+async function mark(medicationId, slotLabel, action) {
   if (!selectedPatientId) return;
-
-  const slotIso = makeTodaySlotIso(slot);
-
+  const slotMs = getZonedSlotMs(currentTimezone, slotLabel);
+  const scheduledIso = new Date(slotMs).toISOString();
   const { error } = await supabase.rpc("log_med_intake", {
     _patient_id: selectedPatientId,
-    _medication_id: medId,
-    _scheduled_at: slotIso,
-    _status: status
+    _medication_id: medicationId,
+    _scheduled_at: scheduledIso,
+    _status: action
   });
-
   if (error) {
-    alert(t("rpc_error") + error.message);
+    alert(t("today_error") + error.message);
     return;
   }
-
   await loadToday();
   await loadHistory();
 }
-
 async function loadToday() {
   todayEl.innerHTML = "";
-
+  cachedTodayRows = [];
   if (!selectedPatientId) return;
 
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const dayRange = getZonedDayRange(currentTimezone);
+  const nowMs = Date.now();
 
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
-  const { data: meds, error: medsErr } = await supabase
-    .from("medications")
-    .select("id, name, dose")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
+  const { data: meds, error: medsErr } = await supabase.from("medications")
+    .select("id, name, dose").eq("patient_id", selectedPatientId).order("created_at", { ascending: false });
 
   if (medsErr) {
     todayEl.textContent = t("today_error") + medsErr.message;
     return;
   }
-
-  if (!meds || meds.length === 0) {
-    todayEl.textContent = t("today_no_meds");
+  if (!meds?.length) {
+    todayEl.textContent = t("no_meds");
     return;
   }
 
-  const medIds = meds.map(m => m.id);
-
-  const { data: times, error: timesErr } = await supabase
-    .from("medication_times")
-    .select("medication_id, time_of_day, is_active")
-    .in("medication_id", medIds)
-    .eq("is_active", true)
+  const medIds = meds.map((m) => m.id);
+  const { data: times, error: timesErr } = await supabase.from("medication_times")
+    .select("medication_id, time_of_day, is_active").in("medication_id", medIds).eq("is_active", true)
     .order("time_of_day", { ascending: true });
 
   if (timesErr) {
-    todayEl.textContent = "Today times error: " + timesErr.message;
+    todayEl.textContent = t("today_error") + timesErr.message;
     return;
   }
 
   const timesByMed = new Map();
-  (times || []).forEach((ti) => {
-    const arr = timesByMed.get(ti.medication_id) || [];
-    arr.push(fmtTimeHHMM(ti.time_of_day));
-    timesByMed.set(ti.medication_id, arr);
+  (times || []).forEach((row) => {
+    const timeStr = String(row.time_of_day || "").slice(0, 5);
+    const arr = timesByMed.get(row.medication_id) || [];
+    if (isValidHHMM(timeStr)) arr.push(timeStr);
+    timesByMed.set(row.medication_id, arr);
   });
 
-  const { data: logs, error: logsErr } = await supabase
-    .from("medication_logs")
-    .select("medication_id, scheduled_at, status, created_at")
+  const { data: logs, error: logsErr } = await supabase.from("medication_logs")
+    .select("medication_id, scheduled_at, status, created_at, recorded_role, recorded_by")
     .eq("patient_id", selectedPatientId)
-    .gte("scheduled_at", start.toISOString())
-    .lte("scheduled_at", end.toISOString());
+    .gte("scheduled_at", dayRange.startIso)
+    .lte("scheduled_at", dayRange.endIso)
+    .order("created_at", { ascending: false });
 
   if (logsErr) {
     todayEl.textContent = t("today_error") + logsErr.message;
     return;
   }
 
-  meds.forEach((m) => {
-    const slots = timesByMed.get(m.id) || [];
-
-    const container = document.createElement("div");
-    container.style.marginBottom = "12px";
-    container.innerHTML = `<div><strong>${m.name}</strong> — ${m.dose || ""}</div>`;
-
-    if (slots.length === 0) {
+  meds.forEach((med) => {
+    const slots = (timesByMed.get(med.id) || []).sort();
+    const block = document.createElement("div");
+    block.className = "row-card";
+    block.style.padding = "12px";
+    block.style.marginBottom = "12px";
+    block.innerHTML = `<div><strong>${escapeHtml(med.name)}</strong> — ${escapeHtml(med.dose || "")}</div>`;
+    if (!slots.length) {
       const warn = document.createElement("div");
+      warn.className = "danger";
       warn.textContent = t("no_slots");
-      warn.style.color = "#b00";
-      container.appendChild(warn);
-      todayEl.appendChild(container);
+      block.appendChild(warn);
+      todayEl.appendChild(block);
       return;
     }
-
-    slots.forEach((slot) => {
-      const slotIso = makeTodaySlotIso(slot);
-      const slotMs = new Date(slotIso).getTime();
-
-      const existing = (logs || []).find((l) => {
-        const logMs = new Date(l.scheduled_at).getTime();
-        return l.medication_id === m.id && logMs === slotMs;
-      });
-
+    slots.forEach((slot, idx) => {
+      const slotMs = getZonedSlotMs(currentTimezone, slot);
+      const nextSlotMs = idx < slots.length - 1 ? getZonedSlotMs(currentTimezone, slots[idx + 1]) : dayRange.nextStartMs;
+      const existing = (logs || []).find((l) => l.medication_id === med.id && Math.abs(new Date(l.scheduled_at).getTime() - slotMs) < 60000);
+      const liveStatus = existing ? computeRecordedStatus(slotMs, nextSlotMs, existing) : computeLiveStatus(slotMs, nextSlotMs, false, idx === slots.length - 1, nowMs);
       const row = document.createElement("div");
-      row.style.margin = "6px 0";
-
-      let statusText = t("waiting");
-      if (existing) {
-        const timing = getTimingStatus(existing.scheduled_at, existing.created_at || existing.scheduled_at);
-        statusText = `${existing.status} (${timing})`;
-      }
-
+      row.className = "slot";
       row.innerHTML = `
-        <div>${slot} — <b>${statusText}</b></div>
-        <button data-act="taken">${t("taken")}</button>
-        <button data-act="missed">${t("missed")}</button>
+        <div class="slot-head">
+          <div><strong>${escapeHtml(slot)}</strong> <span class="muted">— ${escapeHtml(t("status_label"))}: <span class="status-chip">${escapeHtml(liveStatus)}</span></span></div>
+          <div class="small muted">${escapeHtml(t("time_range"))}: ${escapeHtml(slot)} → ${escapeHtml(idx < slots.length - 1 ? slots[idx + 1] : "00:00")}</div>
+        </div>
+        <div class="inline" style="margin-top:8px;">
+          <button data-act="taken">${escapeHtml(t("taken"))}</button>
+          <button data-act="missed">${escapeHtml(t("missed"))}</button>
+        </div>
       `;
-
-      row.querySelector('[data-act="taken"]').onclick = () => mark(m.id, "taken", slot);
-      row.querySelector('[data-act="missed"]').onclick = () => mark(m.id, "missed", slot);
-
-      container.appendChild(row);
+      row.querySelector('[data-act="taken"]').onclick = () => mark(med.id, slot, "taken");
+      row.querySelector('[data-act="missed"]').onclick = () => mark(med.id, slot, "missed");
+      block.appendChild(row);
     });
-
-    todayEl.appendChild(container);
+    todayEl.appendChild(block);
   });
 }
-
 async function loadHistory() {
   historyEl.innerHTML = "";
-
   if (!selectedPatientId) return;
 
-  const { data, error } = await supabase
-    .from("medication_logs")
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase.from("medication_logs")
     .select("status, scheduled_at, recorded_role, recorded_by, created_at")
     .eq("patient_id", selectedPatientId)
+    .gte("created_at", since)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(100);
 
   if (error) {
     historyEl.textContent = t("history_error") + error.message;
     return;
   }
-
-  if (!data || data.length === 0) {
+  if (!data?.length) {
     historyEl.textContent = t("no_history");
     return;
   }
 
-  const userIds = [...new Set((data || []).map(x => x.recorded_by).filter(Boolean))];
+  const userIds = [...new Set(data.map((x) => x.recorded_by).filter(Boolean))];
   const emailById = new Map();
-
-  if (userIds.length > 0) {
-    const { data: profilesData } = await supabase
-      .from("profiles")
-      .select("id, email")
-      .in("id", userIds);
-
-    (profilesData || []).forEach((p) => {
-      emailById.set(p.id, p.email || "");
-    });
+  if (userIds.length) {
+    const { data: profilesData } = await supabase.from("profiles").select("id, email").in("id", userIds);
+    (profilesData || []).forEach((p) => emailById.set(p.id, p.email || ""));
   }
 
   data.forEach((r) => {
-    const div = document.createElement("div");
-    const plannedTime = fmtLocalDateTime(r.scheduled_at);
-    const actualTime = fmtLocalDateTime(r.created_at || r.scheduled_at);
-    const timing = getTimingStatus(r.scheduled_at, r.created_at || r.scheduled_at);
-    const email = r.recorded_by ? (emailById.get(r.recorded_by) || "") : "";
-    const rolePart = r.recorded_role ? ` — ${r.recorded_role}` : "";
-    const emailPart = email ? ` — ${email}` : "";
-    div.textContent = `${r.status} ${plannedTime} (${t("planned")}) → ${actualTime} (${t("actual")}) — ${timing}${rolePart}${emailPart}`;
-    historyEl.appendChild(div);
+    const item = document.createElement("div");
+    item.className = "history-item";
+    const actualIso = r.created_at || r.scheduled_at;
+    const actualText = formatInTimeZone(actualIso, currentTimezone);
+    const plannedText = formatInTimeZone(r.scheduled_at, currentTimezone).split(" ").pop();
+    const actualMs = new Date(actualIso).getTime();
+    const plannedMs = new Date(r.scheduled_at).getTime();
+    let leadStatus = r.status === "missed" ? t("missed_status") : (actualMs < plannedMs ? t("taken_early") : actualMs <= plannedMs + 10 * 60 * 1000 ? t("taken_on_time") : t("taken_late"));
+    const actorRole = r.recorded_role || t("role_unknown");
+    const actorEmail = emailById.get(r.recorded_by) || (r.recorded_by === currentUserId ? profileEmail : "");
+    item.innerHTML = `
+      <div><strong>${escapeHtml(leadStatus)}</strong> — ${escapeHtml(actualText)} — ${escapeHtml(actorRole)}${actorEmail ? ` — ${escapeHtml(actorEmail)}` : ""}</div>
+      <div class="small muted">${escapeHtml(t("planned_slot"))}: ${escapeHtml(plannedText)}</div>
+    `;
+    historyEl.appendChild(item);
   });
 }
-
 async function loadTeamMembers() {
-  teamMembersListEl.textContent = "";
+  teamMembersListEl.innerHTML = "";
   teamInviteStatusEl.textContent = "";
-
   if (!selectedPatientId) return;
 
-  const { data: members, error: membersError } = await supabase
-    .from("patient_partners")
-    .select("partner_email")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
+  const { data: members, error: membersError } = await supabase.from("patient_partners")
+    .select("partner_email, created_at").eq("patient_id", selectedPatientId).order("created_at", { ascending: false });
 
   if (membersError) {
-    teamMembersListEl.textContent = t("team_list_error") + membersError.message;
+    teamMembersListEl.innerHTML = `<li>${escapeHtml(t("team_list_error") + membersError.message)}</li>`;
     return;
   }
-
-  if (!members || members.length === 0) {
-    teamMembersListEl.textContent = t("no_team_members");
-    teamInviteStatusEl.textContent = t("invite_none");
-    return;
+  if (!members?.length) {
+    teamMembersListEl.innerHTML = `<li>${escapeHtml(t("no_team_members"))}</li>`;
+  } else {
+    members.forEach((m) => {
+      const li = document.createElement("li");
+      li.textContent = m.partner_email;
+      teamMembersListEl.appendChild(li);
+    });
   }
 
-  teamMembersListEl.textContent =
-    `${t("team_members")} ` + members.map(x => x.partner_email).join(", ");
-
-  const { data: invites, error: invitesError } = await supabase
-    .from("patient_partner_invites")
-    .select("invited_email, status")
-    .eq("patient_id", selectedPatientId)
-    .order("created_at", { ascending: false });
+  const { data: invites, error: invitesError } = await supabase.from("patient_partner_invites")
+    .select("invited_email, status, created_at").eq("patient_id", selectedPatientId).order("created_at", { ascending: false });
 
   if (invitesError) {
     teamInviteStatusEl.textContent = t("invite_status_error") + invitesError.message;
     return;
   }
-
-  if (!invites || invites.length === 0) {
-    teamInviteStatusEl.textContent = t("invite_none");
+  if (!invites?.length) {
+    teamInviteStatusEl.textContent = `${t("invite_status")}: ${t("no_invites")}`;
     return;
   }
-
   const latestByEmail = new Map();
-
   invites.forEach((row) => {
-    const email = (row.invited_email || "").toLowerCase();
-    if (!latestByEmail.has(email)) {
-      latestByEmail.set(email, row.status || "pending");
-    }
+    const key = String(row.invited_email || "").toLowerCase();
+    if (!latestByEmail.has(key)) latestByEmail.set(key, row.status || "pending");
   });
-
-  const statusLines = members.map((m) => {
-    const email = (m.partner_email || "").toLowerCase();
-    const status = latestByEmail.get(email) || "accepted";
-    return `${email} — ${status}`;
-  });
-
-  teamInviteStatusEl.textContent =
-    `${t("invite_status")} ` + statusLines.join(", ");
+  const items = [...latestByEmail.entries()].map(([email, st]) => `${email} — ${t(st)}`);
+  teamInviteStatusEl.textContent = `${t("invite_status")}: ${items.join(", ")}`;
 }
-
 addTeamMemberBtn.onclick = async () => {
   if (!selectedPatientId) {
     teamEmailStatusEl.textContent = t("select_patient_first");
     return;
   }
-
-  const email = (teamEmailEl.value || "").trim().toLowerCase();
+  const email = String(teamEmailEl.value || "").trim().toLowerCase();
   if (!email) {
     teamEmailStatusEl.textContent = t("enter_team_email");
     return;
   }
-
-  const { error: linkError } = await supabase
-    .from("patient_partners")
-    .upsert(
-      [{ patient_id: selectedPatientId, partner_email: email }],
-      { onConflict: "patient_id,partner_email" }
-    );
-
+  const { error: linkError } = await supabase.from("patient_partners")
+    .upsert([{ patient_id: selectedPatientId, partner_email: email }], { onConflict: "patient_id,partner_email" });
   if (linkError) {
     teamEmailStatusEl.textContent = t("team_link_error") + linkError.message;
     return;
   }
-
-  const { error: inviteError } = await supabase
-    .from("patient_partner_invites")
-    .upsert(
-      [{
-        patient_id: selectedPatientId,
-        invited_email: email,
-        status: "pending"
-      }],
-      { onConflict: "patient_id,invited_email" }
-    );
-
+  const { error: inviteError } = await supabase.from("patient_partner_invites")
+    .upsert([{ patient_id: selectedPatientId, invited_email: email, status: "pending" }], { onConflict: "patient_id,invited_email" });
   if (inviteError) {
     teamEmailStatusEl.textContent = t("invite_save_error") + inviteError.message;
     return;
   }
-
   teamEmailEl.value = "";
   teamEmailStatusEl.textContent = t("team_added");
   await loadTeamMembers();
 };
-
 document.getElementById("addMed").onclick = async () => {
   if (role !== "admin") return;
-
   if (!selectedPatientId) {
     alert(t("select_patient_first"));
     return;
   }
-
   const name = document.getElementById("medName").value.trim();
   const dose = document.getElementById("medDose").value.trim();
-  const schedule = document.getElementById("medScheduleLegacy").value.trim();
+  const slots = parseSlotList(document.getElementById("medSlots").value.trim());
 
   if (!name) {
     alert(t("enter_med_name"));
     return;
   }
+  if (!slots.length) {
+    alert(t("enter_med_slots"));
+    return;
+  }
+  if (!slots.every(isValidHHMM)) {
+    alert(t("bad_time_list"));
+    return;
+  }
 
-  const { error } = await supabase.from("medications").insert({
-    patient_id: selectedPatientId,
-    name,
-    dose,
-    schedule
-  });
-
+  const { data: medRow, error } = await supabase.from("medications").insert({
+    patient_id: selectedPatientId, name, dose, schedule: slots.join(", ")
+  }).select("id").single();
   if (error) {
     alert(t("cannot_add_med") + error.message);
     return;
   }
-
+  const timeRows = slots.map((slot) => ({ medication_id: medRow.id, time_of_day: slot + ":00", is_active: true }));
+  await supabase.from("medication_times").insert(timeRows);
   document.getElementById("medName").value = "";
   document.getElementById("medDose").value = "";
-  document.getElementById("medScheduleLegacy").value = "";
-
+  document.getElementById("medSlots").value = "";
   await loadMeds();
   await loadToday();
 };
-
 document.getElementById("whoami").onclick = async () => {
   const { data, error } = await supabase.rpc("debug_whoami");
-  if (error) {
-    alert(error.message);
-    return;
-  }
-  alert(JSON.stringify(data));
+  alert(error ? error.message : JSON.stringify(data));
 };
-
 document.getElementById("logout").onclick = async () => {
   await supabase.auth.signOut();
   window.location.replace("/auth-login.html");
 };
-
+uiLangEl.onchange = async () => {
+  const newLang = normalizeLang(uiLangEl.value);
+  setLanguage(newLang);
+  await supabase.from("profiles").update({ ui_lang: newLang }).eq("id", currentUserId);
+  await renderSelectedHeader();
+  await renderPatientsList(cachedPatients);
+  await loadMeds();
+  await loadToday();
+  await loadHistory();
+  await loadTeamMembers();
+};
 async function init() {
   try {
     statusEl.textContent = t("loading");
     applyTexts();
     await loadProfile();
     applyTexts();
-
     cachedPatients = await fetchPatients();
     await renderPatientsList(cachedPatients);
-
     if (cachedPatients.length > 0) {
       const p = cachedPatients[0];
       await selectPatient(p.id, p.display_name, p.monitoring_mode || "standard");
-    } else {
-      applyTexts();
     }
   } catch (e) {
     statusEl.textContent = t("init_error") + (e?.message || String(e));
   }
 }
-
 await init();
 </script>
-
 </body>
 </html>
