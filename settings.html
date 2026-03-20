@@ -1,248 +1,186 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>MedControl Settings</title>
+  <title>Affixo MedControl — Settings</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; line-height: 1.5; color:#111; }
+    .card { border:1px solid #ddd; border-radius:12px; padding:16px; margin:16px 0; background:#fff; }
+    .inline { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    label { display:block; margin:10px 0 6px; font-weight:600; }
+    input, select, button { font: inherit; padding:8px 10px; }
+    .muted { color:#666; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    .ok { color:#1f6f3f; }
+    a.btn { text-decoration:none; color:inherit; border:1px solid #ddd; border-radius:8px; padding:8px 12px; display:inline-block; }
+    @media (max-width: 760px) { .row { grid-template-columns:1fr; } }
+  </style>
 </head>
-<body style="font-family:sans-serif;max-width:900px;margin:40px auto;line-height:1.5;">
+<body>
+  <div class="inline">
+    <a class="btn" href="/app.html">← App</a>
+    <a class="btn" href="/demo.html">Demo</a>
+  </div>
 
-<h1>Settings</h1>
+  <h1>Affixo MedControl — Settings</h1>
+  <p id="status">Loading…</p>
 
-<p id="status">Loading...</p>
+  <section class="card">
+    <h2>Account</h2>
+    <div id="accountInfo" class="muted">—</div>
+  </section>
 
-<hr>
+  <section class="card">
+    <h2>Role</h2>
+    <div id="roleInfo" class="muted">—</div>
+  </section>
 
-<h3>Account</h3>
-<div id="accountEmail">Email: ...</div>
-<div id="accountRole">Role: ...</div>
+  <section class="card">
+    <h2>Regional Settings</h2>
+    <p class="muted">Choose the country first. Country selection sets the default timezone and interface language, just like a phone country code selector. You can then adjust the interface language separately if needed.</p>
 
-<hr>
+    <div class="row">
+      <div>
+        <label for="country">Country</label>
+        <select id="country"></select>
+      </div>
+      <div>
+        <label for="timezone">Timezone</label>
+        <input id="timezone" readonly />
+      </div>
+    </div>
 
-<h3>Region & Preferences</h3>
+    <div class="row">
+      <div>
+        <label for="uiLang">Interface Language</label>
+        <select id="uiLang"></select>
+      </div>
+      <div>
+        <label for="langLocalName">Local language name</label>
+        <input id="langLocalName" readonly />
+      </div>
+    </div>
 
-<div style="margin-bottom:12px;">
-  <label for="country">Country</label><br>
-  <select id="country"></select>
-</div>
+    <div class="row">
+      <div>
+        <label for="countryTimePreview">Local time preview</label>
+        <input id="countryTimePreview" readonly />
+      </div>
+      <div>
+        <label for="medNameRule">Medication naming rule</label>
+        <input id="medNameRule" readonly value="Medication name may be entered fully or partially in any language." />
+      </div>
+    </div>
 
-<div style="margin-bottom:12px;">
-  <label for="language">Language</label><br>
-  <select id="language"></select>
-</div>
+    <div class="inline" style="margin-top:12px;">
+      <button id="save">Save Settings</button>
+      <span id="saveStatus" class="ok"></span>
+    </div>
+  </section>
 
-<div style="margin-bottom:12px;">
-  <label for="timezone">Timezone</label><br>
-  <select id="timezone"></select>
-</div>
-
-<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">
-  <button id="saveBtn">Save Settings</button>
-  <a href="/app.html"><button type="button">Back to App</button></a>
-</div>
+  <section class="card">
+    <h2>Team Operation explanation</h2>
+    <p>Standard mode is for one responsible person. Team mode is for several responsible people who can record actions for the same patient. In History, every record must show the actual action time, the role, and the email of the actor.</p>
+    <p>Time is always shown in 24-hour format. Each planned slot has its own live status: waiting before the slot, overdue after the slot until the next slot, and actual confirmation status when an action is recorded.</p>
+  </section>
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const supabase = createClient(
-  "https://lewdbjjaohqxbirzhrbm.supabase.co",
-  "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ"
-);
-
-const statusEl = document.getElementById("status");
-const accountEmailEl = document.getElementById("accountEmail");
-const accountRoleEl = document.getElementById("accountRole");
-const countryEl = document.getElementById("country");
-const languageEl = document.getElementById("language");
-const timezoneEl = document.getElementById("timezone");
-const saveBtn = document.getElementById("saveBtn");
+const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const COUNTRY_CONFIG = {
-  Armenia: {
-    language: "hy",
-    timezones: ["Asia/Yerevan"]
-  },
-  Germany: {
-    language: "de",
-    timezones: ["Europe/Berlin"]
-  },
-  Russia: {
-    language: "ru",
-    timezones: ["Europe/Moscow", "Asia/Yekaterinburg", "Asia/Novosibirsk", "Asia/Vladivostok"]
-  },
-  USA: {
-    language: "en",
-    timezones: ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles"]
-  },
-  France: {
-    language: "fr",
-    timezones: ["Europe/Paris"]
-  },
-  United_Kingdom: {
-    language: "en",
-    timezones: ["Europe/London"]
-  },
-  China: {
-    language: "zh",
-    timezones: ["Asia/Shanghai"]
-  },
-  Japan: {
-    language: "ja",
-    timezones: ["Asia/Tokyo"]
-  }
+  AM: { countryName: "Armenia", timeZone: "Asia/Yerevan", lang: "hy", native: "Հայերեն" },
+  DE: { countryName: "Germany", timeZone: "Europe/Berlin", lang: "de", native: "Deutsch" },
+  FR: { countryName: "France", timeZone: "Europe/Paris", lang: "fr", native: "Français" },
+  GB: { countryName: "United Kingdom", timeZone: "Europe/London", lang: "en", native: "English" },
+  US: { countryName: "United States", timeZone: "America/New_York", lang: "en", native: "English" },
+  RU: { countryName: "Russia", timeZone: "Europe/Moscow", lang: "ru", native: "Русский" },
+  CN: { countryName: "China", timeZone: "Asia/Shanghai", lang: "zh", native: "中文" },
+  JP: { countryName: "Japan", timeZone: "Asia/Tokyo", lang: "ja", native: "日本語" },
+  AE: { countryName: "United Arab Emirates", timeZone: "Asia/Dubai", lang: "ar", native: "العربية" }
+};
+const LANGS = {
+  en: "English", ru: "Русский", de: "Deutsch", hy: "Հայերեն", fr: "Français", ar: "العربية", zh: "中文", ja: "日本語"
 };
 
-const LANGUAGE_LABELS = {
-  en: "English",
-  ru: "Русский",
-  de: "Deutsch",
-  fr: "Français",
-  hy: "Հայերեն",
-  zh: "中文",
-  ja: "日本語"
-};
+const countryEl = document.getElementById("country");
+const timezoneEl = document.getElementById("timezone");
+const uiLangEl = document.getElementById("uiLang");
+const langLocalNameEl = document.getElementById("langLocalName");
+const countryTimePreviewEl = document.getElementById("countryTimePreview");
+const saveStatusEl = document.getElementById("saveStatus");
 
-function detectTimezone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-  } catch {
-    return "";
-  }
+countryEl.innerHTML = Object.entries(COUNTRY_CONFIG).map(([code, item]) => `<option value="${code}">${item.countryName}</option>`).join("");
+uiLangEl.innerHTML = Object.entries(LANGS).map(([code, label]) => `<option value="${code}">${label}</option>`).join("");
+
+function updatePreview() {
+  const cfg = COUNTRY_CONFIG[countryEl.value];
+  timezoneEl.value = cfg.timeZone;
+  langLocalNameEl.value = LANGS[uiLangEl.value] || cfg.native;
+  countryTimePreviewEl.value = new Intl.DateTimeFormat("en-GB", {
+    timeZone: cfg.timeZone, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false
+  }).format(new Date());
 }
-
-function detectLanguageCode() {
-  const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
-  return LANGUAGE_LABELS[lang] ? lang : "en";
-}
-
-function fillCountries() {
-  countryEl.innerHTML = "";
-  Object.keys(COUNTRY_CONFIG).forEach((country) => {
-    const opt = document.createElement("option");
-    opt.value = country;
-    opt.textContent = country.replaceAll("_", " ");
-    countryEl.appendChild(opt);
-  });
-}
-
-function fillLanguages(selectedCode = "en") {
-  languageEl.innerHTML = "";
-  Object.entries(LANGUAGE_LABELS).forEach(([code, label]) => {
-    const opt = document.createElement("option");
-    opt.value = code;
-    opt.textContent = label;
-    if (code === selectedCode) opt.selected = true;
-    languageEl.appendChild(opt);
-  });
-}
-
-function fillTimezones(countryKey, selectedTimezone = "") {
-  timezoneEl.innerHTML = "";
-  const list = COUNTRY_CONFIG[countryKey]?.timezones || [];
-  list.forEach((tz) => {
-    const opt = document.createElement("option");
-    opt.value = tz;
-    opt.textContent = tz;
-    if (tz === selectedTimezone) opt.selected = true;
-    timezoneEl.appendChild(opt);
-  });
-  if (selectedTimezone && !list.includes(selectedTimezone)) {
-    const opt = document.createElement("option");
-    opt.value = selectedTimezone;
-    opt.textContent = selectedTimezone;
-    opt.selected = true;
-    timezoneEl.appendChild(opt);
-  }
-}
-
-function findCountryByTimezone(tz) {
-  for (const [country, cfg] of Object.entries(COUNTRY_CONFIG)) {
-    if ((cfg.timezones || []).includes(tz)) return country;
-  }
-  return "Germany";
-}
-
 countryEl.onchange = () => {
-  const country = countryEl.value;
-  const cfg = COUNTRY_CONFIG[country];
-  fillLanguages(cfg.language);
-  fillTimezones(country, cfg.timezones[0] || "");
+  const cfg = COUNTRY_CONFIG[countryEl.value];
+  uiLangEl.value = cfg.lang;
+  updatePreview();
 };
-
-saveBtn.onclick = async () => {
-  saveBtn.disabled = true;
-  statusEl.textContent = "Saving...";
-
-  const { data: sessionData } = await supabase.auth.getSession();
-  const userId = sessionData?.session?.user?.id;
-
-  if (!userId) {
-    statusEl.textContent = "No session";
-    saveBtn.disabled = false;
-    return;
-  }
-
-  const payload = {
-    country: countryEl.value,
-    ui_lang: languageEl.value,
-    timezone: timezoneEl.value
-  };
-
-  const { error } = await supabase
-    .from("profiles")
-    .update(payload)
-    .eq("id", userId);
-
-  if (error) {
-    statusEl.textContent = "Save error: " + error.message;
-    saveBtn.disabled = false;
-    return;
-  }
-
-  localStorage.setItem("mc_ui_lang", languageEl.value);
-  statusEl.textContent = "Settings saved";
-  saveBtn.disabled = false;
-};
+uiLangEl.onchange = updatePreview;
 
 async function init() {
   const { data: sessionData } = await supabase.auth.getSession();
-
   if (!sessionData?.session) {
     window.location.replace("/auth-login.html");
     return;
   }
-
   const userId = sessionData.session.user.id;
-
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("email, role, timezone, ui_lang, country")
+    .select("email, role, country, timezone, ui_lang")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    statusEl.textContent = "Profile error: " + error.message;
+    document.getElementById("status").textContent = error.message;
     return;
   }
 
-  accountEmailEl.textContent = "Email: " + (profile?.email || "");
-  accountRoleEl.textContent = "Role: " + (profile?.role || "");
+  document.getElementById("status").textContent = "Loaded";
+  document.getElementById("accountInfo").textContent = profile?.email || sessionData.session.user.email || "—";
+  document.getElementById("roleInfo").textContent = profile?.role || "unknown";
 
-  fillCountries();
+  const currentCountry = (profile?.country || "DE").toUpperCase();
+  const cfg = COUNTRY_CONFIG[currentCountry] || COUNTRY_CONFIG.DE;
+  countryEl.value = currentCountry;
+  uiLangEl.value = (profile?.ui_lang || cfg.lang || "en");
+  timezoneEl.value = profile?.timezone || cfg.timeZone;
+  updatePreview();
 
-  const tz = (profile?.timezone || "").trim() || detectTimezone();
-  const lang = (profile?.ui_lang || "").trim() || detectLanguageCode();
-  const country = (profile?.country || "").trim() || findCountryByTimezone(tz);
-
-  countryEl.value = COUNTRY_CONFIG[country] ? country : "Germany";
-  fillLanguages(lang);
-  fillTimezones(countryEl.value, tz);
-
-  statusEl.textContent = "Ready";
+  document.getElementById("save").onclick = async () => {
+    const chosen = COUNTRY_CONFIG[countryEl.value];
+    const payload = {
+      country: countryEl.value,
+      timezone: chosen.timeZone,
+      ui_lang: uiLangEl.value
+    };
+    const { error: saveError } = await supabase.from("profiles").update(payload).eq("id", userId);
+    if (saveError) {
+      saveStatusEl.textContent = saveError.message;
+      saveStatusEl.className = "";
+      return;
+    }
+    localStorage.setItem("mc_ui_lang", uiLangEl.value);
+    localStorage.setItem("mc_country", countryEl.value);
+    saveStatusEl.textContent = "Saved";
+    saveStatusEl.className = "ok";
+  };
 }
-
 await init();
 </script>
-
 </body>
 </html>
