@@ -1,81 +1,282 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>MedControl Demo</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <title>Affixo MedControl — Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 24px auto; padding: 0 16px 40px; color:#111; }
+    .card { border:1px solid #ddd; border-radius:12px; padding:16px; margin:16px 0; background:#fff; }
+    .inline { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .grid { display:grid; grid-template-columns: 320px 1fr; gap:16px; }
+    .small { font-size:12px; color:#666; }
+    .slot, .hist { border:1px solid #ddd; border-radius:10px; padding:10px; margin:10px 0; }
+    .status { display:inline-block; border:1px solid #ddd; border-radius:999px; padding:4px 8px; font-size:12px; }
+    button, select, input { font: inherit; padding:8px 10px; }
+    .muted { color:#666; }
+    .timer { font-weight:700; }
+    ul { padding-left:20px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
+<body>
+  <div class="inline">
+    <a href="/" style="text-decoration:none;border:1px solid #ddd;border-radius:8px;padding:8px 12px;color:#111;">← Home</a>
+    <a href="/auth-login.html" style="text-decoration:none;border:1px solid #ddd;border-radius:8px;padding:8px 12px;color:#111;">Login / Start Trial</a>
+  </div>
 
-<body style="font-family:sans-serif;max-width:900px;margin:40px auto;line-height:1.5;">
+  <h1>Affixo MedControl — Demo</h1>
+  <p class="muted">The demo is practical and unlimited in actions. You can type, erase, add, change, and re-test any data. The only limit is the session time for one attempt.</p>
 
-<h1>MedControl Demo</h1>
+  <div class="grid">
+    <section class="card">
+      <h2>Demo setup</h2>
+      <label>Country</label>
+      <select id="country"></select>
 
-<p><b>Two monitoring modes.</b></p>
+      <label style="display:block;margin-top:10px;">Interface Language</label>
+      <select id="uiLang"></select>
 
-<hr>
+      <label style="display:block;margin-top:10px;">Medication Name</label>
+      <input id="medName" value="Paracetamol / Парацетамол" />
 
-<h2>Standard Mode</h2>
+      <label style="display:block;margin-top:10px;">Dose</label>
+      <input id="medDose" value="500 mg" />
 
-<p>One person manages their own medication routine.</p>
+      <label style="display:block;margin-top:10px;">Planned Slots (24h)</label>
+      <input id="slots" value="09:00, 14:00, 22:00" />
 
-<h3>Patient</h3>
-<div style="border:1px solid #ddd;padding:10px;border-radius:6px;margin-bottom:10px;">
-John Smith
-</div>
+      <label style="display:block;margin-top:10px;">Demo Mode</label>
+      <select id="mode">
+        <option value="standard">Standard — 45 sec</option>
+        <option value="team">Team — 120 sec</option>
+      </select>
 
-<h3>Medication Schedule</h3>
+      <div class="inline" style="margin-top:12px;">
+        <button id="startBtn">Start Demo</button>
+        <button id="resetBtn">Reset</button>
+      </div>
 
-<div>09:00 — <b>Taken</b></div>
-<div>14:00 — <b>Missed</b></div>
-<div>20:00 — <b>Taken</b></div>
+      <p class="small" id="setupHint">Country sets default timezone and language. Medication name can be written fully or partially in any language.</p>
 
-<h3>History</h3>
+      <div class="card" style="margin:12px 0 0;">
+        <h3>Step-by-step instructions</h3>
+        <ol id="steps" style="padding-left:18px;">
+          <li>Choose the country and interface language.</li>
+          <li>Choose Standard or Team.</li>
+          <li>Press Start Demo.</li>
+          <li>Use Taken or Missed on any slot and watch Today and History update instantly.</li>
+          <li>In Team mode, add participants and switch the active actor before recording actions.</li>
+        </ol>
+      </div>
+    </section>
 
-<div>taken — admin</div>
-<div>missed — admin</div>
+    <section class="card">
+      <div class="inline" style="justify-content:space-between;">
+        <div>
+          <strong id="demoHeader">Demo not started</strong><br />
+          <span class="small" id="demoMeta">—</span>
+        </div>
+        <div class="timer" id="timer">00:00</div>
+      </div>
 
-<hr>
+      <div class="card" style="margin-top:12px;">
+        <h2>Today</h2>
+        <div id="today"></div>
+      </div>
 
-<h2>Team Mode</h2>
+      <div class="card" id="teamCard" style="display:none;">
+        <h2>Team Mode</h2>
+        <div class="inline">
+          <input id="newMember" placeholder="new.member@clinic.org" />
+          <button id="addMemberBtn">Add Team Member</button>
+          <select id="activeActor"></select>
+        </div>
+        <div id="memberList" class="small" style="margin-top:8px;"></div>
+      </div>
 
-<p>
-One coordinator manages several patients.  
-Team members may work in shifts.
-</p>
+      <div class="card">
+        <h2>History</h2>
+        <div id="history"></div>
+      </div>
+    </section>
+  </div>
 
-<h3>Patients</h3>
+<script>
+const COUNTRY_CONFIG = {
+  AM: { countryName: "Armenia", timeZone: "Asia/Yerevan", lang: "hy", local: "Հայերեն" },
+  DE: { countryName: "Germany", timeZone: "Europe/Berlin", lang: "de", local: "Deutsch" },
+  FR: { countryName: "France", timeZone: "Europe/Paris", lang: "fr", local: "Français" },
+  GB: { countryName: "United Kingdom", timeZone: "Europe/London", lang: "en", local: "English" },
+  US: { countryName: "United States", timeZone: "America/New_York", lang: "en", local: "English" },
+  RU: { countryName: "Russia", timeZone: "Europe/Moscow", lang: "ru", local: "Русский" },
+  CN: { countryName: "China", timeZone: "Asia/Shanghai", lang: "zh", local: "中文" },
+  JP: { countryName: "Japan", timeZone: "Asia/Tokyo", lang: "ja", local: "日本語" },
+  AE: { countryName: "United Arab Emirates", timeZone: "Asia/Dubai", lang: "ar", local: "العربية" }
+};
+const TXT = {
+  en: { waiting:"Waiting", overdue:"Overdue", early:"Taken early", ontime:"Taken on time", late:"Taken late", missed:"Missed", standard:"Standard Mode", team:"Team Mode" },
+  ru: { waiting:"Ожидание", overdue:"Просрочено", early:"Принял досрочно", ontime:"Принял вовремя", late:"Принял с опозданием", missed:"Не принял", standard:"Режим Standard", team:"Режим Team" },
+  de: { waiting:"Warten", overdue:"Überfällig", early:"Früh eingenommen", ontime:"Pünktlich eingenommen", late:"Verspätet eingenommen", missed:"Ausgelassen", standard:"Standard-Modus", team:"Team-Modus" }
+};
 
-<div style="border:1px solid #ddd;padding:10px;border-radius:6px;margin-bottom:10px;">
-John Smith
-</div>
+const countryEl = document.getElementById("country");
+const uiLangEl = document.getElementById("uiLang");
+const modeEl = document.getElementById("mode");
+countryEl.innerHTML = Object.entries(COUNTRY_CONFIG).map(([k,v]) => `<option value="${k}">${v.countryName}</option>`).join("");
+uiLangEl.innerHTML = [["en","English"],["ru","Русский"],["de","Deutsch"],["hy","Հայերեն"],["fr","Français"],["ar","العربية"],["zh","中文"],["ja","日本語"]].map(([v,l]) => `<option value="${v}">${l}</option>`).join("");
+countryEl.value = "DE";
+uiLangEl.value = COUNTRY_CONFIG.DE.lang;
 
-<div style="border:1px solid #ddd;padding:10px;border-radius:6px;margin-bottom:10px;">
-Mary Brown
-</div>
+countryEl.onchange = () => { uiLangEl.value = COUNTRY_CONFIG[countryEl.value].lang; };
 
-<h3>Team Members</h3>
+let state = null;
+let timerId = null;
 
-<div>anna@clinic.org — accepted</div>
-<div>mike@clinic.org — accepted</div>
-<div>nightshift@clinic.org — pending</div>
+function text(key) {
+  const pack = TXT[uiLangEl.value] || TXT.en;
+  return pack[key] || TXT.en[key] || key;
+}
+function nowClock() {
+  const cfg = COUNTRY_CONFIG[countryEl.value];
+  return new Intl.DateTimeFormat("en-GB", { timeZone: cfg.timeZone, day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false }).format(new Date()).replace(",", "");
+}
+function parseSlots() {
+  return document.getElementById("slots").value.split(",").map(s => s.trim()).filter(Boolean);
+}
+function render() {
+  const todayEl = document.getElementById("today");
+  const historyEl = document.getElementById("history");
+  const teamCard = document.getElementById("teamCard");
+  const memberList = document.getElementById("memberList");
+  const activeActor = document.getElementById("activeActor");
 
-<h3>Example Shift Work</h3>
+  if (!state) {
+    todayEl.innerHTML = '<div class="muted">Start the demo to begin.</div>';
+    historyEl.innerHTML = '<div class="muted">History will appear here.</div>';
+    teamCard.style.display = "none";
+    return;
+  }
 
-<div>09:00 — taken — team_member</div>
-<div>14:00 — missed — caregiver</div>
-<div>20:00 — taken — team_member</div>
+  document.getElementById("demoHeader").textContent = modeEl.value === "team" ? text("team") : text("standard");
+  document.getElementById("demoMeta").textContent = `${COUNTRY_CONFIG[countryEl.value].countryName} — ${COUNTRY_CONFIG[countryEl.value].timeZone} — ${document.getElementById("medName").value}`;
 
-<h3>History Transparency</h3>
+  todayEl.innerHTML = "";
+  state.slots.forEach((slot) => {
+    const div = document.createElement("div");
+    div.className = "slot";
+    div.innerHTML = `<div><strong>${slot.time}</strong> — <span class="status">${slot.status}</span></div>
+      <div class="inline" style="margin-top:8px;">
+        <button data-act="taken">Taken</button>
+        <button data-act="missed">Missed</button>
+        <button data-act="clear">Clear</button>
+      </div>`;
+    div.querySelector('[data-act="taken"]').onclick = () => mark(slot.time, "taken");
+    div.querySelector('[data-act="missed"]').onclick = () => mark(slot.time, "missed");
+    div.querySelector('[data-act="clear"]').onclick = () => clearSlot(slot.time);
+    todayEl.appendChild(div);
+  });
 
-<div>Every action records who confirmed the medication.</div>
+  historyEl.innerHTML = state.history.length ? "" : '<div class="muted">No actions yet.</div>';
+  state.history.forEach((row) => {
+    const d = document.createElement("div");
+    d.className = "hist";
+    d.textContent = `${row.status} — ${row.actual} — ${row.role} — ${row.email} — planned ${row.planned}`;
+    historyEl.appendChild(d);
+  });
 
-<hr>
-
-<p>
-<a href="/auth-login.html">
-<button>Start Using MedControl</button>
-</a>
-</p>
-
+  if (modeEl.value === "team") {
+    teamCard.style.display = "block";
+    activeActor.innerHTML = state.members.map((m, idx) => `<option value="${idx}">${m.role} — ${m.email}</option>`).join("");
+    activeActor.value = String(state.activeActorIndex);
+    activeActor.onchange = () => { state.activeActorIndex = Number(activeActor.value); };
+    memberList.textContent = state.members.map((m) => `${m.role}: ${m.email}`).join(" | ");
+  } else {
+    teamCard.style.display = "none";
+  }
+}
+function startDemo() {
+  const slots = parseSlots();
+  const seconds = modeEl.value === "team" ? 120 : 45;
+  state = {
+    remaining: seconds,
+    slots: slots.map((s) => ({ time:s, status:text("waiting"), planned:s })),
+    history: [],
+    members: modeEl.value === "team"
+      ? [{ role:"admin", email:"coordinator@clinic.org" }, { role:"team_member", email:"nurse@clinic.org" }]
+      : [{ role:"admin", email:"coordinator@clinic.org" }],
+    activeActorIndex: 0
+  };
+  if (timerId) clearInterval(timerId);
+  timerId = setInterval(() => {
+    state.remaining -= 1;
+    const mm = String(Math.max(0, Math.floor(state.remaining / 60))).padStart(2, "0");
+    const ss = String(Math.max(0, state.remaining % 60)).padStart(2, "0");
+    document.getElementById("timer").textContent = `${mm}:${ss}`;
+    if (state.remaining <= 0) resetDemo(true);
+  }, 1000);
+  document.getElementById("timer").textContent = `${String(Math.floor(seconds/60)).padStart(2,"0")}:${String(seconds%60).padStart(2,"0")}`;
+  render();
+}
+function actionStatus(kind, slotTime) {
+  const actual = new Intl.DateTimeFormat("en-GB", {
+    timeZone: COUNTRY_CONFIG[countryEl.value].timeZone, day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false
+  }).format(new Date()).replace(",", "");
+  const actualClock = actual.split(" ").pop();
+  if (kind === "missed") return { ui:text("missed"), actual };
+  if (actualClock < slotTime) return { ui:text("early"), actual };
+  if (actualClock <= addMinutes(slotTime, 10)) return { ui:text("ontime"), actual };
+  return { ui:text("late"), actual };
+}
+function addMinutes(hhmm, plus) {
+  const [h,m] = hhmm.split(":").map(Number);
+  const total = h * 60 + m + plus;
+  const hh = String(Math.floor(total / 60) % 24).padStart(2,"0");
+  const mm = String(total % 60).padStart(2,"0");
+  return `${hh}:${mm}`;
+}
+function mark(slotTime, kind) {
+  const slot = state.slots.find((s) => s.time === slotTime);
+  if (!slot) return;
+  const calc = actionStatus(kind, slotTime);
+  slot.status = calc.ui;
+  const actor = state.members[state.activeActorIndex];
+  state.history.unshift({
+    status: calc.ui,
+    actual: calc.actual,
+    role: actor.role,
+    email: actor.email,
+    planned: slotTime
+  });
+  render();
+}
+function clearSlot(slotTime) {
+  const slot = state.slots.find((s) => s.time === slotTime);
+  if (!slot) return;
+  slot.status = text("waiting");
+  state.history = state.history.filter((h) => h.planned !== slotTime);
+  render();
+}
+function resetDemo(expired = false) {
+  if (timerId) clearInterval(timerId);
+  timerId = null;
+  state = null;
+  document.getElementById("timer").textContent = expired ? "00:00" : "00:00";
+  document.getElementById("demoHeader").textContent = expired ? "Demo session ended. Start again." : "Demo not started";
+  document.getElementById("demoMeta").textContent = expired ? "The sandbox was reset automatically after the session time ended." : "—";
+  render();
+}
+document.getElementById("startBtn").onclick = startDemo;
+document.getElementById("resetBtn").onclick = () => resetDemo(false);
+document.getElementById("addMemberBtn").onclick = () => {
+  if (!state || modeEl.value !== "team") return;
+  const email = document.getElementById("newMember").value.trim();
+  if (!email) return;
+  state.members.push({ role:"team_member", email });
+  document.getElementById("newMember").value = "";
+  render();
+};
+render();
+</script>
 </body>
 </html>
