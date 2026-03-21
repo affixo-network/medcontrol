@@ -715,46 +715,7 @@ addTeamMemberBtn.onclick = async () => {
   teamEmailStatusEl.textContent = t("team_added");
   await loadTeamMembers();
 };
-document.getElementById("addMed").onclick = async () => {
-  if (role !== "admin") return;
-  if (!selectedPatientId) {
-    alert(t("select_patient_first"));
-    return;
-  }
-  const name = document.getElementById("medName").value.trim();
-  const dose = document.getElementById("medDose").value.trim();
-  const slots = parseSlotList(document.getElementById("medSlots").value.trim());
 
-  if (!name) {
-    alert(t("enter_med_name"));
-    return;
-  }
-  if (!slots.length) {
-    alert(t("enter_med_slots"));
-    return;
-  }
-  if (!slots.every(isValidHHMM)) {
-    alert(t("bad_time_list"));
-    return;
-  }
-
-  const { data: medRow, error } = await supabase.from("medications").insert({
-    patient_id: selectedPatientId, name, dose
-  }).select("id").single();
-  if (error) {
-    alert(t("cannot_add_med") + error.message);
-    return;
-  }
-  const timeRows = slots.map((slot) => ({
-  medication_id: medRow.id,
-  time_of_day: slot + ":00",
-  is_active: true
-}));
-if (timeRows.length > 0) {
-  if (slots.length > 0) {
-  await supabase.from("medication_times").insert(
-    slots.map((slot) => ({ medication_id: medRow.id, time_of_day: slot + ":00", is_active: true }))
-  );
 }
 document.getElementById("medName").value = "";
 document.getElementById("medDose").value = "";
