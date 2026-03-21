@@ -751,13 +751,15 @@ document.getElementById("addMed").onclick = async () => {
   is_active: true
 }));
 if (timeRows.length > 0) {
+  const timeRows = slots.map((slot) => ({ medication_id: medRow.id, time_of_day: slot + ":00", is_active: true }));
+if (timeRows.length > 0) {
   await supabase.from("medication_times").insert(timeRows);
 }
-  document.getElementById("medName").value = "";
-  document.getElementById("medDose").value = "";
-  document.getElementById("medSlots").value = "";
-  await loadMeds();
-  await loadToday();
+document.getElementById("medName").value = "";
+document.getElementById("medDose").value = "";
+document.getElementById("medSlots").value = "";
+await loadMeds();
+await loadToday();
 };
 document.getElementById("whoami").onclick = async () => {
   const { data, error } = await supabase.rpc("debug_whoami");
