@@ -745,7 +745,14 @@ document.getElementById("addMed").onclick = async () => {
     alert(t("cannot_add_med") + error.message);
     return;
   }
-  const timeRows = [];
+  const timeRows = slots.map((slot) => ({
+  medication_id: medRow.id,
+  time_of_day: slot + ":00",
+  is_active: true
+}));
+if (timeRows.length > 0) {
+  await supabase.from("medication_times").insert(timeRows);
+}
   document.getElementById("medName").value = "";
   document.getElementById("medDose").value = "";
   document.getElementById("medSlots").value = "";
