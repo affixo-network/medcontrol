@@ -500,16 +500,27 @@ async function mark(medicationId, slotLabel, action) {
   if (!selectedPatientId) return;
   const slotMs = getZonedSlotMs(currentTimezone, slotLabel);
   const scheduledIso = new Date(slotMs).toISOString();
-  const { error } = await supabase.rpc("log_med_intake", {
-    _patient_id: selectedPatientId,
-    _medication_id: medicationId,
-    _scheduled_at: scheduledIso,
-    _status: action
-  });
+
+  const { error } = await supabase
+    .from("medication_logs")
+    .upsert(
+      [{
+        patient_id: selectedPatientId,
+        medication_id: medicationId,
+        scheduled_at: scheduledIso,
+        status: action,
+        recorded_role: role,
+        recorded_by: currentUserId,
+        created_at: new Date().toISOString()
+      }],
+      { onConflict: "patient_id,medication_id,scheduled_at" }
+    );
+
   if (error) {
     alert(t("today_error") + error.message);
     return;
   }
+
   await loadToday();
   await loadHistory();
 }
