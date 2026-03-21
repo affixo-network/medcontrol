@@ -751,9 +751,10 @@ document.getElementById("addMed").onclick = async () => {
   is_active: true
 }));
 if (timeRows.length > 0) {
-  const timeRows = slots.map((slot) => ({ medication_id: medRow.id, time_of_day: slot + ":00", is_active: true }));
-if (timeRows.length > 0) {
-  await supabase.from("medication_times").insert(timeRows);
+  if (slots.length > 0) {
+  await supabase.from("medication_times").insert(
+    slots.map((slot) => ({ medication_id: medRow.id, time_of_day: slot + ":00", is_active: true }))
+  );
 }
 document.getElementById("medName").value = "";
 document.getElementById("medDose").value = "";
