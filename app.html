@@ -740,7 +740,7 @@ document.getElementById("addMed").onclick = async () => {
   }
 
   const { data: medRow, error } = await supabase.from("medications").insert({
-    patient_id: selectedPatientId, name, dose, schedule: slots.join(", ")
+    patient_id: selectedPatientId, name, dose
   }).select("id").single();
   if (error) {
     alert(t("cannot_add_med") + error.message);
