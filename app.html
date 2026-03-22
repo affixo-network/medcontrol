@@ -131,11 +131,12 @@ const I18N = {
     lang_native: "English", title: "Affixo MedControl — App", loading: "Loading...", country: "Country:", language: "Language:", timezone: "Timezone:", local_time: "Local time:",
     logout: "Logout", whoami: "WhoAmI", demo: "Demo", settings: "Settings", people: "People", selected_none: "Selected patient: (none)", selected_prefix: "Selected patient:",
     mode_label: "Monitoring mode:", standard: "Standard", team_mode: "Team", meds: "Medications", add_med: "Add Medication", med_name_ph: "Medication name",
-    med_dose_ph: "Dose", med_slots_ph: "Enter medication time", add: "Add", med_help: "Medication name may be entered fully or partially in any language. System labels follow the selected interface language.",    team: "Team", team_note: "Team mode is active. Multiple people can participate in monitoring.", team_email_ph: "Team member email", add_team_member: "Add Team Member",
+    med_dose_ph: "Dose", med_slots_ph: "Enter medication time", add: "Add", med_help: "Medication name may be entered fully or partially in any language. System labels follow the selected interface language.",
+    team: "Team", team_note: "Team mode is active. Multiple people can participate in monitoring.", team_email_ph: "Team member email", add_team_member: "Add Team Member",
     team_members: "Team members", invite_status: "Invite status", no_team_members: "No team members yet", no_invites: "No invite statuses yet",
     today: "Today", history: "History", history_hint: "History shows the actual action time.", no_patients: "(no patients visible for this user)", no_meds: "(no medications for this patient)",
     waiting: "Waiting", overdue: "Overdue", taken_early: "Taken early", taken_on_time: "Taken on time", taken_late: "Taken late", expired_0000: "Overdue until 00:00",
-    taken: "Taken", missed: "Missed", missed_status: "Missed", actual: "Actual", planned: "Planned", role_unknown: "role unknown",
+    taken: "Taken", cancel: "Cancel", correct: "Correct", cancelled: "Cancelled", actual: "Actual", planned: "Planned", role_unknown: "role unknown",
     team_added: "Team member added", select_patient_first: "Select patient first", enter_team_email: "Enter team member email", team_link_error: "Team link error: ",
     invite_save_error: "Invite save error: ", team_list_error: "Team list error: ", invite_status_error: "Invite status error: ",
     patients_error: "Patients error: ", meds_error: "Medications error: ", today_error: "Today error: ", history_error: "History error: ", profile_error: "Profile load error: ",
@@ -153,7 +154,7 @@ const I18N = {
     team_members: "Участники команды", invite_status: "Статус приглашений", no_team_members: "Участников команды пока нет", no_invites: "Статусы приглашений пока отсутствуют",
     today: "Сегодня", history: "История", history_hint: "История показывает фактическое время действия.", no_patients: "(для этого пользователя пациенты не видны)", no_meds: "(для этого пациента нет препаратов)",
     waiting: "Ожидание", overdue: "Просрочено", taken_early: "Принял досрочно", taken_on_time: "Принял вовремя", taken_late: "Принял с опозданием", expired_0000: "Просрочено до 00:00",
-    taken: "Принял", missed: "Не принял", missed_status: "Не принял", actual: "Факт", planned: "План", role_unknown: "роль не указана",
+    taken: "Принял", cancel: "Отменить", correct: "Исправить", cancelled: "Отменено", actual: "Факт", planned: "План", role_unknown: "роль не указана",
     team_added: "Участник добавлен", select_patient_first: "Сначала выберите пациента", enter_team_email: "Введите email участника", team_link_error: "Ошибка привязки участника: ",
     invite_save_error: "Ошибка сохранения приглашения: ", team_list_error: "Ошибка списка команды: ", invite_status_error: "Ошибка статусов приглашений: ",
     patients_error: "Ошибка пациентов: ", meds_error: "Ошибка препаратов: ", today_error: "Ошибка блока Сегодня: ", history_error: "Ошибка истории: ", profile_error: "Ошибка профиля: ",
@@ -166,12 +167,12 @@ const I18N = {
     lang_native: "Deutsch", title: "Affixo MedControl — Anwendung", loading: "Lädt...", country: "Land:", language: "Sprache:", timezone: "Zeitzone:", local_time: "Lokale Zeit:",
     logout: "Abmelden", whoami: "Wer bin ich", demo: "Demo", settings: "Einstellungen", people: "Personen", selected_none: "Ausgewählter Patient: (keiner)", selected_prefix: "Ausgewählter Patient:",
     mode_label: "Überwachungsmodus:", standard: "Standard", team_mode: "Team", meds: "Medikamente", add_med: "Medikament hinzufügen", med_name_ph: "Medikamentenname",
-   med_dose_ph: "Dosis", med_slots_ph: "Uhrzeit eingeben", add: "Hinzufügen", med_help: "Der Medikamentenname kann vollständig oder teilweise in jeder Sprache eingegeben werden. Systemtexte folgen der gewählten Oberflächensprache.",
+    med_dose_ph: "Dosis", med_slots_ph: "Uhrzeit eingeben", add: "Hinzufügen", med_help: "Der Medikamentenname kann vollständig oder teilweise in jeder Sprache eingegeben werden. Systemtexte folgen der gewählten Oberflächensprache.",
     team: "Team", team_note: "Der Teammodus ist aktiv. Mehrere Personen können an der Überwachung teilnehmen.", team_email_ph: "E-Mail des Teammitglieds", add_team_member: "Teammitglied hinzufügen",
     team_members: "Teammitglieder", invite_status: "Einladungsstatus", no_team_members: "Noch keine Teammitglieder", no_invites: "Noch keine Einladungsstatus",
     today: "Heute", history: "Verlauf", history_hint: "Der Verlauf zeigt die tatsächliche Aktionszeit.", no_patients: "(keine sichtbaren Patienten)", no_meds: "(keine Medikamente für diesen Patienten)",
     waiting: "Warten", overdue: "Überfällig", taken_early: "Früh eingenommen", taken_on_time: "Pünktlich eingenommen", taken_late: "Verspätet eingenommen", expired_0000: "Überfällig bis 00:00",
-    taken: "Eingenommen", missed: "Ausgelassen", missed_status: "Ausgelassen", actual: "Ist", planned: "Plan", role_unknown: "Rolle unbekannt",
+    taken: "Eingenommen", cancel: "Abbrechen", correct: "Korrigieren", cancelled: "Abgebrochen", actual: "Ist", planned: "Plan", role_unknown: "Rolle unbekannt",
     team_added: "Teammitglied hinzugefügt", select_patient_first: "Bitte zuerst Patient auswählen", enter_team_email: "Bitte E-Mail eingeben", team_link_error: "Fehler bei Teamzuordnung: ",
     invite_save_error: "Fehler beim Speichern der Einladung: ", team_list_error: "Fehler in Teamliste: ", invite_status_error: "Fehler bei Einladungsstatus: ",
     patients_error: "Patientenfehler: ", meds_error: "Medikamentenfehler: ", today_error: "Heute-Fehler: ", history_error: "Verlaufsfehler: ", profile_error: "Profilfehler: ",
@@ -189,7 +190,7 @@ const I18N = {
     team_members: "Թիմի անդամներ", invite_status: "Հրավերի կարգավիճակ", no_team_members: "Թիմի անդամներ դեռ չկան", no_invites: "Հրավերի կարգավիճակներ դեռ չկան",
     today: "Այսօր", history: "Պատմություն", history_hint: "Պատմությունը ցույց է տալիս գործողության փաստացի ժամանակը։", no_patients: "(հասանելի պացիենտ չկա)", no_meds: "(այս պացիենտի համար դեղ չկա)",
     waiting: "Սպասում", overdue: "Ժամկետանց", taken_early: "Ընդունել է շուտ", taken_on_time: "Ընդունել է ժամանակին", taken_late: "Ընդունել է ուշացումով", expired_0000: "Ժամկետանց մինչև 00:00",
-    taken: "Ընդունված", missed: "Բաց թողնված", missed_status: "Բաց թողնված", actual: "Փաստ", planned: "Պլան", role_unknown: "դերը հայտնի չէ",
+    taken: "Ընդունել", cancel: "Չեղարկել", correct: "Ուղղել", cancelled: "Չեղարկված", actual: "Փաստ", planned: "Պլան", role_unknown: "դերը հայտնի չէ",
     team_added: "Անդամը ավելացվել է", select_patient_first: "Սկզբում ընտրեք պացիենտին", enter_team_email: "Մուտքագրեք անդամի email-ը", team_link_error: "Թիմի կապի սխալ՝ ",
     invite_save_error: "Հրավերի պահպանման սխալ՝ ", team_list_error: "Թիմի ցանկի սխալ՝ ", invite_status_error: "Հրավերի կարգավիճակի սխալ՝ ",
     patients_error: "Պացիենտների սխալ՝ ", meds_error: "Դեղերի սխալ՝ ", today_error: "Այսօրվա սխալ՝ ", history_error: "Պատմության սխալ՝ ", profile_error: "Պրոֆիլի սխալ՝ ",
@@ -240,7 +241,6 @@ let currentPatientName = "";
 let currentMode = "standard";
 let currentLang = "en";
 let displayedLangPreference = "en";
-let cachedTodayRows = [];
 
 function bootstrapLanguageSelect() {
   const keys = Object.keys(I18N).filter((k) => I18N[k].lang_native);
@@ -302,7 +302,7 @@ function getZonedDayRange(timeZone, refDate = new Date()) {
 }
 function formatInTimeZone(iso, timeZone) {
   const d = new Date(iso);
-  return new Intl.DateTimeFormat(currentLang === "en" ? "en-GB" : "en-GB", {
+  return new Intl.DateTimeFormat("en-GB", {
     timeZone, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false
   }).format(d).replace(",", "");
 }
@@ -322,8 +322,8 @@ function isValidHHMM(s) {
   return /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(s));
 }
 function computeRecordedStatus(slotMs, nextSlotMs, log) {
+  if (log.status === "cancelled") return t("cancelled");
   const actualMs = new Date(log.created_at || log.scheduled_at).getTime();
-  if (log.status === "missed") return t("missed_status");
   if (actualMs < slotMs) return t("taken_early");
   if (actualMs <= slotMs + 10 * 60 * 1000) return t("taken_on_time");
   if (nextSlotMs && actualMs < nextSlotMs) return t("taken_late");
@@ -524,9 +524,28 @@ async function mark(medicationId, slotLabel, action) {
   await loadToday();
   await loadHistory();
 }
+async function clearMark(medicationId, slotLabel) {
+  if (!selectedPatientId) return;
+  const slotMs = getZonedSlotMs(currentTimezone, slotLabel);
+  const scheduledIso = new Date(slotMs).toISOString();
+
+  const { error } = await supabase
+    .from("medication_logs")
+    .delete()
+    .eq("patient_id", selectedPatientId)
+    .eq("medication_id", medicationId)
+    .eq("scheduled_at", scheduledIso);
+
+  if (error) {
+    alert(t("today_error") + error.message);
+    return;
+  }
+
+  await loadToday();
+  await loadHistory();
+}
 async function loadToday() {
   todayEl.innerHTML = "";
-  cachedTodayRows = [];
   if (!selectedPatientId) return;
 
   const dayRange = getZonedDayRange(currentTimezone);
@@ -602,12 +621,21 @@ async function loadToday() {
           <div class="small muted">${escapeHtml(t("time_range"))}: ${escapeHtml(slot)} → ${escapeHtml(idx < slots.length - 1 ? slots[idx + 1] : "00:00")}</div>
         </div>
         <div class="inline" style="margin-top:8px;">
-          <button data-act="taken">${escapeHtml(t("taken"))}</button>
-          <button data-act="missed">${escapeHtml(t("missed"))}</button>
+          ${existing ? `
+            <button data-act="cancel">${escapeHtml(t("cancel"))}</button>
+            <button data-act="clear">${escapeHtml(t("correct"))}</button>
+          ` : `
+            <button data-act="taken">${escapeHtml(t("taken"))}</button>
+          `}
         </div>
       `;
-      row.querySelector('[data-act="taken"]').onclick = () => mark(med.id, slot, "taken");
-      row.querySelector('[data-act="missed"]').onclick = () => mark(med.id, slot, "missed");
+
+      if (existing) {
+        row.querySelector('[data-act="cancel"]').onclick = () => mark(med.id, slot, "cancelled");
+        row.querySelector('[data-act="clear"]').onclick = () => clearMark(med.id, slot);
+      } else {
+        row.querySelector('[data-act="taken"]').onclick = () => mark(med.id, slot, "taken");
+      }
       block.appendChild(row);
     });
     todayEl.appendChild(block);
@@ -649,7 +677,9 @@ async function loadHistory() {
     const plannedText = formatInTimeZone(r.scheduled_at, currentTimezone).split(" ").pop();
     const actualMs = new Date(actualIso).getTime();
     const plannedMs = new Date(r.scheduled_at).getTime();
-    let leadStatus = r.status === "missed" ? t("missed_status") : (actualMs < plannedMs ? t("taken_early") : actualMs <= plannedMs + 10 * 60 * 1000 ? t("taken_on_time") : t("taken_late"));
+    const leadStatus = r.status === "cancelled"
+      ? t("cancelled")
+      : (actualMs < plannedMs ? t("taken_early") : actualMs <= plannedMs + 10 * 60 * 1000 ? t("taken_on_time") : t("taken_late"));
     const actorRole = r.recorded_role || t("role_unknown");
     const actorEmail = emailById.get(r.recorded_by) || (r.recorded_by === currentUserId ? profileEmail : "");
     item.innerHTML = `
