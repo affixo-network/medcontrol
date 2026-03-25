@@ -461,14 +461,14 @@ async function loadProfile() {
   }
 
   const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  currentCountry = (profile?.country || "AM").toUpperCase();
-  const countryConfig = COUNTRY_CONFIG[currentCountry] || COUNTRY_CONFIG.DE;
-  currentTimezone = browserTz;
-  profileEmail = profile?.email || sessionData.session.user.email || "(no email)";
-  role = profile?.role || "unknown";
-  const profileLang = normalizeLang(profile?.ui_lang || countryConfig.lang || localStorage.getItem("mc_ui_lang") || "en");
-  setLanguage(profileLang, true);
-  applyTexts();
+currentCountry = (profile?.country || "AM").toUpperCase();
+const countryConfig = COUNTRY_CONFIG[currentCountry] || COUNTRY_CONFIG.DE;
+currentTimezone = browserTz;
+profileEmail = profile?.email || sessionData.session.user.email || "(no email)";
+role = profile?.role || "unknown";
+const profileLang = normalizeLang(profile?.ui_lang || countryConfig.lang || "en");
+setLanguage(profileLang, true);
+applyTexts();
 
   tzLabelEl.textContent = currentTimezone;
   countryLabelEl.textContent = countryConfig.countryName;
