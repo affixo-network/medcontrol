@@ -478,8 +478,7 @@ applyTexts();
   if (role !== "admin") addMedSectionEl.style.display = "none";
 
   await supabase.from("profiles").update({
-  timezone: currentTimezone,
-  ui_lang: currentLang
+  timezone: currentTimezone
 }).eq("id", currentUserId);
 }
 async function fetchPatients() {
