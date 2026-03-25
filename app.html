@@ -461,7 +461,7 @@ async function loadProfile() {
   }
 
   const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  currentCountry = detectCountryByTimeZone(browserTz);
+  currentCountry = (profile?.country || "AM").toUpperCase();
   const countryConfig = COUNTRY_CONFIG[currentCountry] || COUNTRY_CONFIG.DE;
   currentTimezone = browserTz;
   profileEmail = profile?.email || sessionData.session.user.email || "(no email)";
