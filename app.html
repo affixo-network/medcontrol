@@ -26,7 +26,6 @@
     input, select { padding:8px 10px; }
     a.btn { text-decoration:none; color:inherit; border:1px solid #ddd; border-radius:8px; padding:8px 12px; display:inline-block; }
     .danger { color:#b00020; }
-    .good { color:#1f6f3f; }
     .history-item { border-bottom:1px solid #eee; padding:10px 0; }
     .history-item:last-child { border-bottom:none; }
     .small { font-size: 12px; }
@@ -74,7 +73,9 @@
         <h2 id="t_addmed">Add Medication</h2>
         <div class="inline">
           <input id="medName" placeholder="Medication name" />
-          <input id="medDose" placeholder="Dose" />
+          <input id="doseValue" placeholder="Value" style="width:90px;" />
+          <select id="doseUnit" style="min-width:140px;"></select>
+          <input id="doseCustom" placeholder="Custom dose" style="display:none;min-width:180px;" />
           <input id="medSlots" />
           <button id="addMed">Add</button>
         </div>
@@ -131,73 +132,81 @@ const I18N = {
     lang_native: "English", title: "Affixo MedControl — App", loading: "Loading...", country: "Country:", language: "Language:", timezone: "Timezone:", local_time: "Local time:",
     logout: "Logout", whoami: "WhoAmI", demo: "Demo", settings: "Settings", people: "People", selected_none: "Selected patient: (none)", selected_prefix: "Selected patient:",
     mode_label: "Monitoring mode:", standard: "Standard", team_mode: "Team", meds: "Medications", add_med: "Add Medication", med_name_ph: "Medication name",
-    med_dose_ph: "Dose", med_slots_ph: "Enter medication time", add: "Add", med_help: "Medication name may be entered fully or partially in any language. System labels follow the selected interface language.",
+    dose_value_ph: "Value", dose_unit_default: "Unit", dose_custom_ph: "Custom dose", unit_other: "Other...",
+    unit_tablet: "tablet", unit_capsule: "capsule", unit_mg: "mg", unit_g: "g", unit_ml: "ml", unit_drops: "drops", unit_sachet: "sachet", unit_puff: "puff", unit_injection: "injection", unit_unit: "unit",
+    med_slots_ph: "Enter medication time", add: "Add", med_help: "Medication name may be entered fully or partially in any language. System labels follow the selected interface language.",
     team: "Team", team_note: "Team mode is active. Multiple people can participate in monitoring.", team_email_ph: "Team member email", add_team_member: "Add Team Member",
     team_members: "Team members", invite_status: "Invite status", no_team_members: "No team members yet", no_invites: "No invite statuses yet",
-    today: "Today", history: "History", history_hint: "History shows the actual action time.", no_patients: "(no patients visible for this user)", no_meds: "(no medications for this patient)",
+    today: "Today", history: "History", no_patients: "(no patients visible for this user)", no_meds: "(no medications for this patient)",
     waiting: "Waiting", overdue: "Overdue", taken_early: "Taken early", taken_on_time: "Taken on time", taken_late: "Taken late", expired_0000: "Overdue until 00:00",
-    taken: "Taken", cancel: "Cancel", correct: "Correct", cancelled: "Cancelled", actual: "Actual", planned: "Planned", role_unknown: "role unknown",
+    taken: "Taken", cancel: "Cancel", correct: "Correct", cancelled: "Cancelled", role_unknown: "role unknown",
     team_added: "Team member added", select_patient_first: "Select patient first", enter_team_email: "Enter team member email", team_link_error: "Team link error: ",
     invite_save_error: "Invite save error: ", team_list_error: "Team list error: ", invite_status_error: "Invite status error: ",
     patients_error: "Patients error: ", meds_error: "Medications error: ", today_error: "Today error: ", history_error: "History error: ", profile_error: "Profile load error: ",
     init_error: "Init error: ", no_session: "No session, redirecting to login…", cannot_add_med: "Cannot add medication: ", cannot_update_mode: "Cannot update mode: ",
     enter_med_name: "Enter medication name", enter_med_slots: "Enter at least one time slot", bad_time_list: "Time format must use HH:mm, separated by commas.",
     no_slots: "No time slots configured for this medication.", no_history: "(no history yet)", logged_in_as: "Logged in as", pending: "Pending", accepted: "Accepted", status_label: "Status",
-    time_range: "Window", planned_slot: "Planned slot", actual_action: "Actual action", by_actor: "Recorded by"
+    time_range: "Window", planned_slot: "Planned slot"
   },
   ru: {
     lang_native: "Русский", title: "Affixo MedControl — Приложение", loading: "Загрузка...", country: "Страна:", language: "Язык:", timezone: "Часовой пояс:", local_time: "Местное время:",
     logout: "Выйти", whoami: "Кто я", demo: "Демо", settings: "Настройки", people: "Люди", selected_none: "Выбран пациент: (нет)", selected_prefix: "Выбран пациент:",
     mode_label: "Режим наблюдения:", standard: "Standard", team_mode: "Team", meds: "Лекарства", add_med: "Добавить препарат", med_name_ph: "Название препарата",
-    med_dose_ph: "Доза", med_slots_ph: "Введите время приема", add: "Добавить", med_help: "Название препарата можно вводить полностью или частично на любом языке. Системные подписи идут на языке интерфейса.",
+    dose_value_ph: "Значение", dose_unit_default: "Единица", dose_custom_ph: "Своя дозировка", unit_other: "Другое...",
+    unit_tablet: "таблетка", unit_capsule: "капсула", unit_mg: "мг", unit_g: "г", unit_ml: "мл", unit_drops: "капли", unit_sachet: "саше", unit_puff: "впрыск", unit_injection: "инъекция", unit_unit: "единица",
+    med_slots_ph: "Введите время приема", add: "Добавить", med_help: "Название препарата можно вводить полностью или частично на любом языке. Системные подписи идут на языке интерфейса.",
     team: "Команда", team_note: "Командный режим активен. Несколько людей могут участвовать в наблюдении.", team_email_ph: "Email участника команды", add_team_member: "Добавить участника",
     team_members: "Участники команды", invite_status: "Статус приглашений", no_team_members: "Участников команды пока нет", no_invites: "Статусы приглашений пока отсутствуют",
-    today: "Сегодня", history: "История", history_hint: "История показывает фактическое время действия.", no_patients: "(для этого пользователя пациенты не видны)", no_meds: "(для этого пациента нет препаратов)",
+    today: "Сегодня", history: "История", no_patients: "(для этого пользователя пациенты не видны)", no_meds: "(для этого пациента нет препаратов)",
     waiting: "Ожидание", overdue: "Просрочено", taken_early: "Принял досрочно", taken_on_time: "Принял вовремя", taken_late: "Принял с опозданием", expired_0000: "Просрочено до 00:00",
-    taken: "Принял", cancel: "Отменить", correct: "Исправить", cancelled: "Отменено", actual: "Факт", planned: "План", role_unknown: "роль не указана",
+    taken: "Принял", cancel: "Отменить", correct: "Исправить", cancelled: "Отменено", role_unknown: "роль не указана",
     team_added: "Участник добавлен", select_patient_first: "Сначала выберите пациента", enter_team_email: "Введите email участника", team_link_error: "Ошибка привязки участника: ",
     invite_save_error: "Ошибка сохранения приглашения: ", team_list_error: "Ошибка списка команды: ", invite_status_error: "Ошибка статусов приглашений: ",
     patients_error: "Ошибка пациентов: ", meds_error: "Ошибка препаратов: ", today_error: "Ошибка блока Сегодня: ", history_error: "Ошибка истории: ", profile_error: "Ошибка профиля: ",
     init_error: "Ошибка запуска: ", no_session: "Сессия отсутствует, переход на вход…", cannot_add_med: "Не удалось добавить препарат: ", cannot_update_mode: "Не удалось изменить режим: ",
     enter_med_name: "Введите название препарата", enter_med_slots: "Введите хотя бы один слот", bad_time_list: "Формат времени должен быть HH:mm, через запятую.",
     no_slots: "Для этого препарата не настроены временные слоты.", no_history: "(истории пока нет)", logged_in_as: "Вход выполнен как", pending: "Ожидает", accepted: "Подтверждено", status_label: "Статус",
-    time_range: "Окно", planned_slot: "Плановый слот", actual_action: "Фактическое действие", by_actor: "Отметил"
+    time_range: "Окно", planned_slot: "Плановый слот"
   },
   de: {
     lang_native: "Deutsch", title: "Affixo MedControl — Anwendung", loading: "Lädt...", country: "Land:", language: "Sprache:", timezone: "Zeitzone:", local_time: "Lokale Zeit:",
     logout: "Abmelden", whoami: "Wer bin ich", demo: "Demo", settings: "Einstellungen", people: "Personen", selected_none: "Ausgewählter Patient: (keiner)", selected_prefix: "Ausgewählter Patient:",
     mode_label: "Überwachungsmodus:", standard: "Standard", team_mode: "Team", meds: "Medikamente", add_med: "Medikament hinzufügen", med_name_ph: "Medikamentenname",
-    med_dose_ph: "Dosis", med_slots_ph: "Uhrzeit eingeben", add: "Hinzufügen", med_help: "Der Medikamentenname kann vollständig oder teilweise in jeder Sprache eingegeben werden. Systemtexte folgen der gewählten Oberflächensprache.",
+    dose_value_ph: "Wert", dose_unit_default: "Einheit", dose_custom_ph: "Eigene Dosis", unit_other: "Andere...",
+    unit_tablet: "Tablette", unit_capsule: "Kapsel", unit_mg: "mg", unit_g: "g", unit_ml: "ml", unit_drops: "Tropfen", unit_sachet: "Beutel", unit_puff: "Sprühstoß", unit_injection: "Injektion", unit_unit: "Einheit",
+    med_slots_ph: "Uhrzeit eingeben", add: "Hinzufügen", med_help: "Der Medikamentenname kann vollständig oder teilweise in jeder Sprache eingegeben werden. Systemtexte folgen der gewählten Oberflächensprache.",
     team: "Team", team_note: "Der Teammodus ist aktiv. Mehrere Personen können an der Überwachung teilnehmen.", team_email_ph: "E-Mail des Teammitglieds", add_team_member: "Teammitglied hinzufügen",
     team_members: "Teammitglieder", invite_status: "Einladungsstatus", no_team_members: "Noch keine Teammitglieder", no_invites: "Noch keine Einladungsstatus",
-    today: "Heute", history: "Verlauf", history_hint: "Der Verlauf zeigt die tatsächliche Aktionszeit.", no_patients: "(keine sichtbaren Patienten)", no_meds: "(keine Medikamente für diesen Patienten)",
+    today: "Heute", history: "Verlauf", no_patients: "(keine sichtbaren Patienten)", no_meds: "(keine Medikamente für diesen Patienten)",
     waiting: "Warten", overdue: "Überfällig", taken_early: "Früh eingenommen", taken_on_time: "Pünktlich eingenommen", taken_late: "Verspätet eingenommen", expired_0000: "Überfällig bis 00:00",
-    taken: "Eingenommen", cancel: "Abbrechen", correct: "Korrigieren", cancelled: "Abgebrochen", actual: "Ist", planned: "Plan", role_unknown: "Rolle unbekannt",
+    taken: "Eingenommen", cancel: "Abbrechen", correct: "Korrigieren", cancelled: "Abgebrochen", role_unknown: "Rolle unbekannt",
     team_added: "Teammitglied hinzugefügt", select_patient_first: "Bitte zuerst Patient auswählen", enter_team_email: "Bitte E-Mail eingeben", team_link_error: "Fehler bei Teamzuordnung: ",
     invite_save_error: "Fehler beim Speichern der Einladung: ", team_list_error: "Fehler in Teamliste: ", invite_status_error: "Fehler bei Einladungsstatus: ",
     patients_error: "Patientenfehler: ", meds_error: "Medikamentenfehler: ", today_error: "Heute-Fehler: ", history_error: "Verlaufsfehler: ", profile_error: "Profilfehler: ",
     init_error: "Startfehler: ", no_session: "Keine Sitzung, Weiterleitung zum Login…", cannot_add_med: "Medikament konnte nicht hinzugefügt werden: ", cannot_update_mode: "Modus konnte nicht geändert werden: ",
     enter_med_name: "Bitte Medikamentenname eingeben", enter_med_slots: "Bitte mindestens ein Zeitfenster eingeben", bad_time_list: "Zeitformat muss HH:mm sein, mit Komma getrennt.",
     no_slots: "Für dieses Medikament sind keine Zeitfenster konfiguriert.", no_history: "(noch kein Verlauf)", logged_in_as: "Angemeldet als", pending: "Ausstehend", accepted: "Bestätigt", status_label: "Status",
-    time_range: "Fenster", planned_slot: "Geplanter Slot", actual_action: "Tatsächliche Aktion", by_actor: "Erfasst von"
+    time_range: "Fenster", planned_slot: "Geplanter Slot"
   },
   hy: {
     lang_native: "Հայերեն", title: "Affixo MedControl — Հավելված", loading: "Բեռնվում է...", country: "Երկիր՝", language: "Լեզու՝", timezone: "Ժամային գոտի՝", local_time: "Տեղական ժամանակ՝",
     logout: "Ելք", whoami: "Ո՞վ եմ ես", demo: "Դեմո", settings: "Կարգավորումներ", people: "Մարդիկ", selected_none: "Ընտրված պացիենտ՝ (չկա)", selected_prefix: "Ընտրված պացիենտ՝",
     mode_label: "Հսկման ռեժիմ՝", standard: "Standard", team_mode: "Team", meds: "Դեղեր", add_med: "Ավելացնել դեղ", med_name_ph: "Դեղի անվանում",
-    med_dose_ph: "Դոզա", med_slots_ph: "Մուտքագրեք ընդունման ժամանակը", add: "Ավելացնել", med_help: "Դեղի անունը կարելի է գրել լրիվ կամ մասամբ ցանկացած լեզվով։ Համակարգային գրությունները գնում են ընտրված ինտերֆեյսի լեզվով։",
+    dose_value_ph: "Քանակ", dose_unit_default: "Միավոր", dose_custom_ph: "Սեփական դոզավորում", unit_other: "Այլ...",
+    unit_tablet: "հաբ", unit_capsule: "պարկուճ", unit_mg: "մգ", unit_g: "գ", unit_ml: "մլ", unit_drops: "կաթիլ", unit_sachet: "սաշե", unit_puff: "ցողում", unit_injection: "ներարկում", unit_unit: "միավոր",
+    med_slots_ph: "Մուտքագրեք ընդունման ժամանակը", add: "Ավելացնել", med_help: "Դեղի անունը կարելի է գրել լրիվ կամ մասամբ ցանկացած լեզվով։ Համակարգային գրությունները գնում են ընտրված ինտերֆեյսի լեզվով։",
     team: "Թիմ", team_note: "Թիմային ռեժիմն ակտիվ է։ Մի քանի մարդ կարող է մասնակցել հսկմանը։", team_email_ph: "Թիմի անդամի email", add_team_member: "Ավելացնել անդամ",
     team_members: "Թիմի անդամներ", invite_status: "Հրավերի կարգավիճակ", no_team_members: "Թիմի անդամներ դեռ չկան", no_invites: "Հրավերի կարգավիճակներ դեռ չկան",
-    today: "Այսօր", history: "Պատմություն", history_hint: "Պատմությունը ցույց է տալիս գործողության փաստացի ժամանակը։", no_patients: "(հասանելի պացիենտ չկա)", no_meds: "(այս պացիենտի համար դեղ չկա)",
+    today: "Այսօր", history: "Պատմություն", no_patients: "(հասանելի պացիենտ չկա)", no_meds: "(այս պացիենտի համար դեղ չկա)",
     waiting: "Սպասում", overdue: "Ժամկետանց", taken_early: "Ընդունել է շուտ", taken_on_time: "Ընդունել է ժամանակին", taken_late: "Ընդունել է ուշացումով", expired_0000: "Ժամկետանց մինչև 00:00",
-    taken: "Ընդունել", cancel: "Չեղարկել", correct: "Ուղղել", cancelled: "Չեղարկված", actual: "Փաստ", planned: "Պլան", role_unknown: "դերը հայտնի չէ",
+    taken: "Ընդունել", cancel: "Չեղարկել", correct: "Ուղղել", cancelled: "Չեղարկված", role_unknown: "դերը հայտնի չէ",
     team_added: "Անդամը ավելացվել է", select_patient_first: "Սկզբում ընտրեք պացիենտին", enter_team_email: "Մուտքագրեք անդամի email-ը", team_link_error: "Թիմի կապի սխալ՝ ",
     invite_save_error: "Հրավերի պահպանման սխալ՝ ", team_list_error: "Թիմի ցանկի սխալ՝ ", invite_status_error: "Հրավերի կարգավիճակի սխալ՝ ",
     patients_error: "Պացիենտների սխալ՝ ", meds_error: "Դեղերի սխալ՝ ", today_error: "Այսօրվա սխալ՝ ", history_error: "Պատմության սխալ՝ ", profile_error: "Պրոֆիլի սխալ՝ ",
     init_error: "Մեկնարկի սխալ՝ ", no_session: "Սեսիա չկա, փոխանցում մուտք…", cannot_add_med: "Չհաջողվեց ավելացնել դեղը՝ ", cannot_update_mode: "Չհաջողվեց փոխել ռեժիմը՝ ",
     enter_med_name: "Մուտքագրեք դեղի անունը", enter_med_slots: "Մուտքագրեք առնվազն մեկ ժամային սլոթ", bad_time_list: "Ժամի ձևաչափը պետք է լինի HH:mm՝ ստորակետերով բաժանված։",
     no_slots: "Այս դեղի համար ժամային սլոթներ չկան։", no_history: "(պատմություն դեռ չկա)", logged_in_as: "Մուտք է գործվել որպես", pending: "Սպասման մեջ", accepted: "Հաստատված", status_label: "Կարգավիճակ",
-    time_range: "Պատուհան", planned_slot: "Պլանային սլոթ", actual_action: "Փաստացի գործողություն", by_actor: "Նշել է"
+    time_range: "Պատուհան", planned_slot: "Պլանային սլոթ"
   },
   fr: { lang_native: "Français" }, ar: { lang_native: "العربية" }, zh: { lang_native: "中文" }, ja: { lang_native: "日本語" }
 };
@@ -220,6 +229,8 @@ const tzLabelEl = document.getElementById("tzLabel");
 const localTimeLabelEl = document.getElementById("localTimeLabel");
 const uiLangEl = document.getElementById("uiLang");
 const countryLabelEl = document.getElementById("countryLabel");
+const doseUnitEl = document.getElementById("doseUnit");
+const doseCustomEl = document.getElementById("doseCustom");
 
 const teamBoxEl = document.getElementById("team-box");
 const teamNoteEl = document.getElementById("team-note");
@@ -242,12 +253,39 @@ let currentMode = "standard";
 let currentLang = "en";
 let displayedLangPreference = "en";
 
+doseUnitEl.onchange = () => {
+  if (doseUnitEl.value === "custom") {
+    doseCustomEl.style.display = "inline-block";
+  } else {
+    doseCustomEl.style.display = "none";
+    doseCustomEl.value = "";
+  }
+};
+
+function renderDoseUnitOptions() {
+  const current = doseUnitEl.value || "";
+  doseUnitEl.innerHTML = `
+    <option value="">${escapeHtml(t("dose_unit_default"))}</option>
+    <option value="tablet">${escapeHtml(t("unit_tablet"))}</option>
+    <option value="capsule">${escapeHtml(t("unit_capsule"))}</option>
+    <option value="mg">${escapeHtml(t("unit_mg"))}</option>
+    <option value="g">${escapeHtml(t("unit_g"))}</option>
+    <option value="ml">${escapeHtml(t("unit_ml"))}</option>
+    <option value="drops">${escapeHtml(t("unit_drops"))}</option>
+    <option value="sachet">${escapeHtml(t("unit_sachet"))}</option>
+    <option value="puff">${escapeHtml(t("unit_puff"))}</option>
+    <option value="injection">${escapeHtml(t("unit_injection"))}</option>
+    <option value="unit">${escapeHtml(t("unit_unit"))}</option>
+    <option value="custom">${escapeHtml(t("unit_other"))}</option>
+  `;
+  doseUnitEl.value = current;
+  doseCustomEl.style.display = doseUnitEl.value === "custom" ? "inline-block" : "none";
+}
 function bootstrapLanguageSelect() {
   const keys = Object.keys(I18N).filter((k) => I18N[k].lang_native);
   uiLangEl.innerHTML = keys.map((k) => `<option value="${k}">${I18N[k].lang_native}</option>`).join("");
 }
 bootstrapLanguageSelect();
-
 function t(key) {
   return (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
 }
@@ -298,7 +336,7 @@ function getZonedDayRange(timeZone, refDate = new Date()) {
   const p = zonedNowParts(timeZone, refDate);
   const start = zonedDateTimeToUtcMs(timeZone, p.year, p.month, p.day, 0, 0, 0);
   const next = zonedDateTimeToUtcMs(timeZone, p.year, p.month, p.day + 1, 0, 0, 0);
-  return { startIso: new Date(start).toISOString(), endIso: new Date(next - 1).toISOString(), startMs: start, nextStartMs: next };
+  return { startIso: new Date(start).toISOString(), endIso: new Date(next - 1).toISOString(), nextStartMs: next };
 }
 function formatInTimeZone(iso, timeZone) {
   const d = new Date(iso);
@@ -359,7 +397,9 @@ function applyTexts() {
   document.getElementById("t_meds").textContent = t("meds");
   document.getElementById("t_addmed").textContent = t("add_med");
   document.getElementById("medName").placeholder = t("med_name_ph");
-  document.getElementById("medDose").placeholder = t("med_dose_ph");
+  document.getElementById("doseValue").placeholder = t("dose_value_ph");
+  document.getElementById("doseCustom").placeholder = t("dose_custom_ph");
+  renderDoseUnitOptions();
   document.getElementById("medSlots").placeholder = t("med_slots_ph");
   document.getElementById("addMed").textContent = t("add");
   document.getElementById("medHelp").textContent = t("med_help");
@@ -765,8 +805,17 @@ document.getElementById("addMed").onclick = async () => {
   }
 
   const name = document.getElementById("medName").value.trim();
-  const dose = document.getElementById("medDose").value.trim();
+  const doseValue = document.getElementById("doseValue").value.trim();
+  const doseUnit = document.getElementById("doseUnit").value;
+  const doseCustom = document.getElementById("doseCustom").value.trim();
   const slots = parseSlotList(document.getElementById("medSlots").value.trim());
+
+  let dose = "";
+  if (doseUnit === "custom") {
+    dose = doseCustom;
+  } else {
+    dose = [doseValue, doseUnit ? t("unit_" + doseUnit) : ""].filter(Boolean).join(" ");
+  }
 
   if (!name) {
     alert(t("enter_med_name"));
@@ -806,8 +855,11 @@ document.getElementById("addMed").onclick = async () => {
   }
 
   document.getElementById("medName").value = "";
-  document.getElementById("medDose").value = "";
+  document.getElementById("doseValue").value = "";
+  document.getElementById("doseUnit").value = "";
+  document.getElementById("doseCustom").value = "";
   document.getElementById("medSlots").value = "";
+  doseCustomEl.style.display = "none";
 
   await loadMeds();
   await loadToday();
