@@ -463,7 +463,7 @@ async function loadProfile() {
   const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   currentCountry = detectCountryByTimeZone(browserTz);
   const countryConfig = COUNTRY_CONFIG[currentCountry] || COUNTRY_CONFIG.DE;
-  currentTimezone = (profile?.timezone || countryConfig.timeZone || browserTz || "UTC").trim();
+  currentTimezone = browserTz;
   profileEmail = profile?.email || sessionData.session.user.email || "(no email)";
   role = profile?.role || "unknown";
   const profileLang = normalizeLang(profile?.ui_lang || countryConfig.lang || localStorage.getItem("mc_ui_lang") || "en");
