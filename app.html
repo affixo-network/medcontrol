@@ -873,16 +873,7 @@ document.getElementById("logout").onclick = async () => {
   await supabase.auth.signOut();
   window.location.replace("/auth-login.html");
 };
-uiLangEl.onchange = async () => {
-  const newLang = normalizeLang(uiLangEl.value);
-  setLanguage(newLang);
-  await supabase.from("profiles").update({ ui_lang: newLang }).eq("id", currentUserId);
-  await renderSelectedHeader();
-  await renderPatientsList(cachedPatients);
-  await loadMeds();
-  await loadToday();
-  await loadHistory();
-  await loadTeamMembers();
+uiLangEl.onchange = null;
 };
 async function init() {
   try {
