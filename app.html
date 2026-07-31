@@ -435,7 +435,7 @@ async function selectPatient(patientId, displayName, monitoringMode = "standard"
   updateModeUI(currentMode);
   await loadMeds();
   await loadToday();
-  await loadHistory();
+ 
   await loadTeamMembers();
 }
 async function loadMeds() {
