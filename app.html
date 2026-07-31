@@ -478,7 +478,7 @@ async function mark(medicationId, slotLabel, action) {
     return;
   }
   await loadToday();
-  await loadHistory();
+  
 }
 async function clearMark(medicationId, slotLabel) {
   if (!selectedPatientId) return;
