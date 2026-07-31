@@ -168,7 +168,31 @@ const addTeamMemberBtn = document.getElementById("add-team-member");
 const teamEmailStatusEl = document.getElementById("team-email-status");
 const teamMembersListEl = document.getElementById("team-members-list");
 const teamInviteStatusEl = document.getElementById("team-invite-status");
+const navButtons = document.querySelectorAll(".nav-btn");
+const appSections = [
+  document.getElementById("input-section"),
+  document.getElementById("intake-section"),
+  document.getElementById("team-section")
+];
 
+function showSection(sectionId) {
+  appSections.forEach((section) => {
+    if (!section) return;
+    section.style.display = section.id === sectionId ? "grid" : "none";
+  });
+
+  navButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.section === sectionId);
+  });
+}
+
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    showSection(button.dataset.section);
+  });
+});
+
+showSection("input-section");
 let selectedPatientId = null;
 let cachedPatients = [];
 let role = "unknown";
