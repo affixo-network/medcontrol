@@ -588,22 +588,7 @@ async function loadToday() {
     todayEl.appendChild(block);
   });
 }
-async function loadHistory() {
-  historyEl.innerHTML = "";
-  if (!selectedPatientId) return;
 
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase.from("medication_logs")
-    .select("status, scheduled_at, recorded_role, recorded_by, created_at")
-    .eq("patient_id", selectedPatientId)
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (error) {
-    historyEl.textContent = t("history_error") + error.message;
-    return;
-  }
   if (!data?.length) {
     historyEl.textContent = t("no_history");
     return;
