@@ -751,7 +751,7 @@ document.getElementById("addMed").onclick = async () => {
 
   await loadMeds();
   await loadToday();
-  await loadHistory();
+  
 };
 document.getElementById("whoami").onclick = async () => {
   const { data, error } = await supabase.rpc("debug_whoami");
