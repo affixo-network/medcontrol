@@ -590,34 +590,7 @@ async function loadToday() {
 }
 
   if (!data?.length) {
-    historyEl.textContent = t("no_history");
-    return;
-  }
-
-  const userIds = [...new Set(data.map((x) => x.recorded_by).filter(Boolean))];
-  const emailById = new Map();
-  if (userIds.length) {
-    const { data: profilesData } = await supabase.from("profiles").select("id, email").in("id", userIds);
-    (profilesData || []).forEach((p) => emailById.set(p.id, p.email || ""));
-  }
-
-  data.forEach((r) => {
-    const item = document.createElement("div");
-    item.className = "history-item";
-    const actualIso = r.created_at || r.scheduled_at;
-    const actualText = formatInTimeZone(actualIso, currentTimezone);
-    const plannedText = formatInTimeZone(r.scheduled_at, currentTimezone).split(" ").pop();
-    const actualMs = new Date(actualIso).getTime();
-    const plannedMs = new Date(r.scheduled_at).getTime();
-    const leadStatus = r.status === "cancelled"
-      ? t("cancelled")
-      : (actualMs < plannedMs ? t("taken_early") : actualMs <= plannedMs + 10 * 60 * 1000 ? t("taken_on_time") : t("taken_late"));
-    const actorRole = r.recorded_role || t("role_unknown");
-    const actorEmail = emailById.get(r.recorded_by) || (r.recorded_by === currentUserId ? profileEmail : "");
-    item.innerHTML = `<div><strong>${escapeHtml(leadStatus)}</strong> — ${escapeHtml(actualText)} — ${escapeHtml(actorRole)}${actorEmail ? ` — ${escapeHtml(actorEmail)}` : ""}</div><div class="small muted">${escapeHtml(t("planned_slot"))}: ${escapeHtml(plannedText)}</div>`;
-    historyEl.appendChild(item);
-  });
-}
+   
 async function loadTeamMembers() {
   teamMembersListEl.innerHTML = "";
   teamInviteStatusEl.textContent = "";
