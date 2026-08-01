@@ -21,7 +21,7 @@ function appShell(title, activePage, body) {
       <a class="${activePage==='input'?'active':''}" href="input.html">${escapeHtml(tr('nav_input'))}</a>
       <a class="${activePage==='dashboard'?'active':''}" href="dashboard.html">${escapeHtml(tr('nav_dashboard'))}</a>
       <a class="${activePage==='action'?'active':''}" href="action.html">${escapeHtml(tr('nav_action'))}</a>
-      <a class="${activePage==='settings'?'active':''}" href="settings.html">${escapeHtml(tr('nav_settings'))}</a>
+      
     </div>
     <div class="meta">
       <span class="pill">${escapeHtml(tr('current_date'))}: <strong id="topCurrentDate"></strong></span>
