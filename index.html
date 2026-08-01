@@ -1,67 +1,104 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Affixo MedControl</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: Arial, sans-serif; margin:0; color:#111; }
-    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 56px; }
-    .hero { padding: 36px 0 24px; }
-    .btns { display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
-    .btn, .btn-secondary { text-decoration:none; padding:12px 16px; border-radius:10px; display:inline-block; font-weight:600; }
-    .btn { background:#111; color:#fff; }
-    .btn-secondary { border:1px solid #111; color:#111; }
-    .grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:16px; margin-top:24px; }
-    .card { border:1px solid #ddd; border-radius:14px; padding:16px; background:#fff; }
-    .muted { color:#666; }
-    ul { padding-left:20px; }
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    :root{--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#f8fafc;--card:#fff;--accent:#111827}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+    .hero,.card{background:var(--card);border:1px solid var(--bd);border-radius:16px}
+    .hero{padding:28px;margin-bottom:18px}
+    .card{padding:20px;margin-bottom:16px}
+    h1,h2,h3{margin:0 0 12px}
+    p{margin:0 0 12px}
+    .muted{color:var(--muted)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .btn{display:inline-block;text-decoration:none;padding:12px 16px;border-radius:12px;border:1px solid var(--accent);color:#fff;background:var(--accent)}
+    .btn.secondary{background:#fff;color:var(--fg);border-color:var(--bd)}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .step{background:#fafafa;border:1px solid var(--bd);border-radius:14px;padding:14px}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--bd);background:#fff;font-size:12px;margin-right:6px}
+    ul{margin:8px 0 0 18px;padding:0}
+    li{margin:6px 0}
+    @media(max-width:900px){.grid,.steps{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="hero">
-      <h1>MedControl</h1>
-      <p class="muted">Practical medication monitoring for one responsible person or for a coordinated team. Clear 24-hour time, clear live statuses for every planned slot, and transparent history with actual action time, role, and email.</p>
-      <div class="btns">
-        <a class="btn" href="/demo.html">Try Demo</a>
-        <a class="btn-secondary" href="/auth-login.html">Login / Start Trial</a>
+      <div style="margin-bottom:10px">
+        <span class="pill">Affixo MedControl</span>
+        <span class="pill">Standard</span>
+        <span class="pill">Offline</span>
+      </div>
+      <h1>Контроль приёма препаратов по расписанию</h1>
+      <p class="muted">Пользователь задаёт правила и отмечает результат. Система автоматически рассчитывает текущее состояние на день, учитывает время устройства и сразу отражает изменения на Табло.</p>
+      <div class="actions">
+        <a class="btn" href="input.html">Открыть Ввод</a>
+        <a class="btn secondary" href="dashboard.html">Открыть Табло</a>
+        <a class="btn secondary" href="action.html">Открыть Принятие</a>
+        <a class="btn secondary" href="settings.html">Открыть Настройки</a>
       </div>
     </section>
 
-    <section class="grid">
-      <div class="card">
-        <h2>Standard</h2>
-        <p>For one responsible person.</p>
-        <ul>
-          <li>Every planned slot is visible separately</li>
-          <li>24-hour time format only</li>
-          <li>Live status per slot: waiting, early, on time, late, overdue</li>
-          <li>History shows actual action time</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h2>Team</h2>
-        <p>For several responsible people working on the same patient.</p>
-        <ul>
-          <li>Shared monitoring without ambiguity</li>
-          <li>Transparent history with role and email</li>
-          <li>Clear invite flow for team members</li>
-          <li>Same patient, same truth, same timeline</li>
-        </ul>
+    <section class="card">
+      <h2>Как устроен интерфейс</h2>
+      <div class="steps">
+        <div class="step"><h3>1. Настройки</h3><p class="muted">Автоопределение языка и часового пояса устройства, ручная смена языка интерфейса, описание автоматической логики и рабочего режима.</p></div>
+        <div class="step"><h3>2. Ввод</h3><p class="muted">Добавление препарата, дозы, расписания, времени, даты начала и окончания, перевод в режим Активно / Пассивно.</p></div>
+        <div class="step"><h3>3. Табло</h3><p class="muted">Показывает состояния текущего дня: Ожидается, Предстоит, Просрочено. История здесь не отображается.</p></div>
+        <div class="step"><h3>4. Принятие</h3><p class="muted">Фиксация результата, фактического времени, статусов приёма и просмотр истории выбранной строки во всплывающем окне.</p></div>
       </div>
     </section>
 
-    <section class="card" style="margin-top:16px;">
-      <h2>What makes the interface trustworthy</h2>
+    <div class="grid">
+      <section class="card">
+        <h2>Что делает пользователь</h2>
+        <ul>
+          <li>добавляет препарат</li>
+          <li>задаёт расписание и время</li>
+          <li>при необходимости задаёт дату начала и окончания</li>
+          <li>отмечает факт приёма</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Что делает система</h2>
+        <ul>
+          <li>использует локальное время устройства</li>
+          <li>учитывает часовой пояс автоматически</li>
+          <li>формирует текущий день по активным препаратам</li>
+          <li>фиксирует фактическое время отметки</li>
+          <li>определяет статусы: вовремя, досрочно, с опозданием, просрочено</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Последовательность работы</h2>
+      <p><strong>Ввод → Табло → Принятие</strong></p>
       <ul>
-        <li>Country selection defines default timezone and interface language</li>
-        <li>Medication names may be entered fully or partially in any language</li>
-        <li>Actual time of action is shown in History, not only the plan</li>
-        <li>No old Partner logic</li>
+        <li><strong>Ввод</strong> создаёт правило приёма.</li>
+        <li><strong>Табло</strong> показывает ожидание по этому правилу.</li>
+        <li><strong>Принятие</strong> фиксирует фактический результат.</li>
+        <li><strong>История</strong> сохраняет записи выбранной строки во всплывающем окне.</li>
       </ul>
     </section>
   </div>
-</body>
+<script src="js/translations.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/language.js"></script>
+<script src="js/medications.js"></script>
+<script src="js/schedule.js"></script>
+<script src="js/intake.js"></script>
+<script src="js/history.js"></script>
+<script src="js/render.js"></script>
+<script src="js/clock.js"></script>
+<script src="core.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/navigation.js"></script></body>
 </html>

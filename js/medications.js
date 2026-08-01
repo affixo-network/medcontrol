@@ -1,0 +1,327 @@
+function structuredOptions(max) {
+  return Array.from({ length: max + 1 }, (_, value) => {
+    const text = String(value).padStart(2, '0');
+    return `<option value="${text}">${text}</option>`;
+  }).join('');
+}
+
+function structuredTimeEditorHtml(prefix, times = []) {
+  return `
+    <div class="structured-editor full">
+      <label>${escapeHtml(tr('time_slots'))}</label>
+      <input id="${prefix}times" type="hidden" value="${escapeHtml(times.join(','))}">
+      <div class="number-pickers">
+        <div>
+          <span class="field-caption">Часы</span>
+          <select id="${prefix}timeHour" aria-label="Часы">${structuredOptions(23)}</select>
+        </div>
+        <div>
+          <span class="field-caption">Минуты</span>
+          <select id="${prefix}timeMinute" aria-label="Минуты">${structuredOptions(59)}</select>
+        </div>
+        <button type="button" onclick="addStructuredTime('${prefix}')">Добавить время</button>
+      </div>
+      <div id="${prefix}timesList" class="choice-list"></div>
+    </div>`;
+}
+
+function structuredWeekdayEditorHtml(prefix, selected = []) {
+  const days = [
+    ['Mon', 'Пн'], ['Tue', 'Вт'], ['Wed', 'Ср'], ['Thu', 'Чт'],
+    ['Fri', 'Пт'], ['Sat', 'Сб'], ['Sun', 'Вс']
+  ];
+  return `
+    <div id="${prefix}weekdays_wrap" class="full" style="display:none">
+      <label>${escapeHtml(tr('weekdays_selected'))}</label>
+      <input id="${prefix}weekdays" type="hidden" value="${escapeHtml(selected.join(','))}">
+      <div class="weekday-grid">
+        ${days.map(([code, label]) => `
+          <label class="weekday-choice">
+            <input type="checkbox" data-prefix="${prefix}" data-weekday="${code}" ${selected.includes(code) ? 'checked' : ''} onchange="syncStructuredWeekdays('${prefix}')">
+            <span>${label}</span>
+          </label>`).join('')}
+      </div>
+    </div>`;
+}
+
+function structuredDateEditorHtml(prefix, dates = []) {
+  return `
+    <div id="${prefix}dates_wrap" class="full" style="display:none">
+      <label>${escapeHtml(tr('dates'))}</label>
+      <input id="${prefix}explicitDates" type="hidden" value="${escapeHtml(dates.join(','))}">
+      <div class="date-picker-row">
+        <input id="${prefix}datePicker" type="date" aria-label="Дата">
+        <button type="button" onclick="addStructuredDate('${prefix}')">Добавить дату</button>
+      </div>
+      <div id="${prefix}datesList" class="choice-list"></div>
+    </div>`;
+}
+
+function readHiddenList(id) {
+  const element = document.getElementById(id);
+  if (!element || !element.value.trim()) return [];
+  return element.value.split(',').map(value => value.trim()).filter(Boolean);
+}
+
+function writeHiddenList(id, values) {
+  const element = document.getElementById(id);
+  if (element) element.value = [...new Set(values)].sort().join(',');
+}
+
+window.renderStructuredTimes = function(prefix) {
+  const list = document.getElementById(`${prefix}timesList`);
+  if (!list) return;
+  const values = readHiddenList(`${prefix}times`);
+  list.innerHTML = values.length
+    ? values.map(value => `
+        <div class="choice-chip">
+          <strong>${escapeHtml(value)}</strong>
+          <button type="button" aria-label="Удалить ${escapeHtml(value)}" onclick="removeStructuredTime('${prefix}','${escapeHtml(value)}')">Удалить</button>
+        </div>`).join('')
+    : '<div class="empty-choice">Время пока не добавлено</div>';
+};
+
+window.addStructuredTime = function(prefix) {
+  const hour = document.getElementById(`${prefix}timeHour`)?.value;
+  const minute = document.getElementById(`${prefix}timeMinute`)?.value;
+  if (hour == null || minute == null) return;
+  const value = `${hour}:${minute}`;
+  const values = readHiddenList(`${prefix}times`);
+  if (values.includes(value)) {
+    showMedicationHint('duplicate_time');
+    return;
+  }
+  values.push(value);
+  writeHiddenList(`${prefix}times`, values);
+  renderStructuredTimes(prefix);
+};
+
+window.removeStructuredTime = function(prefix, value) {
+  writeHiddenList(`${prefix}times`, readHiddenList(`${prefix}times`).filter(item => item !== value));
+  renderStructuredTimes(prefix);
+};
+
+window.syncStructuredWeekdays = function(prefix) {
+  const values = [...document.querySelectorAll(`input[data-prefix="${prefix}"][data-weekday]:checked`)]
+    .map(input => input.dataset.weekday);
+  writeHiddenList(`${prefix}weekdays`, values);
+};
+
+window.renderStructuredDates = function(prefix) {
+  const list = document.getElementById(`${prefix}datesList`);
+  if (!list) return;
+  const values = readHiddenList(`${prefix}explicitDates`);
+  list.innerHTML = values.length
+    ? values.map(value => `
+        <div class="choice-chip">
+          <strong>${escapeHtml(formatDate(value))}</strong>
+          <button type="button" aria-label="Удалить ${escapeHtml(formatDate(value))}" onclick="removeStructuredDate('${prefix}','${escapeHtml(value)}')">Удалить</button>
+        </div>`).join('')
+    : '<div class="empty-choice">Дата пока не добавлена</div>';
+};
+
+window.addStructuredDate = function(prefix) {
+  const picker = document.getElementById(`${prefix}datePicker`);
+  if (!picker || !picker.value) {
+    showMedicationHint('date_pick');
+    return;
+  }
+  const values = readHiddenList(`${prefix}explicitDates`);
+  if (values.includes(picker.value)) {
+    showMedicationHint('duplicate_date');
+    return;
+  }
+  values.push(picker.value);
+  writeHiddenList(`${prefix}explicitDates`, values);
+  picker.value = '';
+  renderStructuredDates(prefix);
+};
+
+window.removeStructuredDate = function(prefix, value) {
+  writeHiddenList(`${prefix}explicitDates`, readHiddenList(`${prefix}explicitDates`).filter(item => item !== value));
+  renderStructuredDates(prefix);
+};
+
+window.initializeStructuredEditors = function(prefix) {
+  renderStructuredTimes(prefix);
+  renderStructuredDates(prefix);
+  syncStructuredWeekdays(prefix);
+};
+
+function createMedicationFromForm(prefix) {
+  const name = document.getElementById(`${prefix}name`)?.value.trim() || '';
+  const dose = document.getElementById(`${prefix}dose`)?.value.trim() || '';
+  const details = document.getElementById(`${prefix}details`)?.value.trim() || '';
+  const scheduleType = document.getElementById(`${prefix}scheduleType`)?.value || 'daily';
+  const times = readHiddenList(`${prefix}times`);
+  const startDate = document.getElementById(`${prefix}startDate`)?.value || '';
+  const endDate = document.getElementById(`${prefix}endDate`)?.value || '';
+  const active = Boolean(document.getElementById(`${prefix}active`)?.checked);
+  const weekdays = scheduleType === 'weekdays' ? readHiddenList(`${prefix}weekdays`) : [];
+  const explicitDates = scheduleType === 'explicit_dates' ? readHiddenList(`${prefix}explicitDates`) : [];
+
+  if (!name) throw new Error('name');
+  if (!dose) throw new Error('dose');
+  if (!details) throw new Error('details');
+  if (!times.length) throw new Error('times');
+  if (scheduleType === 'weekdays' && !weekdays.length) throw new Error('weekdays');
+  if (scheduleType === 'explicit_dates' && !explicitDates.length) throw new Error('dates');
+  if (scheduleType !== 'explicit_dates' && startDate && endDate && startDate > endDate) {
+    throw new Error('period');
+  }
+
+  return {
+    name,
+    dose,
+    details,
+    scheduleType,
+    times: [...new Set(times)].sort(),
+    startDate: scheduleType === 'explicit_dates' ? '' : startDate,
+    endDate: scheduleType === 'explicit_dates' ? '' : endDate,
+    active,
+    weekdays: [...new Set(weekdays)],
+    explicitDates: [...new Set(explicitDates)].sort()
+  };
+}
+
+function showMedicationHint(code) {
+  const messages = {
+    name: 'Введите название препарата.',
+    dose: 'Введите дозу препарата.',
+    details: 'Заполните поле «Детали».',
+    times: 'Добавьте хотя бы одно время.',
+    weekdays: 'Отметьте хотя бы один день недели.',
+    dates: 'Добавьте хотя бы одну дату.',
+    period: 'Дата окончания не может быть раньше даты начала.',
+    duplicate_time: 'Это время уже добавлено.',
+    duplicate_date: 'Эта дата уже добавлена.',
+    date_pick: 'Сначала отметьте дату в календаре.',
+    save_failed: 'Проверьте заполнение формы и повторите сохранение.'
+  };
+  alert(`Подсказка\n\n${messages[code] || messages.save_failed}`);
+}
+
+function syncScheduleFields(prefix) {
+  const type = document.getElementById(`${prefix}scheduleType`)?.value;
+  const weekdaysWrap = document.getElementById(`${prefix}weekdays_wrap`);
+  const datesWrap = document.getElementById(`${prefix}dates_wrap`);
+  const startWrap = document.getElementById(`${prefix}start_wrap`);
+  const endWrap = document.getElementById(`${prefix}end_wrap`);
+  if (!type || !weekdaysWrap || !datesWrap || !startWrap || !endWrap) return;
+  weekdaysWrap.style.display = type === 'weekdays' ? 'block' : 'none';
+  datesWrap.style.display = type === 'explicit_dates' ? 'block' : 'none';
+  startWrap.style.display = type === 'explicit_dates' ? 'none' : 'block';
+  endWrap.style.display = type === 'explicit_dates' ? 'none' : 'block';
+}
+
+window.syncCreateScheduleFields = function() { syncScheduleFields('create_'); };
+window.syncEditScheduleFields = function() { syncScheduleFields('edit_'); };
+
+window.toggleMedicationMode = function(id) {
+  const state = getState();
+  const med = state.medications.find(item => item.id === id);
+  if (!med) return;
+  med.active = !med.active;
+  recordRowHistory(med, med.active ? 'active' : 'passive', med.active ? tr('active') : tr('passive'));
+  saveState(state);
+  mount('input');
+};
+
+window.openEditMedication = function(id) {
+  const med = getState().medications.find(item => item.id === id);
+  if (!med) return;
+  const dialog = document.getElementById('editDialog');
+  const content = document.getElementById('editDialogContent');
+  content.innerHTML = `<div class="form-grid">
+    <div><label>${escapeHtml(tr('medication'))}</label><input id="edit_name" value="${escapeHtml(med.name)}"></div>
+    <div><label>${escapeHtml(tr('dose'))}</label><input id="edit_dose" value="${escapeHtml(med.dose)}"></div>
+    <div class="full"><label>${escapeHtml(tr('details'))}</label><textarea id="edit_details">${escapeHtml(med.details || '')}</textarea></div>
+    <div><label>${escapeHtml(tr('schedule'))}</label><select id="edit_scheduleType" onchange="syncEditScheduleFields()"><option value="daily" ${med.scheduleType === 'daily' ? 'selected' : ''}>${escapeHtml(tr('every_day'))}</option><option value="weekdays" ${med.scheduleType === 'weekdays' ? 'selected' : ''}>${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates" ${med.scheduleType === 'explicit_dates' ? 'selected' : ''}>${escapeHtml(tr('explicit_dates'))}</option></select></div>
+    <div><label>${escapeHtml(tr('mode'))}</label><label class="active-choice"><input id="edit_active" type="checkbox" ${med.active ? 'checked' : ''}> ${escapeHtml(tr('active'))}</label></div>
+    ${structuredTimeEditorHtml('edit_', med.times || [])}
+    ${structuredWeekdayEditorHtml('edit_', med.weekdays || [])}
+    ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
+    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))}</label><input id="edit_startDate" type="date" value="${escapeHtml(med.startDate || '')}"></div>
+    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))}</label><input id="edit_endDate" type="date" value="${escapeHtml(med.endDate || '')}"></div>
+    <div class="full right"><button onclick="saveMedicationEdit('${med.id}')">${escapeHtml(tr('save'))}</button> <button onclick="document.getElementById('editDialog').close()">${escapeHtml(tr('close'))}</button></div>
+  </div>`;
+  dialog.showModal();
+  initializeStructuredEditors('edit_');
+  syncEditScheduleFields();
+};
+
+window.saveMedicationEdit = function(id) {
+  try {
+    const state = getState();
+    const med = state.medications.find(item => item.id === id);
+    if (!med) return;
+    Object.assign(med, createMedicationFromForm('edit_'));
+    recordRowHistory(med, 'edited', medicationRuleSummary(med));
+    saveState(state);
+    document.getElementById('editDialog').close();
+    mount('input');
+  } catch (error) {
+    showMedicationHint(error.message);
+  }
+};
+
+window.showRowHistory = function(id) {
+  const med = getState().medications.find(item => item.id === id);
+  if (!med) return;
+  document.getElementById('rowHistoryContent').innerHTML = rowHistoryHtml(med.rowHistory || []);
+  document.getElementById('rowHistoryDialog').showModal();
+};
+
+let pendingMedicationCreate = null;
+
+window.createMedication = function() {
+  try {
+    const state = getState();
+    const item = {
+      id: uid(),
+      order: state.medications.length ? Math.max(...state.medications.map(item => item.order || 0)) + 1 : 1,
+      ...createMedicationFromForm('create_'),
+      rowHistory: []
+    };
+    pendingMedicationCreate = { state, item };
+
+    const weekdayLabels = { Mon: 'Пн', Tue: 'Вт', Wed: 'Ср', Thu: 'Чт', Fri: 'Пт', Sat: 'Сб', Sun: 'Вс' };
+    const scheduleText = item.scheduleType === 'daily'
+      ? 'Каждый день'
+      : item.scheduleType === 'weekdays'
+        ? `Дни недели: ${item.weekdays.map(day => weekdayLabels[day] || day).join(', ')}`
+        : `Даты: ${item.explicitDates.map(formatDate).join(', ')}`;
+    const periodText = item.scheduleType === 'explicit_dates'
+      ? 'По отмеченным датам'
+      : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
+
+    document.getElementById('medicationConfirmContent').innerHTML = `
+      <table class="confirm-table">
+        <tr><td>Название</td><td>${escapeHtml(item.name)}</td></tr>
+        <tr><td>Доза</td><td>${escapeHtml(item.dose)}</td></tr>
+        <tr><td>Детали</td><td>${escapeHtml(item.details)}</td></tr>
+        <tr><td>Расписание</td><td>${escapeHtml(scheduleText)}</td></tr>
+        <tr><td>Время</td><td>${escapeHtml(item.times.join(', '))}</td></tr>
+        <tr><td>Период</td><td>${escapeHtml(periodText)}</td></tr>
+      </table>`;
+    document.getElementById('medicationConfirmDialog').showModal();
+  } catch (error) {
+    showMedicationHint(error.message);
+  }
+};
+
+window.cancelMedicationCreate = function() {
+  document.getElementById('medicationConfirmDialog')?.close();
+  pendingMedicationCreate = null;
+};
+
+window.confirmMedicationCreate = function() {
+  if (!pendingMedicationCreate) return;
+  const { state, item } = pendingMedicationCreate;
+  recordRowHistory(item, 'created', medicationRuleSummary(item));
+  state.medications.push(item);
+  saveState(state);
+  pendingMedicationCreate = null;
+  document.getElementById('medicationConfirmDialog')?.close();
+  mount('input');
+};
