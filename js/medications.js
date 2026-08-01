@@ -78,7 +78,7 @@ window.renderStructuredTimes = function(prefix) {
           <strong>${escapeHtml(value)}</strong>
           <button type="button" aria-label="Удалить ${escapeHtml(value)}" onclick="removeStructuredTime('${prefix}','${escapeHtml(value)}')">Удалить</button>
         </div>`).join('')
-    : '<div class="empty-choice">${escapeHtml(tr('no_time_added'))}</div>';
+    : `<div class="empty-choice">${escapeHtml(tr('no_time_added'))}</div>`;
 };
 
 window.addStructuredTime = function(prefix) {
