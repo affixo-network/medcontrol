@@ -27,7 +27,15 @@ function appShell(title, activePage, body) {
       <span class="pill">${escapeHtml(tr('current_date'))}: <strong id="topCurrentDate"></strong></span>
       <span class="pill">${escapeHtml(tr('current_time'))}: <strong id="topCurrentTime"></strong></span>
       <span class="pill">${escapeHtml(tr('timezone'))}: <strong class="mono">${tz}</strong></span>
-      <span class="pill">${escapeHtml(tr('language'))}: <strong>${escapeHtml((SUPPORTED_LANGUAGES.find(x=>x[0]===getState().settings.interfaceLanguage)||['en','English'])[1])}</strong></span>
+      <span class="pill">
+  ${escapeHtml(tr('language'))}:
+  <select onchange="changeInterfaceLanguage(this.value)" style="width:auto;padding:4px 8px;">
+    ${SUPPORTED_LANGUAGES
+      .filter(([id]) => !!TRANSLATIONS[id])
+      .map(([id, label]) => `<option value="${id}" ${getState().settings.interfaceLanguage === id ? 'selected' : ''}>${escapeHtml(label)}</option>`)
+      .join('')}
+  </select>
+</span>
     </div></section>
     ${body}
   </div></body></html>`;
