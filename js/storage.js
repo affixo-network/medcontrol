@@ -11,7 +11,8 @@ function getState() {
 
       if (!parsed.settings.detectedLanguage)
         parsed.settings.detectedLanguage = detectLanguage();
-
+      if (!parsed.settings.languageMode)
+        parsed.settings.languageMode = 'auto';
       if (!parsed.settings.interfaceLanguage)
         parsed.settings.interfaceLanguage =
           TRANSLATIONS[parsed.settings.detectedLanguage]
