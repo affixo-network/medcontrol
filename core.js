@@ -24,13 +24,10 @@ const SCHEDULE_TYPES = {
 
 
 function makeDefaultState() {
-  const detected = detectLanguage();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   return {
     settings: {
-      detectedLanguage: detected,
-      languageMode: 'auto',
-      interfaceLanguage: TRANSLATIONS[detected] ? detected : 'en',
+      interfaceLanguage: 'en',
       country: inferCountryFromLocale(),
       timezone,
       locale: navigator.language || 'en-US',
