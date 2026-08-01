@@ -31,21 +31,8 @@ function renderSettingsPage() {
 window.changeInterfaceLanguage = function(language) {
   const state = getState();
 
-  if (language === '__auto__') {
-    state.settings.languageMode = 'auto';
-
-    const detected = detectLanguage();
-    state.settings.detectedLanguage = detected;
-    state.settings.interfaceLanguage =
-      TRANSLATIONS[detected] ? detected : 'en';
-
-  } else {
-
-    state.settings.languageMode = 'manual';
-    state.settings.interfaceLanguage =
-      TRANSLATIONS[language] ? language : 'en';
-
-  }
+  state.settings.interfaceLanguage =
+    TRANSLATIONS[language] ? language : 'en';
 
   saveState(state);
   window.location.reload();
