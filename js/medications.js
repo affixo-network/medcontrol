@@ -12,14 +12,14 @@ function structuredTimeEditorHtml(prefix, times = []) {
       <input id="${prefix}times" type="hidden" value="${escapeHtml(times.join(','))}">
       <div class="number-pickers">
         <div>
-          <span class="field-caption">Часы</span>
-          <select id="${prefix}timeHour" aria-label="Часы">${structuredOptions(23)}</select>
+          <span class="field-caption">${escapeHtml(tr('hours'))}</span>
+<select id="${prefix}timeHour" aria-label="${escapeHtml(tr('hours'))}">${structuredOptions(23)}</select>
         </div>
         <div>
-          <span class="field-caption">Минуты</span>
-          <select id="${prefix}timeMinute" aria-label="Минуты">${structuredOptions(59)}</select>
+          <span class="field-caption">${escapeHtml(tr('minutes'))}</span>
+<select id="${prefix}timeMinute" aria-label="${escapeHtml(tr('minutes'))}">${structuredOptions(59)}</select>
         </div>
-        <button type="button" onclick="addStructuredTime('${prefix}')">Добавить время</button>
+        <button type="button" onclick="addStructuredTime('${prefix}')">${escapeHtml(tr('add_time'))}</button>
       </div>
       <div id="${prefix}timesList" class="choice-list"></div>
     </div>`;
@@ -78,7 +78,7 @@ window.renderStructuredTimes = function(prefix) {
           <strong>${escapeHtml(value)}</strong>
           <button type="button" aria-label="Удалить ${escapeHtml(value)}" onclick="removeStructuredTime('${prefix}','${escapeHtml(value)}')">Удалить</button>
         </div>`).join('')
-    : '<div class="empty-choice">Время пока не добавлено</div>';
+    : '<div class="empty-choice">${escapeHtml(tr('no_time_added'))}</div>';
 };
 
 window.addStructuredTime = function(prefix) {
