@@ -29,6 +29,7 @@ function makeDefaultState() {
   return {
     settings: {
       detectedLanguage: detected,
+      languageMode: 'auto',
       interfaceLanguage: TRANSLATIONS[detected] ? detected : 'en',
       country: inferCountryFromLocale(),
       timezone,
