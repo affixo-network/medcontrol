@@ -3,8 +3,8 @@ console.log("translations.js подключён");
 
 const TRANSLATIONS = {
   ru: {
-    nav_input: 'Ввод', nav_dashboard: 'Табло', nav_action: 'Принятие', nav_settings: 'Настройки',
-    title_input: 'MedControl — Ввод', title_dashboard: 'MedControl — Табло', title_action: 'MedControl — Принятие', title_settings: 'MedControl — Настройки',
+    nav_input: 'Ввод', nav_dashboard: 'Табло', nav_input: 'Ввод', nav_dashboard: 'Табло', nav_action: 'Приём препаратов', nav_settings: 'Настройки',
+title_input: 'MedControl — Ввод', title_dashboard: 'MedControl — Табло', title_action: 'MedControl — Приём препаратов', title_settings: 'MedControl — Настройки',
     current_date: 'Текущая дата', current_time: 'Текущее время', timezone: 'Часовой пояс',
     language: 'Язык интерфейса', auto_detected_language: 'Автоопределённый язык устройства', country: 'Страна',
     interface_logic: 'Логика интерфейса', auto_logic: 'Что делает автоматика',
