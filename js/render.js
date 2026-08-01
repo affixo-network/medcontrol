@@ -30,16 +30,14 @@ function appShell(title, activePage, body) {
       <span class="pill">
   ${escapeHtml(tr('language'))}:
   <select onchange="changeInterfaceLanguage(this.value)" style="width:auto;padding:4px 8px;">
-  <option value="__auto__" ${getState().settings.languageMode === 'auto' ? 'selected' : ''}>
-    🌐 Автоматически (язык устройства)
-  </option>
+  
 
   ${SUPPORTED_LANGUAGES
     .filter(([id]) => !!TRANSLATIONS[id])
     .map(([id, label]) => `
       <option
         value="${id}"
-        ${getState().settings.languageMode === 'manual' && getState().settings.interfaceLanguage === id ? 'selected' : ''}
+        ${getState().settings.interfaceLanguage === id ? 'selected' : ''}
       >
         ${escapeHtml(label)}
       </option>
