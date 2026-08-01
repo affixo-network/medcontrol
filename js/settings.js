@@ -32,7 +32,7 @@ window.changeInterfaceLanguage = function(language) {
   const state = getState();
   state.settings.interfaceLanguage = TRANSLATIONS[language] ? language : 'en';
   saveState(state);
-  mount('settings');
+  window.location.reload();
 };
 
 window.changeCountry = function(country) {
