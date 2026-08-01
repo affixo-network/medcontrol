@@ -9,15 +9,14 @@ function getState() {
       parsed.medications = Array.isArray(parsed.medications) ? parsed.medications : [];
       parsed.intakeLogs = Array.isArray(parsed.intakeLogs) ? parsed.intakeLogs : [];
 
-      if (!parsed.settings.detectedLanguage)
-        parsed.settings.detectedLanguage = detectLanguage();
-      if (!parsed.settings.languageMode)
-        parsed.settings.languageMode = 'auto';
       if (!parsed.settings.interfaceLanguage)
-        parsed.settings.interfaceLanguage =
-          TRANSLATIONS[parsed.settings.detectedLanguage]
-            ? parsed.settings.detectedLanguage
-            : 'en';
+  parsed.settings.interfaceLanguage = 'en';
+
+if (!TRANSLATIONS[parsed.settings.interfaceLanguage])
+  parsed.settings.interfaceLanguage = 'en';
+
+delete parsed.settings.detectedLanguage;
+delete parsed.settings.languageMode;
 
       if (!parsed.settings.country)
         parsed.settings.country = inferCountryFromLocale();
