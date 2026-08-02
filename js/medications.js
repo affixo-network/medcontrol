@@ -205,7 +205,7 @@ function showMedicationHint(code) {
   date_pick: tr('hint_date_pick'),
   save_failed: tr('hint_save_failed')
 };
-  alert(`Подсказка\n\n${messages[code] || messages.save_failed}`);
+ alert(`${tr('hint_title')}\n\n${messages[code] || messages.save_failed}`);
 }
 
 function syncScheduleFields(prefix) {
