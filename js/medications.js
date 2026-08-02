@@ -50,8 +50,8 @@ function structuredDateEditorHtml(prefix, dates = []) {
       <label>${escapeHtml(tr('dates'))}</label>
       <input id="${prefix}explicitDates" type="hidden" value="${escapeHtml(dates.join(','))}">
       <div class="date-picker-row">
-        <input id="${prefix}datePicker" type="date" aria-label="Дата">
-        <button type="button" onclick="addStructuredDate('${prefix}')">Добавить дату</button>
+        <input id="${prefix}datePicker" type="date" aria-label="${escapeHtml(tr('date_label'))}">
+<button type="button" onclick="addStructuredDate('${prefix}')">${escapeHtml(tr('add_date'))}</button>
       </div>
       <div id="${prefix}datesList" class="choice-list"></div>
     </div>`;
@@ -76,7 +76,7 @@ window.renderStructuredTimes = function(prefix) {
     ? values.map(value => `
         <div class="choice-chip">
           <strong>${escapeHtml(value)}</strong>
-          <button type="button" aria-label="Удалить ${escapeHtml(value)}" onclick="removeStructuredTime('${prefix}','${escapeHtml(value)}')">Удалить</button>
+          <button type="button" aria-label="${escapeHtml(tr('remove'))} ${escapeHtml(value)}" onclick="removeStructuredTime('${prefix}','${escapeHtml(value)}')">${escapeHtml(tr('remove'))}</button>
         </div>`).join('')
     : `<div class="empty-choice">${escapeHtml(tr('no_time_added'))}</div>`;
 };
@@ -115,9 +115,9 @@ window.renderStructuredDates = function(prefix) {
     ? values.map(value => `
         <div class="choice-chip">
           <strong>${escapeHtml(formatDate(value))}</strong>
-          <button type="button" aria-label="Удалить ${escapeHtml(formatDate(value))}" onclick="removeStructuredDate('${prefix}','${escapeHtml(value)}')">Удалить</button>
+         <button type="button" aria-label="${escapeHtml(tr('remove'))} ${escapeHtml(formatDate(value))}" onclick="removeStructuredDate('${prefix}','${escapeHtml(value)}')">${escapeHtml(tr('remove'))}</button>
         </div>`).join('')
-    : '<div class="empty-choice">Дата пока не добавлена</div>';
+    : `<div class="empty-choice">${escapeHtml(tr('no_date_added'))}</div>`;
 };
 
 window.addStructuredDate = function(prefix) {
@@ -285,23 +285,33 @@ window.createMedication = function() {
     };
     pendingMedicationCreate = { state, item };
 
-    const weekdayLabels = { Mon: 'Пн', Tue: 'Вт', Wed: 'Ср', Thu: 'Чт', Fri: 'Пт', Sat: 'Сб', Sun: 'Вс' };
-    const scheduleText = item.scheduleType === 'daily'
-      ? 'Каждый день'
-      : item.scheduleType === 'weekdays'
-        ? `Дни недели: ${item.weekdays.map(day => weekdayLabels[day] || day).join(', ')}`
-        : `Даты: ${item.explicitDates.map(formatDate).join(', ')}`;
-    const periodText = item.scheduleType === 'explicit_dates'
-      ? 'По отмеченным датам'
-      : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
+    const weekdayLabels = {
+  Mon: tr('weekday_short')[0],
+  Tue: tr('weekday_short')[1],
+  Wed: tr('weekday_short')[2],
+  Thu: tr('weekday_short')[3],
+  Fri: tr('weekday_short')[4],
+  Sat: tr('weekday_short')[5],
+  Sun: tr('weekday_short')[6]
+};
+
+const scheduleText = item.scheduleType === 'daily'
+  ? tr('every_day')
+  : item.scheduleType === 'weekdays'
+    ? `${tr('weekdays')}: ${item.weekdays.map(day => weekdayLabels[day] || day).join(', ')}`
+    : `${tr('dates')}: ${item.explicitDates.map(formatDate).join(', ')}`;
+
+const periodText = item.scheduleType === 'explicit_dates'
+  ? tr('explicit_dates')
+  : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
 
     document.getElementById('medicationConfirmContent').innerHTML = `
       <table class="confirm-table">
-        <tr><td>Название</td><td>${escapeHtml(item.name)}</td></tr>
-        <tr><td>Доза</td><td>${escapeHtml(item.dose)}</td></tr>
-        <tr><td>Детали</td><td>${escapeHtml(item.details)}</td></tr>
-        <tr><td>Расписание</td><td>${escapeHtml(scheduleText)}</td></tr>
-        <tr><td>Время</td><td>${escapeHtml(item.times.join(', '))}</td></tr>
+        <tr><td>${escapeHtml(tr('medication'))}</td><td>${escapeHtml(item.name)}</td></tr>
+        <tr><td>${escapeHtml(tr('dose'))}</td><td>${escapeHtml(item.dose)}</td></tr>
+        <tr><td>${escapeHtml(tr('details'))}</td><td>${escapeHtml(item.details)}</td></tr>
+        <tr><td>${escapeHtml(tr('schedule'))}</td><td>${escapeHtml(scheduleText)}</td></tr>
+        <tr><td>${escapeHtml(tr('time_slots'))}</td><td>${escapeHtml(item.times.join(', '))}</td></tr>
         <tr><td>Период</td><td>${escapeHtml(periodText)}</td></tr>
       </table>`;
     document.getElementById('medicationConfirmDialog').showModal();
