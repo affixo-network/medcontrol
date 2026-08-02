@@ -319,7 +319,7 @@ const periodText = item.scheduleType === 'explicit_dates'
         <tr><td>${escapeHtml(tr('details'))}</td><td>${escapeHtml(item.details)}</td></tr>
         <tr><td>${escapeHtml(tr('schedule'))}</td><td>${escapeHtml(scheduleText)}</td></tr>
         <tr><td>${escapeHtml(tr('time_slots'))}</td><td>${escapeHtml(item.times.join(', '))}</td></tr>
-        <tr><td>Период</td><td>${escapeHtml(periodText)}</td></tr>
+        <tr><td>${escapeHtml(tr('period'))}</td><td>${escapeHtml(periodText)}</td></tr>
       </table>`;
     document.getElementById('medicationConfirmDialog').showModal();
   } catch (error) {
