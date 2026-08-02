@@ -26,15 +26,18 @@ function structuredTimeEditorHtml(prefix, times = []) {
 }
 
 function structuredWeekdayEditorHtml(prefix, selected = []) {
+  const labels = tr('weekday_short');
+
   const days = [
-  ['Mon', labels[0]],
-  ['Tue', labels[1]],
-  ['Wed', labels[2]],
-  ['Thu', labels[3]],
-  ['Fri', labels[4]],
-  ['Sat', labels[5]],
-  ['Sun', labels[6]]
-];
+    ['Mon', labels[0]],
+    ['Tue', labels[1]],
+    ['Wed', labels[2]],
+    ['Thu', labels[3]],
+    ['Fri', labels[4]],
+    ['Sat', labels[5]],
+    ['Sun', labels[6]]
+  ];
+
   return `
     <div id="${prefix}weekdays_wrap" class="full" style="display:none">
       <label>${escapeHtml(tr('weekdays_selected'))}</label>
@@ -43,12 +46,11 @@ function structuredWeekdayEditorHtml(prefix, selected = []) {
         ${days.map(([code, label]) => `
           <label class="weekday-choice">
             <input type="checkbox" data-prefix="${prefix}" data-weekday="${code}" ${selected.includes(code) ? 'checked' : ''} onchange="syncStructuredWeekdays('${prefix}')">
-            <span>${label}</span>
+            <span>${escapeHtml(label)}</span>
           </label>`).join('')}
       </div>
     </div>`;
 }
-
 function structuredDateEditorHtml(prefix, dates = []) {
   return `
     <div id="${prefix}dates_wrap" class="full" style="display:none">
