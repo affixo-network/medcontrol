@@ -192,19 +192,19 @@ function createMedicationFromForm(prefix) {
 }
 
 function showMedicationHint(code) {
-  const messages = {
-    name: 'Введите название препарата.',
-    dose: 'Введите дозу препарата.',
-    details: 'Заполните поле «Детали».',
-    times: 'Добавьте хотя бы одно время.',
-    weekdays: 'Отметьте хотя бы один день недели.',
-    dates: 'Добавьте хотя бы одну дату.',
-    period: 'Дата окончания не может быть раньше даты начала.',
-    duplicate_time: 'Это время уже добавлено.',
-    duplicate_date: 'Эта дата уже добавлена.',
-    date_pick: 'Сначала отметьте дату в календаре.',
-    save_failed: 'Проверьте заполнение формы и повторите сохранение.'
-  };
+ const messages = {
+  name: tr('hint_name'),
+  dose: tr('hint_dose'),
+  details: tr('hint_details'),
+  times: tr('hint_times'),
+  weekdays: tr('hint_weekdays'),
+  dates: tr('hint_dates'),
+  period: tr('hint_period'),
+  duplicate_time: tr('hint_duplicate_time'),
+  duplicate_date: tr('hint_duplicate_date'),
+  date_pick: tr('hint_date_pick'),
+  save_failed: tr('hint_save_failed')
+};
   alert(`Подсказка\n\n${messages[code] || messages.save_failed}`);
 }
 
