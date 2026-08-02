@@ -55,7 +55,12 @@ title_input: 'MedControl — Ввод', title_dashboard: 'MedControl — Таб�
     minutes: 'Минуты',
     add_time: 'Добавить время',
     no_time_added: 'Время пока не добавлено',
-
+    
+    add_date: 'Добавить дату',
+    no_date_added: 'Дата пока не добавлена',
+    remove: 'Удалить',
+    date_label: 'Дата',
+    
     yes: 'Да',
     no: 'Нет'
 },
@@ -68,6 +73,14 @@ input_fill_help_3: 'For specific dates, select a date in the calendar and add it
 input_fill_help_4: 'If a required value is missing, the application will show a prompt.', dashboard_title_1: 'Current day states', action_title_1: 'Result capture', row: 'Row', actions: 'Actions', details: 'Details', state: 'State', starts_after: 'Starts from', ends_after: 'Ends on', dates: 'Dates', weekdays_selected: 'Weekdays', mark_time: 'Mark time', choose_action: 'Action', apply_correction: 'Apply correction', correction_help: 'Correction affects only the intake record of the selected row.', schedule_rule: 'Intake rule', selected_row: 'Selected row', unsupported_language: 'No prepared interface was found for the device language. English has been used.', patient_data: 'Working mode', patient_data_value: 'Local data on the current device', expected_at: 'Expected', upcoming_at: 'Upcoming', overdue_at: 'Overdue', hours: 'Hours',
     minutes: 'Minutes',
     add_time: 'Add time',
-    no_time_added: 'No time added yet.', yes: 'Yes', no: 'No'
+    no_time_added: 'No time added yet.',
+    
+    add_date: 'Add date',
+    no_date_added: 'No date added yet.',
+    remove: 'Remove',
+    date_label: 'Date',
+    
+    yes: 'Yes', 
+    no: 'No'
   }
 };
