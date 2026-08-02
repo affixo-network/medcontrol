@@ -60,6 +60,7 @@ title_input: 'MedControl — Ввод', title_dashboard: 'MedControl — Таб�
     no_date_added: 'Дата пока не добавлена',
     remove: 'Удалить',
     date_label: 'Дата',
+    weekday_short: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
     
     yes: 'Да',
     no: 'Нет'
@@ -79,6 +80,7 @@ input_fill_help_4: 'If a required value is missing, the application will show a 
     no_date_added: 'No date added yet.',
     remove: 'Remove',
     date_label: 'Date',
+    weekday_short: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     
     yes: 'Yes', 
     no: 'No'
