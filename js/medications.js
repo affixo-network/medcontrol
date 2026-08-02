@@ -27,9 +27,14 @@ function structuredTimeEditorHtml(prefix, times = []) {
 
 function structuredWeekdayEditorHtml(prefix, selected = []) {
   const days = [
-    ['Mon', 'Пн'], ['Tue', 'Вт'], ['Wed', 'Ср'], ['Thu', 'Чт'],
-    ['Fri', 'Пт'], ['Sat', 'Сб'], ['Sun', 'Вс']
-  ];
+  ['Mon', labels[0]],
+  ['Tue', labels[1]],
+  ['Wed', labels[2]],
+  ['Thu', labels[3]],
+  ['Fri', labels[4]],
+  ['Sat', labels[5]],
+  ['Sun', labels[6]]
+];
   return `
     <div id="${prefix}weekdays_wrap" class="full" style="display:none">
       <label>${escapeHtml(tr('weekdays_selected'))}</label>
