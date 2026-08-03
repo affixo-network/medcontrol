@@ -53,17 +53,45 @@ function medicationRuleSummary(med) {
   );
 }
 function isMedicationApplicableOnDate(med, dateISO) {
-  if (!med.active) return false;
+  if (!med || !med.active || !dateISO) return false;
+
   if (med.scheduleType === 'explicit_dates') {
-    return med.explicitDates.includes(dateISO);
+    const explicitDates = Array.isArray(med.explicitDates)
+      ? med.explicitDates
+      : [];
+
+    return explicitDates.includes(dateISO);
   }
+
   if (med.startDate && dateISO < med.startDate) return false;
   if (med.endDate && dateISO > med.endDate) return false;
-  if (med.scheduleType === 'daily') return true;
-  if (med.scheduleType === 'weekdays') {
-    const weekday = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(dateISO + 'T00:00:00').getDay()];
-    return med.weekdays.includes(weekday);
+
+  if (med.scheduleType === 'daily') {
+    return true;
   }
+
+  if (med.scheduleType === 'weekdays') {
+    const weekdays = Array.isArray(med.weekdays)
+      ? med.weekdays
+      : [];
+
+    const date = new Date(`${dateISO}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) return false;
+
+    const weekdayCodes = [
+      'Sun',
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat'
+    ];
+
+    return weekdays.includes(weekdayCodes[date.getDay()]);
+  }
+
   return false;
 }
 function getScheduledDateTime(dateISO, time) {
