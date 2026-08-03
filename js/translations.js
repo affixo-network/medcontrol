@@ -74,6 +74,8 @@ hint_duplicate_time: 'Это время уже добавлено.',
 hint_duplicate_date: 'Эта дата уже добавлена.',
 hint_date_pick: 'Сначала отметьте дату в календаре.',
 hint_save_failed: 'Проверьте заполнение формы и повторите сохранение.',
+confirm_back: 'Вернуться к редактированию',
+confirm_save: 'Подтвердить и сохранить',
     
     yes: 'Да',
     no: 'Нет'
@@ -107,6 +109,8 @@ hint_duplicate_time: 'This time has already been added.',
 hint_duplicate_date: 'This date has already been added.',
 hint_date_pick: 'Select a date in the calendar first.',
 hint_save_failed: 'Check the form and try saving again.',
+confirm_back: 'Back to editing',
+confirm_save: 'Confirm and save',
     
     yes: 'Yes', 
     no: 'No'
