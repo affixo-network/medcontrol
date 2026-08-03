@@ -76,6 +76,7 @@ hint_date_pick: 'Сначала отметьте дату в календаре.
 hint_save_failed: 'Проверьте заполнение формы и повторите сохранение.',
 confirm_back: 'Вернуться к редактированию',
 confirm_save: 'Подтвердить и сохранить',
+confirm_medication_title: 'Подтверждение препарата',
     
     yes: 'Да',
     no: 'Нет'
@@ -111,6 +112,7 @@ hint_date_pick: 'Select a date in the calendar first.',
 hint_save_failed: 'Check the form and try saving again.',
 confirm_back: 'Back to editing',
 confirm_save: 'Confirm and save',
+confirm_medication_title: 'Medication confirmation',
     
     yes: 'Yes', 
     no: 'No'
