@@ -59,29 +59,57 @@ function buildTodayEntries() {
   const now = Date.now();
   const entries = [];
   const state = getState();
-  state.medications.forEach(med => {
+
+  const medications = Array.isArray(state.medications)
+    ? state.medications
+    : [];
+
+  medications.forEach(med => {
     if (!isMedicationApplicableOnDate(med, dateISO)) return;
-    med.times.forEach(time => {
+
+    const times = Array.isArray(med.times)
+      ? med.times
+      : [];
+
+    times.forEach(time => {
+      if (!time) return;
+
       const plannedAt = getScheduledDateTime(dateISO, time);
       const plannedMs = new Date(plannedAt).getTime();
+
+      if (Number.isNaN(plannedMs)) return;
+
       const log = getLogForSchedule(med.id, plannedAt);
       let boardState = null;
+
       if (!log) {
-        if (plannedMs <= now) boardState = 'expected';
-        if (plannedMs > now) boardState = 'upcoming';
-        if (plannedMs + DEFAULT_GRACE_MINUTES * 60 * 1000 < now) boardState = 'overdue';
+        if (plannedMs > now) {
+          boardState = 'upcoming';
+        } else if (
+          plannedMs + DEFAULT_GRACE_MINUTES * 60 * 1000 < now
+        ) {
+          boardState = 'overdue';
+        } else {
+          boardState = 'expected';
+        }
       }
+
       entries.push({
         medication: med,
         plannedTime: time,
         plannedAt,
         log,
         boardState,
-        displayStatus: log ? computeStatusForLog(plannedAt, log.actualAt, log.action) : boardState
+        displayStatus: log
+          ? computeStatusForLog(plannedAt, log.actualAt, log.action)
+          : boardState
       });
     });
   });
-  return entries.sort((a, b) => a.plannedAt.localeCompare(b.plannedAt));
+
+  return entries.sort(
+    (a, b) => new Date(a.plannedAt) - new Date(b.plannedAt)
+  );
 }
 function recordRowHistory(med, action, payload) {
   med.rowHistory = Array.isArray(med.rowHistory) ? med.rowHistory : [];
