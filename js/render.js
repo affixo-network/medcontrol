@@ -105,16 +105,138 @@ function renderInputPage() {
       <div class="card">
         <h2>${escapeHtml(tr('input_title_1'))}</h2>
         <div class="form-grid">
-          <div><label>${escapeHtml(tr('medication'))}</label><input id="create_name" placeholder="${escapeHtml(tr('name_hint'))}"></div>
-          <div><label>${escapeHtml(tr('dose'))}</label><input id="create_dose" placeholder="${escapeHtml(tr('dose_hint'))}"></div>
-          <div class="full"><label>${escapeHtml(tr('details'))}</label><textarea id="create_details" placeholder="${escapeHtml(tr('details'))}"></textarea></div>
-          <div><label>${escapeHtml(tr('schedule'))}</label><select id="create_scheduleType" onchange="syncCreateScheduleFields()"><option value="daily">${escapeHtml(tr('every_day'))}</option><option value="weekdays">${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates">${escapeHtml(tr('explicit_dates'))}</option></select></div>
+          <div>
+  <label>${escapeHtml(tr('medication'))} *</label>
+  <input
+    id="create_name"
+    placeholder="${escapeHtml(tr('name_hint'))}"
+    required
+  >
+</div>
+
+<div>
+  <label>Производитель</label>
+  <input
+    id="create_manufacturer"
+    placeholder="Название производителя"
+  >
+</div>
+
+<div class="full">
+  <h3>Данные производителя</h3>
+</div>
+
+<div>
+  <label>Количественное содержание *</label>
+  <input
+    id="create_contentValue"
+    type="number"
+    min="0"
+    step="any"
+    placeholder="Например: 500"
+    required
+  >
+</div>
+
+<div>
+  <label>Единица содержания *</label>
+  <select
+    id="create_contentUnit"
+    onchange="syncMedicationOtherUnit('create_', 'content')"
+    required
+  >
+    <option value="">Выберите</option>
+    <option value="mcg">мкг</option>
+    <option value="mg">мг</option>
+    <option value="g">г</option>
+    <option value="kg">кг</option>
+    <option value="ml">мл</option>
+    <option value="l">л</option>
+    <option value="%">%</option>
+    <option value="mg/ml">мг/мл</option>
+    <option value="mcg/ml">мкг/мл</option>
+    <option value="mg/g">мг/г</option>
+    <option value="IU">МЕ</option>
+    <option value="unit">ед.</option>
+    <option value="other">Другое</option>
+  </select>
+</div>
+
+<div
+  id="create_contentUnitOther_wrap"
+  style="display:none"
+>
+  <label>Другая единица содержания *</label>
+  <input id="create_contentUnitOther">
+</div>
+
+<div class="full">
+  <h3>Доза</h3>
+</div>
+
+<div>
+  <label>Единица приёма *</label>
+  <select
+    id="create_intakeUnit"
+    onchange="syncMedicationOtherUnit('create_', 'intake')"
+    required
+  >
+    <option value="">Выберите</option>
+    <option value="tablet">таблетка</option>
+    <option value="capsule">капсула</option>
+    <option value="ml">мл</option>
+    <option value="drop">капля</option>
+    <option value="teaspoon">чайная ложка</option>
+    <option value="tablespoon">столовая ложка</option>
+    <option value="dose">доза</option>
+    <option value="puff">впрыск</option>
+    <option value="ampoule">ампула</option>
+    <option value="vial">флакон</option>
+    <option value="packet">пакет</option>
+    <option value="sachet">саше</option>
+    <option value="suppository">суппозиторий</option>
+    <option value="patch">пластырь</option>
+    <option value="injection">инъекция</option>
+    <option value="unit">единица</option>
+    <option value="other">Другое</option>
+  </select>
+</div>
+
+<div>
+  <label>Количество приёма *</label>
+  <input
+    id="create_intakeQuantity"
+    type="number"
+    min="0"
+    step="any"
+    placeholder="Например: 1"
+    required
+  >
+</div>
+
+<div
+  id="create_intakeUnitOther_wrap"
+  style="display:none"
+>
+  <label>Другая единица приёма *</label>
+  <input id="create_intakeUnitOther">
+</div>
+
+<div class="full">
+  <label>${escapeHtml(tr('details'))} *</label>
+  <textarea
+    id="create_details"
+    placeholder="${escapeHtml(tr('details'))}"
+    required
+  ></textarea>
+</div>
+          <div><label>${escapeHtml(tr('schedule'))} *</label><select id="create_scheduleType" onchange="syncCreateScheduleFields()"><option value="daily">${escapeHtml(tr('every_day'))}</option><option value="weekdays">${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates">${escapeHtml(tr('explicit_dates'))}</option></select></div>
           <div><label>${escapeHtml(tr('mode'))}</label><label class="active-choice"><input id="create_active" type="checkbox" checked> ${escapeHtml(tr('active'))}</label></div>
           ${structuredTimeEditorHtml('create_', [])}
           ${structuredWeekdayEditorHtml('create_', [])}
           ${structuredDateEditorHtml('create_', [])}
-          <div id="create_start_wrap"><label>${escapeHtml(tr('start_date'))}</label><input id="create_startDate" type="date"></div>
-          <div id="create_end_wrap"><label>${escapeHtml(tr('end_date'))}</label><input id="create_endDate" type="date"></div>
+          <div id="create_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="create_startDate" type="date"></div>
+          <div id="create_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="create_endDate" type="date"></div>
           <div class="full right"><button onclick="createMedication()">${escapeHtml(tr('add'))}</button></div>
         </div>
       </div>
