@@ -157,8 +157,17 @@ window.initializeStructuredEditors = function(prefix) {
 
 function createMedicationFromForm(prefix) {
   const name = document.getElementById(`${prefix}name`)?.value.trim() || '';
-  const dose = document.getElementById(`${prefix}dose`)?.value.trim() || '';
-  const details = document.getElementById(`${prefix}details`)?.value.trim() || '';
+const manufacturer = document.getElementById(`${prefix}manufacturer`)?.value.trim() || '';
+
+const contentValue = document.getElementById(`${prefix}contentValue`)?.value.trim() || '';
+const contentUnit = document.getElementById(`${prefix}contentUnit`)?.value || '';
+const contentUnitOther = document.getElementById(`${prefix}contentUnitOther`)?.value.trim() || '';
+
+const intakeQuantity = document.getElementById(`${prefix}intakeQuantity`)?.value.trim() || '';
+const intakeUnit = document.getElementById(`${prefix}intakeUnit`)?.value || '';
+const intakeUnitOther = document.getElementById(`${prefix}intakeUnitOther`)?.value.trim() || '';
+
+const details = document.getElementById(`${prefix}details`)?.value.trim() || '';
   const scheduleType = document.getElementById(`${prefix}scheduleType`)?.value || 'daily';
   const times = readHiddenList(`${prefix}times`);
   const startDate = document.getElementById(`${prefix}startDate`)?.value || '';
@@ -168,33 +177,99 @@ function createMedicationFromForm(prefix) {
   const explicitDates = scheduleType === 'explicit_dates' ? readHiddenList(`${prefix}explicitDates`) : [];
 
   if (!name) throw new Error('name');
-  if (!dose) throw new Error('dose');
-  if (!details) throw new Error('details');
-  if (!times.length) throw new Error('times');
-  if (scheduleType === 'weekdays' && !weekdays.length) throw new Error('weekdays');
-  if (scheduleType === 'explicit_dates' && !explicitDates.length) throw new Error('dates');
-  if (scheduleType !== 'explicit_dates' && startDate && endDate && startDate > endDate) {
+
+if (!contentValue) throw new Error('contentValue');
+if (!contentUnit) throw new Error('contentUnit');
+if (contentUnit === 'other' && !contentUnitOther) {
+  throw new Error('contentUnitOther');
+}
+
+if (!intakeUnit) throw new Error('intakeUnit');
+if (!intakeQuantity) throw new Error('intakeQuantity');
+if (intakeUnit === 'other' && !intakeUnitOther) {
+  throw new Error('intakeUnitOther');
+}
+
+if (!details) throw new Error('details');
+if (!times.length) throw new Error('times');
+
+if (scheduleType === 'daily') {
+  if (!startDate || !endDate || startDate > endDate) {
     throw new Error('period');
   }
-
-  return {
-    name,
-    dose,
-    details,
-    scheduleType,
-    times: [...new Set(times)].sort(),
-    startDate: scheduleType === 'explicit_dates' ? '' : startDate,
-    endDate: scheduleType === 'explicit_dates' ? '' : endDate,
-    active,
-    weekdays: [...new Set(weekdays)],
-    explicitDates: [...new Set(explicitDates)].sort()
-  };
 }
+
+if (scheduleType === 'weekdays') {
+  if (!weekdays.length) throw new Error('weekdays');
+  if (!endDate) throw new Error('endDate');
+}
+
+if (scheduleType === 'explicit_dates' && !explicitDates.length) {
+  throw new Error('dates');
+}
+
+ 
+
+const resolvedIntakeUnit =
+  intakeUnit === 'other'
+    ? intakeUnitOther
+    : intakeUnit;
+
+const dose =
+  `${intakeQuantity} ${resolvedIntakeUnit}`;
+
+return {
+  name,
+  manufacturer,
+
+  contentValue,
+  contentUnit,
+  contentUnitOther,
+
+  intakeQuantity,
+  intakeUnit,
+  intakeUnitOther,
+
+  dose,
+  details,
+  scheduleType,
+
+  times: [...new Set(times)].sort(),
+
+  startDate:
+    scheduleType === 'daily'
+      ? startDate
+      : '',
+
+  endDate:
+    scheduleType === 'explicit_dates'
+      ? ''
+      : endDate,
+
+  active,
+
+  weekdays:
+    scheduleType === 'weekdays'
+      ? [...new Set(weekdays)]
+      : [],
+
+  explicitDates:
+    scheduleType === 'explicit_dates'
+      ? [...new Set(explicitDates)].sort()
+      : []
+};}
 
 function showMedicationHint(code) {
  const messages = {
   name: tr('hint_name'),
-  dose: tr('hint_dose'),
+   
+  contentValue: 'Введите количественное содержание препарата.',
+contentUnit: 'Выберите единицу содержания.',
+contentUnitOther: 'Укажите другую единицу содержания.',
+intakeUnit: 'Выберите единицу приёма.',
+intakeQuantity: 'Введите количество приёма.',
+intakeUnitOther: 'Укажите другую единицу приёма.',
+endDate: 'Укажите дату окончания.',
   details: tr('hint_details'),
   times: tr('hint_times'),
   weekdays: tr('hint_weekdays'),
@@ -217,13 +292,36 @@ function syncScheduleFields(prefix) {
   if (!type || !weekdaysWrap || !datesWrap || !startWrap || !endWrap) return;
   weekdaysWrap.style.display = type === 'weekdays' ? 'block' : 'none';
   datesWrap.style.display = type === 'explicit_dates' ? 'block' : 'none';
-  startWrap.style.display = type === 'explicit_dates' ? 'none' : 'block';
-  endWrap.style.display = type === 'explicit_dates' ? 'none' : 'block';
+  startWrap.style.display =
+  type === 'daily'
+    ? 'block'
+    : 'none';
+
+endWrap.style.display =
+  type === 'explicit_dates'
+    ? 'none'
+    : 'block';
 }
 
 window.syncCreateScheduleFields = function() { syncScheduleFields('create_'); };
 window.syncEditScheduleFields = function() { syncScheduleFields('edit_'); };
+window.syncMedicationOtherUnit = function(prefix, type) {
+  const select = document.getElementById(`${prefix}${type}Unit`);
+  const wrap = document.getElementById(`${prefix}${type}UnitOther_wrap`);
+  const input = document.getElementById(`${prefix}${type}UnitOther`);
 
+  if (!select || !wrap) return;
+
+  const isOther = select.value === 'other';
+
+  wrap.style.display = isOther
+    ? 'block'
+    : 'none';
+
+  if (!isOther && input) {
+    input.value = '';
+  }
+};
 window.toggleMedicationMode = function(id) {
   const state = getState();
   const med = state.medications.find(item => item.id === id);
@@ -240,16 +338,140 @@ window.openEditMedication = function(id) {
   const dialog = document.getElementById('editDialog');
   const content = document.getElementById('editDialogContent');
   content.innerHTML = `<div class="form-grid">
-    <div><label>${escapeHtml(tr('medication'))}</label><input id="edit_name" value="${escapeHtml(med.name)}"></div>
-    <div><label>${escapeHtml(tr('dose'))}</label><input id="edit_dose" value="${escapeHtml(med.dose)}"></div>
-    <div class="full"><label>${escapeHtml(tr('details'))}</label><textarea id="edit_details">${escapeHtml(med.details || '')}</textarea></div>
+    <div>
+  <label>${escapeHtml(tr('medication'))} *</label>
+  <input
+    id="edit_name"
+    value="${escapeHtml(med.name || '')}"
+    required
+  >
+</div>
+
+<div>
+  <label>Производитель</label>
+  <input
+    id="edit_manufacturer"
+    value="${escapeHtml(med.manufacturer || '')}"
+  >
+</div>
+
+<div class="full">
+  <h3>Данные производителя</h3>
+</div>
+
+<div>
+  <label>Количественное содержание *</label>
+  <input
+    id="edit_contentValue"
+    type="number"
+    min="0"
+    step="any"
+    value="${escapeHtml(med.contentValue || '')}"
+    required
+  >
+</div>
+
+<div>
+  <label>Единица содержания *</label>
+  <select
+    id="edit_contentUnit"
+    onchange="syncMedicationOtherUnit('edit_', 'content')"
+    required
+  >
+    <option value="">Выберите</option>
+    <option value="mcg" ${med.contentUnit === 'mcg' ? 'selected' : ''}>мкг</option>
+    <option value="mg" ${med.contentUnit === 'mg' ? 'selected' : ''}>мг</option>
+    <option value="g" ${med.contentUnit === 'g' ? 'selected' : ''}>г</option>
+    <option value="kg" ${med.contentUnit === 'kg' ? 'selected' : ''}>кг</option>
+    <option value="ml" ${med.contentUnit === 'ml' ? 'selected' : ''}>мл</option>
+    <option value="l" ${med.contentUnit === 'l' ? 'selected' : ''}>л</option>
+    <option value="%" ${med.contentUnit === '%' ? 'selected' : ''}>%</option>
+    <option value="mg/ml" ${med.contentUnit === 'mg/ml' ? 'selected' : ''}>мг/мл</option>
+    <option value="mcg/ml" ${med.contentUnit === 'mcg/ml' ? 'selected' : ''}>мкг/мл</option>
+    <option value="mg/g" ${med.contentUnit === 'mg/g' ? 'selected' : ''}>мг/г</option>
+    <option value="IU" ${med.contentUnit === 'IU' ? 'selected' : ''}>МЕ</option>
+    <option value="unit" ${med.contentUnit === 'unit' ? 'selected' : ''}>ед.</option>
+    <option value="other" ${med.contentUnit === 'other' ? 'selected' : ''}>Другое</option>
+  </select>
+</div>
+
+<div
+  id="edit_contentUnitOther_wrap"
+  style="display:${med.contentUnit === 'other' ? 'block' : 'none'}"
+>
+  <label>Другая единица содержания *</label>
+  <input
+    id="edit_contentUnitOther"
+    value="${escapeHtml(med.contentUnitOther || '')}"
+  >
+</div>
+
+<div class="full">
+  <h3>Доза</h3>
+</div>
+
+<div>
+  <label>Единица приёма *</label>
+  <select
+    id="edit_intakeUnit"
+    onchange="syncMedicationOtherUnit('edit_', 'intake')"
+    required
+  >
+    <option value="">Выберите</option>
+    <option value="tablet" ${med.intakeUnit === 'tablet' ? 'selected' : ''}>таблетка</option>
+    <option value="capsule" ${med.intakeUnit === 'capsule' ? 'selected' : ''}>капсула</option>
+    <option value="ml" ${med.intakeUnit === 'ml' ? 'selected' : ''}>мл</option>
+    <option value="drop" ${med.intakeUnit === 'drop' ? 'selected' : ''}>капля</option>
+    <option value="teaspoon" ${med.intakeUnit === 'teaspoon' ? 'selected' : ''}>чайная ложка</option>
+    <option value="tablespoon" ${med.intakeUnit === 'tablespoon' ? 'selected' : ''}>столовая ложка</option>
+    <option value="dose" ${med.intakeUnit === 'dose' ? 'selected' : ''}>доза</option>
+    <option value="puff" ${med.intakeUnit === 'puff' ? 'selected' : ''}>впрыск</option>
+    <option value="ampoule" ${med.intakeUnit === 'ampoule' ? 'selected' : ''}>ампула</option>
+    <option value="vial" ${med.intakeUnit === 'vial' ? 'selected' : ''}>флакон</option>
+    <option value="packet" ${med.intakeUnit === 'packet' ? 'selected' : ''}>пакет</option>
+    <option value="sachet" ${med.intakeUnit === 'sachet' ? 'selected' : ''}>саше</option>
+    <option value="suppository" ${med.intakeUnit === 'suppository' ? 'selected' : ''}>суппозиторий</option>
+    <option value="patch" ${med.intakeUnit === 'patch' ? 'selected' : ''}>пластырь</option>
+    <option value="injection" ${med.intakeUnit === 'injection' ? 'selected' : ''}>инъекция</option>
+    <option value="unit" ${med.intakeUnit === 'unit' ? 'selected' : ''}>единица</option>
+    <option value="other" ${med.intakeUnit === 'other' ? 'selected' : ''}>Другое</option>
+  </select>
+</div>
+
+<div>
+  <label>Количество приёма *</label>
+  <input
+    id="edit_intakeQuantity"
+    type="number"
+    min="0"
+    step="any"
+    value="${escapeHtml(med.intakeQuantity || '')}"
+    required
+  >
+</div>
+
+<div
+  id="edit_intakeUnitOther_wrap"
+  style="display:${med.intakeUnit === 'other' ? 'block' : 'none'}"
+>
+  <label>Другая единица приёма *</label>
+  <input
+    id="edit_intakeUnitOther"
+    value="${escapeHtml(med.intakeUnitOther || '')}"
+  >
+</div>
+
+<div class="full">
+  <label>${escapeHtml(tr('details'))} *</label>
+  <textarea id="edit_details" required>${escapeHtml(med.details || '')}</textarea>
+</div>
     <div><label>${escapeHtml(tr('schedule'))}</label><select id="edit_scheduleType" onchange="syncEditScheduleFields()"><option value="daily" ${med.scheduleType === 'daily' ? 'selected' : ''}>${escapeHtml(tr('every_day'))}</option><option value="weekdays" ${med.scheduleType === 'weekdays' ? 'selected' : ''}>${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates" ${med.scheduleType === 'explicit_dates' ? 'selected' : ''}>${escapeHtml(tr('explicit_dates'))}</option></select></div>
     <div><label>${escapeHtml(tr('mode'))}</label><label class="active-choice"><input id="edit_active" type="checkbox" ${med.active ? 'checked' : ''}> ${escapeHtml(tr('active'))}</label></div>
     ${structuredTimeEditorHtml('edit_', med.times || [])}
     ${structuredWeekdayEditorHtml('edit_', med.weekdays || [])}
     ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
-    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))}</label><input id="edit_startDate" type="date" value="${escapeHtml(med.startDate || '')}"></div>
-    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))}</label><input id="edit_endDate" type="date" value="${escapeHtml(med.endDate || '')}"></div>
+    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" value="${escapeHtml(med.startDate || '')}"></div>
+    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" value="${escapeHtml(med.endDate || '')}"></div>
     <div class="full right"><button onclick="saveMedicationEdit('${med.id}')">${escapeHtml(tr('save'))}</button> <button onclick="document.getElementById('editDialog').close()">${escapeHtml(tr('close'))}</button></div>
   </div>`;
   dialog.showModal();
@@ -312,15 +534,7 @@ const periodText = item.scheduleType === 'explicit_dates'
   ? tr('explicit_dates')
   : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
 
-    document.getElementById('medicationConfirmContent').innerHTML = `
-      <table class="confirm-table">
-        <tr><td>${escapeHtml(tr('medication'))}</td><td>${escapeHtml(item.name)}</td></tr>
-        <tr><td>${escapeHtml(tr('dose'))}</td><td>${escapeHtml(item.dose)}</td></tr>
-        <tr><td>${escapeHtml(tr('details'))}</td><td>${escapeHtml(item.details)}</td></tr>
-        <tr><td>${escapeHtml(tr('schedule'))}</td><td>${escapeHtml(scheduleText)}</td></tr>
-        <tr><td>${escapeHtml(tr('time_slots'))}</td><td>${escapeHtml(item.times.join(', '))}</td></tr>
-        <tr><td>${escapeHtml(tr('period'))}</td><td>${escapeHtml(periodText)}</td></tr>
-      </table>`;
+    window.createMedication = function()
     document.getElementById('medicationConfirmDialog').showModal();
   } catch (error) {
     showMedicationHint(error.message);
