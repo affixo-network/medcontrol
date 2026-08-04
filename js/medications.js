@@ -534,7 +534,51 @@ const periodText = item.scheduleType === 'explicit_dates'
   ? tr('explicit_dates')
   : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
 
-    window.createMedication = function()
+    const contentUnitText =
+  item.contentUnit === 'other'
+    ? item.contentUnitOther
+    : item.contentUnit;
+
+const intakeUnitText =
+  item.intakeUnit === 'other'
+    ? item.intakeUnitOther
+    : item.intakeUnit;
+
+document.getElementById('medicationConfirmContent').innerHTML = `
+  <table class="confirm-table">
+    <tr>
+      <td>${escapeHtml(tr('medication'))}</td>
+      <td>${escapeHtml(item.name)}</td>
+    </tr>
+    <tr>
+      <td>Производитель</td>
+      <td>${escapeHtml(item.manufacturer || '—')}</td>
+    </tr>
+    <tr>
+      <td>Количественное содержание</td>
+      <td>${escapeHtml(item.contentValue)} ${escapeHtml(contentUnitText)}</td>
+    </tr>
+    <tr>
+      <td>Доза</td>
+      <td>${escapeHtml(item.intakeQuantity)} ${escapeHtml(intakeUnitText)}</td>
+    </tr>
+    <tr>
+      <td>${escapeHtml(tr('details'))}</td>
+      <td>${escapeHtml(item.details)}</td>
+    </tr>
+    <tr>
+      <td>${escapeHtml(tr('schedule'))}</td>
+      <td>${escapeHtml(scheduleText)}</td>
+    </tr>
+    <tr>
+      <td>${escapeHtml(tr('time_slots'))}</td>
+      <td>${escapeHtml(item.times.join(', '))}</td>
+    </tr>
+    <tr>
+      <td>${escapeHtml(tr('period'))}</td>
+      <td>${escapeHtml(periodText)}</td>
+    </tr>
+  </table>`;
     document.getElementById('medicationConfirmDialog').showModal();
   } catch (error) {
     showMedicationHint(error.message);
