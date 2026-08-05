@@ -328,6 +328,24 @@ endWrap.style.display =
 }
 
 window.syncCreateScheduleFields = function() { syncScheduleFields('create_'); };
+window.changeCreateScheduleType = function(select) {
+  const previousValue =
+    select.dataset.previousValue || 'daily';
+
+  if (
+    !window.guardMedicationSequence(
+      'create_',
+      'scheduleType'
+    )
+  ) {
+    select.value = previousValue;
+    window.syncCreateScheduleFields();
+    return;
+  }
+
+  select.dataset.previousValue = select.value;
+  window.syncCreateScheduleFields();
+};
 window.syncEditScheduleFields = function() { syncScheduleFields('edit_'); };
 window.syncMedicationOtherUnit = function(prefix, type) {
   const select = document.getElementById(`${prefix}${type}Unit`);
