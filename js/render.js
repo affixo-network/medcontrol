@@ -248,8 +248,9 @@ function renderInputPage() {
 
   <select
     id="create_scheduleType"
-    onchange="syncCreateScheduleFields()"
-  >
+    data-previous-value="daily"
+  onchange="changeCreateScheduleType(this)"
+>
     <option value="daily">
       ${escapeHtml(tr('every_day'))}
     </option>
