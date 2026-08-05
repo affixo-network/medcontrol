@@ -131,9 +131,10 @@ function renderInputPage() {
 
 <div>
   <label>Количественное содержание *</label>
-  <input
-    id="create_contentValue"
-    type="number"
+ <input
+  id="create_contentValue"
+  type="number"
+  onfocus="guardMedicationSequence('create_', 'contentValue')"
     min="0"
     step="any"
     placeholder="Например: 500"
@@ -143,9 +144,10 @@ function renderInputPage() {
 
 <div>
   <label>Единица содержания *</label>
-  <select
-    id="create_contentUnit"
-    onchange="syncMedicationOtherUnit('create_', 'content')"
+ <select
+  id="create_contentUnit"
+  onfocus="guardMedicationSequence('create_', 'contentUnit')"
+  onchange="syncMedicationOtherUnit('create_', 'content')"
     required
   >
     <option value="">Выберите</option>
@@ -170,7 +172,10 @@ function renderInputPage() {
   style="display:none"
 >
   <label>Другая единица содержания *</label>
-  <input id="create_contentUnitOther">
+  <input
+  id="create_contentUnitOther"
+  onfocus="guardMedicationSequence('create_', 'contentUnitOther')"
+>
 </div>
 
 <div class="full">
@@ -180,8 +185,9 @@ function renderInputPage() {
 <div>
   <label>Количество приёма *</label>
   <input
-    id="create_intakeQuantity"
-    type="number"
+  id="create_intakeQuantity"
+  type="number"
+  onfocus="guardMedicationSequence('create_', 'intakeQuantity')"
     min="0"
     step="any"
     placeholder="Например: 1"
@@ -192,8 +198,9 @@ function renderInputPage() {
 <div>
   <label>Единица приёма *</label>
   <select
-    id="create_intakeUnit"
-    onchange="syncMedicationOtherUnit('create_', 'intake')"
+  id="create_intakeUnit"
+  onfocus="guardMedicationSequence('create_', 'intakeUnit')"
+  onchange="syncMedicationOtherUnit('create_', 'intake')"
     required
   >
     <option value="">Выберите</option>
@@ -221,18 +228,26 @@ function renderInputPage() {
   style="display:none"
 >
   <label>Другая единица приёма *</label>
-  <input id="create_intakeUnitOther">
+  <input
+  id="create_intakeUnitOther"
+  onfocus="guardMedicationSequence('create_', 'intakeUnitOther')"
+>
 </div>
 
 <div class="full">
   <label>${escapeHtml(tr('details'))} *</label>
   <textarea
-    id="create_details"
-    placeholder="${escapeHtml(tr('details'))}"
+  id="create_details"
+  onfocus="guardMedicationSequence('create_', 'details')"
+  placeholder="${escapeHtml(tr('details'))}"
     required
   ></textarea>
 </div>
-          <div><label>${escapeHtml(tr('schedule'))} *</label><select id="create_scheduleType" onchange="syncCreateScheduleFields()"><option value="daily">${escapeHtml(tr('every_day'))}</option><option value="weekdays">${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates">${escapeHtml(tr('explicit_dates'))}</option></select></div>
+          <div><label>${escapeHtml(tr('schedule'))} *</label><select
+  id="create_scheduleType"
+  onfocus="guardMedicationSequence('create_', 'scheduleType')"
+  onchange="syncCreateScheduleFields()"
+><option value="daily">${escapeHtml(tr('every_day'))}</option><option value="weekdays">${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates">${escapeHtml(tr('explicit_dates'))}</option></select></div>
           <div><label>${escapeHtml(tr('mode'))}</label><label class="active-choice"><input id="create_active" type="checkbox" checked> ${escapeHtml(tr('active'))}</label></div>
           ${structuredTimeEditorHtml('create_', [])}
           ${structuredWeekdayEditorHtml('create_', [])}
