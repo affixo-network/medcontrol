@@ -13,13 +13,20 @@ function structuredTimeEditorHtml(prefix, times = []) {
       <div class="number-pickers">
         <div>
           <span class="field-caption">${escapeHtml(tr('hours'))}</span>
-<select id="${prefix}timeHour" aria-label="${escapeHtml(tr('hours'))}">${structuredOptions(23)}</select>
+<select id="${prefix}timeHour" onfocus="guardMedicationSequence('${prefix}', 'scheduleType')" aria-label="${escapeHtml(tr('hours'))}">${structuredOptions(23)}</select>
         </div>
         <div>
           <span class="field-caption">${escapeHtml(tr('minutes'))}</span>
-<select id="${prefix}timeMinute" aria-label="${escapeHtml(tr('minutes'))}">${structuredOptions(59)}</select>
+<select id="${prefix}timeMinute" onfocus="guardMedicationSequence('${prefix}', 'scheduleType')" aria-label="${escapeHtml(tr('minutes'))}">${structuredOptions(59)}</select>
         </div>
-        <button type="button" onclick="addStructuredTime('${prefix}')">${escapeHtml(tr('add_time'))}</button>
+        <button
+  type="button"
+  onclick="
+    if (guardMedicationSequence('${prefix}', 'scheduleType')) {
+      addStructuredTime('${prefix}');
+    }
+  "
+>${escapeHtml(tr('add_time'))}</button>
       </div>
       <div id="${prefix}timesList" class="choice-list"></div>
     </div>`;
@@ -287,6 +294,7 @@ intakeUnitOther: 'Укажите другую единицу приёма.',
 startDate: 'Дата начала не заполнена.',
 endDate: 'Дата окончания не заполнена.',
   details: tr('hint_details'),
+   schedule: 'Выберите режим расписания.',
   times: tr('hint_times'),
   weekdays: tr('hint_weekdays'),
   dates: tr('hint_dates'),
@@ -404,7 +412,13 @@ window.guardMedicationSequence = function(prefix, targetKey) {
       code: 'details',
       elementId: 'details',
       valid: () => Boolean(valueOf('details'))
-    }
+    },
+    {
+  key: 'scheduleType',
+  code: 'schedule',
+  elementId: 'scheduleType',
+  valid: () => Boolean(valueOf('scheduleType'))
+}
   ];
 
   const targetIndex = sequence.findIndex(
