@@ -1,6 +1,9 @@
 function appShell(title, activePage, body) {
   const tz = escapeHtml(getState().settings.timezone);
-  return `<!doctype html><html lang="${escapeHtml(getState().settings.interfaceLanguage)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>
+  return `<!doctype html><html lang="${escapeHtml(getState().settings.interfaceLanguage)}"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,"><title>${escapeHtml(title)}</title><style>
     :root{--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#f8fafc;--card:#ffffff;--soft:#f3f4f6;--ok:#ecfdf5;--warn:#fff7ed;--bad:#fef2f2}
     *{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--fg);line-height:1.45}
     .wrap{max-width:1380px;margin:0 auto;padding:20px 16px 48px}.topbar,.card{background:var(--card);border:1px solid var(--bd);border-radius:16px}
@@ -175,6 +178,18 @@ function renderInputPage() {
 </div>
 
 <div>
+  <label>Количество приёма *</label>
+  <input
+    id="create_intakeQuantity"
+    type="number"
+    min="0"
+    step="any"
+    placeholder="Например: 1"
+    required
+  >
+</div>
+
+<div>
   <label>Единица приёма *</label>
   <select
     id="create_intakeUnit"
@@ -201,19 +216,6 @@ function renderInputPage() {
     <option value="other">Другое</option>
   </select>
 </div>
-
-<div>
-  <label>Количество приёма *</label>
-  <input
-    id="create_intakeQuantity"
-    type="number"
-    min="0"
-    step="any"
-    placeholder="Например: 1"
-    required
-  >
-</div>
-
 <div
   id="create_intakeUnitOther_wrap"
   style="display:none"
