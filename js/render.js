@@ -245,7 +245,7 @@ function renderInputPage() {
 </div>
           <div><label>${escapeHtml(tr('schedule'))} *</label><select
   id="create_scheduleType"
-  onfocus="guardMedicationSequence('create_', 'scheduleType')"
+  onfocus="guardMedicationSequence('create_', 'details')"
   onchange="syncCreateScheduleFields()"
 ><option value="daily">${escapeHtml(tr('every_day'))}</option><option value="weekdays">${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates">${escapeHtml(tr('explicit_dates'))}</option></select></div>
           <div><label>${escapeHtml(tr('mode'))}</label><label class="active-choice"><input id="create_active" type="checkbox" checked> ${escapeHtml(tr('active'))}</label></div>
