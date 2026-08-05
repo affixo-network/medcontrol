@@ -239,7 +239,15 @@ function renderInputPage() {
           ${structuredDateEditorHtml('create_', [])}
           <div id="create_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="create_startDate" type="date"></div>
           <div id="create_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="create_endDate" type="date"></div>
-          <div class="full right"><button onclick="createMedication()">${escapeHtml(tr('add'))}</button></div>
+          <div class="full right"><button <div class="inline">
+  <button type="button" onclick="createMedication()">
+    Добавить
+  </button>
+
+  <button type="button" onclick="requestMedicationFormReset()">
+    Очистить форму
+  </button>
+</div>>${escapeHtml(tr('add'))}</button></div>
         </div>
       </div>
       <div class="card">
