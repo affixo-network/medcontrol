@@ -339,6 +339,106 @@ window.syncMedicationOtherUnit = function(prefix, type) {
   }
 };
 
+let medicationSequenceGuardActive = false;
+
+window.guardMedicationSequence = function(prefix, targetKey) {
+  if (medicationSequenceGuardActive) {
+    return true;
+  }
+
+  const valueOf = id =>
+    document.getElementById(`${prefix}${id}`)?.value?.trim() || '';
+
+  const contentUnit = valueOf('contentUnit');
+  const intakeUnit = valueOf('intakeUnit');
+
+  const sequence = [
+    {
+      key: 'name',
+      code: 'name',
+      elementId: 'name',
+      valid: () => Boolean(valueOf('name'))
+    },
+    {
+      key: 'contentValue',
+      code: 'contentValue',
+      elementId: 'contentValue',
+      valid: () => Boolean(valueOf('contentValue'))
+    },
+    {
+      key: 'contentUnit',
+      code: 'contentUnit',
+      elementId: 'contentUnit',
+      valid: () => Boolean(contentUnit)
+    },
+    {
+      key: 'contentUnitOther',
+      code: 'contentUnitOther',
+      elementId: 'contentUnitOther',
+      valid: () =>
+        contentUnit !== 'other' ||
+        Boolean(valueOf('contentUnitOther'))
+    },
+    {
+      key: 'intakeQuantity',
+      code: 'intakeQuantity',
+      elementId: 'intakeQuantity',
+      valid: () => Boolean(valueOf('intakeQuantity'))
+    },
+    {
+      key: 'intakeUnit',
+      code: 'intakeUnit',
+      elementId: 'intakeUnit',
+      valid: () => Boolean(intakeUnit)
+    },
+    {
+      key: 'intakeUnitOther',
+      code: 'intakeUnitOther',
+      elementId: 'intakeUnitOther',
+      valid: () =>
+        intakeUnit !== 'other' ||
+        Boolean(valueOf('intakeUnitOther'))
+    },
+    {
+      key: 'details',
+      code: 'details',
+      elementId: 'details',
+      valid: () => Boolean(valueOf('details'))
+    }
+  ];
+
+  const targetIndex = sequence.findIndex(
+    item => item.key === targetKey
+  );
+
+  if (targetIndex < 0) {
+    return true;
+  }
+
+  for (let index = 0; index < targetIndex; index += 1) {
+    const item = sequence[index];
+
+    if (item.valid()) {
+      continue;
+    }
+
+    medicationSequenceGuardActive = true;
+
+    showMedicationHint(item.code);
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`${prefix}${item.elementId}`)
+        ?.focus();
+
+      medicationSequenceGuardActive = false;
+    }, 0);
+
+    return false;
+  }
+
+  return true;
+};
 
 window.openEditMedication = function(id) {
   const med = getState().medications.find(item => item.id === id);
