@@ -322,6 +322,143 @@ window.syncMedicationOtherUnit = function(prefix, type) {
     input.value = '';
   }
 };
+function hasMedicationFormData(prefix = 'create_') {
+  const textIds = [
+    'name',
+    'manufacturer',
+    'contentValue',
+    'contentUnitOther',
+    'intakeQuantity',
+    'intakeUnitOther',
+    'details',
+    'startDate',
+    'endDate'
+  ];
+
+  const hasTextValue = textIds.some(id => {
+    const element = document.getElementById(`${prefix}${id}`);
+    return Boolean(element?.value?.trim());
+  });
+
+  const hasSelectedContentUnit =
+    Boolean(document.getElementById(`${prefix}contentUnit`)?.value);
+
+  const hasSelectedIntakeUnit =
+    Boolean(document.getElementById(`${prefix}intakeUnit`)?.value);
+
+  const hasTimes =
+    readHiddenList(`${prefix}times`).length > 0;
+
+  const hasWeekdays =
+    readHiddenList(`${prefix}weekdays`).length > 0;
+
+  const hasDates =
+    readHiddenList(`${prefix}explicitDates`).length > 0;
+
+  return (
+    hasTextValue ||
+    hasSelectedContentUnit ||
+    hasSelectedIntakeUnit ||
+    hasTimes ||
+    hasWeekdays ||
+    hasDates
+  );
+}
+window.requestMedicationFormReset = function() {
+  const prefix = 'create_';
+
+  if (
+    hasMedicationFormData(prefix) &&
+    !window.confirm('Очистить введённые данные?')
+  ) {
+    return;
+  }
+
+  const textIds = [
+    'name',
+    'manufacturer',
+    'contentValue',
+    'contentUnitOther',
+    'intakeQuantity',
+    'intakeUnitOther',
+    'details',
+    'startDate',
+    'endDate'
+  ];
+
+  textIds.forEach(id => {
+    const element = document.getElementById(`${prefix}${id}`);
+    if (element) element.value = '';
+  });
+
+  const contentUnit =
+    document.getElementById(`${prefix}contentUnit`);
+
+  if (contentUnit) {
+    contentUnit.value = '';
+  }
+
+  const intakeUnit =
+    document.getElementById(`${prefix}intakeUnit`);
+
+  if (intakeUnit) {
+    intakeUnit.value = '';
+  }
+
+  const scheduleType =
+    document.getElementById(`${prefix}scheduleType`);
+
+  if (scheduleType) {
+    scheduleType.value = 'daily';
+  }
+
+  const active =
+    document.getElementById(`${prefix}active`);
+
+  if (active) {
+    active.checked = true;
+  }
+
+  writeHiddenList(`${prefix}times`, []);
+  writeHiddenList(`${prefix}weekdays`, []);
+  writeHiddenList(`${prefix}explicitDates`, []);
+  const datePicker =
+  document.getElementById(`${prefix}datePicker`);
+
+  if (datePicker) {
+  datePicker.value = '';
+}
+  const timeHour =
+  document.getElementById(`${prefix}timeHour`);
+
+  const timeMinute =
+  document.getElementById(`${prefix}timeMinute`);
+
+  if (timeHour) {
+  timeHour.value = '00';
+}
+
+  if (timeMinute) {
+  timeMinute.value = '00';
+}
+  
+  document
+    .querySelectorAll(
+      `input[data-prefix="${prefix}"][data-weekday]`
+    )
+    .forEach(input => {
+      input.checked = false;
+    });
+
+  renderStructuredTimes(prefix);
+  renderStructuredDates(prefix);
+
+  window.syncMedicationOtherUnit(prefix, 'content');
+  window.syncMedicationOtherUnit(prefix, 'intake');
+  window.syncCreateScheduleFields();
+
+  document.getElementById(`${prefix}name`)?.focus();
+};
 window.toggleMedicationMode = function(id) {
   const state = getState();
   const med = state.medications.find(item => item.id === id);
