@@ -763,7 +763,43 @@ window.openEditMedication = function(id) {
     ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
     <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" value="${escapeHtml(med.startDate || '')}"></div>
     <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" value="${escapeHtml(med.endDate || '')}"></div>
-    <div class="full right"><button onclick="saveMedicationEdit('${med.id}')">${escapeHtml(tr('save'))}</button> <button onclick="document.getElementById('editDialog').close()">${escapeHtml(tr('close'))}</button></div>
+    <div class="full right"><button onclick="window.saveMedicationEdit = function(id) {
+  try {
+    const state = getState();
+    const med = state.medications.find(item => item.id === id);
+    if (!med) return;
+
+    const previousActive = Boolean(med.active);
+    const updatedMedication =
+      createMedicationFromForm('edit_');
+
+    Object.assign(med, updatedMedication);
+
+    recordRowHistory(
+      med,
+      'edited',
+      medicationRuleSummary(med)
+    );
+
+    if (previousActive !== med.active) {
+      recordRowHistory(
+        med,
+        med.active
+          ? 'activated'
+          : 'deactivated',
+        med.active
+          ? 'Статус препарата изменён на «Активно».'
+          : 'Статус препарата изменён на «Пассивно».'
+      );
+    }
+
+    saveState(state);
+    document.getElementById('editDialog').close();
+    mount('input');
+  } catch (error) {
+    showMedicationHint(error.message);
+  }
+};('${med.id}')">${escapeHtml(tr('save'))}</button> <button onclick="document.getElementById('editDialog').close()">${escapeHtml(tr('close'))}</button></div>
   </div>`;
   dialog.showModal();
   initializeStructuredEditors('edit_');
