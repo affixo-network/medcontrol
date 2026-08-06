@@ -116,15 +116,17 @@ function renderInputPage() {
       : tr('explicit_dates');
 
 const scheduleParametersText =
-  med.scheduleType === 'weekdays'
-    ? (med.weekdays || [])
-        .map(day => weekdayLabels[day] || day)
-        .join(', ') || '—'
-    : med.scheduleType === 'explicit_dates'
-      ? (med.explicitDates || [])
-          .map(date => formatDate(date))
+  med.scheduleType === 'daily'
+    ? 'Ежедневно'
+    : med.scheduleType === 'weekdays'
+      ? (med.weekdays || [])
+          .map(day => weekdayLabels[day] || day)
           .join(', ') || '—'
-      : '—';
+      : med.scheduleType === 'explicit_dates'
+        ? (med.explicitDates || [])
+            .map(date => formatDate(date))
+            .join(', ') || '—'
+        : '—';
 
     return `
       <tr>
