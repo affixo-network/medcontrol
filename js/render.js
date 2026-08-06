@@ -268,8 +268,16 @@ function renderInputPage() {
           ${structuredTimeEditorHtml('create_', [])}
           ${structuredWeekdayEditorHtml('create_', [])}
           ${structuredDateEditorHtml('create_', [])}
-          <div id="create_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="create_startDate" type="date"></div>
-          <div id="create_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="create_endDate" type="date"></div>
+          <div id="create_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input
+  id="create_startDate"
+  type="date"
+  onfocus="guardMedicationSequence('create_', 'startDate')"
+></div>
+          <div id="create_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input
+  id="create_endDate"
+  type="date"
+  onfocus="guardMedicationSequence('create_', 'endDate')"
+></div>
           <div class="full right">
   <button type="button" onclick="createMedication()">
     ${escapeHtml(tr('add'))}
