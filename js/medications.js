@@ -826,14 +826,16 @@ const periodText = item.scheduleType === 'explicit_dates'
   : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
 
     const contentUnitText =
-  item.contentUnit === 'other'
-    ? item.contentUnitOther
-    : item.contentUnit;
+  medicationContentUnitLabel(
+    item.contentUnit,
+    item.contentUnitOther
+  );
 
 const intakeUnitText =
-  item.intakeUnit === 'other'
-    ? item.intakeUnitOther
-    : item.intakeUnit;
+  medicationIntakeUnitLabel(
+    item.intakeUnit,
+    item.intakeUnitOther
+  );
 
 document.getElementById('medicationConfirmContent').innerHTML = `
   <table class="confirm-table">
