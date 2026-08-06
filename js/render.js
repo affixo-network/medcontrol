@@ -83,24 +83,118 @@ function renderActionPage() {
 }
 function renderInputPage() {
   const state = getState();
-  const rows = state.medications.slice().sort((a,b) => a.order - b.order).map(med => `
-    <tr>
-      <td>${med.order}</td>
-      <td>${escapeHtml(med.name)}</td>
-      <td>${escapeHtml(med.dose)}</td>
-      <td>${escapeHtml(med.scheduleType === 'daily' ? tr('every_day') : med.scheduleType === 'weekdays' ? tr('weekdays') : tr('explicit_dates'))}</td>
-      <td>${escapeHtml(med.details || '—')}</td>
-      <td>${escapeHtml((med.times || []).join(', '))}</td>
-      <td>${med.scheduleType === 'explicit_dates' ? (med.explicitDates || []).map(date => escapeHtml(formatDate(date))).join('<br>') || '—' : '—'}</td>
-      <td>${med.scheduleType === 'explicit_dates' ? '—' : escapeHtml(formatDate(med.startDate))}</td>
-      <td>${med.scheduleType === 'explicit_dates' ? '—' : escapeHtml(formatDate(med.endDate))}</td>
-      <td><span class="status ${med.active ? 'success' : 'upcoming'}">${escapeHtml(med.active ? tr('active') : tr('passive'))}</span></td>
-      <td><div class="inline">
-        <button onclick="openEditMedication('${med.id}')">${escapeHtml(tr('edit'))}</button>
-        <button onclick="toggleMedicationMode('${med.id}')">${escapeHtml(med.active ? tr('passive') : tr('active'))}</button>
-        <button onclick="showRowHistory('${med.id}')">${escapeHtml(tr('history'))}</button>
-      </div></td>
-    </tr>`).join('');
+  const rows = state.medications
+  .slice()
+  .sort((a, b) => a.order - b.order)
+  .map(med => {
+    const contentUnitText =
+      medicationContentUnitLabel(
+        med.contentUnit,
+        med.contentUnitOther
+      );
+
+    const intakeUnitText =
+      medicationIntakeUnitLabel(
+        med.intakeUnit,
+        med.intakeUnitOther
+      );
+
+    const scheduleText =
+      med.scheduleType === 'daily'
+        ? tr('every_day')
+        : med.scheduleType === 'weekdays'
+          ? tr('weekdays')
+          : tr('explicit_dates');
+
+    return `
+      <tr>
+        <td>${med.order}</td>
+
+        <td>${escapeHtml(med.name || '—')}</td>
+
+        <td>${escapeHtml(med.manufacturer || '—')}</td>
+
+        <td>${escapeHtml(med.contentValue || '—')}</td>
+
+        <td>${escapeHtml(contentUnitText)}</td>
+
+        <td>${escapeHtml(med.intakeQuantity || '—')}</td>
+
+        <td>${escapeHtml(intakeUnitText)}</td>
+
+        <td>${escapeHtml(scheduleText)}</td>
+
+        <td>${escapeHtml(med.details || '—')}</td>
+
+        <td>
+          ${escapeHtml((med.times || []).join(', ') || '—')}
+        </td>
+
+        <td>
+          ${
+            med.scheduleType === 'explicit_dates'
+              ? (med.explicitDates || [])
+                  .map(date => escapeHtml(formatDate(date)))
+                  .join('<br>') || '—'
+              : '—'
+          }
+        </td>
+
+        <td>
+          ${
+            med.scheduleType === 'daily'
+              ? escapeHtml(formatDate(med.startDate))
+              : '—'
+          }
+        </td>
+
+        <td>
+          ${
+            med.scheduleType === 'explicit_dates'
+              ? '—'
+              : escapeHtml(formatDate(med.endDate))
+          }
+        </td>
+
+        <td>
+          <span class="status ${
+            med.active ? 'success' : 'upcoming'
+          }">
+            ${
+              escapeHtml(
+                med.active
+                  ? tr('active')
+                  : tr('passive')
+              )
+            }
+          </span>
+        </td>
+
+        <td>
+          <div class="inline">
+            <button onclick="openEditMedication('${med.id}')">
+              ${escapeHtml(tr('edit'))}
+            </button>
+
+            <button onclick="toggleMedicationMode('${med.id}')">
+              ${
+                escapeHtml(
+                  med.active
+                    ? tr('passive')
+                    : tr('active')
+                )
+              }
+            </button>
+
+            <button onclick="showRowHistory('${med.id}')">
+              ${escapeHtml(tr('history'))}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  })
+  .join('');
 
   const body = `
     <section class="card"><h1>${escapeHtml(tr('title_input'))}</h1><p>${escapeHtml(tr('input_intro'))}</p></section>
@@ -299,7 +393,7 @@ function renderInputPage() {
 </ul></div>
       </div>
     </section>
-    <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>${escapeHtml(tr('dose'))}</th><th>${escapeHtml(tr('schedule'))}</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('dates'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="11">—</td></tr>`}</tbody></table></section>
+    <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>${escapeHtml(tr('schedule'))}</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('dates'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="15">—</td></tr>`}</tbody></table></section>
     <dialog id="rowHistoryDialog"><h2>${escapeHtml(tr('row_history_title'))}</h2><div id="rowHistoryContent"></div><div class="right" style="margin-top:14px"><button onclick="document.getElementById('rowHistoryDialog').close()">${escapeHtml(tr('close'))}</button></div></dialog>
     <dialog id="editDialog"><h2>${escapeHtml(tr('edit'))}</h2><div id="editDialogContent"></div></dialog>
     <dialog id="medicationConfirmDialog"><h2>${escapeHtml(tr('confirm_medication_title'))}</h2><div id="medicationConfirmContent"></div><div class="dialog-actions"><button type="button" onclick="cancelMedicationCreate()">${escapeHtml(tr('confirm_back'))}</button><button
