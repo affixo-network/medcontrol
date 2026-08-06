@@ -27,10 +27,16 @@ function medicationRuleSummary(med) {
 
   if (med.scheduleType === 'weekdays') {
     const days = Array.isArray(med.weekdays)
-      ? med.weekdays
-          .map(code => WEEKDAYS.find(item => item[0] === code)?.[1] || code)
-          .join(', ')
-      : '—';
+  ? med.weekdays
+      .slice()
+      .sort(
+        (a, b) =>
+          WEEKDAYS.findIndex(item => item[0] === a) -
+          WEEKDAYS.findIndex(item => item[0] === b)
+      )
+      .map(code => WEEKDAYS.find(item => item[0] === code)?.[1] || code)
+      .join(', ')
+  : '—';
 
     const start = med.startDate ? formatDate(med.startDate) : '—';
     const end = med.endDate ? formatDate(med.endDate) : '—';
