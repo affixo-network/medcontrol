@@ -99,12 +99,23 @@ function renderInputPage() {
         med.intakeUnitOther
       );
 
+    const weekdayLabels = {
+  Mon: tr('weekday_short')[0],
+  Tue: tr('weekday_short')[1],
+  Wed: tr('weekday_short')[2],
+  Thu: tr('weekday_short')[3],
+  Fri: tr('weekday_short')[4],
+  Sat: tr('weekday_short')[5],
+  Sun: tr('weekday_short')[6]
+};
     const scheduleText =
-      med.scheduleType === 'daily'
-        ? tr('every_day')
-        : med.scheduleType === 'weekdays'
-          ? tr('weekdays')
-          : tr('explicit_dates');
+  med.scheduleType === 'daily'
+    ? tr('every_day')
+    : med.scheduleType === 'weekdays'
+      ? `${tr('weekdays')}: ${(med.weekdays || [])
+    .map(day => weekdayLabels[day] || day)
+    .join(', ')}`
+      : tr('explicit_dates');
 
     return `
       <tr>
