@@ -108,8 +108,8 @@ function renderInputPage() {
   Sat: tr('weekday_short')[5],
   Sun: tr('weekday_short')[6]
 };
-    const normalizedScheduleType =
-  normalizedScheduleType ||
+   const normalizedScheduleType =
+  med.scheduleType ||
   (
     (med.explicitDates || []).length
       ? 'explicit_dates'
