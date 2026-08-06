@@ -108,6 +108,15 @@ function renderInputPage() {
   Sat: tr('weekday_short')[5],
   Sun: tr('weekday_short')[6]
 };
+    const weekdayOrder = [
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun'
+];
    const normalizedScheduleType =
   med.scheduleType ||
   (
@@ -129,8 +138,14 @@ const scheduleParametersText =
     ? 'Ежедневно'
     : normalizedScheduleType === 'weekdays'
       ? (med.weekdays || [])
-          .map(day => weekdayLabels[day] || day)
-          .join(', ') || '—'
+  .slice()
+  .sort(
+    (a, b) =>
+      weekdayOrder.indexOf(a) -
+      weekdayOrder.indexOf(b)
+  )
+  .map(day => weekdayLabels[day] || day)
+  .join(', ') || '—'
       : normalizedScheduleType === 'explicit_dates'
         ? (med.explicitDates || [])
             .map(date => formatDate(date))
