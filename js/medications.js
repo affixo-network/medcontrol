@@ -79,8 +79,33 @@ function structuredDateEditorHtml(prefix, dates = []) {
       <label>${escapeHtml(tr('dates'))}</label>
       <input id="${prefix}explicitDates" type="hidden" value="${escapeHtml(dates.join(','))}">
       <div class="date-picker-row">
-        <input id="${prefix}datePicker" type="date" aria-label="${escapeHtml(tr('date_label'))}">
-<button type="button" onclick="addStructuredDate('${prefix}')">${escapeHtml(tr('add_date'))}</button>
+        <input
+  id="${prefix}datePicker"
+  type="date"
+  aria-label="${escapeHtml(tr('date_label'))}"
+  onfocus="
+    if (
+      '${prefix}' === 'create_' &&
+      !guardMedicationSequence('${prefix}', 'explicitDates')
+    ) {
+      this.blur();
+    }
+  "
+>
+
+<button
+  type="button"
+  onclick="
+    if (
+      '${prefix}' !== 'create_' ||
+      guardMedicationSequence('${prefix}', 'explicitDates')
+    ) {
+      addStructuredDate('${prefix}');
+    }
+  "
+>
+  ${escapeHtml(tr('add_date'))}
+</button>
       </div>
       <div id="${prefix}datesList" class="choice-list"></div>
     </div>`;
