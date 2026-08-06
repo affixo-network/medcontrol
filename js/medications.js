@@ -776,49 +776,20 @@ window.openEditMedication = function(id) {
   <textarea id="edit_details" required>${escapeHtml(med.details || '')}</textarea>
 </div>
     <div><label>${escapeHtml(tr('schedule'))}</label><select id="edit_scheduleType" onchange="syncEditScheduleFields()"><option value="daily" ${med.scheduleType === 'daily' ? 'selected' : ''}>${escapeHtml(tr('every_day'))}</option><option value="weekdays" ${med.scheduleType === 'weekdays' ? 'selected' : ''}>${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates" ${med.scheduleType === 'explicit_dates' ? 'selected' : ''}>${escapeHtml(tr('explicit_dates'))}</option></select></div>
-    <div><label>${escapeHtml(tr('mode'))}</label><label class="active-choice"><input id="edit_active" type="checkbox" ${med.active ? 'checked' : ''}> ${escapeHtml(tr('active'))}</label></div>
+    
     ${structuredTimeEditorHtml('edit_', med.times || [])}
     ${structuredWeekdayEditorHtml('edit_', med.weekdays || [])}
     ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
     <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" value="${escapeHtml(med.startDate || '')}"></div>
     <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" value="${escapeHtml(med.endDate || '')}"></div>
-    <div class="full right"><button onclick="window.saveMedicationEdit = function(id) {
-  try {
-    const state = getState();
-    const med = state.medications.find(item => item.id === id);
-    if (!med) return;
-
-    const previousActive = Boolean(med.active);
-    const updatedMedication =
-      createMedicationFromForm('edit_');
-
-    Object.assign(med, updatedMedication);
-
-    recordRowHistory(
-      med,
-      'edited',
-      medicationRuleSummary(med)
-    );
-
-    if (previousActive !== med.active) {
-      recordRowHistory(
-        med,
-        med.active
-          ? 'activated'
-          : 'deactivated',
-        med.active
-          ? 'Статус препарата изменён на «Активно».'
-          : 'Статус препарата изменён на «Пассивно».'
-      );
-    }
-
-    saveState(state);
-    document.getElementById('editDialog').close();
-    mount('input');
-  } catch (error) {
-    showMedicationHint(error.message);
-  }
-};('${med.id}')">${escapeHtml(tr('save'))}</button> <button onclick="document.getElementById('editDialog').close()">${escapeHtml(tr('close'))}</button></div>
+    <div class="full right">
+  <button onclick="saveMedicationEdit('${med.id}')">
+    ${escapeHtml(tr('save'))}
+  </button>
+  <button onclick="document.getElementById('editDialog').close()">
+    ${escapeHtml(tr('close'))}
+  </button>
+</div>
   </div>`;
   dialog.showModal();
   initializeStructuredEditors('edit_');
@@ -832,36 +803,29 @@ window.saveMedicationEdit = function(id) {
 
     if (!med) return;
 
-    const previousActive = Boolean(med.active);
+    const currentActive = Boolean(med.active);
+
     const updatedMedication =
       createMedicationFromForm('edit_');
 
+    updatedMedication.active = currentActive;
+
     Object.assign(med, updatedMedication);
 
-    if (previousActive !== Boolean(med.active)) {
-      recordRowHistory(
-        med,
-        med.active ? 'activated' : 'deactivated',
-        med.active
-          ? 'Статус препарата изменён на «Активно».'
-          : 'Статус препарата изменён на «Пассивно».'
-      );
-    } else {
-      recordRowHistory(
-        med,
-        'edited',
-        medicationRuleSummary(med)
-      );
-    }
+    recordRowHistory(
+      med,
+      'edited',
+      medicationRuleSummary(med)
+    );
 
     saveState(state);
     document.getElementById('editDialog').close();
     mount('input');
   } catch (error) {
-    showMedicationHint(error.message);
-  }
+  console.error('saveMedicationEdit failed:', error);
+  alert(`Ошибка сохранения: ${error.message}`);
+}
 };
-
 window.showRowHistory = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
