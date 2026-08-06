@@ -387,7 +387,14 @@ window.guardMedicationSequence = function(prefix, targetKey) {
 
   const contentUnit = valueOf('contentUnit');
   const intakeUnit = valueOf('intakeUnit');
+  const scheduleType =
+  valueOf('scheduleType') || 'daily';
 
+  const times = readHiddenList(`${prefix}times`);
+  const weekdays = readHiddenList(`${prefix}weekdays`);
+  const explicitDates =
+  readHiddenList(`${prefix}explicitDates`);
+  
   const sequence = [
     {
       key: 'name',
@@ -446,6 +453,50 @@ window.guardMedicationSequence = function(prefix, targetKey) {
   code: 'schedule',
   elementId: 'scheduleType',
   valid: () => Boolean(valueOf('scheduleType'))
+},
+{
+  key: 'times',
+  code: 'times',
+  elementId: 'timeHour',
+  valid: () => times.length > 0
+},
+{
+  key: 'weekdays',
+  code: 'weekdays',
+  elementId: 'weekdays_wrap',
+  valid: () =>
+    scheduleType !== 'weekdays' ||
+    weekdays.length > 0
+},
+{
+  key: 'explicitDates',
+  code: 'dates',
+  elementId: 'datePicker',
+  valid: () =>
+    scheduleType !== 'explicit_dates' ||
+    explicitDates.length > 0
+},
+{
+  key: 'startDate',
+  code: 'startDate',
+  elementId: 'startDate',
+  valid: () =>
+    scheduleType !== 'daily' ||
+    Boolean(valueOf('startDate'))
+},
+{
+  key: 'endDate',
+  code: 'endDate',
+  elementId: 'endDate',
+  valid: () =>
+    scheduleType === 'explicit_dates' ||
+    Boolean(valueOf('endDate'))
+},
+{
+  key: 'submit',
+  code: 'save_failed',
+  elementId: 'name',
+  valid: () => true
 }
   ];
 
