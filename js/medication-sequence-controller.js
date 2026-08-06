@@ -108,19 +108,26 @@
 
     const action = element.dataset.medSequenceAction;
 
-    if (action === 'add-time') {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      window.addStructuredTime('create_');
-    } else if (action === 'add-date') {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      window.addStructuredDate('create_');
-    } else if (action === 'submit') {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      window.createMedication();
-    }
+    if (action === 'weekday-toggle') {
+  window.setTimeout(() => {
+    window.syncStructuredWeekdays('create_');
+  }, 0);
+
+} else if (action === 'add-time') {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.addStructuredTime('create_');
+
+} else if (action === 'add-date') {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.addStructuredDate('create_');
+
+} else if (action === 'submit') {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.createMedication();
+}
   }
 
   function handleChange(event) {
