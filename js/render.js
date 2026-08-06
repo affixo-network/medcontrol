@@ -279,9 +279,13 @@ function renderInputPage() {
   onfocus="guardMedicationSequence('create_', 'endDate')"
 ></div>
           <div class="full right">
-  <button type="button" onclick="createMedication()">
-    ${escapeHtml(tr('add'))}
-  </button>
+  <button
+  id="createMedicationButton"
+  type="button"
+  onclick="createMedication()"
+>
+  ${escapeHtml(tr('add'))}
+</button>
 </div>
         </div>
       </div>
@@ -298,7 +302,13 @@ function renderInputPage() {
     <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>${escapeHtml(tr('dose'))}</th><th>${escapeHtml(tr('schedule'))}</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('dates'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="11">—</td></tr>`}</tbody></table></section>
     <dialog id="rowHistoryDialog"><h2>${escapeHtml(tr('row_history_title'))}</h2><div id="rowHistoryContent"></div><div class="right" style="margin-top:14px"><button onclick="document.getElementById('rowHistoryDialog').close()">${escapeHtml(tr('close'))}</button></div></dialog>
     <dialog id="editDialog"><h2>${escapeHtml(tr('edit'))}</h2><div id="editDialogContent"></div></dialog>
-    <dialog id="medicationConfirmDialog"><h2>${escapeHtml(tr('confirm_medication_title'))}</h2><div id="medicationConfirmContent"></div><div class="dialog-actions"><button type="button" onclick="cancelMedicationCreate()">${escapeHtml(tr('confirm_back'))}</button><button type="button" onclick="confirmMedicationCreate()">${escapeHtml(tr('confirm_save'))}</button></div></dialog>`;
+    <dialog id="medicationConfirmDialog"><h2>${escapeHtml(tr('confirm_medication_title'))}</h2><div id="medicationConfirmContent"></div><div class="dialog-actions"><button type="button" onclick="cancelMedicationCreate()">${escapeHtml(tr('confirm_back'))}</button><button
+  id="confirmMedicationCreateButton"
+  type="button"
+  onclick="confirmMedicationCreate()"
+>
+  ${escapeHtml(tr('confirm_save'))}
+</button></div></dialog>`;
   document.body.innerHTML = appShell(tr('title_input'), 'input', body);
   scheduleClock();
   initializeStructuredEditors('create_');
