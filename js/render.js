@@ -108,21 +108,30 @@ function renderInputPage() {
   Sat: tr('weekday_short')[5],
   Sun: tr('weekday_short')[6]
 };
+    const normalizedScheduleType =
+  normalizedScheduleType ||
+  (
+    (med.explicitDates || []).length
+      ? 'explicit_dates'
+      : (med.weekdays || []).length
+        ? 'weekdays'
+        : 'daily'
+  );
     const scheduleText =
-  med.scheduleType === 'daily'
+  normalizedScheduleType === 'daily'
     ? tr('every_day')
-    : med.scheduleType === 'weekdays'
+    : normalizedScheduleType === 'weekdays'
       ? tr('weekdays')
       : tr('explicit_dates');
 
 const scheduleParametersText =
-  med.scheduleType === 'daily'
+  normalizedScheduleType === 'daily'
     ? 'Ежедневно'
-    : med.scheduleType === 'weekdays'
+    : normalizedScheduleType === 'weekdays'
       ? (med.weekdays || [])
           .map(day => weekdayLabels[day] || day)
           .join(', ') || '—'
-      : med.scheduleType === 'explicit_dates'
+      : normalizedScheduleType === 'explicit_dates'
         ? (med.explicitDates || [])
             .map(date => formatDate(date))
             .join(', ') || '—'
@@ -156,14 +165,14 @@ const scheduleParametersText =
 
 <td>
   ${
-    med.scheduleType === 'daily'
+    normalizedScheduleType === 'daily'
       ? escapeHtml(formatDate(med.startDate))
       : '—'
   }
 </td>
         <td>
           ${
-            med.scheduleType === 'explicit_dates'
+            normalizedScheduleType === 'explicit_dates'
               ? '—'
               : escapeHtml(formatDate(med.endDate))
           }
