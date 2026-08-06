@@ -332,14 +332,24 @@ window.changeCreateScheduleType = function(select) {
   const previousValue =
     select.dataset.previousValue || 'daily';
 
-  if (
-    !window.guardMedicationSequence(
-      'create_',
-      'scheduleType'
-    )
-  ) {
+  const details =
+    document
+      .getElementById('create_details')
+      ?.value
+      ?.trim() || '';
+
+  if (!details) {
     select.value = previousValue;
     window.syncCreateScheduleFields();
+
+    showMedicationHint('details');
+
+    window.setTimeout(() => {
+      document
+        .getElementById('create_details')
+        ?.focus();
+    }, 0);
+
     return;
   }
 
