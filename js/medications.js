@@ -202,6 +202,56 @@ window.initializeStructuredEditors = function(prefix) {
   syncStructuredWeekdays(prefix);
 };
 
+function medicationContentUnitLabel(unit, otherValue = '') {
+  if (unit === 'other') {
+    return otherValue || '—';
+  }
+
+  const labels = {
+    mcg: 'мкг',
+    mg: 'мг',
+    g: 'г',
+    kg: 'кг',
+    ml: 'мл',
+    l: 'л',
+    '%': '%',
+    'mg/ml': 'мг/мл',
+    'mcg/ml': 'мкг/мл',
+    'mg/g': 'мг/г',
+    IU: 'МЕ',
+    unit: 'ед.'
+  };
+
+  return labels[unit] || unit || '—';
+}
+
+function medicationIntakeUnitLabel(unit, otherValue = '') {
+  if (unit === 'other') {
+    return otherValue || '—';
+  }
+
+  const labels = {
+    tablet: 'таблетка',
+    capsule: 'капсула',
+    ml: 'мл',
+    drop: 'капля',
+    teaspoon: 'чайная ложка',
+    tablespoon: 'столовая ложка',
+    dose: 'доза',
+    puff: 'впрыск',
+    ampoule: 'ампула',
+    vial: 'флакон',
+    packet: 'пакет',
+    sachet: 'саше',
+    suppository: 'суппозиторий',
+    patch: 'пластырь',
+    injection: 'инъекция',
+    unit: 'единица'
+  };
+
+  return labels[unit] || unit || '—';
+}
+
 function createMedicationFromForm(prefix) {
   const name = document.getElementById(`${prefix}name`)?.value.trim() || '';
 const manufacturer = document.getElementById(`${prefix}manufacturer`)?.value.trim() || '';
