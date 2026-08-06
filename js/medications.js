@@ -822,8 +822,7 @@ window.saveMedicationEdit = function(id) {
     document.getElementById('editDialog').close();
     mount('input');
   } catch (error) {
-  console.error('saveMedicationEdit failed:', error);
-  alert(`Ошибка сохранения: ${error.message}`);
+  showMedicationHint(error.message);
 }
 };
 window.showRowHistory = function(id) {
