@@ -112,10 +112,19 @@ function renderInputPage() {
   med.scheduleType === 'daily'
     ? tr('every_day')
     : med.scheduleType === 'weekdays'
-      ? `${tr('weekdays')}: ${(med.weekdays || [])
-    .map(day => weekdayLabels[day] || day)
-    .join(', ')}`
+      ? tr('weekdays')
       : tr('explicit_dates');
+
+const scheduleParametersText =
+  med.scheduleType === 'weekdays'
+    ? (med.weekdays || [])
+        .map(day => weekdayLabels[day] || day)
+        .join(', ') || '—'
+    : med.scheduleType === 'explicit_dates'
+      ? (med.explicitDates || [])
+          .map(date => formatDate(date))
+          .join(', ') || '—'
+      : '—';
 
     return `
       <tr>
@@ -133,32 +142,23 @@ function renderInputPage() {
 
         <td>${escapeHtml(intakeUnitText)}</td>
 
-        <td>${escapeHtml(scheduleText)}</td>
+       <td>${escapeHtml(med.details || '—')}</td>
 
-        <td>${escapeHtml(med.details || '—')}</td>
+<td>${escapeHtml(scheduleText)}</td>
 
-        <td>
-          ${escapeHtml((med.times || []).join(', ') || '—')}
-        </td>
+<td>${escapeHtml(scheduleParametersText)}</td>
 
-        <td>
-          ${
-            med.scheduleType === 'explicit_dates'
-              ? (med.explicitDates || [])
-                  .map(date => escapeHtml(formatDate(date)))
-                  .join('<br>') || '—'
-              : '—'
-          }
-        </td>
+<td>
+  ${escapeHtml((med.times || []).join(', ') || '—')}
+</td>
 
-        <td>
-          ${
-            med.scheduleType === 'daily'
-              ? escapeHtml(formatDate(med.startDate))
-              : '—'
-          }
-        </td>
-
+<td>
+  ${
+    med.scheduleType === 'daily'
+      ? escapeHtml(formatDate(med.startDate))
+      : '—'
+  }
+</td>
         <td>
           ${
             med.scheduleType === 'explicit_dates'
@@ -404,7 +404,7 @@ function renderInputPage() {
 </ul></div>
       </div>
     </section>
-    <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>${escapeHtml(tr('schedule'))}</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('dates'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="15">—</td></tr>`}</tbody></table></section>
+    <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('schedule'))}</th><th>Параметры расписания</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="15">—</td></tr>`}</tbody></table></section>
     <dialog id="rowHistoryDialog"><h2>${escapeHtml(tr('row_history_title'))}</h2><div id="rowHistoryContent"></div><div class="right" style="margin-top:14px"><button onclick="document.getElementById('rowHistoryDialog').close()">${escapeHtml(tr('close'))}</button></div></dialog>
     <dialog id="editDialog"><h2>${escapeHtml(tr('edit'))}</h2><div id="editDialogContent"></div></dialog>
     <dialog id="medicationConfirmDialog"><h2>${escapeHtml(tr('confirm_medication_title'))}</h2><div id="medicationConfirmContent"></div><div class="dialog-actions"><button type="button" onclick="cancelMedicationCreate()">${escapeHtml(tr('confirm_back'))}</button><button
