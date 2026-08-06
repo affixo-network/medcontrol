@@ -623,6 +623,25 @@ window.guardMedicationSequence = function(prefix, targetKey) {
   return true;
 };
 
+window.toggleMedicationMode = function(id) {
+  const state = getState();
+  const med = state.medications.find(item => item.id === id);
+
+  if (!med) return;
+
+  med.active = !Boolean(med.active);
+
+  recordRowHistory(
+    med,
+    med.active ? 'activated' : 'deactivated',
+    med.active
+      ? 'Статус препарата изменён на «Активно».'
+      : 'Статус препарата изменён на «Пассивно».'
+  );
+
+  saveState(state);
+  mount('input');
+};
 window.openEditMedication = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
@@ -810,9 +829,31 @@ window.saveMedicationEdit = function(id) {
   try {
     const state = getState();
     const med = state.medications.find(item => item.id === id);
+
     if (!med) return;
-    Object.assign(med, createMedicationFromForm('edit_'));
-    recordRowHistory(med, 'edited', medicationRuleSummary(med));
+
+    const previousActive = Boolean(med.active);
+    const updatedMedication =
+      createMedicationFromForm('edit_');
+
+    Object.assign(med, updatedMedication);
+
+    if (previousActive !== Boolean(med.active)) {
+      recordRowHistory(
+        med,
+        med.active ? 'activated' : 'deactivated',
+        med.active
+          ? 'Статус препарата изменён на «Активно».'
+          : 'Статус препарата изменён на «Пассивно».'
+      );
+    } else {
+      recordRowHistory(
+        med,
+        'edited',
+        medicationRuleSummary(med)
+      );
+    }
+
     saveState(state);
     document.getElementById('editDialog').close();
     mount('input');
