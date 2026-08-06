@@ -52,7 +52,22 @@ function structuredWeekdayEditorHtml(prefix, selected = []) {
       <div class="weekday-grid">
         ${days.map(([code, label]) => `
           <label class="weekday-choice">
-            <input type="checkbox" data-prefix="${prefix}" data-weekday="${code}" ${selected.includes(code) ? 'checked' : ''} onchange="syncStructuredWeekdays('${prefix}')">
+            <input
+  type="checkbox"
+  data-prefix="${prefix}"
+  data-weekday="${code}"
+  ${selected.includes(code) ? 'checked' : ''}
+  onclick="
+    if (
+      '${prefix}' === 'create_' &&
+      !guardMedicationSequence('${prefix}', 'weekdays')
+    ) {
+      event.preventDefault();
+      return false;
+    }
+  "
+  onchange="syncStructuredWeekdays('${prefix}')"
+>
             <span>${escapeHtml(label)}</span>
           </label>`).join('')}
       </div>
