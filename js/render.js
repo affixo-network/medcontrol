@@ -209,6 +209,9 @@ const scheduleParametersText =
 
         <td>
           <div class="inline">
+          <button onclick="openEditMedication('${med.id}')">
+  ${escapeHtml(tr('edit'))}
+</button>
             <button onclick="toggleMedicationMode('${med.id}')">
   ${
     escapeHtml(
