@@ -642,6 +642,25 @@ window.toggleMedicationMode = function(id) {
   saveState(state);
   mount('input');
 };
+window.cancelMedication = function(id) {
+  const state = getState();
+  const med = state.medications.find(item => item.id === id);
+
+  if (!med) return;
+  if (med.cancelled) return;
+
+  med.cancelled = true;
+  med.active = false;
+
+  recordRowHistory(
+    med,
+    'cancelled',
+    'Приём препарата отменён.'
+  );
+
+  saveState(state);
+  mount('input');
+};
 window.openEditMedication = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
