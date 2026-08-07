@@ -195,16 +195,22 @@ const scheduleParametersText =
 
         <td>
           <span class="status ${
-            med.active ? 'success' : 'upcoming'
-          }">
-            ${
-              escapeHtml(
-                med.active
-                  ? tr('active')
-                  : tr('passive')
-              )
-            }
-          </span>
+  med.cancelled
+    ? 'upcoming'
+    : med.active
+      ? 'success'
+      : 'upcoming'
+}">
+  ${
+    escapeHtml(
+      med.cancelled
+        ? 'Отменено'
+        : med.active
+          ? tr('active')
+          : tr('passive')
+    )
+  }
+</span>
         </td>
 
         <td>
