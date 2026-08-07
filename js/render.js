@@ -209,24 +209,23 @@ const scheduleParametersText =
 
         <td>
           <div class="inline">
-            <button onclick="openEditMedication('${med.id}')">
-              ${escapeHtml(tr('edit'))}
-            </button>
-
             <button onclick="toggleMedicationMode('${med.id}')">
-              ${
-                escapeHtml(
-                  med.active
-                    ? tr('passive')
-                    : tr('active')
-                )
-              }
-            </button>
+  ${
+    escapeHtml(
+      med.active
+        ? tr('passive')
+        : tr('active')
+    )
+  }
+</button>
+window.cancelMedication
+<button onclick="startMedicationCancellation('${med.id}')">
+  Отменено
+</button>
 
-            <button onclick="showRowHistory('${med.id}')">
-              ${escapeHtml(tr('history'))}
-            </button>
-          </div>
+<button onclick="showRowHistory('${med.id}')">
+  ${escapeHtml(tr('history'))}
+</button>          </div>
         </td>
       </tr>
     `;
