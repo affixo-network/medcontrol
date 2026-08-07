@@ -62,6 +62,9 @@ function rowHistoryHtml(entries) {
       : '';
 
   const cellValue = (entry, field, formatter = value => value) => {
+    if (entry.action === 'cancelled') {
+  return '';
+}
     const source =
       entry.action === 'created'
         ? entry.snapshot
@@ -107,10 +110,14 @@ function rowHistoryHtml(entries) {
 
       <tbody>
         ${sortedEntries.map(entry => {
+          const isCancelled =
+          entry.action === 'cancelled';
           const scheduleType =
-            entry.snapshot?.scheduleType ||
-            entry.changes?.scheduleType ||
-            '';
+  isCancelled
+    ? ''
+    : entry.snapshot?.scheduleType ||
+      entry.changes?.scheduleType ||
+      '';
 
           const scheduleText =
             scheduleType === 'daily'
@@ -124,9 +131,11 @@ function rowHistoryHtml(entries) {
           let scheduleParameters = '';
 
           const source =
-            entry.action === 'created'
-              ? entry.snapshot
-              : entry.changes;
+  isCancelled
+    ? {}
+    : entry.action === 'created'
+      ? entry.snapshot
+      : entry.changes;
 
           if (source) {
             if (
@@ -237,17 +246,19 @@ function rowHistoryHtml(entries) {
               </td>
 
               <td>
-                ${escapeHtml(
-                  cellValue(
-                    entry,
-                    'active',
-                    value =>
-                      value
-                        ? 'Активно'
-                        : 'Пассивно'
-                  )
-                )}
-              </td>
+  ${escapeHtml(
+    isCancelled
+      ? 'Отменено'
+      : cellValue(
+          entry,
+          'active',
+          value =>
+            value
+              ? 'Активно'
+              : 'Пассивно'
+        )
+  )}
+</td>
             </tr>
           `;
         }).join('')}
