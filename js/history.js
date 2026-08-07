@@ -2,6 +2,7 @@ function rowHistoryActionLabel(action) {
   const labels = {
     created: 'Создано',
     edited: 'Изменено',
+    cancelled: 'Отменено',
     activated: 'Активировано',
     deactivated: 'Деактивировано',
 
