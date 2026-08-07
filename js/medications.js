@@ -633,7 +633,7 @@ window.toggleMedicationMode = function(id) {
 
   recordRowHistory(
     med,
-    med.active ? 'activated' : 'deactivated',
+    'edited',
     med.active
       ? 'Статус препарата изменён на «Активно».'
       : 'Статус препарата изменён на «Пассивно».'
@@ -828,8 +828,22 @@ window.saveMedicationEdit = function(id) {
 window.showRowHistory = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
-  document.getElementById('rowHistoryContent').innerHTML = rowHistoryHtml(med.rowHistory || []);
-  document.getElementById('rowHistoryDialog').showModal();
+
+  const dialog =
+    document.getElementById('rowHistoryDialog');
+
+  const title =
+    dialog?.querySelector('h2');
+
+  if (title) {
+    title.textContent =
+      `Журнал изменений показателей препарата «${med.name}»`;
+  }
+
+  document.getElementById('rowHistoryContent').innerHTML =
+    rowHistoryHtml(med.rowHistory || []);
+
+  dialog?.showModal();
 };
 
 let pendingMedicationCreate = null;
