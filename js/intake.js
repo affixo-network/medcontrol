@@ -111,9 +111,109 @@ function buildTodayEntries() {
     (a, b) => new Date(a.plannedAt) - new Date(b.plannedAt)
   );
 }
+function medicationHistorySnapshot(med) {
+  return {
+    manufacturer: med.manufacturer || '',
+    contentValue: med.contentValue || '',
+    contentUnit: med.contentUnit || '',
+    contentUnitOther: med.contentUnitOther || '',
+
+    intakeQuantity: med.intakeQuantity || '',
+    intakeUnit: med.intakeUnit || '',
+    intakeUnitOther: med.intakeUnitOther || '',
+
+    details: med.details || '',
+    scheduleType: med.scheduleType || 'daily',
+
+    weekdays: Array.isArray(med.weekdays)
+      ? [...med.weekdays]
+      : [],
+
+    explicitDates: Array.isArray(med.explicitDates)
+      ? [...med.explicitDates]
+      : [],
+
+    times: Array.isArray(med.times)
+      ? [...med.times]
+      : [],
+
+    startDate: med.startDate || '',
+    endDate: med.endDate || '',
+
+    active: Boolean(med.active)
+  };
+}
+function medicationHistoryDiff(previousSnapshot, currentSnapshot) {
+  const fields = [
+    'manufacturer',
+    'contentValue',
+    'contentUnit',
+    'contentUnitOther',
+    'intakeQuantity',
+    'intakeUnit',
+    'intakeUnitOther',
+    'details',
+    'scheduleType',
+    'weekdays',
+    'explicitDates',
+    'times',
+    'startDate',
+    'endDate',
+    'active'
+  ];
+
+  const diff = {};
+
+  fields.forEach(field => {
+    const previousValue = previousSnapshot?.[field];
+    const currentValue = currentSnapshot?.[field];
+
+    const previousText = Array.isArray(previousValue)
+      ? JSON.stringify(previousValue)
+      : String(previousValue ?? '');
+
+    const currentText = Array.isArray(currentValue)
+      ? JSON.stringify(currentValue)
+      : String(currentValue ?? '');
+
+    if (previousText !== currentText) {
+      diff[field] = currentValue;
+    }
+  });
+
+  return diff;
+}
 function recordRowHistory(med, action, payload) {
-  med.rowHistory = Array.isArray(med.rowHistory) ? med.rowHistory : [];
-  med.rowHistory.unshift({ at: nowISO(), action, payload });
+  med.rowHistory =
+    Array.isArray(med.rowHistory)
+      ? med.rowHistory
+      : [];
+
+  const currentSnapshot =
+    medicationHistorySnapshot(med);
+
+  const previousEntry =
+    med.rowHistory[0];
+
+  const previousSnapshot =
+    previousEntry?.snapshot || null;
+
+  let changes = currentSnapshot;
+
+  if (action === 'edited' && previousSnapshot) {
+    changes = medicationHistoryDiff(
+      previousSnapshot,
+      currentSnapshot
+    );
+  }
+
+  med.rowHistory.unshift({
+    at: nowISO(),
+    action,
+    payload,
+    snapshot: currentSnapshot,
+    changes
+  });
 }
 function intakeHistoryRows(medId, period) {
   const logs = getState().intakeLogs.filter(log => log.medicationId === medId).filter(log => {
