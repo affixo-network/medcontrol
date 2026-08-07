@@ -642,6 +642,63 @@ window.toggleMedicationMode = function(id) {
   saveState(state);
   mount('input');
 };
+window.startMedicationCancellation = function(id) {
+  const state = getState();
+  const med = state.medications.find(item => item.id === id);
+
+  if (!med) return;
+  if (med.cancelled) return;
+
+  const scheduleText =
+    med.scheduleType === 'daily'
+      ? 'Каждый день'
+      : med.scheduleType === 'weekdays'
+        ? 'Дни недели'
+        : 'Даты';
+
+  const firstConfirm = window.confirm(
+    `Вы собираетесь отменить приём препарата «${med.name}».\n\n` +
+    `Текущее расписание: ${scheduleText}.\n\n` +
+    `Важно: «Отменено» отличается от статуса «Пассивно».\n` +
+    `Пассивно — временная остановка с возможностью продолжения.\n` +
+    `Отменено — окончательное завершение этой карточки препарата.\n\n` +
+    `Продолжить?`
+  );
+
+  if (!firstConfirm) return;
+
+  const datesText =
+    med.scheduleType === 'explicit_dates'
+      ? (med.explicitDates || [])
+          .map(date => formatDate(date))
+          .join(', ')
+      : `${formatDate(med.startDate)} → ${formatDate(med.endDate)}`;
+
+  const secondConfirm = window.confirm(
+    `Подтвердите прекращение действия дат приёма.\n\n` +
+    `Текущий период / даты:\n${datesText || '—'}\n\n` +
+    `После отмены эта карточка больше не будет использоваться ` +
+    `для дальнейшего приёма.\n\n` +
+    `Продолжить?`
+  );
+
+  if (!secondConfirm) return;
+
+  const thirdConfirm = window.confirm(
+    `ФИНАЛЬНОЕ ПОДТВЕРЖДЕНИЕ\n\n` +
+    `Препарат: ${med.name}\n` +
+    `Статус будет установлен: Отменено\n\n` +
+    `Все ранее введённые данные и история сохранятся,\n` +
+    `но эта карточка будет окончательно закрыта.\n\n` +
+    `Если в будущем вы снова начнёте принимать этот препарат,\n` +
+    `необходимо будет создать новую карточку и новую историю.\n\n` +
+    `Подтвердить отмену?`
+  );
+
+  if (!thirdConfirm) return;
+
+  window.cancelMedication(id);
+};
 window.cancelMedication = function(id) {
   const state = getState();
   const med = state.medications.find(item => item.id === id);
