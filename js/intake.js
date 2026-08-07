@@ -138,9 +138,10 @@ function medicationHistorySnapshot(med) {
       : [],
 
     startDate: med.startDate || '',
-    endDate: med.endDate || '',
+endDate: med.endDate || '',
 
-    active: Boolean(med.active)
+active: Boolean(med.active),
+cancelled: Boolean(med.cancelled)
   };
 }
 function medicationHistoryDiff(previousSnapshot, currentSnapshot) {
@@ -159,7 +160,8 @@ function medicationHistoryDiff(previousSnapshot, currentSnapshot) {
     'times',
     'startDate',
     'endDate',
-    'active'
+    'active',
+    'cancelled'
   ];
 
   const diff = {};
