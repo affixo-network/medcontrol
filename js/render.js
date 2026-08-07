@@ -218,7 +218,7 @@ const scheduleParametersText =
     )
   }
 </button>
-window.cancelMedication
+
 <button onclick="startMedicationCancellation('${med.id}')">
   Отменено
 </button>
