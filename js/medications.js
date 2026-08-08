@@ -653,6 +653,7 @@ window.toggleMedicationMode = function(id) {
   const med = state.medications.find(item => item.id === id);
 
   if (!med) return;
+  if (med.cancelled) return;
 
   med.active = !Boolean(med.active);
 
@@ -746,6 +747,7 @@ window.cancelMedication = function(id) {
 window.openEditMedication = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
+  if (med.cancelled) return;
   const dialog = document.getElementById('editDialog');
   const content = document.getElementById('editDialogContent');
   content.innerHTML = `<div class="form-grid">
@@ -903,6 +905,7 @@ window.saveMedicationEdit = function(id) {
     const med = state.medications.find(item => item.id === id);
 
     if (!med) return;
+    if (med.cancelled) return;
 
     const currentActive = Boolean(med.active);
 
