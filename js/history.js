@@ -243,15 +243,21 @@ const parseLegacyHistoryPayload = entry => {
               scheduleParameters = 'Ежедневно';
             }
 
-            if ('weekdays' in source) {
-              scheduleParameters =
-                formatWeekdays(source.weekdays);
-            }
+            if (
+  scheduleType === 'weekdays' &&
+  'weekdays' in source
+) {
+  scheduleParameters =
+    formatWeekdays(source.weekdays);
+}
 
-            if ('explicitDates' in source) {
-              scheduleParameters =
-                formatDates(source.explicitDates);
-            }
+if (
+  scheduleType === 'explicit_dates' &&
+  'explicitDates' in source
+) {
+  scheduleParameters =
+    formatDates(source.explicitDates);
+}
           }
 
           return `
