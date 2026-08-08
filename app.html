@@ -27,18 +27,24 @@
 }
 
 .row-history-dialog #rowHistoryContent {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
 }
 
 .row-history-dialog table {
   width: 100%;
-  font-size: 12px;
+  table-layout: fixed;
+  font-size: 11px;
 }
 
 .row-history-dialog th,
 .row-history-dialog td {
-  padding: 6px 8px;
+  padding: 5px 4px;
   vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
     .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     button, select, input { font: inherit; }
