@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'affixo_medcontrol_standard_v3';
+const STORAGE_CORRUPT_BACKUP_KEY = `${STORAGE_KEY}_corrupt_backup`;
 
 function getState() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -26,7 +27,16 @@ delete parsed.settings.languageMode;
           Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
       return parsed;
-    } catch (err) {}
+    } catch (err) {
+      try {
+        localStorage.setItem(STORAGE_CORRUPT_BACKUP_KEY, raw);
+      } catch (backupError) {
+        console.error('MedControl: failed to preserve corrupted storage.', backupError);
+        throw err;
+      }
+
+      console.error('MedControl: corrupted storage preserved before recovery.', err);
+    }
   }
 
   const initial = makeDefaultState();
