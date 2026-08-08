@@ -60,20 +60,90 @@ function rowHistoryHtml(entries) {
     Array.isArray(values) && values.length
       ? values.map(value => formatDate(value)).join(', ')
       : '';
+const parseLegacyHistoryPayload = entry => {
+  if (
+    entry.snapshot ||
+    entry.changes ||
+    !entry.payload ||
+    typeof entry.payload !== 'string'
+  ) {
+    return null;
+  }
 
-  const cellValue = (entry, field, formatter = value => value) => {
-    if (entry.action === 'cancelled') {
-  return '';
-}
-    const source =
-      entry.action === 'created'
-        ? entry.snapshot
-        : entry.changes;
+  const result = {};
 
-    if (!source || !(field in source)) {
-      return '';
+  const parts = entry.payload
+    .split(';')
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  if (parts.length) {
+    result.scheduleText = parts[0];
+  }
+
+  parts.forEach(part => {
+    if (part.startsWith('Время:')) {
+      result.times = part
+        .replace('Время:', '')
+        .trim();
     }
 
+    if (part.startsWith('Детали:')) {
+      result.details = part
+        .replace('Детали:', '')
+        .trim();
+    }
+
+    if (part.startsWith('Правило приёма:')) {
+      const rule = part
+        .replace('Правило приёма:', '')
+        .trim();
+
+      const dateRange = rule.split('→');
+
+      if (dateRange.length === 2) {
+        result.startDate =
+          dateRange[0].trim();
+
+        result.endDate =
+          dateRange[1].trim();
+      } else {
+        result.scheduleParameters = rule;
+      }
+    }
+  });
+
+  if (result.scheduleText === 'Каждый день') {
+    result.scheduleParameters = 'Ежедневно';
+  }
+
+  return result;
+};
+  
+  
+  const cellValue = (entry, field, formatter = value => value) => {
+  if (entry.action === 'cancelled') {
+    return '';
+  }
+
+  const source =
+    entry.action === 'created'
+      ? entry.snapshot
+      : entry.changes;
+
+  if (!source || !(field in source)) {
+    const legacy =
+      parseLegacyHistoryPayload(entry);
+
+    if (
+      legacy &&
+      Object.prototype.hasOwnProperty.call(legacy, field)
+    ) {
+      return legacy[field];
+    }
+
+    return '';
+  }
     const value = source[field];
 
     if (
@@ -112,6 +182,8 @@ function rowHistoryHtml(entries) {
         ${sortedEntries.map(entry => {
           const isCancelled =
           entry.action === 'cancelled';
+          const legacy =
+  parseLegacyHistoryPayload(entry);
           const scheduleType =
   isCancelled
     ? ''
@@ -120,15 +192,19 @@ function rowHistoryHtml(entries) {
       '';
 
           const scheduleText =
-            scheduleType === 'daily'
-              ? 'Каждый день'
-              : scheduleType === 'weekdays'
-                ? 'Дни недели'
-                : scheduleType === 'explicit_dates'
-                  ? 'Даты'
-                  : '';
+  legacy?.scheduleText ||
+  (
+    scheduleType === 'daily'
+      ? 'Каждый день'
+      : scheduleType === 'weekdays'
+        ? 'Дни недели'
+        : scheduleType === 'explicit_dates'
+          ? 'Даты'
+          : ''
+  );
 
-          let scheduleParameters = '';
+          let scheduleParameters =
+  legacy?.scheduleParameters || '';
 
           const source =
   isCancelled
