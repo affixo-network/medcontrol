@@ -70,63 +70,107 @@ const parseLegacyHistoryPayload = entry => {
     return null;
   }
 
+  const payload = entry.payload.trim();
   const result = {};
 
-  const parts = entry.payload
-    .split(';')
-    .map(part => part.trim())
-    .filter(Boolean);
+  const scheduleMatch = payload.match(
+    /^(Каждый день|Дни недели|Даты)(?:;|$)/
+  );
 
-  if (
-  parts.length &&
-  (
-    parts[0] === 'Каждый день' ||
-    parts[0] === 'Дни недели' ||
-    parts[0] === 'Даты'
-  )
-) {
-  result.scheduleText = parts[0];
-}
+  if (scheduleMatch) {
+    result.scheduleText = scheduleMatch[1];
+  }
 
-  parts.forEach(part => {
-    if (part.startsWith('Время:')) {
-      result.times = part
-        .replace('Время:', '')
-        .trim();
-    }
+  const timeMatch = payload.match(
+    /(?:^|;\s*)Время:\s*([^;]*)/
+  );
 
-    if (part.startsWith('Детали:')) {
-      result.details = part
-        .replace('Детали:', '')
-        .trim();
-    }
+  if (timeMatch) {
+    result.times = timeMatch[1].trim();
+  }
 
-    if (part.startsWith('Правило приёма:')) {
-      const rule = part
-        .replace('Правило приёма:', '')
-        .trim();
+  const detailsMatch = payload.match(
+    /(?:^|;\s*)Детали:\s*([^;]*)/
+  );
 
+  if (detailsMatch) {
+    result.details = detailsMatch[1].trim();
+  }
+
+  const ruleMatch = payload.match(
+    /(?:^|;\s*)Правило приёма:\s*(.*)$/
+  );
+
+  if (ruleMatch) {
+    const rule = ruleMatch[1].trim();
+
+    if (result.scheduleText === 'Каждый день') {
       const dateRange = rule.split('→');
 
       if (dateRange.length === 2) {
-        result.startDate =
-          dateRange[0].trim();
+        result.startDate = dateRange[0].trim();
+        result.endDate = dateRange[1].trim();
+      }
 
-        result.endDate =
-          dateRange[1].trim();
-      } else {
-        result.scheduleParameters = rule;
+      result.scheduleParameters = 'Ежедневно';
+    }
+
+    if (result.scheduleText === 'Дни недели') {
+      const ruleParts = rule.split(';');
+
+      const weekdaysText =
+        ruleParts[0]?.trim() || '';
+
+      const weekdayOrder = [
+        'Пн',
+        'Вт',
+        'Ср',
+        'Чт',
+        'Пт',
+        'Сб',
+        'Вс'
+      ];
+
+      result.scheduleParameters =
+        weekdaysText
+          .split(',')
+          .map(day => day.trim())
+          .filter(Boolean)
+          .sort(
+            (a, b) =>
+              weekdayOrder.indexOf(a) -
+              weekdayOrder.indexOf(b)
+          )
+          .join(', ');
+
+      const datePart =
+        ruleParts.slice(1).join(';').trim();
+
+      if (datePart) {
+        const dateRange = datePart.split('→');
+
+        if (dateRange.length === 2) {
+          const startDate = dateRange[0].trim();
+          const endDate = dateRange[1].trim();
+
+          if (startDate && startDate !== '—') {
+            result.startDate = startDate;
+          }
+
+          if (endDate && endDate !== '—') {
+            result.endDate = endDate;
+          }
+        }
       }
     }
-  });
 
-  if (result.scheduleText === 'Каждый день') {
-    result.scheduleParameters = 'Ежедневно';
+    if (result.scheduleText === 'Даты') {
+      result.scheduleParameters = rule;
+    }
   }
 
   return result;
-};
-  
+};  
   
   const cellValue = (entry, field, formatter = value => value) => {
   if (entry.action === 'cancelled') {
