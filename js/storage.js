@@ -48,5 +48,20 @@ function saveState(state) {
   state.settings.timezone =
     Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch (error) {
+    console.error('MedControl: failed to save application state.', error);
+
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(
+        'Не удалось сохранить изменения MedControl.\n\n' +
+        'Предыдущие сохранённые данные не изменены. ' +
+        'Освободите место в хранилище браузера или проверьте его доступность и повторите действие.'
+      );
+    }
+
+    return false;
+  }
 }
