@@ -93,6 +93,10 @@ const activeMedications = state.medications
   .slice()
   .sort((a, b) => a.order - b.order);
 
+const canResetMedControl =
+  activeMedications.length === 0 &&
+  cancelledMedications.length > 0;
+  
 const cancelledMedications = state.medications
   .filter(med => med.cancelled)
   .slice()
@@ -507,6 +511,21 @@ const cancelledRows = cancelledMedications
       }
     </tbody>
   </table>
+</section>
+<section class="card">
+  <h2>Управление данными</h2>
+
+  <p class="muted">
+    Полный сброс доступен только после отмены всех препаратов.
+  </p>
+
+  <button
+    type="button"
+    onclick="startMedControlReset()"
+    ${canResetMedControl ? '' : 'disabled'}
+  >
+    Сброс
+  </button>
 </section>
     <dialog id="rowHistoryDialog" class="row-history-dialog"><h2>${escapeHtml(tr('row_history_title'))}</h2><div id="rowHistoryContent"></div><div class="right" style="margin-top:14px"><button onclick="document.getElementById('rowHistoryDialog').close()">${escapeHtml(tr('close'))}</button></div></dialog>
     <dialog id="editDialog"><h2>${escapeHtml(tr('edit'))}</h2><div id="editDialogContent"></div></dialog>
