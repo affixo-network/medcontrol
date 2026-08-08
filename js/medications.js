@@ -1051,3 +1051,40 @@ window.confirmMedicationCreate = function() {
   document.getElementById('medicationConfirmDialog')?.close();
   mount('input');
 };
+window.startMedControlReset = function() {
+  const state = getState();
+
+  const activeMedications =
+    state.medications.filter(med => !med.cancelled);
+
+  const cancelledMedications =
+    state.medications.filter(med => med.cancelled);
+
+  if (activeMedications.length > 0) {
+    alert(
+      'Сброс невозможен, пока существуют действующие препараты.'
+    );
+    return;
+  }
+
+  if (cancelledMedications.length === 0) {
+    alert('Нет данных для сброса.');
+    return;
+  }
+
+  const confirmed = confirm(
+    'Сброс полностью удалит архив отменённых препаратов, историю изменений и журнал приёмов. Продолжить?'
+  );
+
+  if (!confirmed) return;
+
+  resetMedControlData();
+};
+
+function resetMedControlData() {
+  const freshState = makeDefaultState();
+
+  saveState(freshState);
+
+  mount('input');
+}
