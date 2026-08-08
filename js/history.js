@@ -241,8 +241,26 @@ const parseLegacyHistoryPayload = entry => {
           entry.action === 'cancelled';
           const legacy =
   parseLegacyHistoryPayload(entry);
-          const scheduleType =
+
+          const source =
   isCancelled
+    ? {}
+    : entry.action === 'created'
+      ? entry.snapshot
+      : entry.changes;
+
+          const meaningfulScheduleChange =
+  entry.action === 'created' ||
+  Boolean(legacy?.scheduleText) ||
+  Boolean(
+    entry.action === 'edited' &&
+    source &&
+    ['weekdays', 'explicitDates', 'startDate', 'endDate']
+      .some(field => Object.prototype.hasOwnProperty.call(source, field))
+  );
+
+          const scheduleType =
+  isCancelled || !meaningfulScheduleChange
     ? ''
     : entry.snapshot?.scheduleType ||
       entry.changes?.scheduleType ||
@@ -263,20 +281,10 @@ const parseLegacyHistoryPayload = entry => {
           let scheduleParameters =
   legacy?.scheduleParameters || '';
 
-          const source =
-  isCancelled
-    ? {}
-    : entry.action === 'created'
-      ? entry.snapshot
-      : entry.changes;
-
-          if (source) {
+          if (source && meaningfulScheduleChange) {
             if (
               scheduleType === 'daily' &&
-              (
-                entry.action === 'created' ||
-                'scheduleType' in source
-              )
+              entry.action === 'created'
             ) {
               scheduleParameters = 'Ежедневно';
             }
