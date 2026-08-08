@@ -85,6 +85,7 @@ function renderActionPage() {
   document.body.innerHTML = appShell(tr('title_action'), 'action', body);
   scheduleClock();
 }
+function renderInputPage() {
 const state = getState();
 
 const activeMedications = state.medications
