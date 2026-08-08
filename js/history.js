@@ -77,9 +77,16 @@ const parseLegacyHistoryPayload = entry => {
     .map(part => part.trim())
     .filter(Boolean);
 
-  if (parts.length) {
-    result.scheduleText = parts[0];
-  }
+  if (
+  parts.length &&
+  (
+    parts[0] === 'Каждый день' ||
+    parts[0] === 'Дни недели' ||
+    parts[0] === 'Даты'
+  )
+) {
+  result.scheduleText = parts[0];
+}
 
   parts.forEach(part => {
     if (part.startsWith('Время:')) {
@@ -134,6 +141,12 @@ const parseLegacyHistoryPayload = entry => {
   if (!source || !(field in source)) {
     const legacy =
       parseLegacyHistoryPayload(entry);
+    const legacyStatus =
+  entry.action === 'activated'
+    ? 'Активно'
+    : entry.action === 'deactivated'
+      ? 'Пассивно'
+      : '';
 
     if (
       legacy &&
@@ -325,7 +338,8 @@ const parseLegacyHistoryPayload = entry => {
   ${escapeHtml(
     isCancelled
       ? 'Отменено'
-      : cellValue(
+      : legacyStatus ||
+        cellValue(
           entry,
           'active',
           value =>
