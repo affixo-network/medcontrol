@@ -193,6 +193,12 @@ const parseLegacyHistoryPayload = entry => {
 
       <tbody>
         ${sortedEntries.map(entry => {
+          const legacyStatus =
+  entry.action === 'activated'
+    ? 'Активно'
+    : entry.action === 'deactivated'
+      ? 'Пассивно'
+      : '';
           const isCancelled =
           entry.action === 'cancelled';
           const legacy =
