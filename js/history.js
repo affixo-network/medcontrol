@@ -185,12 +185,6 @@ const parseLegacyHistoryPayload = entry => {
   if (!source || !(field in source)) {
     const legacy =
       parseLegacyHistoryPayload(entry);
-    const legacyStatus =
-  entry.action === 'activated'
-    ? 'Активно'
-    : entry.action === 'deactivated'
-      ? 'Пассивно'
-      : '';
 
     if (
       legacy &&
@@ -211,7 +205,7 @@ const parseLegacyHistoryPayload = entry => {
       return '—';
     }
 
-    return formatter(value);
+    return formatter(value, source);
   };
 
   return `
@@ -326,10 +320,10 @@ if (
                   cellValue(
                     entry,
                     'contentUnit',
-                    value =>
+                    (value, source) =>
                       medicationContentUnitLabel(
                         value,
-                        entry.snapshot?.contentUnitOther || ''
+                        source?.contentUnitOther || ''
                       )
                   )
                 )}
@@ -342,10 +336,10 @@ if (
                   cellValue(
                     entry,
                     'intakeUnit',
-                    value =>
+                    (value, source) =>
                       medicationIntakeUnitLabel(
                         value,
-                        entry.snapshot?.intakeUnitOther || ''
+                        source?.intakeUnitOther || ''
                       )
                   )
                 )}
