@@ -483,6 +483,10 @@ const cancelledRows = cancelledMedications
       </div>
     </section>
     <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('schedule'))}</th><th>Параметры расписания</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="15">—</td></tr>`}</tbody></table></section>
+    <section class="card">
+  <h2>Архив отменённых препаратов</h2>
+  <table>
+    <thead>
     <tr>
         <th>${escapeHtml(tr('row'))}</th>
         <th>${escapeHtml(tr('medication'))}</th>
