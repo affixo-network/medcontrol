@@ -5,6 +5,25 @@
     return;
   }
 
+  const normalizeMedicationForEditComparison = med => ({
+    name: med.name || '',
+    manufacturer: med.manufacturer || '',
+    contentValue: med.contentValue || '',
+    contentUnit: med.contentUnit || '',
+    contentUnitOther: med.contentUnitOther || '',
+    intakeQuantity: med.intakeQuantity || '',
+    intakeUnit: med.intakeUnit || '',
+    intakeUnitOther: med.intakeUnitOther || '',
+    details: med.details || '',
+    scheduleType: med.scheduleType || 'daily',
+    times: Array.isArray(med.times) ? [...med.times].sort() : [],
+    startDate: med.startDate || '',
+    endDate: med.endDate || '',
+    active: Boolean(med.active),
+    weekdays: Array.isArray(med.weekdays) ? [...med.weekdays].sort() : [],
+    explicitDates: Array.isArray(med.explicitDates) ? [...med.explicitDates].sort() : []
+  });
+
   window.saveMedicationEdit = function(id) {
     try {
       const state = getState();
@@ -15,11 +34,10 @@
       const updatedMedication = createMedicationFromForm('edit_');
       updatedMedication.active = Boolean(med.active);
 
-      const hasChanges = Object.keys(updatedMedication).some(key =>
-        JSON.stringify(med[key]) !== JSON.stringify(updatedMedication[key])
-      );
+      const before = normalizeMedicationForEditComparison(med);
+      const after = normalizeMedicationForEditComparison(updatedMedication);
 
-      if (!hasChanges) {
+      if (JSON.stringify(before) === JSON.stringify(after)) {
         document.getElementById('editDialog')?.close();
         return;
       }
