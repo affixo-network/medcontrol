@@ -21,9 +21,12 @@
     .slot { border:1px solid #ddd; border-radius:10px; padding:10px; margin:10px 0; }
     .slot-head { display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
     .row-history-dialog {
-  width: 96vw;
-  max-width: 96vw;
+  width: calc(100vw - 20px);
+  max-width: none;
   max-height: 90vh;
+  margin-left: 10px;
+  margin-right: 10px;
+  box-sizing: border-box;
 }
 
 .row-history-dialog #rowHistoryContent {
@@ -34,7 +37,7 @@
 
 .row-history-dialog table {
   width: 100%;
-  table-layout: fixed;
+ 
   font-size: 11px;
 }
 
