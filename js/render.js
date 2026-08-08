@@ -85,11 +85,19 @@ function renderActionPage() {
   document.body.innerHTML = appShell(tr('title_action'), 'action', body);
   scheduleClock();
 }
-function renderInputPage() {
-  const state = getState();
-  const rows = state.medications
+const state = getState();
+
+const activeMedications = state.medications
+  .filter(med => !med.cancelled)
   .slice()
-  .sort((a, b) => a.order - b.order)
+  .sort((a, b) => a.order - b.order);
+
+const cancelledMedications = state.medications
+  .filter(med => med.cancelled)
+  .slice()
+  .sort((a, b) => a.order - b.order);
+
+const rows = activeMedications
   .map(med => {
     const contentUnitText =
       medicationContentUnitLabel(
@@ -233,7 +241,7 @@ const scheduleParametersText =
 </button>
 
 <button onclick="startMedicationCancellation('${med.id}')">
-  Отменено
+  Отменить
 </button>
 
 <button onclick="showRowHistory('${med.id}')">
@@ -243,6 +251,37 @@ const scheduleParametersText =
       </tr>
     `;
   })
+  .join('');
+
+const cancelledRows = cancelledMedications
+  .map(med => `
+    <tr>
+      <td>${med.order}</td>
+      <td>${escapeHtml(med.name || '—')}</td>
+      <td>${escapeHtml(med.manufacturer || '—')}</td>
+      <td>${escapeHtml(med.contentValue || '—')}</td>
+      <td>${escapeHtml(
+        medicationContentUnitLabel(
+          med.contentUnit,
+          med.contentUnitOther
+        )
+      )}</td>
+      <td>${escapeHtml(med.intakeQuantity || '—')}</td>
+      <td>${escapeHtml(
+        medicationIntakeUnitLabel(
+          med.intakeUnit,
+          med.intakeUnitOther
+        )
+      )}</td>
+      <td>${escapeHtml(med.details || '—')}</td>
+      <td>Отменено</td>
+      <td>
+        <button onclick="showRowHistory('${med.id}')">
+          ${escapeHtml(tr('history'))}
+        </button>
+      </td>
+    </tr>
+  `)
   .join('');
 
   const body = `
@@ -443,6 +482,27 @@ const scheduleParametersText =
       </div>
     </section>
     <section class="card"><h2>${escapeHtml(tr('input_title_2'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>${escapeHtml(tr('details'))}</th><th>${escapeHtml(tr('schedule'))}</th><th>Параметры расписания</th><th>${escapeHtml(tr('time_slots'))}</th><th>${escapeHtml(tr('start_date'))}</th><th>${escapeHtml(tr('end_date'))}</th><th>${escapeHtml(tr('mode'))}</th><th>${escapeHtml(tr('actions'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="15">—</td></tr>`}</tbody></table></section>
+    <tr>
+        <th>${escapeHtml(tr('row'))}</th>
+        <th>${escapeHtml(tr('medication'))}</th>
+        <th>Производитель</th>
+        <th>Количественное содержание</th>
+        <th>Единица содержания</th>
+        <th>Количество приёма</th>
+        <th>Единица приёма</th>
+        <th>${escapeHtml(tr('details'))}</th>
+        <th>Статус</th>
+        <th>История</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${
+        cancelledRows ||
+        `<tr><td colspan="10">Архив пуст.</td></tr>`
+      }
+    </tbody>
+  </table>
+</section>
     <dialog id="rowHistoryDialog" class="row-history-dialog"><h2>${escapeHtml(tr('row_history_title'))}</h2><div id="rowHistoryContent"></div><div class="right" style="margin-top:14px"><button onclick="document.getElementById('rowHistoryDialog').close()">${escapeHtml(tr('close'))}</button></div></dialog>
     <dialog id="editDialog"><h2>${escapeHtml(tr('edit'))}</h2><div id="editDialogContent"></div></dialog>
     <dialog id="medicationConfirmDialog"><h2>${escapeHtml(tr('confirm_medication_title'))}</h2><div id="medicationConfirmContent"></div><div class="dialog-actions"><button type="button" onclick="cancelMedicationCreate()">${escapeHtml(tr('confirm_back'))}</button><button
