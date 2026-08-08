@@ -20,6 +20,26 @@
     .status-chip { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid #ddd; background:#fafafa; }
     .slot { border:1px solid #ddd; border-radius:10px; padding:10px; margin:10px 0; }
     .slot-head { display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
+    .row-history-dialog {
+  width: 96vw;
+  max-width: 96vw;
+  max-height: 90vh;
+}
+
+.row-history-dialog #rowHistoryContent {
+  overflow-x: auto;
+}
+
+.row-history-dialog table {
+  width: 100%;
+  font-size: 12px;
+}
+
+.row-history-dialog th,
+.row-history-dialog td {
+  padding: 6px 8px;
+  vertical-align: top;
+}
     .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
     button, select, input { font: inherit; }
     button { padding:8px 12px; cursor:pointer; }
