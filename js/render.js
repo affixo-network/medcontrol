@@ -93,14 +93,14 @@ const activeMedications = state.medications
   .slice()
   .sort((a, b) => a.order - b.order);
 
-const canResetMedControl =
-  activeMedications.length === 0 &&
-  cancelledMedications.length > 0;
-  
 const cancelledMedications = state.medications
   .filter(med => med.cancelled)
   .slice()
   .sort((a, b) => a.order - b.order);
+
+const canResetMedControl =
+  activeMedications.length === 0 &&
+  cancelledMedications.length > 0;
 
 const rows = activeMedications
   .map(med => {
