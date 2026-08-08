@@ -156,9 +156,34 @@ window.removeStructuredTime = function(prefix, value) {
 };
 
 window.syncStructuredWeekdays = function(prefix) {
-  const values = [...document.querySelectorAll(`input[data-prefix="${prefix}"][data-weekday]:checked`)]
-    .map(input => input.dataset.weekday);
-  writeHiddenList(`${prefix}weekdays`, values);
+  const weekdayOrder = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun'
+  ];
+
+  const values = [
+    ...document.querySelectorAll(
+      `input[data-prefix="${prefix}"][data-weekday]:checked`
+    )
+  ]
+    .map(input => input.dataset.weekday)
+    .sort(
+      (a, b) =>
+        weekdayOrder.indexOf(a) -
+        weekdayOrder.indexOf(b)
+    );
+
+  const element =
+    document.getElementById(`${prefix}weekdays`);
+
+  if (element) {
+    element.value = values.join(',');
+  }
 };
 
 window.renderStructuredDates = function(prefix) {
