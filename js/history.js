@@ -251,6 +251,7 @@ const parseLegacyHistoryPayload = entry => {
           <th>Дата начала</th>
           <th>Дата окончания</th>
           <th>Статус</th>
+          <th>${escapeHtml(tr('medication'))}</th>
         </tr>
       </thead>
 
@@ -408,6 +409,8 @@ if (
         )
   )}
 </td>
+
+              <td>${escapeHtml(cellValue(entry, 'name'))}</td>
             </tr>
           `;
         }).join('')}
