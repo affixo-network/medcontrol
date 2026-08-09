@@ -6,6 +6,15 @@ function getState() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
+
+      if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        Array.isArray(parsed)
+      ) {
+        throw new Error('MedControl: invalid storage root.');
+      }
+
       parsed.settings = parsed.settings || {};
       parsed.medications = Array.isArray(parsed.medications) ? parsed.medications : [];
       parsed.intakeLogs = Array.isArray(parsed.intakeLogs) ? parsed.intakeLogs : [];
