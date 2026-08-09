@@ -282,10 +282,12 @@ function createMedicationFromForm(prefix) {
 const manufacturer = document.getElementById(`${prefix}manufacturer`)?.value.trim() || '';
 
 const contentValue = document.getElementById(`${prefix}contentValue`)?.value.trim() || '';
+const contentValueNumber = Number(contentValue);
 const contentUnit = document.getElementById(`${prefix}contentUnit`)?.value || '';
 const contentUnitOther = document.getElementById(`${prefix}contentUnitOther`)?.value.trim() || '';
 
 const intakeQuantity = document.getElementById(`${prefix}intakeQuantity`)?.value.trim() || '';
+const intakeQuantityNumber = Number(intakeQuantity);
 const intakeUnit = document.getElementById(`${prefix}intakeUnit`)?.value || '';
 const intakeUnitOther = document.getElementById(`${prefix}intakeUnitOther`)?.value.trim() || '';
 
@@ -300,13 +302,23 @@ const details = document.getElementById(`${prefix}details`)?.value.trim() || '';
 
   if (!name) throw new Error('name');
 
-if (!contentValue) throw new Error('contentValue');
+if (
+  !contentValue ||
+  !Number.isFinite(contentValueNumber) ||
+  contentValueNumber < 0
+) {
+  throw new Error('contentValue');
+}
 if (!contentUnit) throw new Error('contentUnit');
 if (contentUnit === 'other' && !contentUnitOther) {
   throw new Error('contentUnitOther');
 }
 
-if (!intakeQuantity) {
+if (
+  !intakeQuantity ||
+  !Number.isFinite(intakeQuantityNumber) ||
+  intakeQuantityNumber < 0
+) {
   throw new Error('intakeQuantity');
 }
 
