@@ -208,6 +208,31 @@ const parseLegacyHistoryPayload = entry => {
     return formatter(value, source);
   };
 
+  const unitCellValue = (entry, unitField, otherField, formatter) => {
+    if (entry.action === 'cancelled') return '';
+
+    const source =
+      entry.action === 'created'
+        ? entry.snapshot
+        : entry.changes;
+
+    if (!source) return '';
+
+    if (Object.prototype.hasOwnProperty.call(source, unitField)) {
+      const unit = source[unitField];
+      if (unit === '' || unit === null || unit === undefined) return '—';
+      return formatter(unit, source[otherField] || '');
+    }
+
+    if (Object.prototype.hasOwnProperty.call(source, otherField)) {
+      const otherValue = source[otherField];
+      if (otherValue === '' || otherValue === null || otherValue === undefined) return '—';
+      return formatter('other', otherValue);
+    }
+
+    return '';
+  };
+
   return `
     <table>
       <thead>
@@ -323,35 +348,11 @@ if (
 
               <td>${escapeHtml(cellValue(entry, 'contentValue'))}</td>
 
-              <td>
-                ${escapeHtml(
-                  cellValue(
-                    entry,
-                    'contentUnit',
-                    (value, source) =>
-                      medicationContentUnitLabel(
-                        value,
-                        source?.contentUnitOther || ''
-                      )
-                  )
-                )}
-              </td>
+              <td>${escapeHtml(unitCellValue(entry, 'contentUnit', 'contentUnitOther', medicationContentUnitLabel))}</td>
 
               <td>${escapeHtml(cellValue(entry, 'intakeQuantity'))}</td>
 
-              <td>
-                ${escapeHtml(
-                  cellValue(
-                    entry,
-                    'intakeUnit',
-                    (value, source) =>
-                      medicationIntakeUnitLabel(
-                        value,
-                        source?.intakeUnitOther || ''
-                      )
-                  )
-                )}
-              </td>
+              <td>${escapeHtml(unitCellValue(entry, 'intakeUnit', 'intakeUnitOther', medicationIntakeUnitLabel))}</td>
 
               <td>${escapeHtml(cellValue(entry, 'details'))}</td>
 
