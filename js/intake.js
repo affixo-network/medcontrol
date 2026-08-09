@@ -113,6 +113,7 @@ function buildTodayEntries() {
 }
 function medicationHistorySnapshot(med) {
   return {
+    name: med.name || '',
     manufacturer: med.manufacturer || '',
     contentValue: med.contentValue || '',
     contentUnit: med.contentUnit || '',
@@ -146,6 +147,7 @@ cancelled: Boolean(med.cancelled)
 }
 function medicationHistoryDiff(previousSnapshot, currentSnapshot) {
   const fields = [
+    'name',
     'manufacturer',
     'contentValue',
     'contentUnit',
@@ -185,7 +187,7 @@ function medicationHistoryDiff(previousSnapshot, currentSnapshot) {
 
   return diff;
 }
-function recordRowHistory(med, action, payload) {
+function recordRowHistory(med, action, payload, previousSnapshot = null) {
   med.rowHistory =
     Array.isArray(med.rowHistory)
       ? med.rowHistory
@@ -197,14 +199,17 @@ function recordRowHistory(med, action, payload) {
   const previousEntry =
     med.rowHistory[0];
 
-  const previousSnapshot =
+  const historySnapshot =
     previousEntry?.snapshot || null;
+
+  const baselineSnapshot =
+    previousSnapshot || historySnapshot;
 
   let changes = currentSnapshot;
 
-  if (action === 'edited' && previousSnapshot) {
+  if (action === 'edited' && baselineSnapshot) {
     changes = medicationHistoryDiff(
-      previousSnapshot,
+      baselineSnapshot,
       currentSnapshot
     );
   }
