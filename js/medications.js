@@ -920,6 +920,7 @@ window.saveMedicationEdit = function(id) {
     if (med.cancelled) return;
 
     const currentActive = Boolean(med.active);
+    const previousSnapshot = medicationHistorySnapshot(med);
 
     const updatedMedication =
       createMedicationFromForm('edit_');
@@ -931,7 +932,8 @@ window.saveMedicationEdit = function(id) {
     recordRowHistory(
       med,
       'edited',
-      medicationRuleSummary(med)
+      medicationRuleSummary(med),
+      previousSnapshot
     );
 
     saveState(state);
