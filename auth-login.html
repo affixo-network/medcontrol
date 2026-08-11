@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase-config.js";
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const status=document.getElementById("status");
-async function finish(){const u=new URL(location.href);if(u.searchParams.has("code")){const {error}=await supabase.auth.exchangeCodeForSession(u.searchParams.get("code"));if(error){status.textContent=error.message;return;}}const {data,error}=await supabase.auth.getSession();if(error){status.textContent=error.message;return;}if(data.session) location.replace("/app.html");}
-document.getElementById("send").onclick=async()=>{const email=document.getElementById("email").value.trim();if(!email){status.textContent="Enter email.";return;}status.textContent="Sending…";const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:`${location.origin}/auth-login.html`}});status.textContent=error?error.message:"Magic link sent.";};
+async function finish(){const u=new URL(location.href);if(u.searchParams.has("code")){const {error}=await supabase.auth.exchangeCodeForSession(u.searchParams.get("code"));if(error){status.textContent=error.message;return;}}const {data,error}=await supabase.auth.getSession();if(error){status.textContent=error.message;return;}if(data.session) location.replace("app.html");}
+document.getElementById("send").onclick=async()=>{const email=document.getElementById("email").value.trim();if(!email){status.textContent="Enter email.";return;}status.textContent="Sending…";const redirectTo=new URL("auth-login.html",location.href).href;const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo}});status.textContent=error?error.message:"Magic link sent.";};
 await finish();
 </script></body></html>
