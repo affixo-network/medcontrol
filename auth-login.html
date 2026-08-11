@@ -28,10 +28,8 @@
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase-config.js";
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const debugEl = document.getElementById("debug");
 const statusEl = document.getElementById("status");
