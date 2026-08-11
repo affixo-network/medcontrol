@@ -1,0 +1,38 @@
+name: Run controlled Staging integration
+
+on:
+  push:
+    branches: [medcontrol-staging-integration]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch Staging source
+        run: git fetch origin staging-supabase-sync:refs/remotes/origin/staging-supabase-sync
+      - name: Run integration patcher
+        run: python tools/integrate_staging_backend.py
+      - name: Sanity checks
+        run: |
+          test -f supabase-config.js
+          test -f supabase/migrations/202608090010_split_event_reference_integrity_triggers.sql
+          grep -q 'record_taken_intake' app.html
+          grep -q 'SUPABASE_PUBLISHABLE_KEY' app.html
+          grep -q 'contentValue' app.html
+          ! grep -q 'lewdbjjaohqxbirzhrbm' app.html
+          ! grep -q 'medication_logs' app.html
+          ! grep -q 'medication_times' app.html
+      - name: Commit integrated files
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.html auth-login.html settings.html supabase-config.js supabase/migrations
+          git commit -m 'Integrate verified Staging backend into original MedControl UI'
+          git push origin HEAD:medcontrol-staging-integration
