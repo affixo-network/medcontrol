@@ -2,7 +2,9 @@
   const originalGuardTemporalEdit = window.guardTemporalEdit;
   if (typeof originalGuardTemporalEdit === 'function') {
     window.guardTemporalEdit = function(kind) {
+      const eventType = window.event?.type || '';
       if (window.__openingMedicationEditor) return true;
+      if (eventType === 'focus' || eventType === 'focusin') return true;
       return originalGuardTemporalEdit(kind);
     };
   }
@@ -10,7 +12,7 @@
   const originalSyncStructuredWeekdays = window.syncStructuredWeekdays;
   if (typeof originalSyncStructuredWeekdays === 'function') {
     window.syncStructuredWeekdays = function(prefix) {
-      const userTriggered = Boolean(window.event && window.event.isTrusted);
+      const userTriggered = Boolean(window.event && window.event.isTrusted && window.event.type === 'change');
       if (prefix === 'edit_' && userTriggered && !guardTemporalEdit('schedule')) return;
 
       const weekdayOrder = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -31,7 +33,7 @@
       } finally {
         window.setTimeout(() => {
           window.__openingMedicationEditor = false;
-        }, 0);
+        }, 50);
       }
     };
   }
