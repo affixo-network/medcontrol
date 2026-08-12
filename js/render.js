@@ -72,16 +72,19 @@ function renderActionPage() {
   const entries = buildTodayEntries();
   const rows = entries.map(item => {
     const log = item.log;
+    const temporalButtons = `<button onclick="beginTemporalCancellation('${item.medication.id}','schedule')">Отменить Расписание</button> <button onclick="beginTemporalCancellation('${item.medication.id}','time')">Отменить Время</button>`;
     const actionButtons = !log
-      ? `<button onclick="markTaken('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('take'))}</button> <button onclick="markCancelled('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('cancel'))}</button>`
-      : `<button onclick="openCorrection('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('correct'))}</button> <button onclick="showIntakeHistory('${item.medication.id}')">${escapeHtml(tr('history'))}</button>`;
+      ? `<button onclick="markTaken('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('take'))}</button> ${temporalButtons}`
+      : `<button onclick="openCorrection('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('correct'))}</button> ${temporalButtons}`;
     return `<tr><td>${item.medication.order}</td><td>${escapeHtml(item.medication.name)}</td><td>${escapeHtml(item.medication.dose)}</td><td>${escapeHtml(item.plannedTime)}</td><td><span class="${statusClass(item.displayStatus)}">${escapeHtml(statusLabel(item.displayStatus))}</span></td><td>${log ? escapeHtml(formatDateTime(log.actualAt)) : '—'}</td><td>${actionButtons}</td><td><button onclick="showIntakeHistory('${item.medication.id}')">${escapeHtml(tr('history'))}</button></td></tr>`;
   }).join('');
   const body = `
     <section class="card"><h1>${escapeHtml(tr('title_action'))}</h1><p>${escapeHtml(tr('action_intro'))}</p></section>
+    ${temporalPendingNoticeHtml()}
     <section class="card"><h2>${escapeHtml(tr('action_title_1'))}</h2><table><thead><tr><th>${escapeHtml(tr('row'))}</th><th>${escapeHtml(tr('medication'))}</th><th>${escapeHtml(tr('dose'))}</th><th>${escapeHtml(tr('planned_time'))}</th><th>${escapeHtml(tr('status'))}</th><th>${escapeHtml(tr('actual_time'))}</th><th>${escapeHtml(tr('actions'))}</th><th>${escapeHtml(tr('history'))}</th></tr></thead><tbody>${rows || `<tr><td colspan="8">${escapeHtml(tr('no_items'))}</td></tr>`}</tbody></table></section>
     <dialog id="intakeHistoryDialog"><h2>${escapeHtml(tr('history_title'))}</h2><div class="inline" style="margin-bottom:12px"><label>${escapeHtml(tr('history_period'))}</label><select id="historyPeriodSelect" onchange="refreshIntakeHistory()"><option value="today">${escapeHtml(tr('period_today'))}</option><option value="7">${escapeHtml(tr('period_7'))}</option><option value="30">${escapeHtml(tr('period_30'))}</option><option value="all">${escapeHtml(tr('period_all'))}</option></select></div><div id="intakeHistoryContent"></div><div class="right" style="margin-top:14px"><button onclick="document.getElementById('intakeHistoryDialog').close()">${escapeHtml(tr('close'))}</button></div></dialog>
-    <dialog id="correctionDialog"><h2>${escapeHtml(tr('correct'))}</h2><div id="correctionContent"></div></dialog>`;
+    <dialog id="correctionDialog"><h2>${escapeHtml(tr('correct'))}</h2><div id="correctionContent"></div></dialog>
+    <dialog id="temporalCancellationDialog"><h2>Изменение временного назначения</h2><p id="temporalCancellationText"></p><div class="dialog-actions"><button onclick="saveTemporalCancellation()">Сохранить</button><button onclick="cancelTemporalCancellationDraft()">Закрыть</button></div></dialog>`;
   document.body.innerHTML = appShell(tr('title_action'), 'action', body);
   scheduleClock();
 }
@@ -291,6 +294,7 @@ const cancelledRows = cancelledMedications
 
   const body = `
     <section class="card"><h1>${escapeHtml(tr('title_input'))}</h1><p>${escapeHtml(tr('input_intro'))}</p></section>
+    ${temporalPendingNoticeHtml()}
     <section class="grid2">
       <div class="card">
         <h2>${escapeHtml(tr('input_title_1'))}</h2>

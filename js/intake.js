@@ -65,6 +65,8 @@ function buildTodayEntries() {
     : [];
 
   medications.forEach(med => {
+    ensureTemporalChangeState(med);
+    if (med.temporalPending.schedule || med.temporalPending.time) return;
     if (!isMedicationApplicableOnDate(med, dateISO)) return;
 
     const times = Array.isArray(med.times)
@@ -83,15 +85,7 @@ function buildTodayEntries() {
       let boardState = null;
 
       if (!log) {
-        if (plannedMs > now) {
-          boardState = 'upcoming';
-        } else if (
-          plannedMs + DEFAULT_GRACE_MINUTES * 60 * 1000 < now
-        ) {
-          boardState = 'overdue';
-        } else {
-          boardState = 'expected';
-        }
+        boardState = computePendingSlotStatus(plannedMs, now);
       }
 
       entries.push({

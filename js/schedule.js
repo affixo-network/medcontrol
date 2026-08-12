@@ -104,10 +104,7 @@ function getScheduledDateTime(dateISO, time) {
   return new Date(`${dateISO}T${time}:00`).toISOString();
 }
 function computeStatusForLog(plannedISO, actualISO, action) {
-  if (action === 'cancelled') return 'cancelled';
   const planned = new Date(plannedISO).getTime();
   const actual = new Date(actualISO).getTime();
-  if (actual < planned) return 'taken_early';
-  if (actual <= planned + DEFAULT_GRACE_MINUTES * 60 * 1000) return 'taken_on_time';
-  return 'taken_late';
+  return computeTakenTemporalStatus(planned, actual, action);
 }

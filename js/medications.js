@@ -136,6 +136,7 @@ window.renderStructuredTimes = function(prefix) {
 };
 
 window.addStructuredTime = function(prefix) {
+  if (prefix === 'edit_' && !guardTemporalEdit('time')) return;
   const hour = document.getElementById(`${prefix}timeHour`)?.value;
   const minute = document.getElementById(`${prefix}timeMinute`)?.value;
   if (hour == null || minute == null) return;
@@ -151,11 +152,13 @@ window.addStructuredTime = function(prefix) {
 };
 
 window.removeStructuredTime = function(prefix, value) {
+  if (prefix === 'edit_' && !guardTemporalEdit('time')) return;
   writeHiddenList(`${prefix}times`, readHiddenList(`${prefix}times`).filter(item => item !== value));
   renderStructuredTimes(prefix);
 };
 
 window.syncStructuredWeekdays = function(prefix) {
+  if (prefix === 'edit_' && !guardTemporalEdit('schedule')) return;
   const weekdayOrder = [
     'Mon',
     'Tue',
@@ -200,6 +203,7 @@ window.renderStructuredDates = function(prefix) {
 };
 
 window.addStructuredDate = function(prefix) {
+  if (prefix === 'edit_' && !guardTemporalEdit('schedule')) return;
   const picker = document.getElementById(`${prefix}datePicker`);
   if (!picker || !picker.value) {
     showMedicationHint('date_pick');
@@ -217,6 +221,7 @@ window.addStructuredDate = function(prefix) {
 };
 
 window.removeStructuredDate = function(prefix, value) {
+  if (prefix === 'edit_' && !guardTemporalEdit('schedule')) return;
   writeHiddenList(`${prefix}explicitDates`, readHiddenList(`${prefix}explicitDates`).filter(item => item !== value));
   renderStructuredDates(prefix);
 };
@@ -429,7 +434,9 @@ endDate: 'Дата окончания не заполнена.',
   duplicate_time: tr('hint_duplicate_time'),
   duplicate_date: tr('hint_duplicate_date'),
   date_pick: tr('hint_date_pick'),
-  save_failed: tr('hint_save_failed')
+  save_failed: tr('hint_save_failed'),
+  temporal_schedule_locked: 'Для изменения Расписания вначале отмените Расписание в разделе «Приём препаратов».',
+  temporal_time_locked: 'Для изменения времени приёма вначале отмените время приёма в разделе «Приём препаратов».'
 };
  alert(`${tr('hint_title')}\n\n${messages[code] || messages.save_failed}`);
 }
@@ -484,6 +491,16 @@ window.changeCreateScheduleType = function(select) {
   window.syncCreateScheduleFields();
 };
 window.syncEditScheduleFields = function() { syncScheduleFields('edit_'); };
+window.changeEditScheduleType = function(select) {
+  const previous = select.dataset.previousValue || select.value;
+  if (!guardTemporalEdit('schedule')) {
+    select.value = previous;
+    syncEditScheduleFields();
+    return;
+  }
+  select.dataset.previousValue = select.value;
+  syncEditScheduleFields();
+};
 window.syncMedicationOtherUnit = function(prefix, type) {
   const select = document.getElementById(`${prefix}${type}Unit`);
   const wrap = document.getElementById(`${prefix}${type}UnitOther_wrap`);
@@ -757,6 +774,7 @@ window.cancelMedication = function(id) {
   mount('input');
 };
 window.openEditMedication = function(id) {
+  window.__editingMedicationId = id;
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
   if (med.cancelled) return;
@@ -890,13 +908,13 @@ window.openEditMedication = function(id) {
   <label>${escapeHtml(tr('details'))} *</label>
   <textarea id="edit_details" required>${escapeHtml(med.details || '')}</textarea>
 </div>
-    <div><label>${escapeHtml(tr('schedule'))}</label><select id="edit_scheduleType" onchange="syncEditScheduleFields()"><option value="daily" ${med.scheduleType === 'daily' ? 'selected' : ''}>${escapeHtml(tr('every_day'))}</option><option value="weekdays" ${med.scheduleType === 'weekdays' ? 'selected' : ''}>${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates" ${med.scheduleType === 'explicit_dates' ? 'selected' : ''}>${escapeHtml(tr('explicit_dates'))}</option></select></div>
+    <div><label>${escapeHtml(tr('schedule'))}</label><select id="edit_scheduleType" data-previous-value="${escapeHtml(med.scheduleType || 'daily')}" onfocus="guardTemporalEdit('schedule')" onchange="changeEditScheduleType(this)"><option value="daily" ${med.scheduleType === 'daily' ? 'selected' : ''}>${escapeHtml(tr('every_day'))}</option><option value="weekdays" ${med.scheduleType === 'weekdays' ? 'selected' : ''}>${escapeHtml(tr('weekdays'))}</option><option value="explicit_dates" ${med.scheduleType === 'explicit_dates' ? 'selected' : ''}>${escapeHtml(tr('explicit_dates'))}</option></select></div>
     
     ${structuredTimeEditorHtml('edit_', med.times || [])}
     ${structuredWeekdayEditorHtml('edit_', med.weekdays || [])}
     ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
-    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" value="${escapeHtml(med.startDate || '')}"></div>
-    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" value="${escapeHtml(med.endDate || '')}"></div>
+    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.startDate || '')}"></div>
+    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.endDate || '')}"></div>
     <div class="full right">
   <button onclick="saveMedicationEdit('${med.id}')">
     ${escapeHtml(tr('save'))}
@@ -927,7 +945,9 @@ window.saveMedicationEdit = function(id) {
 
     updatedMedication.active = currentActive;
 
+    validateTemporalEditAuthorization(med, updatedMedication);
     Object.assign(med, updatedMedication);
+    completeTemporalEdit(med, previousSnapshot, updatedMedication);
 
     recordRowHistory(
       med,
