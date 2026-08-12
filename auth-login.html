@@ -14,7 +14,7 @@
   </style>
 </head>
 <body>
-  <p><a href="/">← Back to Home</a></p>
+  <p><a href="./">← Back to Home</a></p>
   <h1>Affixo MedControl — Login</h1>
   <div class="card">
     <p>Enter email and send magic link.</p>
@@ -35,6 +35,8 @@ const debugEl = document.getElementById("debug");
 const statusEl = document.getElementById("status");
 const url = new URL(window.location.href);
 const DEBUG = url.searchParams.get("debug") === "1";
+const appUrl = new URL("./app.html", window.location.href).href;
+const loginUrl = new URL("./auth-login.html", window.location.href).href;
 
 function showDebug(obj) {
   if (!DEBUG) return;
@@ -42,7 +44,7 @@ function showDebug(obj) {
   debugEl.textContent = JSON.stringify(obj, null, 2);
 }
 async function goApp() {
-  window.location.replace("/app.html");
+  window.location.replace(appUrl);
 }
 async function finishMagicLinkIfPresent() {
   const href = window.location.href;
@@ -77,7 +79,7 @@ document.getElementById("send").onclick = async () => {
     return;
   }
   statusEl.textContent = "Sending magic link…";
-  const redirectTo = `${window.location.origin}/auth-login.html`;
+  const redirectTo = loginUrl;
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: redirectTo }
