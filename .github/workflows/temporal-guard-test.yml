@@ -1,0 +1,41 @@
+name: Temporal Guard Implementation Test
+on:
+  push:
+    branches: [medcontrol-temporal-guard]
+permissions:
+  contents: write
+jobs:
+  implement-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Import audited MedControl UI modules
+        run: |
+          git fetch origin codex-input-audit:refs/remotes/origin/codex-input-audit
+          for f in input.html action.html dashboard.html core.js js/clock.js js/history.js js/intake.js js/language.js js/medication-edit-noop-guard.js js/medication-sequence-controller.js js/medications.js js/navigation.js js/render.js js/schedule.js js/settings.js js/storage.js js/translations.js js/utils.js; do
+            mkdir -p "$(dirname "$f")"
+            git show "origin/codex-input-audit:$f" > "$f"
+          done
+      - name: Apply approved temporal guard
+        run: python tools/apply_temporal_guard.py
+      - name: Run behavior tests
+        run: |
+          node tests/temporal_guard_test.js
+          python tests/static_temporal_guard_test.py
+      - name: Syntax checks
+        run: |
+          node --check js/temporal-change-guard.js
+          node --check js/medications.js
+          node --check js/intake.js
+          node --check js/render.js
+          node --check js/schedule.js
+      - name: Commit verified implementation
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add input.html action.html dashboard.html core.js js tests
+          git commit -m 'Implement guarded schedule and intake-time changes'
+          git push origin HEAD:medcontrol-temporal-guard
