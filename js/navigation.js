@@ -6,8 +6,8 @@ window.mount = function(page) {
     saveState(state);
   }
 
-  if (page === 'input') return renderInputPage();
-  if (page === 'dashboard') return renderDashboardPage();
-  if (page === 'action') return renderActionPage();
-  if (page === 'settings') return renderSettingsPage();
+  if (page === 'input') return window.renderInputPage();
+  if (page === 'dashboard') return window.renderDashboardPage();
+  if (page === 'action') return window.renderActionPage();
+  if (page === 'settings') return window.renderSettingsPage();
 };
