@@ -1,137 +1,22 @@
-/* Affixo MedControl — Supabase persistence adapter
- * Non-destructive bridge for modular UI. localStorage remains the immediate cache;
- * Supabase becomes the durable source once an authenticated session is available.
- */
+/* Affixo MedControl — durable Supabase bridge for modular UI. */
 (function () {
-  'use strict';
-
-  const LOCAL_KEY = 'affixo_medcontrol_standard_v3';
-  const CONFIG = window.MEDCONTROL_SUPABASE || null;
-  let client = null;
-  let patientId = null;
-  let syncPromise = Promise.resolve();
-
-  function configured() {
-    return !!(CONFIG && CONFIG.url && CONFIG.publishableKey && window.supabase?.createClient);
-  }
-
-  async function getClient() {
-    if (!configured()) return null;
-    if (!client) client = window.supabase.createClient(CONFIG.url, CONFIG.publishableKey);
-    return client;
-  }
-
-  async function requireSession() {
-    const sb = await getClient();
-    if (!sb) return null;
-    const { data, error } = await sb.auth.getSession();
-    if (error) throw error;
-    return data.session || null;
-  }
-
-  async function ensurePatient(state) {
-    if (patientId) return patientId;
-    const sb = await getClient();
-    const session = await requireSession();
-    if (!sb || !session) return null;
-
-    const { data: memberships, error } = await sb
-      .from('patient_memberships')
-      .select('patient_id,role,status,created_at')
-      .eq('user_id', session.user.id)
-      .eq('status', 'accepted')
-      .order('created_at', { ascending: true })
-      .limit(1);
-    if (error) throw error;
-    if (memberships?.length) {
-      patientId = memberships[0].patient_id;
-      return patientId;
-    }
-
-    const tz = state?.settings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-    const { data: created, error: createError } = await sb.rpc('create_patient', {
-      patient_name: 'MedControl',
-      patient_timezone: tz
-    });
-    if (createError) throw createError;
-    patientId = created;
-    return patientId;
-  }
-
-  function normalizeMedication(med, order) {
-    const times = Array.isArray(med.times) ? med.times :
-      Array.isArray(med.scheduleTimes) ? med.scheduleTimes :
-      Array.isArray(med.schedule?.times) ? med.schedule.times : [];
-    return {
-      medication_data: {
-        legacyLocalId: String(med.id ?? med.localId ?? ''),
-        name: String(med.name || med.details || 'Medication'),
-        manufacturer: String(med.manufacturer || ''),
-        contentValue: String(med.contentValue ?? med.content_value ?? 0),
-        contentUnit: String(med.contentUnit || med.content_unit || 'unit'),
-        contentUnitOther: String(med.contentUnitOther || ''),
-        intakeQuantity: String(med.intakeQuantity ?? med.intake_quantity ?? 1),
-        intakeUnit: String(med.intakeUnit || med.intake_unit || 'unit'),
-        intakeUnitOther: String(med.intakeUnitOther || ''),
-        details: String(med.details || med.name || 'Medication'),
-        order: String(order),
-        active: String(med.active !== false)
-      },
-      schedule_data: {
-        scheduleType: med.scheduleType || med.schedule?.scheduleType || 'daily',
-        weekdays: med.weekdays || med.schedule?.weekdays || [],
-        explicitDates: med.explicitDates || med.schedule?.explicitDates || [],
-        startDate: med.startDate || med.schedule?.startDate || new Date().toISOString().slice(0, 10),
-        endDate: med.endDate || med.schedule?.endDate || '2099-12-31'
-      },
-      times: times.map(t => String(t).slice(0, 5)).filter(t => /^([01]\d|2[0-3]):[0-5]\d$/.test(t))
-    };
-  }
-
-  async function migrateMedications(state, pid) {
-    const sb = await getClient();
-    const meds = Array.isArray(state.medications) ? state.medications : [];
-    if (!meds.length) return;
-    const { data: existing, error } = await sb.from('medications').select('legacy_local_id').eq('patient_id', pid);
-    if (error) throw error;
-    const known = new Set((existing || []).map(x => x.legacy_local_id).filter(Boolean));
-
-    for (let i = 0; i < meds.length; i++) {
-      const normalized = normalizeMedication(meds[i], i);
-      const legacyId = normalized.medication_data.legacyLocalId;
-      if (!legacyId || known.has(legacyId) || !normalized.times.length) continue;
-      const { error: createError } = await sb.rpc('create_medication_with_schedule', {
-        target_patient_id: pid,
-        medication_data: normalized.medication_data,
-        schedule_data: normalized.schedule_data,
-        schedule_times: normalized.times.map(t => `${t}:00`)
-      });
-      if (createError) throw createError;
-      known.add(legacyId);
-    }
-  }
-
-  async function sync(state) {
-    const session = await requireSession();
-    if (!session) return { synced: false, reason: configured() ? 'no-session' : 'not-configured' };
-    const pid = await ensurePatient(state);
-    if (!pid) return { synced: false, reason: 'no-patient' };
-    await migrateMedications(state, pid);
-    return { synced: true, patientId: pid };
-  }
-
-  function queueSync(state) {
-    if (!configured()) return;
-    const snapshot = JSON.parse(JSON.stringify(state));
-    syncPromise = syncPromise.then(() => sync(snapshot)).catch(err => {
-      console.error('MedControl Supabase sync failed; local cache preserved.', err);
-    });
-  }
-
-  window.MedControlSupabaseStorage = {
-    configured,
-    sync,
-    queueSync,
-    localKey: LOCAL_KEY
-  };
+'use strict';
+const CONFIG=window.MEDCONTROL_SUPABASE||null;
+let client=null,patientId=null,syncPromise=Promise.resolve();
+const clone=v=>JSON.parse(JSON.stringify(v));
+function configured(){return !!(CONFIG&&CONFIG.url&&CONFIG.publishableKey&&window.supabase?.createClient);}
+async function sb(){if(!configured())return null;if(!client)client=window.supabase.createClient(CONFIG.url,CONFIG.publishableKey);return client;}
+async function session(){const c=await sb();if(!c)return null;const {data,error}=await c.auth.getSession();if(error)throw error;return data.session||null;}
+function localId(v,prefix,index){return String(v?.id??v?.localId??v?.eventId??`${prefix}-${index}`);}
+async function ensurePatient(state){if(patientId)return patientId;const c=await sb();if(!await session())return null;const tz=state?.settings?.timezone||Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';const {data,error}=await c.rpc('mc_get_or_create_patient',{patient_timezone:tz});if(error)throw error;patientId=data;return data;}
+async function syncMedications(state,pid){const c=await sb();const map=new Map();for(let i=0;i<(state.medications||[]).length;i++){const med=state.medications[i],lid=localId(med,'med',i);const cancelled=med.cancelled===true||med.active===false;const {data,error}=await c.rpc('mc_upsert_medication',{target_patient_id:pid,target_legacy_local_id:lid,target_data:med,target_cancelled:cancelled});if(error)throw error;map.set(lid,data);}return map;}
+function parseTime(v){if(!v)return null;const d=new Date(v);return Number.isNaN(d.getTime())?null:d.toISOString();}
+function medLocalId(row){return String(row?.medicationId??row?.medId??row?.medication_id??row?.medicineId??'');}
+async function existingIds(c,table,pid){const {data,error}=await c.from(table).select('legacy_event_id').eq('patient_id',pid);if(error)throw error;return new Set((data||[]).map(x=>x.legacy_event_id));}
+async function syncIntakes(state,pid,medMap){const c=await sb(),known=await existingIds(c,'mc_intake_events',pid),created=new Map();const logs=Array.isArray(state.intakeLogs)?state.intakeLogs:[];for(let i=0;i<logs.length;i++){const row=logs[i],lid=localId(row,'intake',i);if(known.has(lid))continue;const mid=medMap.get(medLocalId(row));if(!mid)continue;const planned=parseTime(row.plannedAt||row.scheduledAt||row.plannedDateTime||row.dateTime||row.date);if(!planned)continue;const payload={patient_id:pid,medication_id:mid,legacy_event_id:lid,event_type:'taken',planned_at:planned,actual_at:parseTime(row.actualAt||row.takenAt||row.actualTime),status:row.status||null,metadata:row};const {data,error}=await c.from('mc_intake_events').insert(payload).select('id').single();if(error)throw error;created.set(lid,data.id);known.add(lid);}}
+async function syncCorrections(state,pid,medMap){const c=await sb(),known=await existingIds(c,'mc_intake_events',pid);const rows=Array.isArray(state.intakeCorrections)?state.intakeCorrections:[];for(let i=0;i<rows.length;i++){const row=rows[i],lid=localId(row,'correction',i);if(known.has(lid))continue;const mid=medMap.get(medLocalId(row));if(!mid)continue;const planned=parseTime(row.plannedAt||row.scheduledAt||row.before?.plannedAt||row.after?.plannedAt||row.createdAt);if(!planned)continue;const reason=String(row.reason||row.type||row.correctionType||'').toLowerCase();const reset=row.after?.action==='reset'||reason.includes('случ')||reason.includes('accident')||reason.includes('reversal');const supersedesLegacy=String(row.supersedesEventId||row.intakeEventId||row.intakeLogId||row.originalEventId||'');let supersedes=null;if(supersedesLegacy){const {data}=await c.from('mc_intake_events').select('id').eq('patient_id',pid).eq('legacy_event_id',supersedesLegacy).maybeSingle();supersedes=data?.id||null;}const payload={patient_id:pid,medication_id:mid,legacy_event_id:lid,event_type:reset?'reversal':'correction',planned_at:planned,actual_at:parseTime(row.after?.actualAt||row.actualAt),status:row.after?.status||row.status||null,supersedes_event_id:supersedes,metadata:row};const {error}=await c.from('mc_intake_events').insert(payload);if(error)throw error;known.add(lid);}}
+async function syncMedicationHistory(state,pid,medMap){const c=await sb(),known=await existingIds(c,'mc_medication_events',pid);const sources=[state.medicationHistory,state.medicationEvents,state.changeEvents].find(Array.isArray)||[];for(let i=0;i<sources.length;i++){const row=sources[i],lid=localId(row,'med-event',i);if(known.has(lid))continue;const mid=medMap.get(medLocalId(row));if(!mid)continue;const raw=String(row.eventType||row.type||row.action||'edited').toLowerCase();const type=raw.includes('cancel')?'cancelled':raw.includes('restore')?'restored':raw.includes('creat')?'created':'edited';const {error}=await c.from('mc_medication_events').insert({patient_id:pid,medication_id:mid,legacy_event_id:lid,event_type:type,snapshot:row});if(error)throw error;known.add(lid);}}
+async function sync(state){if(!await session())return {synced:false,reason:configured()?'no-session':'not-configured'};const pid=await ensurePatient(state);const medMap=await syncMedications(state,pid);await syncIntakes(state,pid,medMap);await syncCorrections(state,pid,medMap);await syncMedicationHistory(state,pid,medMap);return {synced:true,patientId:pid};}
+function queueSync(state){if(!configured())return;const snapshot=clone(state);syncPromise=syncPromise.then(()=>sync(snapshot)).catch(e=>console.error('MedControl Supabase sync failed; local cache preserved.',e));}
+window.MedControlSupabaseStorage={configured,sync,queueSync};
 })();
