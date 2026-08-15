@@ -1,5 +1,6 @@
 (function () {
   const RU_TO_EN = new Map([
+    ['Медконтроль — Ввод', 'MedControl — Input'],
     ['Производитель', 'Manufacturer'],
     ['Название производителя', 'Manufacturer name'],
     ['Данные производителя', 'Manufacturer data'],
@@ -12,9 +13,7 @@
     ['Другая единица приёма *', 'Other intake unit *'],
     ['Параметры расписания', 'Schedule parameters'],
     ['Архив отменённых препаратов', 'Cancelled medications archive'],
-    ['Статус', 'Status'],
-    ['История', 'History'],
-    ['Управление данными', 'Data management'],
+    ['Статус', 'Status'], ['История', 'History'], ['Управление данными', 'Data management'],
     ['Полный сброс доступен только после отмены всех препаратов.', 'Full reset is available only after all medications have been cancelled.'],
     ['Сброс', 'Reset'], ['Отменить', 'Cancel'], ['Отменено', 'Cancelled'], ['Архив пуст.', 'Archive is empty.'],
     ['Ежедневно', 'Every day'], ['Выберите', 'Select'], ['Другое', 'Other'],
@@ -40,7 +39,7 @@
     const map = lang === 'en' ? RU_TO_EN : EN_TO_RU;
     const placeholders = lang === 'en' ? PLACEHOLDERS_EN : PLACEHOLDERS_RU;
 
-    document.querySelectorAll('label,h2,h3,th,p,button,option,span').forEach(el => {
+    document.querySelectorAll('h1,label,h2,h3,th,p,button,option,span').forEach(el => {
       if (el.children.length && !['OPTION','BUTTON'].includes(el.tagName)) return;
       const raw = (el.textContent || '').trim();
       if (map.has(raw)) el.textContent = map.get(raw);
