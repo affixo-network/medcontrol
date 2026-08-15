@@ -42,8 +42,15 @@
     document.querySelectorAll('h1,label,h2,h3,th,p,button,option,span').forEach(el => {
       if (el.children.length && !['OPTION','BUTTON'].includes(el.tagName)) return;
       const raw = (el.textContent || '').trim();
+      if (lang === 'ru' && raw === 'MedControl — Ввод') {
+        el.textContent = 'Медконтроль — Ввод';
+        return;
+      }
       if (map.has(raw)) el.textContent = map.get(raw);
     });
+
+    if (lang === 'ru' && document.title === 'MedControl — Ввод') document.title = 'Медконтроль — Ввод';
+    if (lang === 'en' && document.title === 'Медконтроль — Ввод') document.title = 'MedControl — Input';
 
     document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el => {
       const p = el.getAttribute('placeholder');
