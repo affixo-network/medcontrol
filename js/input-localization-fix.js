@@ -5,11 +5,15 @@
     ['Название производителя', 'Manufacturer name'],
     ['Данные производителя', 'Manufacturer data'],
     ['Количественное содержание *', 'Content amount *'],
+    ['Количественное содержание', 'Content amount'],
     ['Единица содержания *', 'Content unit *'],
+    ['Единица содержания', 'Content unit'],
     ['Другая единица содержания *', 'Other content unit *'],
     ['Доза', 'Dose'],
     ['Количество приёма *', 'Intake quantity *'],
+    ['Количество приёма', 'Intake quantity'],
     ['Единица приёма *', 'Intake unit *'],
+    ['Единица приёма', 'Intake unit'],
     ['Другая единица приёма *', 'Other intake unit *'],
     ['Параметры расписания', 'Schedule parameters'],
     ['Архив отменённых препаратов', 'Cancelled medications archive'],
@@ -39,7 +43,7 @@
     const map = lang === 'en' ? RU_TO_EN : EN_TO_RU;
     const placeholders = lang === 'en' ? PLACEHOLDERS_EN : PLACEHOLDERS_RU;
 
-    document.querySelectorAll('h1,label,h2,h3,th,p,button,option,span').forEach(el => {
+    document.querySelectorAll('h1,label,h2,h3,th,td,p,button,option,span').forEach(el => {
       if (el.children.length && !['OPTION','BUTTON'].includes(el.tagName)) return;
       const raw = (el.textContent || '').trim();
       if (lang === 'ru' && raw === 'MedControl — Ввод') {
