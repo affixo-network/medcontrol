@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Affixo MedControl — Login</title>
+  <title>MedControl — Login</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body { font-family: Arial, sans-serif; max-width: 680px; margin: 60px auto; padding: 0 16px; color:#111; }
@@ -15,11 +15,11 @@
 </head>
 <body>
   <p><a href="./">← Back to Home</a></p>
-  <h1>Affixo MedControl — Login</h1>
+  <h1>MedControl — Login</h1>
   <div class="card">
     <p>Enter email and send magic link.</p>
     <div class="inline">
-      <input id="email" placeholder="Email" style="min-width:260px;" />
+      <input id="email" type="email" placeholder="Email" style="min-width:260px;" />
       <button id="send">Send magic link</button>
     </div>
     <p class="muted" id="status"></p>
@@ -29,13 +29,16 @@
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase-config.js";
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
 
 const debugEl = document.getElementById("debug");
 const statusEl = document.getElementById("status");
-const url = new URL(window.location.href);
-const DEBUG = url.searchParams.get("debug") === "1";
-const appUrl = new URL("./app.html", window.location.href).href;
+const pageUrl = new URL(window.location.href);
+const DEBUG = pageUrl.searchParams.get("debug") === "1";
+const inputUrl = new URL("./input.html", window.location.href).href;
 const loginUrl = new URL("./auth-login.html", window.location.href).href;
 
 function showDebug(obj) {
@@ -43,56 +46,64 @@ function showDebug(obj) {
   debugEl.style.display = "block";
   debugEl.textContent = JSON.stringify(obj, null, 2);
 }
-async function goApp() {
-  window.location.replace(appUrl);
+
+function goInput() {
+  window.location.replace(inputUrl);
 }
-async function finishMagicLinkIfPresent() {
-  const href = window.location.href;
-  const hasTokens = href.includes("access_token=") || href.includes("refresh_token=") || href.includes("code=");
-  if (!hasTokens) return false;
+
+async function finishCallback() {
+  const code = pageUrl.searchParams.get("code");
+  if (code) {
+    statusEl.textContent = "Completing sign-in…";
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    showDebug({ source: "exchangeCodeForSession", data, error });
+    if (error) {
+      statusEl.textContent = error.message;
+      return false;
+    }
+    if (data?.session) {
+      history.replaceState({}, document.title, loginUrl);
+      goInput();
+      return true;
+    }
+  }
+
   const { data, error } = await supabase.auth.getSession();
-  showDebug({ source: "finishMagicLinkIfPresent", data, error });
+  showDebug({ source: "getSession", data, error });
   if (error) {
     statusEl.textContent = error.message;
     return false;
   }
   if (data?.session) {
-    statusEl.textContent = "Login successful. Redirecting…";
-    await goApp();
+    goInput();
     return true;
   }
   return false;
 }
-async function maybeAlreadyLoggedIn() {
-  const { data } = await supabase.auth.getSession();
-  if (data?.session) {
-    statusEl.textContent = "Already logged in. Redirecting…";
-    await goApp();
-    return true;
-  }
-  return false;
-}
+
 document.getElementById("send").onclick = async () => {
   const email = document.getElementById("email").value.trim();
   if (!email) {
     statusEl.textContent = "Enter email.";
     return;
   }
-  statusEl.textContent = "Sending magic link…";
-  const redirectTo = loginUrl;
+  statusEl.textContent = "Sending sign-in link…";
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: redirectTo }
+    options: {
+      emailRedirectTo: loginUrl,
+      shouldCreateUser: true
+    }
   });
-  showDebug({ source: "signInWithOtp", redirectTo, data, error });
+  showDebug({ source: "signInWithOtp", redirectTo: loginUrl, data, error });
   if (error) {
     statusEl.textContent = error.message;
     return;
   }
-  statusEl.textContent = "Magic link sent. Open your email and return through the link.";
+  statusEl.textContent = "Sign-in link sent. Open the email and follow the link.";
 };
-await finishMagicLinkIfPresent();
-await maybeAlreadyLoggedIn();
+
+await finishCallback();
 </script>
 </body>
 </html>
