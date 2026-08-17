@@ -6,11 +6,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script>
     (function () {
-      const AUTH_ORIGIN = 'https://medcontrol-git-fix-input-biling-f74628-vahans-projects-daac8e43.vercel.app';
       const u = new URL(window.location.href);
-      const hasAuthCallback = u.searchParams.has('code') || u.searchParams.has('token_hash') || u.hash.includes('access_token=') || u.hash.includes('refresh_token=');
+      const hasAuthCallback = u.searchParams.has('code') || u.searchParams.has('token_hash') || u.hash.includes('access_token=') || u.hash.includes('refresh_token=') || u.hash.includes('error_description=');
       if (hasAuthCallback) {
-        window.location.replace(AUTH_ORIGIN + '/auth-login.html' + u.search + u.hash);
+        window.location.replace(new URL('auth-login.html', u).href + u.search + u.hash);
       }
     })();
   </script>
