@@ -30,26 +30,34 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase-config.js";
 
+const AUTH_ORIGIN = "https://medcontrol-git-fix-input-biling-f74628-vahans-projects-daac8e43.vercel.app";
+const canonicalLogin = AUTH_ORIGIN + "/auth-login.html";
+const canonicalInput = AUTH_ORIGIN + "/input.html";
+const pageUrl = new URL(window.location.href);
+const hasCallback = pageUrl.searchParams.has("code") || pageUrl.searchParams.has("token_hash") || pageUrl.hash.includes("access_token=") || pageUrl.hash.includes("refresh_token=");
+
+// Vercel creates a new hostname per commit. PKCE/session storage is origin-scoped,
+// so all auth requests and callbacks must use one stable branch alias.
+if (window.location.origin !== AUTH_ORIGIN) {
+  const destination = canonicalLogin + (hasCallback ? pageUrl.search + pageUrl.hash : "");
+  window.location.replace(destination);
+  throw new Error("Redirecting to canonical MedControl auth origin");
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" }
 });
 
 const debugEl = document.getElementById("debug");
 const statusEl = document.getElementById("status");
-const pageUrl = new URL(window.location.href);
 const DEBUG = pageUrl.searchParams.get("debug") === "1";
-const inputUrl = new URL("./input.html", window.location.href).href;
-const loginUrl = new URL("./auth-login.html", window.location.href).href;
 
 function showDebug(obj) {
   if (!DEBUG) return;
   debugEl.style.display = "block";
   debugEl.textContent = JSON.stringify(obj, null, 2);
 }
-
-function goInput() {
-  window.location.replace(inputUrl);
-}
+function goInput() { window.location.replace(canonicalInput); }
 
 async function finishCallback() {
   const code = pageUrl.searchParams.get("code");
@@ -57,12 +65,23 @@ async function finishCallback() {
     statusEl.textContent = "Completing sign-in…";
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     showDebug({ source: "exchangeCodeForSession", data, error });
-    if (error) {
-      statusEl.textContent = error.message;
-      return false;
-    }
+    if (error) { statusEl.textContent = error.message; return false; }
     if (data?.session) {
-      history.replaceState({}, document.title, loginUrl);
+      history.replaceState({}, document.title, canonicalLogin);
+      goInput();
+      return true;
+    }
+  }
+
+  const tokenHash = pageUrl.searchParams.get("token_hash");
+  const type = pageUrl.searchParams.get("type");
+  if (tokenHash && type) {
+    statusEl.textContent = "Confirming email…";
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    showDebug({ source: "verifyOtp", data, error });
+    if (error) { statusEl.textContent = error.message; return false; }
+    if (data?.session) {
+      history.replaceState({}, document.title, canonicalLogin);
       goInput();
       return true;
     }
@@ -70,36 +89,21 @@ async function finishCallback() {
 
   const { data, error } = await supabase.auth.getSession();
   showDebug({ source: "getSession", data, error });
-  if (error) {
-    statusEl.textContent = error.message;
-    return false;
-  }
-  if (data?.session) {
-    goInput();
-    return true;
-  }
+  if (error) { statusEl.textContent = error.message; return false; }
+  if (data?.session) { goInput(); return true; }
   return false;
 }
 
 document.getElementById("send").onclick = async () => {
   const email = document.getElementById("email").value.trim();
-  if (!email) {
-    statusEl.textContent = "Enter email.";
-    return;
-  }
+  if (!email) { statusEl.textContent = "Enter email."; return; }
   statusEl.textContent = "Sending sign-in link…";
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      emailRedirectTo: loginUrl,
-      shouldCreateUser: true
-    }
+    options: { emailRedirectTo: canonicalLogin, shouldCreateUser: true }
   });
-  showDebug({ source: "signInWithOtp", redirectTo: loginUrl, data, error });
-  if (error) {
-    statusEl.textContent = error.message;
-    return;
-  }
+  showDebug({ source: "signInWithOtp", redirectTo: canonicalLogin, data, error });
+  if (error) { statusEl.textContent = error.message; return; }
   statusEl.textContent = "Sign-in link sent. Open the email and follow the link.";
 };
 
