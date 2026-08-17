@@ -36,8 +36,6 @@ const canonicalInput = AUTH_ORIGIN + "/input.html";
 const pageUrl = new URL(window.location.href);
 const hasCallback = pageUrl.searchParams.has("code") || pageUrl.searchParams.has("token_hash") || pageUrl.hash.includes("access_token=") || pageUrl.hash.includes("refresh_token=");
 
-// Vercel creates a new hostname per commit. PKCE/session storage is origin-scoped,
-// so all auth requests and callbacks must use one stable branch alias.
 if (window.location.origin !== AUTH_ORIGIN) {
   const destination = canonicalLogin + (hasCallback ? pageUrl.search + pageUrl.hash : "");
   window.location.replace(destination);
@@ -45,7 +43,7 @@ if (window.location.origin !== AUTH_ORIGIN) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
 });
 
 const debugEl = document.getElementById("debug");
@@ -60,11 +58,13 @@ function showDebug(obj) {
 function goInput() { window.location.replace(canonicalInput); }
 
 async function finishCallback() {
-  const code = pageUrl.searchParams.get("code");
-  if (code) {
+  const hash = new URLSearchParams(pageUrl.hash.replace(/^#/, ""));
+  const accessToken = hash.get("access_token");
+  const refreshToken = hash.get("refresh_token");
+  if (accessToken && refreshToken) {
     statusEl.textContent = "Completing sign-in…";
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    showDebug({ source: "exchangeCodeForSession", data, error });
+    const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    showDebug({ source: "setSession", data, error });
     if (error) { statusEl.textContent = error.message; return false; }
     if (data?.session) {
       history.replaceState({}, document.title, canonicalLogin);
@@ -81,6 +81,18 @@ async function finishCallback() {
     showDebug({ source: "verifyOtp", data, error });
     if (error) { statusEl.textContent = error.message; return false; }
     if (data?.session) {
+      history.replaceState({}, document.title, canonicalLogin);
+      goInput();
+      return true;
+    }
+  }
+
+  const code = pageUrl.searchParams.get("code");
+  if (code) {
+    statusEl.textContent = "Completing sign-in…";
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    showDebug({ source: "exchangeCodeForSession", data, error });
+    if (!error && data?.session) {
       history.replaceState({}, document.title, canonicalLogin);
       goInput();
       return true;
