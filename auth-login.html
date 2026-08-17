@@ -30,17 +30,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./supabase-config.js";
 
-const AUTH_ORIGIN = "https://medcontrol-git-fix-input-biling-f74628-vahans-projects-daac8e43.vercel.app";
-const canonicalLogin = AUTH_ORIGIN + "/auth-login.html";
-const canonicalInput = AUTH_ORIGIN + "/input.html";
 const pageUrl = new URL(window.location.href);
-const hasCallback = pageUrl.searchParams.has("code") || pageUrl.searchParams.has("token_hash") || pageUrl.hash.includes("access_token=") || pageUrl.hash.includes("refresh_token=");
-
-if (window.location.origin !== AUTH_ORIGIN) {
-  const destination = canonicalLogin + (hasCallback ? pageUrl.search + pageUrl.hash : "");
-  window.location.replace(destination);
-  throw new Error("Redirecting to canonical MedControl auth origin");
-}
+const baseUrl = new URL("./", pageUrl);
+const loginUrl = new URL("auth-login.html", baseUrl).href;
+const inputUrl = new URL("input.html", baseUrl).href;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
@@ -55,19 +48,26 @@ function showDebug(obj) {
   debugEl.style.display = "block";
   debugEl.textContent = JSON.stringify(obj, null, 2);
 }
-function goInput() { window.location.replace(canonicalInput); }
+function goInput() { window.location.replace(inputUrl); }
 
 async function finishCallback() {
   const hash = new URLSearchParams(pageUrl.hash.replace(/^#/, ""));
   const accessToken = hash.get("access_token");
   const refreshToken = hash.get("refresh_token");
+  const errorDescription = hash.get("error_description");
+
+  if (errorDescription) {
+    statusEl.textContent = decodeURIComponent(errorDescription.replace(/\+/g, " "));
+    return false;
+  }
+
   if (accessToken && refreshToken) {
     statusEl.textContent = "Completing sign-in…";
     const { data, error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     showDebug({ source: "setSession", data, error });
     if (error) { statusEl.textContent = error.message; return false; }
     if (data?.session) {
-      history.replaceState({}, document.title, canonicalLogin);
+      history.replaceState({}, document.title, loginUrl);
       goInput();
       return true;
     }
@@ -81,7 +81,7 @@ async function finishCallback() {
     showDebug({ source: "verifyOtp", data, error });
     if (error) { statusEl.textContent = error.message; return false; }
     if (data?.session) {
-      history.replaceState({}, document.title, canonicalLogin);
+      history.replaceState({}, document.title, loginUrl);
       goInput();
       return true;
     }
@@ -93,7 +93,7 @@ async function finishCallback() {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     showDebug({ source: "exchangeCodeForSession", data, error });
     if (!error && data?.session) {
-      history.replaceState({}, document.title, canonicalLogin);
+      history.replaceState({}, document.title, loginUrl);
       goInput();
       return true;
     }
@@ -112,9 +112,9 @@ document.getElementById("send").onclick = async () => {
   statusEl.textContent = "Sending sign-in link…";
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: canonicalLogin, shouldCreateUser: true }
+    options: { emailRedirectTo: loginUrl, shouldCreateUser: true }
   });
-  showDebug({ source: "signInWithOtp", redirectTo: canonicalLogin, data, error });
+  showDebug({ source: "signInWithOtp", redirectTo: loginUrl, data, error });
   if (error) { statusEl.textContent = error.message; return; }
   statusEl.textContent = "Sign-in link sent. Open the email and follow the link.";
 };
