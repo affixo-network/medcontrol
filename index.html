@@ -5,17 +5,12 @@
   <title>MedControl</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script>
-    // Supabase may fall back to the configured Site URL when a Preview redirect
-    // is not allow-listed. Preserve the complete callback and hand it to the
-    // login handler instead of leaving the user on the public landing page.
     (function () {
+      const AUTH_ORIGIN = 'https://medcontrol-git-fix-input-biling-f74628-vahans-projects-daac8e43.vercel.app';
       const u = new URL(window.location.href);
-      const hasAuthCallback = u.searchParams.has('code') ||
-        u.searchParams.has('token_hash') ||
-        u.hash.includes('access_token=') ||
-        u.hash.includes('refresh_token=');
+      const hasAuthCallback = u.searchParams.has('code') || u.searchParams.has('token_hash') || u.hash.includes('access_token=') || u.hash.includes('refresh_token=');
       if (hasAuthCallback) {
-        window.location.replace('./auth-login.html' + u.search + u.hash);
+        window.location.replace(AUTH_ORIGIN + '/auth-login.html' + u.search + u.hash);
       }
     })();
   </script>
