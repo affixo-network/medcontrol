@@ -30,6 +30,11 @@ async function sync(state){
 }
 function queue(state){const snapshot=clone(state);q=q.then(()=>sync(snapshot)).catch(err=>console.error('MedControl Supabase sync failed:',err));return q}
 async function probe(){const s=await session();if(!s)return{auth_ok:false,patient_ok:false,write_ok:false,read_ok:false,error:'Authentication required'};const {data,error}=await client().rpc('mc_e2e_roundtrip');if(error)throw error;return data}
-window.MedControlSupabaseBridge={queue,flush:()=>q,probe,client};
+function boot(){
+ const start=()=>{try{if(typeof window.getState==='function')queue(window.getState())}catch(err){console.error('MedControl Supabase boot failed:',err)}};
+ start();
+ client().auth.onAuthStateChange((event,s)=>{if(s)start();});
+}
+window.MedControlSupabaseBridge={queue,flush:()=>q,probe,client,boot};
 window.dispatchEvent(new Event('medcontrol-supabase-bridge-ready'));
 })();
