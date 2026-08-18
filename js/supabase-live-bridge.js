@@ -32,13 +32,12 @@ async function pull(state){
  const s=await session();if(!s)return{state,remote:false};
  const p=await patient(state);
  const [{data:medRows,error:me},{data:logRows,error:le}]=await Promise.all([
-  client().from('mc_medications').select('legacy_local_id,data,cancelled').eq('patient_id',p).order('created_at',{ascending:true}),
+  client().from('mc_medications').select('id,legacy_local_id,data,cancelled').eq('patient_id',p).order('created_at',{ascending:true}),
   client().from('mc_intake_events').select('legacy_event_id,event_type,planned_at,actual_at,status,metadata,medication_id').eq('patient_id',p).order('created_at',{ascending:true})
  ]);
  if(me)throw me;if(le)throw le;
  const meds=(medRows||[]).map(r=>{const m=clone(r.data||{});if(!m.id)m.id=r.legacy_local_id;m.cancelled=!!r.cancelled;return m});
- const medIdByDb=new Map();
- const {data:dbMeds,error:dbe}=await client().from('mc_medications').select('id,legacy_local_id').eq('patient_id',p);if(dbe)throw dbe;(dbMeds||[]).forEach(r=>medIdByDb.set(r.id,r.legacy_local_id));
+ const medIdByDb=new Map((medRows||[]).map(r=>[r.id,r.legacy_local_id]));
  const logs=(logRows||[]).map(r=>{const m=clone(r.metadata||{});if(!m.id)m.id=r.legacy_event_id;if(!m.medicationId)m.medicationId=medIdByDb.get(r.medication_id)||m.medicationId;if(!m.plannedAt)m.plannedAt=r.planned_at;if(!m.actualAt)m.actualAt=r.actual_at;if(!m.action)m.action=r.event_type;if(!m.status)m.status=r.status;return m});
  const remote=meds.length>0||logs.length>0;
  if(remote){const next=clone(state);next.medications=meds;next.intakeLogs=logs;return{state:next,remote:true}}
@@ -46,20 +45,24 @@ async function pull(state){
 }
 function queue(state){const snapshot=clone(state);q=q.then(()=>sync(snapshot)).catch(err=>console.error('MedControl Supabase sync failed:',err));return q}
 async function probe(){const s=await session();if(!s)return{auth_ok:false,patient_ok:false,write_ok:false,read_ok:false,error:'Authentication required'};const {data,error}=await client().rpc('mc_e2e_roundtrip');if(error)throw error;return data}
-async function boot(view){
- try{
-  if(typeof window.getState!=='function')return;
-  const local=window.getState();
-  const loaded=await pull(local);
-  if(loaded.remote){
-   localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(loaded.state));
-   if(typeof window.mount==='function')window.mount(view||'input');
-  }else{
-   await sync(local);
-  }
- }catch(err){console.error('MedControl Supabase boot failed:',err)}
- client().auth.onAuthStateChange(async(event,s)=>{if(!s)return;try{if(typeof window.getState!=='function')return;const local=window.getState();const loaded=await pull(local);if(loaded.remote){localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(loaded.state));if(typeof window.mount==='function')window.mount(view||'input')}else await sync(local)}catch(err){console.error('MedControl Supabase auth sync failed:',err)}});
+async function reconcile(view){
+ if(typeof window.getState!=='function')return;
+ const local=window.getState();
+ const localHasData=(local.medications?.length||0)>0||(local.intakeLogs?.length||0)>0;
+ const loaded=await pull(local);
+ if(loaded.remote){
+  localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(loaded.state));
+  if(typeof window.mount==='function')window.mount(view||'input');
+ }else if(localHasData){
+  await sync(local);
+ }else{
+  await sync(local);
+ }
 }
-window.MedControlSupabaseBridge={queue,flush:()=>q,probe,pull,client,boot};
+async function boot(view){
+ try{await reconcile(view)}catch(err){console.error('MedControl Supabase boot failed:',err)}
+ client().auth.onAuthStateChange(async(event,s)=>{if(!s)return;try{await reconcile(view)}catch(err){console.error('MedControl Supabase auth sync failed:',err)}});
+}
+window.MedControlSupabaseBridge={queue,flush:()=>q,probe,pull,client,boot,reconcile};
 window.dispatchEvent(new Event('medcontrol-supabase-bridge-ready'));
 })();
