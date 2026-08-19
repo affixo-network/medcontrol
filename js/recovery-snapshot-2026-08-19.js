@@ -1,6 +1,6 @@
 (function(){
   const KEY='affixo_medcontrol_standard_v3';
-  const MARKER='affixo_medcontrol_recovery_snapshot_2026_08_19_v2_applied';
+  const MARKER='affixo_medcontrol_recovery_snapshot_2026_08_19_v3_applied';
   const BACKUP='affixo_medcontrol_before_recovery_2026_08_19';
   if(localStorage.getItem(MARKER)==='1') return;
 
@@ -29,17 +29,34 @@
     active:false,cancelled:true,history:[]
   },x,{dose:`${x.intakeQuantity} ${unitLabel[x.intakeUnit]||x.intakeUnit}`}));
 
-  const active={
-    id:'recovery-med-010',order:10,name:'INPUT-003-1',manufacturer:'CC',
-    contentValue:'500',contentUnit:'other',contentUnitOther:'тс-4',
-    intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 таблетка',
-    details:'натощак принимать',scheduleType:'weekdays',
-    times:['08:30'],startDate:'',endDate:'2026-08-20',
-    weekdays:['Mon','Tue','Fri','Sat'],explicitDates:[],
-    active:true,cancelled:false,history:[]
-  };
+  const active=[
+    {
+      id:'recovery-med-010',order:10,name:'INPUT-003-1',manufacturer:'CC',
+      contentValue:'500',contentUnit:'other',contentUnitOther:'тс-4',
+      intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 таблетка',
+      details:'натощак принимать',scheduleType:'weekdays',
+      times:['08:30'],startDate:'',endDate:'2026-08-20',
+      weekdays:['Mon','Tue','Fri','Sat'],explicitDates:[],active:true,cancelled:false,history:[]
+    },
+    {
+      id:'recovery-med-011',order:11,name:'TEST-MED-01',manufacturer:'',
+      contentValue:'500',contentUnit:'mg',contentUnitOther:'',
+      intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 таблетка',
+      details:'После еды',scheduleType:'weekdays',
+      times:['09:34'],startDate:'',endDate:'2026-08-19',
+      weekdays:['Tue','Thu','Sat'],explicitDates:[],active:true,cancelled:false,history:[]
+    },
+    {
+      id:'recovery-med-012',order:12,name:'Тест 08/12/2026',manufacturer:'Арфей',
+      contentValue:'1000',contentUnit:'mg',contentUnitOther:'',
+      intakeQuantity:'1',intakeUnit:'capsule',intakeUnitOther:'',dose:'1 капсула',
+      details:'принимать до еды',scheduleType:'weekdays',
+      times:['09:00','18:30'],startDate:'',endDate:'2026-08-31',
+      weekdays:['Wed','Fri','Sun'],explicitDates:[],active:true,cancelled:false,history:[]
+    }
+  ];
 
-  const next={settings,medications:[...archived,active],intakeLogs:[]};
+  const next={settings,medications:[...archived,...active],intakeLogs:[]};
   localStorage.setItem(KEY,JSON.stringify(next));
   localStorage.setItem(MARKER,'1');
 })();
