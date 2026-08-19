@@ -14,7 +14,7 @@
       <td>${x.medication.order}</td>
       <td>${escapeHtml(x.medication.name)}</td>
       <td>${escapeHtml(x.medication.intakeQuantity||'—')}</td>
-      <td>${escapeHtml(medicationIntakeUnitLabel(x.medication.intakeUnit,x.medication.intakeUnitOther))}</td>
+      <td>${escapeHtml(x.medication.intakeUnitOther||x.medication.intakeUnit||'—')}</td>
       <td>${escapeHtml(formatDate(x.plannedDate))}</td>
       <td>${escapeHtml(x.plannedTime)}</td>
       <td>${timing(x)}</td>
