@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Affixo MedControl</title>
+  <title>MedControl</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    (function () {
+      const u = new URL(window.location.href);
+      const hasAuthCallback = u.searchParams.has('code') || u.searchParams.has('token_hash') || u.hash.includes('access_token=') || u.hash.includes('refresh_token=') || u.hash.includes('error_description=');
+      if (hasAuthCallback) {
+        window.location.replace(new URL('auth-login.html', u).href + u.search + u.hash);
+      }
+    })();
+  </script>
   <style>
     body { font-family: Arial, sans-serif; margin:0; color:#111; }
     .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 56px; }
@@ -29,39 +38,11 @@
         <a class="btn-secondary" href="./auth-login.html">Login / Start Trial</a>
       </div>
     </section>
-
     <section class="grid">
-      <div class="card">
-        <h2>Standard</h2>
-        <p>For one responsible person.</p>
-        <ul>
-          <li>Every planned slot is visible separately</li>
-          <li>24-hour time format only</li>
-          <li>Live status per slot: waiting, early, on time, late, overdue</li>
-          <li>History shows actual action time</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h2>Team</h2>
-        <p>For several responsible people working on the same patient.</p>
-        <ul>
-          <li>Shared monitoring without ambiguity</li>
-          <li>Transparent history with role and email</li>
-          <li>Clear invite flow for team members</li>
-          <li>Same patient, same truth, same timeline</li>
-        </ul>
-      </div>
+      <div class="card"><h2>Standard</h2><p>For one responsible person.</p><ul><li>Every planned slot is visible separately</li><li>24-hour time format only</li><li>Live status per slot: waiting, early, on time, late, overdue</li><li>History shows actual action time</li></ul></div>
+      <div class="card"><h2>Team</h2><p>For several responsible people working on the same patient.</p><ul><li>Shared monitoring without ambiguity</li><li>Transparent history with role and email</li><li>Clear invite flow for team members</li><li>Same patient, same truth, same timeline</li></ul></div>
     </section>
-
-    <section class="card" style="margin-top:16px;">
-      <h2>What makes the interface trustworthy</h2>
-      <ul>
-        <li>Country selection defines default timezone and interface language</li>
-        <li>Medication names may be entered fully or partially in any language</li>
-        <li>Actual time of action is shown in History, not only the plan</li>
-        <li>No old Partner logic</li>
-      </ul>
-    </section>
+    <section class="card" style="margin-top:16px;"><h2>What makes the interface trustworthy</h2><ul><li>Country selection defines default timezone and interface language</li><li>Medication names may be entered fully or partially in any language</li><li>Actual time of action is shown in History, not only the plan</li><li>No old Partner logic</li></ul></section>
   </div>
 </body>
 </html>
