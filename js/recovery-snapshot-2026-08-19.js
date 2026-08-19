@@ -1,6 +1,6 @@
 (function(){
   const KEY='affixo_medcontrol_standard_v3';
-  const MARKER='affixo_medcontrol_recovery_snapshot_2026_08_19_applied';
+  const MARKER='affixo_medcontrol_recovery_snapshot_2026_08_19_v2_applied';
   const BACKUP='affixo_medcontrol_before_recovery_2026_08_19';
   if(localStorage.getItem(MARKER)==='1') return;
 
@@ -11,6 +11,7 @@
   try{ previous=raw?JSON.parse(raw):{}; }catch(_){ previous={}; }
   const settings=Object.assign({},previous.settings||{}, {interfaceLanguage:'ru'});
 
+  const unitLabel={tablet:'таблетка',capsule:'капсула',drop:'капля',teaspoon:'чайная ложка',vial:'флакон'};
   const archived=[
     {order:1,name:'Аспирин',manufacturer:'',contentValue:'500',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'принимать после еды'},
     {order:2,name:'Тест 1',manufacturer:'',contentValue:'1000',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'T1'},
@@ -23,15 +24,15 @@
     {order:9,name:'Тест 12',manufacturer:'ЛЛ',contentValue:'500',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'только по назначению терапевта'}
   ].map(x=>Object.assign({
     id:'recovery-med-'+String(x.order).padStart(3,'0'),
-    contentUnitOther:'',intakeUnitOther:'',dose:x=>x,
+    contentUnitOther:'',intakeUnitOther:'',
     scheduleType:'daily',times:[],startDate:'',endDate:'',weekdays:[],explicitDates:[],
     active:false,cancelled:true,history:[]
-  },x,{dose:`${x.intakeQuantity} ${x.intakeUnit}`}));
+  },x,{dose:`${x.intakeQuantity} ${unitLabel[x.intakeUnit]||x.intakeUnit}`}));
 
   const active={
     id:'recovery-med-010',order:10,name:'INPUT-003-1',manufacturer:'CC',
     contentValue:'500',contentUnit:'other',contentUnitOther:'тс-4',
-    intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 tablet',
+    intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 таблетка',
     details:'натощак принимать',scheduleType:'weekdays',
     times:['08:30'],startDate:'',endDate:'2026-08-20',
     weekdays:['Mon','Tue','Fri','Sat'],explicitDates:[],
