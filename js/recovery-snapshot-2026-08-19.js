@@ -1,6 +1,6 @@
 (function(){
   const KEY='affixo_medcontrol_standard_v3';
-  const MARKER='affixo_medcontrol_recovery_snapshot_2026_08_19_v3_applied';
+  const MARKER='affixo_medcontrol_recovery_snapshot_2026_08_19_v4_applied';
   const BACKUP='affixo_medcontrol_before_recovery_2026_08_19';
   if(localStorage.getItem(MARKER)==='1') return;
 
@@ -9,7 +9,23 @@
 
   let previous={};
   try{ previous=raw?JSON.parse(raw):{}; }catch(_){ previous={}; }
+  const previousMedications=Array.isArray(previous.medications)?previous.medications:[];
   const settings=Object.assign({},previous.settings||{}, {interfaceLanguage:'ru'});
+
+  function previousMedication(order,name){
+    return previousMedications.find(m=>m&&m.order===order) || previousMedications.find(m=>m&&m.name===name) || null;
+  }
+  function preserveAudit(target){
+    const old=previousMedication(target.order,target.name);
+    if(!old) return target;
+    return Object.assign({},target,{
+      id:old.id||target.id,
+      history:Array.isArray(old.history)?old.history:[],
+      rowHistory:Array.isArray(old.rowHistory)?old.rowHistory:[],
+      temporalChangePermissions:old.temporalChangePermissions,
+      temporalPending:old.temporalPending
+    });
+  }
 
   const unitLabel={tablet:'таблетка',capsule:'капсула',drop:'капля',teaspoon:'чайная ложка',vial:'флакон'};
   const archived=[
@@ -22,12 +38,12 @@
     {order:7,name:'Тест 10',manufacturer:'ДД',contentValue:'1500',contentUnit:'mg/g',intakeQuantity:'1',intakeUnit:'vial',details:'после еды'},
     {order:8,name:'Тест 11',manufacturer:'КК',contentValue:'1000',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'через 30 минут после еды'},
     {order:9,name:'Тест 12',manufacturer:'ЛЛ',contentValue:'500',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'только по назначению терапевта'}
-  ].map(x=>Object.assign({
+  ].map(x=>preserveAudit(Object.assign({
     id:'recovery-med-'+String(x.order).padStart(3,'0'),
     contentUnitOther:'',intakeUnitOther:'',
     scheduleType:'daily',times:[],startDate:'',endDate:'',weekdays:[],explicitDates:[],
-    active:false,cancelled:true,history:[]
-  },x,{dose:`${x.intakeQuantity} ${unitLabel[x.intakeUnit]||x.intakeUnit}`}));
+    active:false,cancelled:true,history:[],rowHistory:[]
+  },x,{dose:`${x.intakeQuantity} ${unitLabel[x.intakeUnit]||x.intakeUnit}`})));
 
   const active=[
     {
@@ -36,7 +52,7 @@
       intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 таблетка',
       details:'натощак принимать',scheduleType:'weekdays',
       times:['08:30'],startDate:'',endDate:'2026-08-20',
-      weekdays:['Mon','Tue','Fri','Sat'],explicitDates:[],active:true,cancelled:false,history:[]
+      weekdays:['Mon','Tue','Fri','Sat'],explicitDates:[],active:true,cancelled:false,history:[],rowHistory:[]
     },
     {
       id:'recovery-med-011',order:11,name:'TEST-MED-01',manufacturer:'',
@@ -44,7 +60,7 @@
       intakeQuantity:'1',intakeUnit:'tablet',intakeUnitOther:'',dose:'1 таблетка',
       details:'После еды',scheduleType:'weekdays',
       times:['09:34'],startDate:'',endDate:'2026-08-19',
-      weekdays:['Tue','Thu','Sat'],explicitDates:[],active:true,cancelled:false,history:[]
+      weekdays:['Tue','Thu','Sat'],explicitDates:[],active:true,cancelled:false,history:[],rowHistory:[]
     },
     {
       id:'recovery-med-012',order:12,name:'Тест 08/12/2026',manufacturer:'Арфей',
@@ -52,11 +68,16 @@
       intakeQuantity:'1',intakeUnit:'capsule',intakeUnitOther:'',dose:'1 капсула',
       details:'принимать до еды',scheduleType:'weekdays',
       times:['09:00','18:30'],startDate:'',endDate:'2026-08-31',
-      weekdays:['Wed','Fri','Sun'],explicitDates:[],active:true,cancelled:false,history:[]
+      weekdays:['Wed','Fri','Sun'],explicitDates:[],active:true,cancelled:false,history:[],rowHistory:[]
     }
-  ];
+  ].map(preserveAudit);
 
-  const next={settings,medications:[...archived,...active],intakeLogs:[]};
+  const next={
+    settings,
+    medications:[...archived,...active],
+    intakeLogs:Array.isArray(previous.intakeLogs)?previous.intakeLogs:[],
+    intakeCorrections:Array.isArray(previous.intakeCorrections)?previous.intakeCorrections:[]
+  };
   localStorage.setItem(KEY,JSON.stringify(next));
   localStorage.setItem(MARKER,'1');
 })();
