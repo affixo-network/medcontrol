@@ -21,45 +21,106 @@
     const parts=formatDateTime(iso).split(', ');
     return parts[0]||'';
   }
+  function scheduleLabel(type){
+    if(type==='daily') return 'Каждый день';
+    if(type==='weekdays') return 'Дни недели';
+    if(type==='explicit_dates') return 'Даты';
+    return type||'—';
+  }
+  function weekdaysLabel(values){
+    const labels={Mon:'Пн',Tue:'Вт',Wed:'Ср',Thu:'Чт',Fri:'Пт',Sat:'Сб',Sun:'Вс'};
+    const order=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    return (Array.isArray(values)?values:[]).slice().sort((a,b)=>order.indexOf(a)-order.indexOf(b)).map(x=>labels[x]||x).join(', ');
+  }
+  function diffList(before,after){
+    const a=Array.isArray(before)?before:[];
+    const b=Array.isArray(after)?after:[];
+    return {
+      added:b.filter(x=>!a.includes(x)),
+      removed:a.filter(x=>!b.includes(x))
+    };
+  }
   function medicationHistory(med){
-    const entries=Array.isArray(med?.rowHistory)?med.rowHistory:[];
+    const entries=Array.isArray(med?.rowHistory)?[...med.rowHistory].sort((a,b)=>new Date(a.at)-new Date(b.at)):[];
     if(!entries.length) return '<p class="muted">История препарата пока пуста.</p>';
-    if(typeof rowHistoryHtml==='function') return rowHistoryHtml(entries);
-    return '<p class="muted">История препарата недоступна.</p>';
+
+    const rows=[];
+    let previous=null;
+    entries.forEach(entry=>{
+      const current=entry.snapshot||{};
+      const details=[];
+
+      if(entry.action==='created'){
+        details.push(`Создан препарат ${current.name||med?.name||''}`);
+        if(current.times?.length) details.push(`Время: ${current.times.join(', ')}`);
+        details.push(`Расписание: ${scheduleLabel(current.scheduleType)}`);
+        if(current.scheduleType==='weekdays'&&current.weekdays?.length) details.push(`Дни: ${weekdaysLabel(current.weekdays)}`);
+        if(current.startDate) details.push(`Начало: ${formatDate(current.startDate)}`);
+        if(current.endDate) details.push(`Окончание: ${formatDate(current.endDate)}`);
+      }else{
+        const before=previous||{};
+        const after=current;
+        const timeDiff=diffList(before.times,after.times);
+        timeDiff.added.forEach(t=>details.push(`Добавлено время ${t}`));
+        timeDiff.removed.forEach(t=>details.push(`Удалено время ${t}`));
+
+        if(before.scheduleType!==after.scheduleType){
+          details.push(`Расписание: ${scheduleLabel(before.scheduleType)} → ${scheduleLabel(after.scheduleType)}`);
+        }
+        if(JSON.stringify(before.weekdays||[])!==JSON.stringify(after.weekdays||[])){
+          details.push(`Дни недели: ${weekdaysLabel(before.weekdays)||'—'} → ${weekdaysLabel(after.weekdays)||'—'}`);
+        }
+        if(JSON.stringify(before.explicitDates||[])!==JSON.stringify(after.explicitDates||[])){
+          const oldDates=(before.explicitDates||[]).map(formatDate).join(', ')||'—';
+          const newDates=(after.explicitDates||[]).map(formatDate).join(', ')||'—';
+          details.push(`Даты: ${oldDates} → ${newDates}`);
+        }
+        const fields=[
+          ['manufacturer','Производитель'],['contentValue','Количественное содержание'],['contentUnit','Единица содержания'],
+          ['intakeQuantity','Количество приёма'],['intakeUnit','Единица приёма'],['details','Детали'],
+          ['startDate','Дата начала'],['endDate','Дата окончания'],['active','Статус'],['cancelled','Отмена']
+        ];
+        fields.forEach(([field,label])=>{
+          if(String(before[field]??'')===String(after[field]??'')) return;
+          let oldValue=before[field]??'—';
+          let newValue=after[field]??'—';
+          if(field==='startDate'||field==='endDate'){
+            oldValue=before[field]?formatDate(before[field]):'—';
+            newValue=after[field]?formatDate(after[field]):'—';
+          }
+          if(field==='active'){
+            oldValue=before[field]?'Активно':'Пассивно';
+            newValue=after[field]?'Активно':'Пассивно';
+          }
+          if(field==='cancelled'){
+            oldValue=before[field]?'Отменено':'Не отменено';
+            newValue=after[field]?'Отменено':'Не отменено';
+          }
+          details.push(`${label}: ${oldValue} → ${newValue}`);
+        });
+      }
+
+      rows.push(`<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td>${escapeHtml(entry.action==='created'?'Создано':'Изменено')}</td><td>${escapeHtml(details.join('; ')||entry.payload||'Изменение сохранено')}</td></tr>`);
+      previous=current;
+    });
+
+    return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Что изменено</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
   }
 
   function eventsForSlot(state,medId,plannedAt,period){
     const events=[];
     (state.intakeLogs||[])
       .filter(log=>log.medicationId===medId&&log.plannedAt===plannedAt)
-      .forEach(log=>events.push({
-        occurredAt:log.actualAt,
-        event:'Принято',
-        actualAt:log.actualAt,
-        correctionAt:null,
-        reason:null
-      }));
+      .forEach(log=>events.push({occurredAt:log.actualAt,event:'Принято',actualAt:log.actualAt,correctionAt:null,reason:null}));
 
     (state.intakeCorrections||[])
       .filter(c=>c.medicationId===medId&&c.plannedAt===plannedAt)
       .forEach(c=>{
-        const base=(state.intakeLogs||[]).find(log=>
-          log.medicationId===c.medicationId&&
-          log.plannedAt===c.plannedAt&&
-          (!c.primaryLogId||log.id===c.primaryLogId)
-        );
-        events.push({
-          occurredAt:c.correctedAt,
-          event:'Отмена «Принято»',
-          actualAt:c.before?.actualAt||base?.actualAt||null,
-          correctionAt:c.correctedAt,
-          reason:reasonLabel(c.reason)
-        });
+        const base=(state.intakeLogs||[]).find(log=>log.medicationId===c.medicationId&&log.plannedAt===c.plannedAt&&(!c.primaryLogId||log.id===c.primaryLogId));
+        events.push({occurredAt:c.correctedAt,event:'Отмена «Принято»',actualAt:c.before?.actualAt||base?.actualAt||null,correctionAt:c.correctedAt,reason:reasonLabel(c.reason)});
       });
 
-    return events
-      .filter(event=>filterPeriod(event.occurredAt,period))
-      .sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
+    return events.filter(event=>filterPeriod(event.occurredAt,period)).sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
   }
 
   function eventTable(events,emptyText){
@@ -106,9 +167,7 @@
     if(dialog) dialog.classList.add('row-history-dialog');
     const title=dialog?.querySelector('h2');
     if(title&&med){
-      title.textContent=plannedAt
-        ? `История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`
-        : `История приёма препарата «${med.name}»`;
+      title.textContent=plannedAt?`История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`:`История приёма препарата «${med.name}»`;
     }
     dialog?.showModal();
   };
@@ -135,37 +194,14 @@
       if(!dateCell||!timeCell) return;
       const [dd,mm,yyyy]=dateCell.textContent.trim().split('.');
       const plannedAt=getScheduledDateTime(`${yyyy}-${mm}-${dd}`,timeCell.textContent.trim());
-      button.onclick=function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        window.showIntakeHistory(med.id,plannedAt);
-      };
+      button.onclick=function(event){event.preventDefault();event.stopPropagation();window.showIntakeHistory(med.id,plannedAt);};
     });
   }
 
-  function scheduleBind(){
-    setTimeout(bindHistoryButtons,0);
-    setTimeout(bindHistoryButtons,100);
-    setTimeout(bindHistoryButtons,500);
-  }
-
+  function scheduleBind(){setTimeout(bindHistoryButtons,0);setTimeout(bindHistoryButtons,100);setTimeout(bindHistoryButtons,500);}
   const renderAction=window.renderActionPage;
-  if(typeof renderAction==='function'){
-    window.renderActionPage=function(){
-      const result=renderAction.apply(this,arguments);
-      scheduleBind();
-      return result;
-    };
-  }
-
+  if(typeof renderAction==='function'){window.renderActionPage=function(){const result=renderAction.apply(this,arguments);scheduleBind();return result;};}
   const renderDashboard=window.renderDashboardPage;
-  if(typeof renderDashboard==='function'){
-    window.renderDashboardPage=function(){
-      const result=renderDashboard.apply(this,arguments);
-      scheduleBind();
-      return result;
-    };
-  }
-
+  if(typeof renderDashboard==='function'){window.renderDashboardPage=function(){const result=renderDashboard.apply(this,arguments);scheduleBind();return result;};}
   document.addEventListener('DOMContentLoaded',scheduleBind);
 })();
