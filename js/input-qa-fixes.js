@@ -8,6 +8,12 @@
     };
   }
 
+  function dateISOPlusDays(dateISO, days) {
+    const [y, m, d] = dateISO.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d + days, 12, 0, 0));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  }
+
   function medicationLastDate(med) {
     if (med.scheduleType === 'explicit_dates') {
       const dates = (med.explicitDates || []).filter(Boolean).slice().sort();
@@ -16,13 +22,42 @@
     return med.endDate || '';
   }
 
-  function isCompletedCourse(med) {
-    if (!med || med.cancelled) return false;
+  function hasApplicableDateFromToday(med) {
+    const today = currentLocalDate();
     const lastDate = medicationLastDate(med);
-    return Boolean(lastDate && lastDate < currentLocalDate());
+    if (!lastDate || lastDate < today) return false;
+
+    for (let offset = 0; offset <= 370; offset += 1) {
+      const dateISO = dateISOPlusDays(today, offset);
+      if (dateISO > lastDate) break;
+      if (isMedicationApplicableOnDate(med, dateISO)) return true;
+    }
+    return false;
   }
 
-  window.isCompletedMedicationCourse = isCompletedCourse;
+  function shouldCompleteCourse(med) {
+    if (!med || med.cancelled || med.courseCompleted) return Boolean(med?.courseCompleted);
+    const lastDate = medicationLastDate(med);
+    if (!lastDate) return false;
+    if (lastDate < currentLocalDate()) return true;
+    return !hasApplicableDateFromToday(med);
+  }
+
+  function finalizeCompletedCourses(state) {
+    let changed = false;
+    (state.medications || []).forEach(med => {
+      if (!med.cancelled && !med.courseCompleted && shouldCompleteCourse(med)) {
+        med.courseCompleted = true;
+        recordRowHistory(med, 'course_completed', 'Курс приёма препарата завершён автоматически.');
+        changed = true;
+      }
+    });
+    if (changed) saveState(state);
+  }
+
+  window.isCompletedMedicationCourse = function(med) {
+    return Boolean(med?.courseCompleted || shouldCompleteCourse(med));
+  };
 
   const originalCreateMedication = window.createMedication;
   if (typeof originalCreateMedication === 'function') {
@@ -54,49 +89,11 @@
     };
   }
 
-  function sectionTitleBefore(table, title) {
-    if (!table || table.previousElementSibling?.dataset?.medSectionTitle) return;
-    const heading = document.createElement('h2');
-    heading.dataset.medSectionTitle = '1';
-    heading.textContent = title;
-    table.parentNode.insertBefore(heading, table);
-  }
-
-  function cloneMedicationTable(sourceTable, title, medications, mode) {
-    if (!sourceTable || !medications.length) return;
-    const section = document.createElement('section');
-    section.className = 'card';
-    const heading = document.createElement('h2');
-    heading.textContent = title;
-    section.appendChild(heading);
-    const table = sourceTable.cloneNode(true);
-    const tbody = table.querySelector('tbody');
-    if (tbody) tbody.innerHTML = '';
-    medications.forEach(med => {
-      const sourceRow = sourceTable.querySelector(`button[onclick*="'${med.id}'"]`)?.closest('tr');
-      if (!sourceRow || !tbody) return;
-      const row = sourceRow.cloneNode(true);
-      const status = row.querySelector('.status');
-      if (status) status.textContent = mode === 'completed' ? 'Курс завершён' : 'Пассивно';
-      const actionCell = row.lastElementChild;
-      if (actionCell) {
-        if (mode === 'completed') {
-          actionCell.innerHTML = `<button onclick="showRowHistory('${med.id}')">История</button>`;
-        } else {
-          actionCell.querySelectorAll('button').forEach(button => {
-            if (!button.getAttribute('onclick')?.startsWith('toggleMedicationMode(') && !button.getAttribute('onclick')?.startsWith('showRowHistory(')) button.remove();
-          });
-        }
-      }
-      tbody.appendChild(row);
-    });
-    sourceTable.closest('section')?.after(section);
-    section.appendChild(table);
-  }
-
   const originalRenderInputPage = window.renderInputPage;
   if (typeof originalRenderInputPage === 'function') {
     window.renderInputPage = function() {
+      const stateBefore = getState();
+      finalizeCompletedCourses(stateBefore);
       originalRenderInputPage();
 
       const active = document.getElementById('create_active');
@@ -107,9 +104,9 @@
 
       const state = getState();
       const current = (state.medications || []).filter(med => !med.cancelled);
-      const activeMeds = current.filter(med => med.active && !isCompletedCourse(med));
-      const passiveMeds = current.filter(med => !med.active && !isCompletedCourse(med));
-      const completedMeds = current.filter(isCompletedCourse);
+      const activeMeds = current.filter(med => med.active && !med.courseCompleted);
+      const passiveMeds = current.filter(med => !med.active && !med.courseCompleted);
+      const completedMeds = current.filter(med => med.courseCompleted);
 
       document.querySelectorAll('button[onclick^="toggleMedicationMode("]').forEach(button => {
         const match = button.getAttribute('onclick')?.match(/toggleMedicationMode\('([^']+)'\)/);
@@ -120,41 +117,53 @@
 
       const sourceTable = [...document.querySelectorAll('table')].find(table => table.querySelector('button[onclick^="openEditMedication("]'));
       if (!sourceTable) return;
-      sectionTitleBefore(sourceTable, 'Активные препараты');
 
-      const activeIds = new Set(activeMeds.map(med => med.id));
+      const rowById = new Map();
       sourceTable.querySelectorAll('tbody tr').forEach(row => {
-        const button = row.querySelector('button[onclick]');
-        const match = button?.getAttribute('onclick')?.match(/'([^']+)'/);
-        if (match && !activeIds.has(match[1])) row.remove();
+        const onclick = [...row.querySelectorAll('button[onclick]')].map(b => b.getAttribute('onclick') || '').join(' ');
+        const med = current.find(item => onclick.includes(`'${item.id}'`));
+        if (med) rowById.set(med.id, row.cloneNode(true));
       });
 
-      let anchor = sourceTable.closest('section');
-      const appendSection = (title, meds, mode) => {
-        if (!meds.length) return;
-        const section = document.createElement('section');
-        section.className = 'card';
-        section.innerHTML = `<h2>${title}</h2>`;
-        const table = sourceTable.cloneNode(true);
+      const originalHeading = sourceTable.closest('section')?.querySelector('h2');
+      if (originalHeading) originalHeading.textContent = 'Активные препараты';
+
+      const renderRows = (table, meds, mode) => {
         const tbody = table.querySelector('tbody');
-        if (tbody) tbody.innerHTML = '';
+        if (!tbody) return;
+        tbody.innerHTML = '';
         meds.forEach(med => {
-          const allRows = [...document.querySelectorAll('tr')];
-          const original = allRows.find(row => [...row.querySelectorAll('button[onclick]')].some(b => b.getAttribute('onclick')?.includes(`'${med.id}'`)));
-          if (!original || !tbody) return;
-          const row = original.cloneNode(true);
+          const source = rowById.get(med.id);
+          if (!source) return;
+          const row = source.cloneNode(true);
           const status = row.querySelector('.status');
-          if (status) status.textContent = mode === 'completed' ? 'Курс завершён' : 'Пассивно';
+          if (status) status.textContent = mode === 'completed' ? 'Курс завершён' : mode === 'passive' ? 'Пассивно' : 'Активно';
           const actions = row.lastElementChild;
-          if (actions && mode === 'completed') actions.innerHTML = `<button onclick="showRowHistory('${med.id}')">История</button>`;
-          else if (actions) {
+          if (actions && mode === 'completed') {
+            actions.innerHTML = `<button onclick="showRowHistory('${med.id}')">История</button>`;
+          } else if (actions && mode === 'passive') {
             actions.querySelectorAll('button').forEach(button => {
               const onclick = button.getAttribute('onclick') || '';
               if (!onclick.startsWith('toggleMedicationMode(') && !onclick.startsWith('showRowHistory(')) button.remove();
             });
+            const toggle = actions.querySelector('button[onclick^="toggleMedicationMode("]');
+            if (toggle) toggle.textContent = 'Активировать';
           }
           tbody.appendChild(row);
         });
+      };
+
+      renderRows(sourceTable, activeMeds, 'active');
+
+      let anchor = sourceTable.closest('section');
+      const appendSection = (title, meds, mode) => {
+        const section = document.createElement('section');
+        section.className = 'card';
+        const heading = document.createElement('h2');
+        heading.textContent = title;
+        section.appendChild(heading);
+        const table = sourceTable.cloneNode(true);
+        renderRows(table, meds, mode);
         section.appendChild(table);
         anchor.after(section);
         anchor = section;
@@ -169,7 +178,7 @@
   if (typeof originalToggleMedicationMode === 'function') {
     window.toggleMedicationMode = function(id) {
       const med = (getState().medications || []).find(item => item.id === id);
-      if (med && isCompletedCourse(med)) return;
+      if (med && med.courseCompleted) return;
       return originalToggleMedicationMode(id);
     };
   }
