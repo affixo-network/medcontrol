@@ -10,118 +10,67 @@
     if(period==='30') return ms>=now-30*86400000;
     return true;
   }
-
-  function reasonLabel(reason){
-    return reason==='accident'?'Случайность':reason==='error'?'Ошибка':'—';
+  function reasonLabel(reason){ return reason==='accident'?'Случайность':reason==='error'?'Ошибка':'—'; }
+  function timeOnly(iso){
+    if(!iso) return '';
+    const d=new Date(iso);
+    return new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Yerevan'}).format(d);
   }
 
   window.intakeHistoryRows=function(medId,period,plannedAt){
     if(!plannedAt) return typeof baseRows==='function'?baseRows(medId,period):'';
-    const state=getState();
-    const events=[];
-
-    (state.intakeLogs||[])
-      .filter(log=>log.medicationId===medId&&log.plannedAt===plannedAt)
-      .forEach(log=>events.push({
-        occurredAt:log.actualAt,
-        event:'Принято',
-        plannedAt:log.plannedAt,
-        actualAt:log.actualAt,
-        correctionAt:null,
-        reason:null
-      }));
-
-    (state.intakeCorrections||[])
-      .filter(c=>c.medicationId===medId&&c.plannedAt===plannedAt)
-      .forEach(c=>{
-        const base=(state.intakeLogs||[]).find(log=>
-          log.medicationId===c.medicationId&&
-          log.plannedAt===c.plannedAt&&
-          (!c.primaryLogId||log.id===c.primaryLogId)
-        );
-        events.push({
-          occurredAt:c.correctedAt,
-          event:'Отмена «Принято»',
-          plannedAt:c.plannedAt,
-          actualAt:c.before?.actualAt||base?.actualAt||null,
-          correctionAt:c.correctedAt,
-          reason:reasonLabel(c.reason)
-        });
-      });
-
-    const filtered=events
-      .filter(event=>filterPeriod(event.occurredAt,period))
-      .sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
-
+    const state=getState(); const events=[];
+    (state.intakeLogs||[]).filter(l=>l.medicationId===medId&&l.plannedAt===plannedAt).forEach(l=>events.push({occurredAt:l.actualAt,event:'Принято',actualAt:l.actualAt,correctionAt:null,reason:null}));
+    (state.intakeCorrections||[]).filter(c=>c.medicationId===medId&&c.plannedAt===plannedAt).forEach(c=>{
+      const base=(state.intakeLogs||[]).find(l=>l.medicationId===c.medicationId&&l.plannedAt===c.plannedAt&&(!c.primaryLogId||l.id===c.primaryLogId));
+      events.push({occurredAt:c.correctedAt,event:'Отмена «Принято»',actualAt:c.before?.actualAt||base?.actualAt||null,correctionAt:c.correctedAt,reason:reasonLabel(c.reason)});
+    });
+    const filtered=events.filter(e=>filterPeriod(e.occurredAt,period)).sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
     if(!filtered.length) return `<p class="muted">${escapeHtml(tr('no_history'))}</p>`;
-
-    const rows=filtered.map(event=>`<tr>
-      <td>${escapeHtml(formatDateTime(event.occurredAt))}</td>
-      <td>${escapeHtml(event.event)}</td>
-      <td>${escapeHtml(formatDateTime(event.plannedAt))}</td>
-      <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
-      <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
-      <td>${event.reason?escapeHtml(event.reason):'—'}</td>
-    </tr>`).join('');
-
-    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const rows=filtered.map(e=>`<tr><td>${escapeHtml(formatDateTime(e.occurredAt))}</td><td>${escapeHtml(e.event)}</td><td>${e.actualAt?escapeHtml(formatDateTime(e.actualAt)):'—'}</td><td>${e.correctionAt?escapeHtml(formatDateTime(e.correctionAt)):'—'}</td><td>${e.reason?escapeHtml(e.reason):'—'}</td></tr>`).join('');
+    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 
   window.showIntakeHistory=function(medicationId,plannedAt){
-    window.__historyMedicationId=medicationId;
-    window.__historyPlannedAt=plannedAt||null;
+    window.__historyMedicationId=medicationId; window.__historyPlannedAt=plannedAt||null;
     refreshIntakeHistory();
     const dialog=document.getElementById('intakeHistoryDialog');
     const med=(getState().medications||[]).find(item=>item.id===medicationId);
     const title=dialog?.querySelector('h2');
-    if(title&&med){
-      title.textContent=plannedAt
-        ? `История приёма препарата «${med.name}» — ${formatDateTime(plannedAt)}`
-        : `История приёма препарата «${med.name}»`;
-    }
+    if(title&&med) title.textContent=plannedAt?`История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`:`История приёма препарата «${med.name}»`;
     dialog?.showModal();
   };
 
   window.refreshIntakeHistory=function(){
-    const medicationId=window.__historyMedicationId;
-    if(!medicationId) return;
+    const medicationId=window.__historyMedicationId; if(!medicationId) return;
     const period=document.getElementById('historyPeriodSelect')?.value||'today';
     const content=document.getElementById('intakeHistoryContent');
     if(content) content.innerHTML=window.intakeHistoryRows(medicationId,period,window.__historyPlannedAt||null);
   };
 
   function bindHistoryButtons(){
-    const timeline=buildMedControlTimeline();
-    const table=[...document.querySelectorAll('section.card table')].find(t=>
-      [...t.querySelectorAll('th')].some(th=>th.textContent.trim()==='История')
-    );
-    if(!table) return;
-    const rows=[...table.querySelectorAll('tbody tr')];
-    rows.forEach((row,index)=>{
-      const item=timeline[index];
-      if(!item?.plannedAt) return;
-      const button=[...row.querySelectorAll('button')].find(btn=>btn.textContent.trim()==='История');
-      if(!button) return;
-      button.onclick=()=>window.showIntakeHistory(item.medication.id,item.plannedAt);
-      button.removeAttribute('onclick');
+    const tables=[...document.querySelectorAll('table')];
+    tables.forEach(table=>{
+      const historyIndex=[...table.querySelectorAll('thead th')].findIndex(th=>th.textContent.trim()==='История');
+      if(historyIndex<0) return;
+      [...table.querySelectorAll('tbody tr')].forEach(row=>{
+        const cells=[...row.children];
+        const button=[...row.querySelectorAll('button')].find(b=>b.textContent.trim()==='История');
+        if(!button) return;
+        const medId=Number(cells[0]?.textContent.trim());
+        const dateText=cells.find(td=>/^\d{2}\.\d{2}\.\d{4}$/.test(td.textContent.trim()))?.textContent.trim();
+        const times=cells.map(td=>td.textContent.trim()).filter(v=>/^\d{2}:\d{2}$/.test(v));
+        const plannedTime=times[0];
+        if(!medId||!dateText||!plannedTime) return;
+        const [dd,mm,yyyy]=dateText.split('.');
+        const plannedAt=`${yyyy}-${mm}-${dd}T${plannedTime}:00+04:00`;
+        button.onclick=function(ev){ ev.preventDefault(); ev.stopPropagation(); window.showIntakeHistory(medId,plannedAt); };
+      });
     });
   }
 
-  const renderAction=window.renderActionPage;
-  if(typeof renderAction==='function'){
-    window.renderActionPage=function(){
-      const result=renderAction.apply(this,arguments);
-      bindHistoryButtons();
-      return result;
-    };
-  }
-
-  const renderDashboard=window.renderDashboardPage;
-  if(typeof renderDashboard==='function'){
-    window.renderDashboardPage=function(){
-      const result=renderDashboard.apply(this,arguments);
-      bindHistoryButtons();
-      return result;
-    };
-  }
+  function scheduleBind(){ setTimeout(bindHistoryButtons,0); setTimeout(bindHistoryButtons,100); }
+  const ra=window.renderActionPage; if(typeof ra==='function') window.renderActionPage=function(){const r=ra.apply(this,arguments);scheduleBind();return r;};
+  const rd=window.renderDashboardPage; if(typeof rd==='function') window.renderDashboardPage=function(){const r=rd.apply(this,arguments);scheduleBind();return r;};
+  document.addEventListener('DOMContentLoaded',scheduleBind);
 })();
