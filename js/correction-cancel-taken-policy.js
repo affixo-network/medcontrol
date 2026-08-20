@@ -83,31 +83,62 @@
   window.intakeHistoryRows=function(medId,period){
     const s=ensureState();
     const now=Date.now();
-    let logs=(s.intakeLogs||[]).filter(x=>x.medicationId===medId);
+    const events=[];
 
-    logs=logs.filter(log=>{
+    (s.intakeLogs||[])
+      .filter(log=>log.medicationId===medId)
+      .forEach(log=>{
+        events.push({
+          occurredAt:log.actualAt,
+          event:'Принято',
+          plannedAt:log.plannedAt,
+          actualAt:log.actualAt,
+          correctionAt:null,
+          reason:null,
+          result:'Зафиксировано'
+        });
+      });
+
+    (s.intakeCorrections||[])
+      .filter(c=>c.medicationId===medId)
+      .forEach(c=>{
+        const base=(s.intakeLogs||[]).find(log=>
+          log.medicationId===c.medicationId &&
+          log.plannedAt===c.plannedAt &&
+          (!c.primaryLogId || log.id===c.primaryLogId)
+        );
+        events.push({
+          occurredAt:c.correctedAt,
+          event:'Отмена «Принято»',
+          plannedAt:c.plannedAt,
+          actualAt:c.before?.actualAt || base?.actualAt || null,
+          correctionAt:c.correctedAt,
+          reason:label(c.reason),
+          result:'«Принято» отменено'
+        });
+      });
+
+    const filtered=events.filter(event=>{
       if(period==='all') return true;
-      const t=new Date(log.actualAt).getTime();
-      if(period==='today') return localDateFromISO(log.actualAt)===currentLocalDate();
+      const t=new Date(event.occurredAt).getTime();
+      if(period==='today') return localDateFromISO(event.occurredAt)===currentLocalDate();
       if(period==='7') return t>=now-7*86400000;
       if(period==='30') return t>=now-30*86400000;
       return true;
-    }).sort((a,b)=>new Date(b.actualAt)-new Date(a.actualAt));
+    }).sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
 
-    if(!logs.length) return `<p class="muted">${escapeHtml(tr('no_history'))}</p>`;
+    if(!filtered.length) return `<p class="muted">${escapeHtml(tr('no_history'))}</p>`;
 
-    const rows=logs.map(log=>{
-      const related=(s.intakeCorrections||[])
-        .filter(c=>c.medicationId===medId&&c.plannedAt===log.plannedAt&&(!c.primaryLogId||c.primaryLogId===log.id))
-        .sort((a,b)=>new Date(a.correctedAt)-new Date(b.correctedAt));
+    const rows=filtered.map(event=>`<tr>
+      <td>${escapeHtml(formatDateTime(event.occurredAt))}</td>
+      <td>${escapeHtml(event.event)}</td>
+      <td>${escapeHtml(formatDateTime(event.plannedAt))}</td>
+      <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
+      <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
+      <td>${event.reason?escapeHtml(event.reason):'—'}</td>
+      <td>${escapeHtml(event.result)}</td>
+    </tr>`).join('');
 
-      if(!related.length){
-        return `<tr><td>${escapeHtml(formatDateTime(log.plannedAt))}</td><td>${escapeHtml(formatDateTime(log.actualAt))}</td><td>—</td><td>—</td><td>Принято</td></tr>`;
-      }
-
-      return related.map(c=>`<tr><td>${escapeHtml(formatDateTime(log.plannedAt))}</td><td>${escapeHtml(formatDateTime(log.actualAt))}</td><td>${escapeHtml(formatDateTime(c.correctedAt))}</td><td>${escapeHtml(label(c.reason))}</td><td>«Принято» отменено</td></tr>`).join('');
-    }).join('');
-
-    return `<table><thead><tr><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th><th>Результат</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th><th>Результат</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 })();
