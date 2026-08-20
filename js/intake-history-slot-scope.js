@@ -10,16 +10,11 @@
     if(period==='30') return ms>=now-30*86400000;
     return true;
   }
-  function reasonLabel(reason){ return reason==='accident'?'Случайность':reason==='error'?'Ошибка':'—'; }
+
   function timeOnly(iso){
     if(!iso) return '';
     const parts=formatDateTime(iso).split(', ');
     return parts[1]||'';
-  }
-  function dateOnly(iso){
-    if(!iso) return '';
-    const parts=formatDateTime(iso).split(', ');
-    return parts[0]||'';
   }
   function scheduleLabel(type){
     if(type==='daily') return 'Каждый день';
@@ -37,33 +32,44 @@
     const b=Array.isArray(after)?after:[];
     return {added:b.filter(x=>!a.includes(x)),removed:a.filter(x=>!b.includes(x))};
   }
+  function reasonLabel(reason){
+    return reason==='accident'?'Случайность':reason==='error'?'Ошибка':'—';
+  }
 
-  function slotMedicationHistory(med,plannedAt,period){
-    const clock=timeOnly(plannedAt);
+  function medicationEventsForClock(med,clock,period){
     const entries=Array.isArray(med?.rowHistory)?[...med.rowHistory].sort((a,b)=>new Date(a.at)-new Date(b.at)):[];
-    if(!entries.length) return '<p class="muted">Изменений, влияющих на выбранный приём, пока нет.</p>';
-
-    const rows=[];
+    const out=[];
     let previous=null;
+    let clockCreated=false;
+
     entries.forEach(entry=>{
       const current=entry.snapshot||{};
       const before=previous||{};
       const details=[];
       let relevant=false;
+      let eventLabel=entry.action==='created'?'Создано':'Изменено';
 
       if(entry.action==='created'){
         if((current.times||[]).includes(clock)){
           relevant=true;
+          clockCreated=true;
           details.push(`Создано назначение на ${clock}`);
           details.push(`Расписание: ${scheduleLabel(current.scheduleType)}`);
           if(current.scheduleType==='weekdays'&&current.weekdays?.length) details.push(`Дни: ${weekdaysLabel(current.weekdays)}`);
           if(current.startDate) details.push(`Начало: ${formatDate(current.startDate)}`);
           if(current.endDate) details.push(`Окончание: ${formatDate(current.endDate)}`);
         }
-      }else{
-        const timeDiff=diffList(before.times,current.times);
-        if(timeDiff.added.includes(clock)){relevant=true;details.push(`Добавлено время ${clock}`);}
-        if(timeDiff.removed.includes(clock)){relevant=true;details.push(`Удалено время ${clock}`);}
+      } else {
+        const td=diffList(before.times,current.times);
+        if(td.added.includes(clock)){
+          relevant=true;
+          if(!clockCreated){ eventLabel='Создано'; clockCreated=true; }
+          details.push(`Добавлено время ${clock}`);
+        }
+        if(td.removed.includes(clock)){
+          relevant=true;
+          details.push(`Удалено время ${clock}`);
+        }
 
         if(before.scheduleType!==current.scheduleType){
           relevant=true;
@@ -79,6 +85,7 @@
           const newDates=(current.explicitDates||[]).map(formatDate).join(', ')||'—';
           details.push(`Даты: ${oldDates} → ${newDates}`);
         }
+
         const fields=[
           ['manufacturer','Производитель'],['contentValue','Количественное содержание'],['contentUnit','Единица содержания'],
           ['intakeQuantity','Количество приёма'],['intakeUnit','Единица приёма'],['details','Детали'],
@@ -106,61 +113,90 @@
       }
 
       if(relevant&&filterPeriod(entry.at,period)){
-        rows.push(`<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td>${escapeHtml(entry.action==='created'?'Создано':'Изменено')}</td><td>${escapeHtml(details.join('; '))}</td></tr>`);
+        out.push({
+          occurredAt:entry.at,
+          event:eventLabel,
+          change:details.join('; '),
+          actualAt:null,
+          correctionAt:null,
+          reason:null
+        });
       }
       previous=current;
     });
 
-    return rows.length
-      ? `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Изменение для ${escapeHtml(clock)}</th></tr></thead><tbody>${rows.join('')}</tbody></table>`
-      : `<p class="muted">В выбранном периоде изменений, влияющих на время ${escapeHtml(clock)}, нет.</p>`;
+    return out;
   }
 
-  function eventsForSlot(state,medId,plannedAt,period){
-    const events=[];
-    (state.intakeLogs||[])
-      .filter(log=>log.medicationId===medId&&log.plannedAt===plannedAt)
-      .forEach(log=>events.push({occurredAt:log.actualAt,event:'Принято',actualAt:log.actualAt,correctionAt:null,reason:null}));
-    (state.intakeCorrections||[])
-      .filter(c=>c.medicationId===medId&&c.plannedAt===plannedAt)
-      .forEach(c=>{
-        const base=(state.intakeLogs||[]).find(log=>log.medicationId===c.medicationId&&log.plannedAt===c.plannedAt&&(!c.primaryLogId||log.id===c.primaryLogId));
-        events.push({occurredAt:c.correctedAt,event:'Отмена «Принято»',actualAt:c.before?.actualAt||base?.actualAt||null,correctionAt:c.correctedAt,reason:reasonLabel(c.reason)});
-      });
-    return events.filter(event=>filterPeriod(event.occurredAt,period)).sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
-  }
-
-  function eventTable(events,emptyText){
-    if(!events.length) return `<p class="muted">${escapeHtml(emptyText)}</p>`;
-    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${events.map(event=>`<tr><td>${escapeHtml(formatDateTime(event.occurredAt))}</td><td>${escapeHtml(event.event)}</td><td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td><td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td><td>${event.reason?escapeHtml(event.reason):'—'}</td></tr>`).join('')}</tbody></table>`;
-  }
-
-  function sameClockHistory(state,medId,plannedAt,period){
-    const clock=timeOnly(plannedAt);
+  function intakeEventsForClock(state,medId,clock,plannedAt,period){
     const selectedMs=new Date(plannedAt).getTime();
-    const slots=[...new Set([
-      ...(state.intakeLogs||[]).filter(x=>x.medicationId===medId).map(x=>x.plannedAt),
-      ...(state.intakeCorrections||[]).filter(x=>x.medicationId===medId).map(x=>x.plannedAt)
-    ].filter(Boolean))]
-      .filter(slot=>timeOnly(slot)===clock&&slot!==plannedAt&&new Date(slot).getTime()<selectedMs)
-      .sort((a,b)=>new Date(a)-new Date(b));
-    const blocks=slots.map(slot=>{
-      const events=eventsForSlot(state,medId,slot,period);
-      if(!events.length) return '';
-      return `<section style="margin-top:16px"><h4>${escapeHtml(formatDateTime(slot))}</h4>${eventTable(events,'Событий нет.')}</section>`;
-    }).filter(Boolean);
-    return blocks.length?blocks.join(''):`<p class="muted">Предыдущих событий для времени ${escapeHtml(clock)} в выбранном периоде нет.</p>`;
+    const events=[];
+
+    (state.intakeLogs||[])
+      .filter(log=>log.medicationId===medId&&timeOnly(log.plannedAt)===clock&&new Date(log.plannedAt).getTime()<=selectedMs)
+      .forEach(log=>events.push({
+        occurredAt:log.actualAt,
+        event:'Принято',
+        change:'—',
+        actualAt:log.actualAt,
+        correctionAt:null,
+        reason:null
+      }));
+
+    (state.intakeCorrections||[])
+      .filter(c=>c.medicationId===medId&&timeOnly(c.plannedAt)===clock&&new Date(c.plannedAt).getTime()<=selectedMs)
+      .forEach(c=>{
+        const base=(state.intakeLogs||[]).find(log=>
+          log.medicationId===c.medicationId&&
+          log.plannedAt===c.plannedAt&&
+          (!c.primaryLogId||log.id===c.primaryLogId)
+        );
+        events.push({
+          occurredAt:c.correctedAt,
+          event:'Отмена «Принято»',
+          change:'—',
+          actualAt:c.before?.actualAt||base?.actualAt||null,
+          correctionAt:c.correctedAt,
+          reason:reasonLabel(c.reason)
+        });
+      });
+
+    return events.filter(event=>filterPeriod(event.occurredAt,period));
+  }
+
+  function unifiedHistoryTable(events,clock){
+    const sorted=[...events].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
+    if(!sorted.length){
+      return `<p class="muted">В выбранном периоде событий для расчётного времени ${escapeHtml(clock)} нет.</p>`;
+    }
+
+    return `<table><thead><tr>
+      <th>Время события</th>
+      <th>Событие</th>
+      <th>Изменение</th>
+      <th>Фактическое время «Принято»</th>
+      <th>Локальное время исправления</th>
+      <th>Причина исправления</th>
+    </tr></thead><tbody>${sorted.map(event=>`<tr>
+      <td>${escapeHtml(formatDateTime(event.occurredAt))}</td>
+      <td>${escapeHtml(event.event||'—')}</td>
+      <td>${escapeHtml(event.change||'—')}</td>
+      <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
+      <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
+      <td>${event.reason?escapeHtml(event.reason):'—'}</td>
+    </tr>`).join('')}</tbody></table>`;
   }
 
   window.intakeHistoryRows=function(medId,period,plannedAt){
     if(!plannedAt) return typeof baseRows==='function'?baseRows(medId,period):'';
     const state=getState();
     const med=(state.medications||[]).find(item=>item.id===medId);
-    const selectedEvents=eventsForSlot(state,medId,plannedAt,period);
-    const selectedLabel=`${dateOnly(plannedAt)} ${timeOnly(plannedAt)}`;
-    const currentEmpty=`Для расчётного приёма ${selectedLabel} событий «Принято»/исправлений пока нет.`;
-
-    return `<h3>Изменения, влияющие на выбранное время ${escapeHtml(timeOnly(plannedAt))}</h3>${slotMedicationHistory(med,plannedAt,period)}<h3 style="margin-top:18px">История выбранного расчётного приёма — ${escapeHtml(selectedLabel)}</h3>${eventTable(selectedEvents,currentEmpty)}<h3 style="margin-top:18px">Предыдущие события для времени ${escapeHtml(timeOnly(plannedAt))}</h3>${sameClockHistory(state,medId,plannedAt,period)}`;
+    const clock=timeOnly(plannedAt);
+    const events=[
+      ...medicationEventsForClock(med,clock,period),
+      ...intakeEventsForClock(state,medId,clock,plannedAt,period)
+    ];
+    return unifiedHistoryTable(events,clock);
   };
 
   window.showIntakeHistory=function(medicationId,plannedAt){
@@ -172,7 +208,9 @@
     if(dialog) dialog.classList.add('row-history-dialog');
     const title=dialog?.querySelector('h2');
     if(title&&med){
-      title.textContent=plannedAt?`История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`:`История приёма препарата «${med.name}»`;
+      title.textContent=plannedAt
+        ? `История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`
+        : `История приёма препарата «${med.name}»`;
     }
     dialog?.showModal();
   };
@@ -199,14 +237,37 @@
       if(!dateCell||!timeCell) return;
       const [dd,mm,yyyy]=dateCell.textContent.trim().split('.');
       const plannedAt=getScheduledDateTime(`${yyyy}-${mm}-${dd}`,timeCell.textContent.trim());
-      button.onclick=function(event){event.preventDefault();event.stopPropagation();window.showIntakeHistory(med.id,plannedAt);};
+      button.onclick=function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        window.showIntakeHistory(med.id,plannedAt);
+      };
     });
   }
 
-  function scheduleBind(){setTimeout(bindHistoryButtons,0);setTimeout(bindHistoryButtons,100);setTimeout(bindHistoryButtons,500);}
+  function scheduleBind(){
+    setTimeout(bindHistoryButtons,0);
+    setTimeout(bindHistoryButtons,100);
+    setTimeout(bindHistoryButtons,500);
+  }
+
   const renderAction=window.renderActionPage;
-  if(typeof renderAction==='function'){window.renderActionPage=function(){const result=renderAction.apply(this,arguments);scheduleBind();return result;};}
+  if(typeof renderAction==='function'){
+    window.renderActionPage=function(){
+      const result=renderAction.apply(this,arguments);
+      scheduleBind();
+      return result;
+    };
+  }
+
   const renderDashboard=window.renderDashboardPage;
-  if(typeof renderDashboard==='function'){window.renderDashboardPage=function(){const result=renderDashboard.apply(this,arguments);scheduleBind();return result;};}
+  if(typeof renderDashboard==='function'){
+    window.renderDashboardPage=function(){
+      const result=renderDashboard.apply(this,arguments);
+      scheduleBind();
+      return result;
+    };
+  }
+
   document.addEventListener('DOMContentLoaded',scheduleBind);
 })();
