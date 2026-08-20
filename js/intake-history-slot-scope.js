@@ -23,12 +23,8 @@
     return '<p class="muted">История препарата недоступна.</p>';
   }
 
-  window.intakeHistoryRows=function(medId,period,plannedAt){
-    if(!plannedAt) return typeof baseRows==='function'?baseRows(medId,period):'';
-    const state=getState();
-    const med=(state.medications||[]).find(item=>item.id===medId);
+  function eventsForSlot(state,medId,plannedAt,period){
     const events=[];
-
     (state.intakeLogs||[])
       .filter(log=>log.medicationId===medId&&log.plannedAt===plannedAt)
       .forEach(log=>events.push({
@@ -56,15 +52,44 @@
         });
       });
 
-    const filtered=events
+    return events
       .filter(event=>filterPeriod(event.occurredAt,period))
       .sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
+  }
 
-    const intakeHtml=filtered.length
-      ? `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${filtered.map(event=>`<tr><td>${escapeHtml(formatDateTime(event.occurredAt))}</td><td>${escapeHtml(event.event)}</td><td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td><td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td><td>${event.reason?escapeHtml(event.reason):'—'}</td></tr>`).join('')}</tbody></table>`
-      : '<p class="muted">Для выбранного расчётного времени событий приёма пока нет.</p>';
+  function eventTable(events,emptyText){
+    if(!events.length) return `<p class="muted">${escapeHtml(emptyText)}</p>`;
+    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${events.map(event=>`<tr><td>${escapeHtml(formatDateTime(event.occurredAt))}</td><td>${escapeHtml(event.event)}</td><td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td><td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td><td>${event.reason?escapeHtml(event.reason):'—'}</td></tr>`).join('')}</tbody></table>`;
+  }
 
-    return `<h3>История препарата</h3>${medicationHistory(med)}<h3 style="margin-top:18px">История выбранного расчётного приёма</h3>${intakeHtml}`;
+  function allPlannedAts(state,medId){
+    return [...new Set([
+      ...(state.intakeLogs||[]).filter(x=>x.medicationId===medId).map(x=>x.plannedAt),
+      ...(state.intakeCorrections||[]).filter(x=>x.medicationId===medId).map(x=>x.plannedAt)
+    ].filter(Boolean))].sort((a,b)=>new Date(a)-new Date(b));
+  }
+
+  function intakeArchive(state,medId,period,selectedPlannedAt){
+    const slots=allPlannedAts(state,medId);
+    if(!slots.length) return '<p class="muted">Архив событий приёма пока пуст.</p>';
+
+    const blocks=slots.map(slot=>{
+      const events=eventsForSlot(state,medId,slot,period);
+      if(!events.length) return '';
+      const selected=slot===selectedPlannedAt?' — выбранная строка':'';
+      return `<section style="margin-top:16px"><h4>Расчётный приём ${escapeHtml(formatDateTime(slot))}${selected}</h4>${eventTable(events,'Событий нет.')}</section>`;
+    }).filter(Boolean);
+
+    return blocks.length?blocks.join(''):'<p class="muted">Для выбранного периода событий приёма нет.</p>';
+  }
+
+  window.intakeHistoryRows=function(medId,period,plannedAt){
+    if(!plannedAt) return typeof baseRows==='function'?baseRows(medId,period):'';
+    const state=getState();
+    const med=(state.medications||[]).find(item=>item.id===medId);
+    const selectedEvents=eventsForSlot(state,medId,plannedAt,period);
+
+    return `<h3>История препарата</h3>${medicationHistory(med)}<h3 style="margin-top:18px">История выбранного расчётного приёма</h3>${eventTable(selectedEvents,'Для выбранного расчётного времени событий приёма пока нет.')}<h3 style="margin-top:18px">Архив всех расчётных приёмов препарата</h3>${intakeArchive(state,medId,period,plannedAt)}`;
   };
 
   window.showIntakeHistory=function(medicationId,plannedAt){
@@ -95,21 +120,15 @@
     document.querySelectorAll('table tbody tr').forEach(row=>{
       const button=[...row.querySelectorAll('button')].find(btn=>btn.textContent.trim()==='История');
       if(!button) return;
-
       const cells=[...row.children];
       const orderText=cells[0]?.textContent.trim();
       const med=(state.medications||[]).find(item=>String(item.order)===String(orderText));
       if(!med) return;
-
       const dateCell=cells.find(td=>/^\d{2}\.\d{2}\.\d{4}$/.test(td.textContent.trim()));
       const timeCell=cells.find(td=>/^\d{2}:\d{2}$/.test(td.textContent.trim()));
       if(!dateCell||!timeCell) return;
-
       const [dd,mm,yyyy]=dateCell.textContent.trim().split('.');
-      const dateISO=`${yyyy}-${mm}-${dd}`;
-      const plannedTime=timeCell.textContent.trim();
-      const plannedAt=getScheduledDateTime(dateISO,plannedTime);
-
+      const plannedAt=getScheduledDateTime(`${yyyy}-${mm}-${dd}`,timeCell.textContent.trim());
       button.onclick=function(event){
         event.preventDefault();
         event.stopPropagation();
