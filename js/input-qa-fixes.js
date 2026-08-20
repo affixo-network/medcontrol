@@ -14,12 +14,34 @@
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
   }
 
+  function weekdayCode(dateISO) {
+    const [y, m, d] = dateISO.split('-').map(Number);
+    return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay()];
+  }
+
   function medicationLastDate(med) {
     if (med.scheduleType === 'explicit_dates') {
       const dates = (med.explicitDates || []).filter(Boolean).slice().sort();
       return dates.length ? dates[dates.length - 1] : '';
     }
     return med.endDate || '';
+  }
+
+  function scheduleAppliesIgnoringMode(med, dateISO) {
+    if (!med || med.cancelled) return false;
+
+    if (med.scheduleType === 'explicit_dates') {
+      return (med.explicitDates || []).includes(dateISO);
+    }
+
+    if (med.startDate && dateISO < med.startDate) return false;
+    if (med.endDate && dateISO > med.endDate) return false;
+
+    if (med.scheduleType === 'weekdays') {
+      return (med.weekdays || []).includes(weekdayCode(dateISO));
+    }
+
+    return med.scheduleType === 'daily' || !med.scheduleType;
   }
 
   function hasApplicableDateFromToday(med) {
@@ -30,25 +52,34 @@
     for (let offset = 0; offset <= 370; offset += 1) {
       const dateISO = dateISOPlusDays(today, offset);
       if (dateISO > lastDate) break;
-      if (isMedicationApplicableOnDate(med, dateISO)) return true;
+      if (scheduleAppliesIgnoringMode(med, dateISO)) return true;
     }
     return false;
   }
 
   function shouldCompleteCourse(med) {
-    if (!med || med.cancelled || med.courseCompleted) return Boolean(med?.courseCompleted);
+    if (!med || med.cancelled) return false;
     const lastDate = medicationLastDate(med);
     if (!lastDate) return false;
     if (lastDate < currentLocalDate()) return true;
     return !hasApplicableDateFromToday(med);
   }
 
-  function finalizeCompletedCourses(state) {
+  function reconcileCompletedCourses(state) {
     let changed = false;
     (state.medications || []).forEach(med => {
-      if (!med.cancelled && !med.courseCompleted && shouldCompleteCourse(med)) {
+      if (med.cancelled) return;
+      const shouldBeCompleted = shouldCompleteCourse(med);
+
+      if (shouldBeCompleted && !med.courseCompleted) {
         med.courseCompleted = true;
         recordRowHistory(med, 'course_completed', 'Курс приёма препарата завершён автоматически.');
+        changed = true;
+      }
+
+      if (!shouldBeCompleted && med.courseCompleted) {
+        med.courseCompleted = false;
+        recordRowHistory(med, 'course_status_corrected', 'Статус курса исправлен: курс не завершён.');
         changed = true;
       }
     });
@@ -56,7 +87,7 @@
   }
 
   window.isCompletedMedicationCourse = function(med) {
-    return Boolean(med?.courseCompleted || shouldCompleteCourse(med));
+    return Boolean(med && !med.cancelled && shouldCompleteCourse(med));
   };
 
   const originalCreateMedication = window.createMedication;
@@ -93,7 +124,7 @@
   if (typeof originalRenderInputPage === 'function') {
     window.renderInputPage = function() {
       const stateBefore = getState();
-      finalizeCompletedCourses(stateBefore);
+      reconcileCompletedCourses(stateBefore);
       originalRenderInputPage();
 
       const active = document.getElementById('create_active');
