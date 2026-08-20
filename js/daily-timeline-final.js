@@ -78,12 +78,16 @@
         .filter(c=>c.medicationId===med.id&&localDateFromISO(c.plannedAt)===today)
         .map(c=>slotFromPlannedAt(c.plannedAt));
 
-      uniqueSlots([...todayScheduled,...historicalToday,...correctionToday])
-        .forEach(slot=>rows.push(effectiveRow(med,slot,now)));
+      const currentDaySlots=uniqueSlots([...todayScheduled,...historicalToday,...correctionToday]);
+      currentDaySlots.forEach(slot=>rows.push(effectiveRow(med,slot,now)));
 
-      if(med.scheduleType==='weekdays'||med.scheduleType==='explicit_dates'){
+      if((med.scheduleType==='weekdays'||med.scheduleType==='explicit_dates')&&!todayScheduled.length){
         const next=scheduled.find(slot=>slot.date>today);
-        if(next) rows.push(effectiveRow(med,next,now));
+        if(next){
+          scheduled
+            .filter(slot=>slot.date===next.date)
+            .forEach(slot=>rows.push(effectiveRow(med,slot,now)));
+        }
       }
     }
 
