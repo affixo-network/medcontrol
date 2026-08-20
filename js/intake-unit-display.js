@@ -10,57 +10,24 @@
     zh:{tablet:'片',capsule:'胶囊',ml:'毫升',drop:'滴',teaspoon:'茶匙',tablespoon:'汤匙',dose:'剂量',puff:'喷',ampoule:'安瓿',vial:'药瓶',packet:'包',sachet:'袋',suppository:'栓剂',patch:'贴剂',injection:'注射',unit:'单位'},
     ja:{tablet:'錠',capsule:'カプセル',ml:'mL',drop:'滴',teaspoon:'小さじ',tablespoon:'大さじ',dose:'用量',puff:'吸入',ampoule:'アンプル',vial:'バイアル',packet:'包',sachet:'小袋',suppository:'坐薬',patch:'貼付剤',injection:'注射',unit:'単位'}
   };
-
-  function language(){return getState()?.settings?.interfaceLanguage||'en'}
-  window.medControlIntakeUnitLabel=function(med){
-    if(!med) return '—';
-    if(med.intakeUnit==='other') return med.intakeUnitOther||'—';
-    const lang=language();
-    return UNIT_LABELS[lang]?.[med.intakeUnit]||UNIT_LABELS.en[med.intakeUnit]||med.intakeUnit||'—';
-  };
-
-  function medicationByOrder(order){
-    return (getState().medications||[]).find(m=>String(m.order)===String(order));
+  function language(){return getState()?.settings?.interfaceLanguage||document.documentElement.lang||'ru'}
+  function label(unit,other){if(unit==='other')return other||'—';const lang=language();return UNIT_LABELS[lang]?.[unit]||UNIT_LABELS.ru[unit]||unit||'—'}
+  function inferUnit(med){
+    if(med.intakeUnit) return med.intakeUnit;
+    const dose=String(med.dose||'').toLowerCase();
+    const aliases={tablet:['tablet','таблет'],capsule:['capsule','капсул'],drop:['drop','капл'],teaspoon:['teaspoon','чай'],tablespoon:['tablespoon','столов'],dose:['dose','доз'],puff:['puff','впрыск'],ampoule:['ampoule','ампул'],vial:['vial','флакон'],packet:['packet','пакет'],sachet:['sachet','саше'],suppository:['suppository','суппозитор'],patch:['patch','пластыр'],injection:['injection','инъекц'],ml:[' ml','мл'],unit:['unit','единиц']};
+    return Object.keys(aliases).find(key=>aliases[key].some(a=>dose.includes(a)))||'';
   }
-
-  function localizeActionRows(){
-    const table=document.querySelector('section.card table');
-    if(!table) return;
-    table.querySelectorAll('tbody tr').forEach(row=>{
-      if(row.children.length<3) return;
-      const med=medicationByOrder(row.children[0].textContent.trim());
-      if(!med) return;
-      const qty=med.intakeQuantity||'—';
-      row.children[2].textContent=`${qty} ${window.medControlIntakeUnitLabel(med)}`;
-    });
+  function inferQuantity(med){
+    if(med.intakeQuantity!==undefined&&med.intakeQuantity!==null&&String(med.intakeQuantity).trim()) return String(med.intakeQuantity).trim();
+    const match=String(med.dose||'').match(/\d+(?:[.,]\d+)?/);
+    return match?match[0]:'—';
   }
-
-  function localizeDashboardRows(){
-    const table=document.querySelector('section.card table');
-    if(!table) return;
-    table.querySelectorAll('tbody tr').forEach(row=>{
-      if(row.children.length<4) return;
-      const med=medicationByOrder(row.children[0].textContent.trim());
-      if(!med) return;
-      row.children[3].textContent=window.medControlIntakeUnitLabel(med);
-    });
-  }
-
-  const action=window.renderActionPage;
-  if(typeof action==='function'){
-    window.renderActionPage=function(){
-      const result=action.apply(this,arguments);
-      localizeActionRows();
-      return result;
-    };
-  }
-
-  const dashboard=window.renderDashboardPage;
-  if(typeof dashboard==='function'){
-    window.renderDashboardPage=function(){
-      const result=dashboard.apply(this,arguments);
-      localizeDashboardRows();
-      return result;
-    };
-  }
+  window.medControlIntakeUnitLabel=function(med){return label(inferUnit(med),med?.intakeUnitOther)};
+  window.medControlDoseLabel=function(med){return `${inferQuantity(med)} ${window.medControlIntakeUnitLabel(med)}`.trim()};
+  function medicationByOrder(order){return(getState().medications||[]).find(m=>String(m.order)===String(order))}
+  function localizeActionRows(){const table=document.querySelector('section.card table');if(!table)return;table.querySelectorAll('tbody tr').forEach(row=>{if(row.children.length<3)return;const med=medicationByOrder(row.children[0].textContent.trim());if(med)row.children[2].textContent=window.medControlDoseLabel(med)})}
+  function localizeDashboardRows(){const table=document.querySelector('section.card table');if(!table)return;table.querySelectorAll('tbody tr').forEach(row=>{if(row.children.length<4)return;const med=medicationByOrder(row.children[0].textContent.trim());if(!med)return;row.children[2].textContent=inferQuantity(med);row.children[3].textContent=window.medControlIntakeUnitLabel(med)})}
+  const action=window.renderActionPage;if(typeof action==='function')window.renderActionPage=function(){const result=action.apply(this,arguments);localizeActionRows();return result};
+  const dashboard=window.renderDashboardPage;if(typeof dashboard==='function')window.renderDashboardPage=function(){const result=dashboard.apply(this,arguments);localizeDashboardRows();return result};
 })();
