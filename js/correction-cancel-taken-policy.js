@@ -94,8 +94,7 @@
           plannedAt:log.plannedAt,
           actualAt:log.actualAt,
           correctionAt:null,
-          reason:null,
-          result:'Зафиксировано'
+          reason:null
         });
       });
 
@@ -113,8 +112,7 @@
           plannedAt:c.plannedAt,
           actualAt:c.before?.actualAt || base?.actualAt || null,
           correctionAt:c.correctedAt,
-          reason:label(c.reason),
-          result:'«Принято» отменено'
+          reason:label(c.reason)
         });
       });
 
@@ -136,9 +134,8 @@
       <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
       <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
       <td>${event.reason?escapeHtml(event.reason):'—'}</td>
-      <td>${escapeHtml(event.result)}</td>
     </tr>`).join('');
 
-    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th><th>Результат</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 })();
