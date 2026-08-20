@@ -16,6 +16,11 @@
     const parts=formatDateTime(iso).split(', ');
     return parts[1]||'';
   }
+  function dateOnly(iso){
+    if(!iso) return '';
+    const parts=formatDateTime(iso).split(', ');
+    return parts[0]||'';
+  }
   function medicationHistory(med){
     const entries=Array.isArray(med?.rowHistory)?med.rowHistory:[];
     if(!entries.length) return '<p class="muted">История препарата пока пуста.</p>';
@@ -62,25 +67,23 @@
     return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${events.map(event=>`<tr><td>${escapeHtml(formatDateTime(event.occurredAt))}</td><td>${escapeHtml(event.event)}</td><td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td><td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td><td>${event.reason?escapeHtml(event.reason):'—'}</td></tr>`).join('')}</tbody></table>`;
   }
 
-  function allPlannedAts(state,medId){
-    return [...new Set([
+  function sameClockHistory(state,medId,plannedAt,period){
+    const clock=timeOnly(plannedAt);
+    const selectedMs=new Date(plannedAt).getTime();
+    const slots=[...new Set([
       ...(state.intakeLogs||[]).filter(x=>x.medicationId===medId).map(x=>x.plannedAt),
       ...(state.intakeCorrections||[]).filter(x=>x.medicationId===medId).map(x=>x.plannedAt)
-    ].filter(Boolean))].sort((a,b)=>new Date(a)-new Date(b));
-  }
-
-  function intakeArchive(state,medId,period,selectedPlannedAt){
-    const slots=allPlannedAts(state,medId);
-    if(!slots.length) return '<p class="muted">Архив событий приёма пока пуст.</p>';
+    ].filter(Boolean))]
+      .filter(slot=>timeOnly(slot)===clock&&slot!==plannedAt&&new Date(slot).getTime()<selectedMs)
+      .sort((a,b)=>new Date(a)-new Date(b));
 
     const blocks=slots.map(slot=>{
       const events=eventsForSlot(state,medId,slot,period);
       if(!events.length) return '';
-      const selected=slot===selectedPlannedAt?' — выбранная строка':'';
-      return `<section style="margin-top:16px"><h4>Расчётный приём ${escapeHtml(formatDateTime(slot))}${selected}</h4>${eventTable(events,'Событий нет.')}</section>`;
+      return `<section style="margin-top:16px"><h4>${escapeHtml(formatDateTime(slot))}</h4>${eventTable(events,'Событий нет.')}</section>`;
     }).filter(Boolean);
 
-    return blocks.length?blocks.join(''):'<p class="muted">Для выбранного периода событий приёма нет.</p>';
+    return blocks.length?blocks.join(''):`<p class="muted">Предыдущих событий для времени ${escapeHtml(clock)} в выбранном периоде нет.</p>`;
   }
 
   window.intakeHistoryRows=function(medId,period,plannedAt){
@@ -88,8 +91,10 @@
     const state=getState();
     const med=(state.medications||[]).find(item=>item.id===medId);
     const selectedEvents=eventsForSlot(state,medId,plannedAt,period);
+    const selectedLabel=`${dateOnly(plannedAt)} ${timeOnly(plannedAt)}`;
+    const currentEmpty=`Для расчётного приёма ${selectedLabel} событий «Принято»/исправлений пока нет.`;
 
-    return `<h3>История препарата</h3>${medicationHistory(med)}<h3 style="margin-top:18px">История выбранного расчётного приёма</h3>${eventTable(selectedEvents,'Для выбранного расчётного времени событий приёма пока нет.')}<h3 style="margin-top:18px">Архив всех расчётных приёмов препарата</h3>${intakeArchive(state,medId,period,plannedAt)}`;
+    return `<h3>История препарата</h3>${medicationHistory(med)}<h3 style="margin-top:18px">История выбранного расчётного приёма — ${escapeHtml(selectedLabel)}</h3>${eventTable(selectedEvents,currentEmpty)}<h3 style="margin-top:18px">Предыдущие события для времени ${escapeHtml(timeOnly(plannedAt))}</h3>${sameClockHistory(state,medId,plannedAt,period)}`;
   };
 
   window.showIntakeHistory=function(medicationId,plannedAt){
@@ -98,6 +103,7 @@
     refreshIntakeHistory();
     const dialog=document.getElementById('intakeHistoryDialog');
     const med=(getState().medications||[]).find(item=>item.id===medicationId);
+    if(dialog) dialog.classList.add('row-history-dialog');
     const title=dialog?.querySelector('h2');
     if(title&&med){
       title.textContent=plannedAt
