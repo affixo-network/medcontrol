@@ -1,8 +1,8 @@
 (function(){
   function state(){const s=getState();if(!Array.isArray(s.intakeCorrections))s.intakeCorrections=[];return s}
-  function primary(medicationId,plannedAt){return (getState().intakeLogs||[]).find(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt)||null}
+  function primary(medicationId,plannedAt){return (getState().intakeLogs||[]).filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(b.actualAt||b.at||0)-new Date(a.actualAt||a.at||0))[0]||null}
   function list(medicationId,plannedAt){return state().intakeCorrections.filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(a.correctedAt)-new Date(b.correctedAt))}
-  function current(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base)return null;const all=list(medicationId,plannedAt),last=all[all.length-1];if(last&&last.after&&last.after.action==='reset')return null;if(!last)return {...base,correctionCount:0,primaryActualAt:base.actualAt};return {...base,...last.after,correctionCount:all.length,primaryActualAt:base.actualAt,lastCorrection:last}}
+  function current(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base)return null;const all=list(medicationId,plannedAt),last=all[all.length-1];if(last&&new Date(last.correctedAt||0)>new Date(base.actualAt||base.at||0)&&last.after&&last.after.action==='reset')return null;if(!last||new Date(base.actualAt||base.at||0)>new Date(last.correctedAt||0))return {...base,correctionCount:all.length,primaryActualAt:base.actualAt};return {...base,...last.after,correctionCount:all.length,primaryActualAt:base.actualAt,lastCorrection:last}}
   window.getLogForSchedule=function(medicationId,plannedAt){return current(medicationId,plannedAt)};
 
   function correctionCount(medicationId,plannedAt){return list(medicationId,plannedAt).length}
@@ -13,9 +13,10 @@
   const inheritedMarkTaken=window.markTaken;
   window.markTaken=function(medicationId,plannedAt){
     const base=primary(medicationId,plannedAt),all=list(medicationId,plannedAt),last=all[all.length-1];
-    if(base&&last?.after?.action==='reset'){
-      const s=state(),actualAt=nowISO(),ordinal=all.length+1;
-      s.intakeCorrections.push({id:uid(),medicationId,plannedAt,primaryLogId:base.id||null,ordinal,reason:'retake',correctedAt:actualAt,before:{actualAt:null,action:'reset',status:null},after:{actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')}});
+    if(base&&last?.after?.action==='reset'&&new Date(last.correctedAt||0)>new Date(base.actualAt||base.at||0)){
+      const s=state(),actualAt=nowISO();
+      if(!Array.isArray(s.intakeLogs))s.intakeLogs=[];
+      s.intakeLogs.push({id:uid(),medicationId,plannedAt,actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')});
       saveState(s);mount('action');return;
     }
     return inheritedMarkTaken(medicationId,plannedAt);
