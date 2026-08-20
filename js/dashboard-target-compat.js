@@ -9,6 +9,8 @@
   function statusText(s){return({waiting:'Ожидается',missed:'Не выполнен',taken:'Принято',cancelled:'Отменен'})[s]||s}
   function statusCss(s){return s==='waiting'?'status expected':s==='missed'?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
 
+  let dashboardRefreshTimer=null;
+
   window.renderDashboardPage=function(){
     const rows=buildMedControlTimeline().map(x=>`<tr>
       <td>${x.medication.order}</td>
@@ -29,6 +31,14 @@
       <tr><th>Количество приёма</th><th>Единица приёма</th><th>Дата</th><th>Время</th></tr>
       </thead><tbody>${rows||'<tr><td colspan="10">Нет записей</td></tr>'}</tbody></table></section>
       <dialog id="intakeHistoryDialog"><h2>История</h2><div class="inline" style="margin-bottom:12px"><label>Период</label><select id="historyPeriodSelect" onchange="refreshIntakeHistory()"><option value="today">Сегодня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="all">Весь период</option></select></div><div id="intakeHistoryContent"></div><div class="right"><button onclick="document.getElementById('intakeHistoryDialog').close()">Закрыть</button></div></dialog>`;
-    document.body.innerHTML=appShell('MedControl — Табло','dashboard',body);scheduleClock();setTimeout(()=>mount('dashboard'),1000);
+    document.body.innerHTML=appShell('MedControl — Табло','dashboard',body);
+    scheduleClock();
+
+    if(dashboardRefreshTimer) clearTimeout(dashboardRefreshTimer);
+    dashboardRefreshTimer=setTimeout(()=>{
+      const dialog=document.getElementById('intakeHistoryDialog');
+      if(dialog?.open) return;
+      mount('dashboard');
+    },1000);
   };
 })();
