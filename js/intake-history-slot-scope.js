@@ -16,174 +16,173 @@
     const parts=formatDateTime(iso).split(', ');
     return parts[1]||'';
   }
-  function scheduleLabel(type){
-    if(type==='daily') return 'Каждый день';
-    if(type==='weekdays') return 'Дни недели';
-    if(type==='explicit_dates') return 'Даты';
-    return type||'—';
-  }
-  function weekdaysLabel(values){
-    const labels={Mon:'Пн',Tue:'Вт',Wed:'Ср',Thu:'Чт',Fri:'Пт',Sat:'Сб',Sun:'Вс'};
-    const order=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    return (Array.isArray(values)?values:[]).slice().sort((a,b)=>order.indexOf(a)-order.indexOf(b)).map(x=>labels[x]||x).join(', ');
-  }
-  function diffList(before,after){
-    const a=Array.isArray(before)?before:[];
-    const b=Array.isArray(after)?after:[];
-    return {added:b.filter(x=>!a.includes(x)),removed:a.filter(x=>!b.includes(x))};
-  }
-  function reasonLabel(reason){
-    return reason==='accident'?'Случайность':reason==='error'?'Ошибка':'—';
+
+  function normalizedScheduleType(snapshot){
+    return snapshot?.scheduleType || ((snapshot?.explicitDates||[]).length?'explicit_dates':(snapshot?.weekdays||[]).length?'weekdays':'daily');
   }
 
-  function medicationEventsForClock(med,clock,period){
-    const entries=Array.isArray(med?.rowHistory)?[...med.rowHistory].sort((a,b)=>new Date(a.at)-new Date(b.at)):[];
-    const out=[];
-    let previous=null;
-    let clockCreated=false;
-
-    entries.forEach(entry=>{
-      const current=entry.snapshot||{};
-      const before=previous||{};
-      const details=[];
-      let relevant=false;
-      let eventLabel=entry.action==='created'?'Создано':'Изменено';
-
-      if(entry.action==='created'){
-        if((current.times||[]).includes(clock)){
-          relevant=true;
-          clockCreated=true;
-          details.push(`Создано назначение на ${clock}`);
-          details.push(`Расписание: ${scheduleLabel(current.scheduleType)}`);
-          if(current.scheduleType==='weekdays'&&current.weekdays?.length) details.push(`Дни: ${weekdaysLabel(current.weekdays)}`);
-          if(current.startDate) details.push(`Начало: ${formatDate(current.startDate)}`);
-          if(current.endDate) details.push(`Окончание: ${formatDate(current.endDate)}`);
-        }
-      } else {
-        const td=diffList(before.times,current.times);
-        if(td.added.includes(clock)){
-          relevant=true;
-          if(!clockCreated){ eventLabel='Создано'; clockCreated=true; }
-          details.push(`Добавлено время ${clock}`);
-        }
-        if(td.removed.includes(clock)){
-          relevant=true;
-          details.push(`Удалено время ${clock}`);
-        }
-
-        if(before.scheduleType!==current.scheduleType){
-          relevant=true;
-          details.push(`Расписание: ${scheduleLabel(before.scheduleType)} → ${scheduleLabel(current.scheduleType)}`);
-        }
-        if(JSON.stringify(before.weekdays||[])!==JSON.stringify(current.weekdays||[])){
-          relevant=true;
-          details.push(`Дни недели: ${weekdaysLabel(before.weekdays)||'—'} → ${weekdaysLabel(current.weekdays)||'—'}`);
-        }
-        if(JSON.stringify(before.explicitDates||[])!==JSON.stringify(current.explicitDates||[])){
-          relevant=true;
-          const oldDates=(before.explicitDates||[]).map(formatDate).join(', ')||'—';
-          const newDates=(current.explicitDates||[]).map(formatDate).join(', ')||'—';
-          details.push(`Даты: ${oldDates} → ${newDates}`);
-        }
-
-        const fields=[
-          ['manufacturer','Производитель'],['contentValue','Количественное содержание'],['contentUnit','Единица содержания'],
-          ['intakeQuantity','Количество приёма'],['intakeUnit','Единица приёма'],['details','Детали'],
-          ['startDate','Дата начала'],['endDate','Дата окончания'],['active','Статус'],['cancelled','Отмена']
-        ];
-        fields.forEach(([field,label])=>{
-          if(String(before[field]??'')===String(current[field]??'')) return;
-          relevant=true;
-          let oldValue=before[field]??'—';
-          let newValue=current[field]??'—';
-          if(field==='startDate'||field==='endDate'){
-            oldValue=before[field]?formatDate(before[field]):'—';
-            newValue=current[field]?formatDate(current[field]):'—';
-          }
-          if(field==='active'){
-            oldValue=before[field]?'Активно':'Пассивно';
-            newValue=current[field]?'Активно':'Пассивно';
-          }
-          if(field==='cancelled'){
-            oldValue=before[field]?'Отменено':'Не отменено';
-            newValue=current[field]?'Отменено':'Не отменено';
-          }
-          details.push(`${label}: ${oldValue} → ${newValue}`);
-        });
-      }
-
-      if(relevant&&filterPeriod(entry.at,period)){
-        out.push({
-          occurredAt:entry.at,
-          event:eventLabel,
-          change:details.join('; '),
-          actualAt:null,
-          correctionAt:null,
-          reason:null
-        });
-      }
-      previous=current;
-    });
-
-    return out;
+  function scheduleText(snapshot){
+    const type=normalizedScheduleType(snapshot);
+    return type==='daily'?'Каждый день':type==='weekdays'?'Дни недели':type==='explicit_dates'?'Даты':'—';
   }
 
-  function intakeEventsForClock(state,medId,clock,plannedAt,period){
-    const selectedMs=new Date(plannedAt).getTime();
-    const events=[];
-
-    (state.intakeLogs||[])
-      .filter(log=>log.medicationId===medId&&timeOnly(log.plannedAt)===clock&&new Date(log.plannedAt).getTime()<=selectedMs)
-      .forEach(log=>events.push({
-        occurredAt:log.actualAt,
-        event:'Принято',
-        change:'—',
-        actualAt:log.actualAt,
-        correctionAt:null,
-        reason:null
-      }));
-
-    (state.intakeCorrections||[])
-      .filter(c=>c.medicationId===medId&&timeOnly(c.plannedAt)===clock&&new Date(c.plannedAt).getTime()<=selectedMs)
-      .forEach(c=>{
-        const base=(state.intakeLogs||[]).find(log=>
-          log.medicationId===c.medicationId&&
-          log.plannedAt===c.plannedAt&&
-          (!c.primaryLogId||log.id===c.primaryLogId)
-        );
-        events.push({
-          occurredAt:c.correctedAt,
-          event:'Отмена «Принято»',
-          change:'—',
-          actualAt:c.before?.actualAt||base?.actualAt||null,
-          correctionAt:c.correctedAt,
-          reason:reasonLabel(c.reason)
-        });
-      });
-
-    return events.filter(event=>filterPeriod(event.occurredAt,period));
+  function scheduleParameters(snapshot){
+    const type=normalizedScheduleType(snapshot);
+    if(type==='daily') return 'Ежедневно';
+    if(type==='weekdays'){
+      const labels={Mon:'Пн',Tue:'Вт',Wed:'Ср',Thu:'Чт',Fri:'Пт',Sat:'Сб',Sun:'Вс'};
+      const order=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      return (snapshot?.weekdays||[]).slice().sort((a,b)=>order.indexOf(a)-order.indexOf(b)).map(x=>labels[x]||x).join(', ')||'—';
+    }
+    if(type==='explicit_dates') return (snapshot?.explicitDates||[]).map(formatDate).join(', ')||'—';
+    return '—';
   }
 
-  function unifiedHistoryTable(events,clock){
-    const sorted=[...events].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
-    if(!sorted.length){
-      return `<p class="muted">В выбранном периоде событий для расчётного времени ${escapeHtml(clock)} нет.</p>`;
+  function contentUnit(snapshot){
+    if(typeof medicationContentUnitLabel==='function') return medicationContentUnitLabel(snapshot?.contentUnit,snapshot?.contentUnitOther||'');
+    return snapshot?.contentUnit||'—';
+  }
+
+  function intakeUnit(snapshot){
+    if(typeof medicationIntakeUnitLabel==='function') return medicationIntakeUnitLabel(snapshot?.intakeUnit,snapshot?.intakeUnitOther||'');
+    return snapshot?.intakeUnit||'—';
+  }
+
+  function statusText(snapshot){
+    if(snapshot?.cancelled) return 'Отменено';
+    if(snapshot?.courseCompleted) return 'Завершён';
+    return snapshot?.active?'Активно':'Пассивно';
+  }
+
+  function blankRow(at,event){
+    return {
+      occurredAt:at,event,
+      name:'',manufacturer:'',contentValue:'',contentUnit:'',intakeQuantity:'',intakeUnit:'',details:'',
+      schedule:'',scheduleParameters:'',time:'',startDate:'',endDate:'',status:'',
+      actualAt:null,correctionAt:null,reason:''
+    };
+  }
+
+  function fullRow(at,event,snapshot,clock){
+    const row=blankRow(at,event);
+    row.name=snapshot?.name||'—';
+    row.manufacturer=snapshot?.manufacturer||'—';
+    row.contentValue=snapshot?.contentValue||'—';
+    row.contentUnit=contentUnit(snapshot);
+    row.intakeQuantity=snapshot?.intakeQuantity||'—';
+    row.intakeUnit=intakeUnit(snapshot);
+    row.details=snapshot?.details||'—';
+    row.schedule=scheduleText(snapshot);
+    row.scheduleParameters=scheduleParameters(snapshot);
+    row.time=clock;
+    row.startDate=normalizedScheduleType(snapshot)==='daily'&&snapshot?.startDate?formatDate(snapshot.startDate):'—';
+    row.endDate=normalizedScheduleType(snapshot)==='explicit_dates'?'—':snapshot?.endDate?formatDate(snapshot.endDate):'—';
+    row.status=statusText(snapshot);
+    return row;
+  }
+
+  function changedRow(at,before,after,changes,clock){
+    const row=blankRow(at,'Изменено');
+    let touched=false;
+    const has=key=>Object.prototype.hasOwnProperty.call(changes||{},key);
+
+    if(has('name')){row.name=after.name||'—';touched=true;}
+    if(has('manufacturer')){row.manufacturer=after.manufacturer||'—';touched=true;}
+    if(has('contentValue')){row.contentValue=after.contentValue||'—';touched=true;}
+    if(has('contentUnit')||has('contentUnitOther')){row.contentUnit=contentUnit(after);touched=true;}
+    if(has('intakeQuantity')){row.intakeQuantity=after.intakeQuantity||'—';touched=true;}
+    if(has('intakeUnit')||has('intakeUnitOther')){row.intakeUnit=intakeUnit(after);touched=true;}
+    if(has('details')){row.details=after.details||'—';touched=true;}
+
+    if(has('scheduleType')){row.schedule=scheduleText(after);touched=true;}
+    if(has('scheduleType')||has('weekdays')||has('explicitDates')){row.scheduleParameters=scheduleParameters(after);touched=true;}
+
+    if(has('times')){
+      const beforeTimes=Array.isArray(before?.times)?before.times:[];
+      const afterTimes=Array.isArray(after?.times)?after.times:[];
+      const beforeHas=beforeTimes.includes(clock);
+      const afterHas=afterTimes.includes(clock);
+      if(beforeHas!==afterHas){row.time=afterHas?clock:'—';touched=true;}
     }
 
+    if(has('startDate')){row.startDate=after.startDate?formatDate(after.startDate):'—';touched=true;}
+    if(has('endDate')){row.endDate=after.endDate?formatDate(after.endDate):'—';touched=true;}
+    if(has('active')||has('cancelled')||has('courseCompleted')){row.status=statusText(after);touched=true;}
+
+    return touched?row:null;
+  }
+
+  function medicationRowsForClock(med,clock,period){
+    const entries=Array.isArray(med?.rowHistory)?[...med.rowHistory].sort((a,b)=>new Date(a.at)-new Date(b.at)):[];
+    const rows=[];
+    let state={};
+    let clockKnown=false;
+
+    entries.forEach(entry=>{
+      const before={...state};
+      const source=entry.action==='created'?(entry.snapshot||{}):(entry.changes||{});
+      const after=entry.action==='created'?{...source}:{...state,...source};
+      const beforeTimes=Array.isArray(before.times)?before.times:[];
+      const afterTimes=Array.isArray(after.times)?after.times:[];
+      const wasPresent=beforeTimes.includes(clock);
+      const isPresent=afterTimes.includes(clock);
+
+      if(!clockKnown&&isPresent){
+        if(filterPeriod(entry.at,period)) rows.push(fullRow(entry.at,'Создано',after,clock));
+        clockKnown=true;
+      } else if(clockKnown){
+        const row=changedRow(entry.at,before,after,source,clock);
+        if(row&&filterPeriod(entry.at,period)) rows.push(row);
+        if(wasPresent&&!isPresent) clockKnown=false;
+      }
+
+      state=after;
+    });
+
+    return rows;
+  }
+
+  function intakeRowsForClock(state,medId,clock,plannedAt,period){
+    const limit=new Date(plannedAt).getTime();
+    const rows=[];
+
+    (state.intakeLogs||[])
+      .filter(log=>log.medicationId===medId&&timeOnly(log.plannedAt)===clock&&new Date(log.plannedAt).getTime()<=limit)
+      .forEach(log=>{
+        if(!filterPeriod(log.actualAt,period)) return;
+        const row=blankRow(log.actualAt,'Принято');
+        row.actualAt=log.actualAt;
+        rows.push(row);
+      });
+
+    (state.intakeCorrections||[])
+      .filter(c=>c.medicationId===medId&&timeOnly(c.plannedAt)===clock&&new Date(c.plannedAt).getTime()<=limit)
+      .forEach(c=>{
+        if(!filterPeriod(c.correctedAt,period)) return;
+        const base=(state.intakeLogs||[]).find(log=>log.medicationId===c.medicationId&&log.plannedAt===c.plannedAt&&(!c.primaryLogId||log.id===c.primaryLogId));
+        const row=blankRow(c.correctedAt,'Отмена «Принято»');
+        row.actualAt=c.before?.actualAt||base?.actualAt||null;
+        row.correctionAt=c.correctedAt;
+        row.reason=c.reason==='accident'?'Случайность':c.reason==='error'?'Ошибка':'—';
+        rows.push(row);
+      });
+
+    return rows;
+  }
+
+  function cell(value){
+    if(value===null||value===undefined||value==='') return '—';
+    return escapeHtml(value);
+  }
+
+  function historyTable(rows,clock){
+    const sorted=[...rows].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
+    if(!sorted.length) return `<p class="muted">В выбранном периоде событий для расчётного времени ${escapeHtml(clock)} нет.</p>`;
+
     return `<table><thead><tr>
-      <th>Время события</th>
-      <th>Событие</th>
-      <th>Изменение</th>
-      <th>Фактическое время «Принято»</th>
-      <th>Локальное время исправления</th>
-      <th>Причина исправления</th>
-    </tr></thead><tbody>${sorted.map(event=>`<tr>
-      <td>${escapeHtml(formatDateTime(event.occurredAt))}</td>
-      <td>${escapeHtml(event.event||'—')}</td>
-      <td>${escapeHtml(event.change||'—')}</td>
-      <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
-      <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
-      <td>${event.reason?escapeHtml(event.reason):'—'}</td>
+      <th>Дата/время</th><th>Событие</th><th>Препарат</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th><th>Время</th><th>Дата начала</th><th>Дата окончания</th><th>Статус</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th>
+    </tr></thead><tbody>${sorted.map(row=>`<tr>
+      <td>${cell(formatDateTime(row.occurredAt))}</td><td>${cell(row.event)}</td><td>${cell(row.name)}</td><td>${cell(row.manufacturer)}</td><td>${cell(row.contentValue)}</td><td>${cell(row.contentUnit)}</td><td>${cell(row.intakeQuantity)}</td><td>${cell(row.intakeUnit)}</td><td>${cell(row.details)}</td><td>${cell(row.schedule)}</td><td>${cell(row.scheduleParameters)}</td><td>${cell(row.time)}</td><td>${cell(row.startDate)}</td><td>${cell(row.endDate)}</td><td>${cell(row.status)}</td><td>${row.actualAt?cell(formatDateTime(row.actualAt)):'—'}</td><td>${row.correctionAt?cell(formatDateTime(row.correctionAt)):'—'}</td><td>${cell(row.reason)}</td>
     </tr>`).join('')}</tbody></table>`;
   }
 
@@ -192,11 +191,10 @@
     const state=getState();
     const med=(state.medications||[]).find(item=>item.id===medId);
     const clock=timeOnly(plannedAt);
-    const events=[
-      ...medicationEventsForClock(med,clock,period),
-      ...intakeEventsForClock(state,medId,clock,plannedAt,period)
-    ];
-    return unifiedHistoryTable(events,clock);
+    return historyTable([
+      ...medicationRowsForClock(med,clock,period),
+      ...intakeRowsForClock(state,medId,clock,plannedAt,period)
+    ],clock);
   };
 
   window.showIntakeHistory=function(medicationId,plannedAt){
@@ -208,9 +206,7 @@
     if(dialog) dialog.classList.add('row-history-dialog');
     const title=dialog?.querySelector('h2');
     if(title&&med){
-      title.textContent=plannedAt
-        ? `История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`
-        : `История приёма препарата «${med.name}»`;
+      title.textContent=plannedAt?`История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`:`История приёма препарата «${med.name}»`;
     }
     dialog?.showModal();
   };
@@ -237,37 +233,14 @@
       if(!dateCell||!timeCell) return;
       const [dd,mm,yyyy]=dateCell.textContent.trim().split('.');
       const plannedAt=getScheduledDateTime(`${yyyy}-${mm}-${dd}`,timeCell.textContent.trim());
-      button.onclick=function(event){
-        event.preventDefault();
-        event.stopPropagation();
-        window.showIntakeHistory(med.id,plannedAt);
-      };
+      button.onclick=function(event){event.preventDefault();event.stopPropagation();window.showIntakeHistory(med.id,plannedAt);};
     });
   }
 
-  function scheduleBind(){
-    setTimeout(bindHistoryButtons,0);
-    setTimeout(bindHistoryButtons,100);
-    setTimeout(bindHistoryButtons,500);
-  }
-
+  function scheduleBind(){setTimeout(bindHistoryButtons,0);setTimeout(bindHistoryButtons,100);setTimeout(bindHistoryButtons,500);}
   const renderAction=window.renderActionPage;
-  if(typeof renderAction==='function'){
-    window.renderActionPage=function(){
-      const result=renderAction.apply(this,arguments);
-      scheduleBind();
-      return result;
-    };
-  }
-
+  if(typeof renderAction==='function'){window.renderActionPage=function(){const result=renderAction.apply(this,arguments);scheduleBind();return result;};}
   const renderDashboard=window.renderDashboardPage;
-  if(typeof renderDashboard==='function'){
-    window.renderDashboardPage=function(){
-      const result=renderDashboard.apply(this,arguments);
-      scheduleBind();
-      return result;
-    };
-  }
-
+  if(typeof renderDashboard==='function'){window.renderDashboardPage=function(){const result=renderDashboard.apply(this,arguments);scheduleBind();return result;};}
   document.addEventListener('DOMContentLoaded',scheduleBind);
 })();
