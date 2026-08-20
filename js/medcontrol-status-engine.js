@@ -1,11 +1,11 @@
 (function(){
 function plusDays(iso,n){const[a,b,c]=iso.split('-').map(Number),d=new Date(Date.UTC(a,b-1,c+n,12));return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`}
-function endDay(iso){return new Date(getScheduledDateTime(iso,'23:59')).getTime()+59000}
 function statusText(s){return({waiting:'Ожидается',missed:'Не выполнен',taken:'Принято',cancelled:'Отменен'})[s]||s}
 function statusCss(s){return s==='waiting'?'status expected':s==='missed'?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
 function duration(ms){let t=Math.max(0,Math.floor(ms/1000)),d=Math.floor(t/86400);t%=86400;let h=Math.floor(t/3600);t%=3600;let m=Math.floor(t/60),s=t%60;return `${d} дн. ${String(h).padStart(2,'0')} ч. ${String(m).padStart(2,'0')} мин. ${String(s).padStart(2,'0')} сек.`}
 function slots(med,start,days=370){const out=[],times=(med.times||[]).filter(Boolean).slice().sort();for(let i=0;i<=days;i++){const date=plusDays(start,i);if(!isMedicationApplicableOnDate(med,date))continue;for(const time of times){const plannedAt=getScheduledDateTime(date,time),plannedMs=new Date(plannedAt).getTime();if(!Number.isNaN(plannedMs))out.push({date,time,plannedAt,plannedMs})}}return out.sort((a,b)=>a.plannedMs-b.plannedMs)}
 function cancelledToday(med,today){if(!med.cancelled)return false;const h=(med.rowHistory||[]).find(x=>x&&x.action==='cancelled');return !!(h&&localDateFromISO(h.at)===today)}
+function rowForSlot(med,slot,now){const log=getLogForSchedule(med.id,slot.plannedAt);if(log){return{medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:log.action==='taken'?'taken':'cancelled',actualAt:log.actualAt,canTake:false,canCorrect:log.action==='taken',countdownMode:null,countdownMs:null}}if(slot.plannedMs>now){return{medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:slot.plannedMs-now}}return{medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'missed',actualAt:null,canTake:true,canCorrect:false,countdownMode:'late',countdownMs:now-slot.plannedMs}}
 
 window.buildMedControlTimeline=function(){
   const today=currentLocalDate(),now=Date.now(),rows=[];
@@ -18,36 +18,20 @@ window.buildMedControlTimeline=function(){
     }
     if(med.cancelled)continue;
 
-    const all=slots(med,today),todaySlots=all.filter(x=>x.date===today);
-    const futureAll=all.find(x=>x.plannedMs>now);
+    const all=slots(med,today);
+    const todaySlots=all.filter(x=>x.date===today);
 
-    if(!todaySlots.length){
-      if(futureAll) rows.push({medication:med,plannedDate:futureAll.date,plannedTime:futureAll.time,plannedAt:futureAll.plannedAt,plannedMs:futureAll.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:futureAll.plannedMs-now});
-      continue;
-    }
+    // Operational pages show every scheduled intake of the current day until 23:59,
+    // each with its own current status. Completed rows are not removed.
+    todaySlots.forEach(slot=>rows.push(rowForSlot(med,slot,now)));
 
-    const slotInfo=todaySlots.map((slot,index)=>({
-      slot,
-      index,
-      log:getLogForSchedule(med.id,slot.plannedAt)
-    }));
-
-    const unresolvedPast=slotInfo.filter(({slot,log})=>slot.plannedMs<=now&&!log);
-    unresolvedPast.forEach(({slot})=>{
-      rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'missed',actualAt:null,canTake:true,canCorrect:false,countdownMode:'late',countdownMs:now-slot.plannedMs});
-    });
-
-    const nextFuture=slotInfo.find(({slot})=>slot.plannedMs>now);
-    if(nextFuture){
-      const {slot}=nextFuture;
-      rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:slot.plannedMs-now});
-      continue;
-    }
-
-    const last=todaySlots[todaySlots.length-1];
-    const lastLog=getLogForSchedule(med.id,last.plannedAt);
-    if(lastLog&&now<endDay(today)){
-      rows.push({medication:med,plannedDate:last.date,plannedTime:last.time,plannedAt:last.plannedAt,plannedMs:last.plannedMs,status:lastLog.action==='taken'?'taken':'cancelled',actualAt:lastLog.actualAt,canTake:false,canCorrect:lastLog.action==='taken',countdownMode:null,countdownMs:null});
+    // For non-daily schedules also show one nearest planned intake after today,
+    // so the user can see the next weekday/date appointment in advance.
+    if(med.scheduleType==='weekdays'||med.scheduleType==='explicit_dates'){
+      const nearestFuture=all.find(x=>x.date>today);
+      if(nearestFuture){
+        rows.push({medication:med,plannedDate:nearestFuture.date,plannedTime:nearestFuture.time,plannedAt:nearestFuture.plannedAt,plannedMs:nearestFuture.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:nearestFuture.plannedMs-now});
+      }
     }
   }
   return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
