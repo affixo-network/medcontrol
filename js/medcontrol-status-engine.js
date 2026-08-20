@@ -6,8 +6,53 @@ function statusCss(s){return s==='waiting'?'status expected':s==='missed'?'statu
 function duration(ms){let t=Math.max(0,Math.floor(ms/1000)),d=Math.floor(t/86400);t%=86400;let h=Math.floor(t/3600);t%=3600;let m=Math.floor(t/60),s=t%60;return `${d} дн. ${String(h).padStart(2,'0')} ч. ${String(m).padStart(2,'0')} мин. ${String(s).padStart(2,'0')} сек.`}
 function slots(med,start,days=370){const out=[],times=(med.times||[]).filter(Boolean).slice().sort();for(let i=0;i<=days;i++){const date=plusDays(start,i);if(!isMedicationApplicableOnDate(med,date))continue;for(const time of times){const plannedAt=getScheduledDateTime(date,time),plannedMs=new Date(plannedAt).getTime();if(!Number.isNaN(plannedMs))out.push({date,time,plannedAt,plannedMs})}}return out.sort((a,b)=>a.plannedMs-b.plannedMs)}
 function cancelledToday(med,today){if(!med.cancelled)return false;const h=(med.rowHistory||[]).find(x=>x&&x.action==='cancelled');return !!(h&&localDateFromISO(h.at)===today)}
-window.buildMedControlTimeline=function(){const today=currentLocalDate(),now=Date.now(),rows=[];for(const med of (getState().medications||[])){ensureTemporalChangeState(med);if(med.temporalPending.schedule||med.temporalPending.time)continue;if(cancelledToday(med,today)){rows.push({medication:med,plannedDate:today,plannedTime:'—',plannedAt:null,plannedMs:null,status:'cancelled',actualAt:null,canTake:false,canCorrect:false,countdownMode:null,countdownMs:null});continue}if(med.cancelled)continue;const all=slots(med,today),todaySlots=all.filter(x=>x.date===today),future=all.find(x=>x.plannedMs>now);for(const slot of todaySlots){const log=getLogForSchedule(med.id,slot.plannedAt),next=all.find(x=>x.plannedMs>slot.plannedMs),cut=Math.min(next?next.plannedMs:Infinity,endDay(today));if(log){rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:log.action==='taken'?'taken':'cancelled',actualAt:log.actualAt,canTake:false,canCorrect:true,countdownMode:null,countdownMs:null});continue}if(now<slot.plannedMs){rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:slot.plannedMs-now});continue}if(now<cut){rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'missed',actualAt:null,canTake:true,canCorrect:false,countdownMode:'late',countdownMs:now-slot.plannedMs})}}
-if(!todaySlots.length&&future)rows.push({medication:med,plannedDate:future.date,plannedTime:future.time,plannedAt:future.plannedAt,plannedMs:future.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:future.plannedMs-now})}return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity))}
+
+window.buildMedControlTimeline=function(){
+  const today=currentLocalDate(),now=Date.now(),rows=[];
+  for(const med of (getState().medications||[])){
+    ensureTemporalChangeState(med);
+    if(med.temporalPending.schedule||med.temporalPending.time)continue;
+    if(cancelledToday(med,today)){
+      rows.push({medication:med,plannedDate:today,plannedTime:'—',plannedAt:null,plannedMs:null,status:'cancelled',actualAt:null,canTake:false,canCorrect:false,countdownMode:null,countdownMs:null});
+      continue;
+    }
+    if(med.cancelled)continue;
+
+    const all=slots(med,today),todaySlots=all.filter(x=>x.date===today);
+    const futureAll=all.find(x=>x.plannedMs>now);
+
+    if(!todaySlots.length){
+      if(futureAll) rows.push({medication:med,plannedDate:futureAll.date,plannedTime:futureAll.time,plannedAt:futureAll.plannedAt,plannedMs:futureAll.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:futureAll.plannedMs-now});
+      continue;
+    }
+
+    const slotInfo=todaySlots.map((slot,index)=>({
+      slot,
+      index,
+      log:getLogForSchedule(med.id,slot.plannedAt)
+    }));
+
+    const unresolvedPast=slotInfo.filter(({slot,log})=>slot.plannedMs<=now&&!log);
+    unresolvedPast.forEach(({slot})=>{
+      rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'missed',actualAt:null,canTake:true,canCorrect:false,countdownMode:'late',countdownMs:now-slot.plannedMs});
+    });
+
+    const nextFuture=slotInfo.find(({slot})=>slot.plannedMs>now);
+    if(nextFuture){
+      const {slot}=nextFuture;
+      rows.push({medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:'waiting',actualAt:null,canTake:true,canCorrect:false,countdownMode:'remaining',countdownMs:slot.plannedMs-now});
+      continue;
+    }
+
+    const last=todaySlots[todaySlots.length-1];
+    const lastLog=getLogForSchedule(med.id,last.plannedAt);
+    if(lastLog&&now<endDay(today)){
+      rows.push({medication:med,plannedDate:last.date,plannedTime:last.time,plannedAt:last.plannedAt,plannedMs:last.plannedMs,status:lastLog.action==='taken'?'taken':'cancelled',actualAt:lastLog.actualAt,canTake:false,canCorrect:lastLog.action==='taken',countdownMode:null,countdownMs:null});
+    }
+  }
+  return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
+}
+
 function counter(item){if(item.countdownMode==='remaining')return `<strong>До времени приёма осталось</strong><br>${escapeHtml(duration(item.countdownMs))}`;if(item.countdownMode==='late')return `<strong>Опоздание</strong><br>${escapeHtml(duration(item.countdownMs))}`;return '—'}
 window.renderActionPage=function(){const rows=buildMedControlTimeline().map(x=>{const temp=x.status==='cancelled'?'':`<button onclick="beginTemporalCancellation('${x.medication.id}','schedule')">Отменить Расписание</button> <button onclick="beginTemporalCancellation('${x.medication.id}','time')">Отменить Время</button>`,take=x.canTake&&x.plannedAt?`<button onclick="markTaken('${x.medication.id}','${x.plannedAt}')">Принято</button>`:'',fix=x.canCorrect&&x.plannedAt?`<button onclick="openCorrection('${x.medication.id}','${x.plannedAt}')">Исправить</button>`:'';return `<tr><td>${x.medication.order}</td><td>${escapeHtml(x.medication.name)}</td><td>${escapeHtml(x.medication.dose)}</td><td>${escapeHtml(formatDate(x.plannedDate))}</td><td>${escapeHtml(x.plannedTime)}</td><td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x.status))}</span></td><td>${x.actualAt?escapeHtml(formatDateTime(x.actualAt)):'—'}</td><td>${take} ${fix} ${temp}</td><td><button onclick="showIntakeHistory('${x.medication.id}')">История</button></td></tr>`}).join('');const body=`<section class="card"><h1>MedControl — Приём препаратов</h1><p>В разделе фиксируется фактический приём препарата.</p></section>${temporalPendingNoticeHtml()}<section class="card"><h2>Фиксация результата</h2><table><thead><tr><th>Строка</th><th>Препарат</th><th>Доза</th><th>Дата приёма</th><th>Расчётное время</th><th>Статус</th><th>Фактическое время приёма</th><th>Действия</th><th>История</th></tr></thead><tbody>${rows||'<tr><td colspan="9">Нет записей</td></tr>'}</tbody></table></section><dialog id="intakeHistoryDialog"><h2>История</h2><div id="intakeHistoryContent"></div><div class="right"><button onclick="document.getElementById('intakeHistoryDialog').close()">Закрыть</button></div></dialog><dialog id="correctionDialog"><h2>Исправить</h2><div id="correctionContent"></div></dialog><dialog id="temporalCancellationDialog"><h2>Изменение временного назначения</h2><p id="temporalCancellationText"></p><div class="dialog-actions"><button onclick="saveTemporalCancellation()">Сохранить</button><button onclick="cancelTemporalCancellationDraft()">Закрыть</button></div></dialog>`;document.body.innerHTML=appShell('MedControl — Приём препаратов','action',body);scheduleClock()}
 window.renderDashboardPage=function(){const rows=buildMedControlTimeline().map(x=>`<tr><td>${x.medication.order}</td><td>${escapeHtml(x.medication.name)}</td><td>${escapeHtml(x.medication.intakeQuantity||'—')}</td><td>${escapeHtml(x.medication.intakeUnit||'—')}</td><td>${escapeHtml(formatDate(x.plannedDate))}</td><td>${escapeHtml(x.plannedTime)}</td><td>${counter(x)}</td><td>${x.actualAt?escapeHtml(formatDateTime(x.actualAt)):'—'}</td><td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x.status))}</span></td></tr>`).join('');const body=`<section class="card"><h1>MedControl — Табло</h1><p>Текущая картина приёма препаратов обновляется онлайн.</p></section><section class="card"><table><thead><tr><th rowspan="3">№</th><th colspan="5">Введённые расчётные данные</th><th rowspan="3">Временной отсчёт</th><th colspan="2">Фактический приём препаратов</th></tr><tr><th rowspan="2">Название препарата</th><th colspan="2">Доза</th><th colspan="2">Запланированный приём</th><th rowspan="2">Время приёма</th><th rowspan="2">Статус</th></tr><tr><th>Количество приёма</th><th>Единица приёма</th><th>Дата</th><th>Время</th></tr></thead><tbody>${rows||'<tr><td colspan="9">Нет записей</td></tr>'}</tbody></table></section>`;document.body.innerHTML=appShell('MedControl — Табло','dashboard',body);scheduleClock();setTimeout(()=>mount('dashboard'),1000)}
