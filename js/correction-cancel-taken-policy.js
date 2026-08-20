@@ -42,7 +42,7 @@
       <div><label>Фактическое время нажатия «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
       <div><label>Локальное время исправления</label><input type="text" value="${escapeHtml(formatDateTime(correctionAt))}" readonly></div>
       <div><label>Причина исправления</label><select id="correction_reason"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
-      <div class="full muted">После подтверждения статус «Принято» будет снят. После этого при необходимости можно снова нажать «Принято».</div>
+      <div class="full muted">После подтверждения статус «Принято» будет снят. Поле фактического времени на основной странице очистится до следующего подтверждённого приёма.</div>
       <div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Отменить «Принято»</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
     </div>`;
     dialog.showModal();
@@ -110,21 +110,4 @@
 
     return `<table><thead><tr><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th><th>Результат</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
-
-  const inheritedRenderAction=window.renderActionPage;
-  if(typeof inheritedRenderAction==='function'){
-    window.renderActionPage=function(){
-      inheritedRenderAction();
-      const table=[...document.querySelectorAll('table')].find(t=>[...t.querySelectorAll('th')].some(th=>th.textContent.trim()==='Фактическое время приёма'));
-      if(!table) return;
-      const headers=[...table.querySelectorAll('thead th')];
-      const target=headers.find(th=>th.textContent.trim()==='Фактическое время приёма');
-      if(!target) return;
-      const index=[...target.parentElement.children].indexOf(target);
-      target.remove();
-      table.querySelectorAll('tbody tr').forEach(row=>{
-        if(row.children[index]) row.children[index].remove();
-      });
-    };
-  }
 })();
