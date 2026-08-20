@@ -16,10 +16,17 @@
     const parts=formatDateTime(iso).split(', ');
     return parts[1]||'';
   }
+  function medicationHistory(med){
+    const entries=Array.isArray(med?.rowHistory)?med.rowHistory:[];
+    if(!entries.length) return '<p class="muted">История препарата пока пуста.</p>';
+    if(typeof rowHistoryHtml==='function') return rowHistoryHtml(entries);
+    return '<p class="muted">История препарата недоступна.</p>';
+  }
 
   window.intakeHistoryRows=function(medId,period,plannedAt){
     if(!plannedAt) return typeof baseRows==='function'?baseRows(medId,period):'';
     const state=getState();
+    const med=(state.medications||[]).find(item=>item.id===medId);
     const events=[];
 
     (state.intakeLogs||[])
@@ -53,17 +60,11 @@
       .filter(event=>filterPeriod(event.occurredAt,period))
       .sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));
 
-    if(!filtered.length) return `<p class="muted">История для выбранной строки пока пуста.</p>`;
+    const intakeHtml=filtered.length
+      ? `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${filtered.map(event=>`<tr><td>${escapeHtml(formatDateTime(event.occurredAt))}</td><td>${escapeHtml(event.event)}</td><td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td><td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td><td>${event.reason?escapeHtml(event.reason):'—'}</td></tr>`).join('')}</tbody></table>`
+      : '<p class="muted">Для выбранного расчётного времени событий приёма пока нет.</p>';
 
-    const rows=filtered.map(event=>`<tr>
-      <td>${escapeHtml(formatDateTime(event.occurredAt))}</td>
-      <td>${escapeHtml(event.event)}</td>
-      <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
-      <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
-      <td>${event.reason?escapeHtml(event.reason):'—'}</td>
-    </tr>`).join('');
-
-    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<h3>История препарата</h3>${medicationHistory(med)}<h3 style="margin-top:18px">История выбранного расчётного приёма</h3>${intakeHtml}`;
   };
 
   window.showIntakeHistory=function(medicationId,plannedAt){
