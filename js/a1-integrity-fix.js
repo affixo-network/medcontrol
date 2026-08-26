@@ -78,19 +78,6 @@
     return out.sort((a, b) => a.plannedMs - b.plannedMs);
   }
 
-  function pastTimesCreatedToday(med, nowMs) {
-    const today = currentLocalDate();
-    if (!appliesOnDate(med, today)) return [];
-
-    return (med.times || [])
-      .filter(Boolean)
-      .filter(time => {
-        const plannedMs = new Date(getScheduledDateTime(today, time)).getTime();
-        return Number.isFinite(plannedMs) && plannedMs <= nowMs;
-      })
-      .sort();
-  }
-
   function scheduleHistoryVersions(med) {
     const history = Array.isArray(med?.rowHistory) ? med.rowHistory.slice() : [];
     history.sort((a, b) => new Date(a?.at || 0) - new Date(b?.at || 0));
@@ -125,6 +112,12 @@
     });
 
     return versions;
+  }
+
+  function medicationCreatedAtMs(med) {
+    const created = (med?.rowHistory || []).find(entry => (entry?.action || entry?.event) === 'created');
+    const createdMs = new Date(created?.at || 0).getTime();
+    return Number.isFinite(createdMs) ? createdMs : 0;
   }
 
   function committedPastTimesForToday(med, nowMs) {
@@ -204,18 +197,6 @@
         return;
       }
 
-      if (code === 'schedule_past_time_create') {
-        const times = window.__a1ConflictTimes || [];
-        window.__a1ConflictTimes = [];
-        alert(
-          'Препарат не создан.\n\n' +
-          `На сегодняшний день указано уже прошедшее время: ${times.join(', ') || '—'}.\n\n` +
-          'Новый препарат не может создавать расчётные приёмы задним временем. ' +
-          'Удалите прошедшее время либо выберите дату/расписание, начинающееся позже.'
-        );
-        return;
-      }
-
       if (code === 'schedule_retroactive_time_edit') {
         const times = window.__a1ConflictTimes || [];
         window.__a1ConflictTimes = [];
@@ -238,12 +219,6 @@
       const nowMs = Date.now();
 
       if (prefix === 'create_') {
-        const pastTimes = pastTimesCreatedToday(item, nowMs);
-        if (pastTimes.length) {
-          window.__a1ConflictTimes = pastTimes;
-          throw new Error('schedule_past_time_create');
-        }
-
         if (!futureSlots(item, nowMs).length) {
           throw new Error('schedule_no_future_intake');
         }
@@ -372,7 +347,29 @@
       const byKey = new Map();
 
       baseRows.forEach(row => {
-        const key = `${row?.medication?.id || ''}|${row?.plannedAt || ''}`;
+        const med = row?.medication;
+        const plannedMs = row?.plannedMs ?? new Date(row?.plannedAt || 0).getTime();
+        const createdMs = medicationCreatedAtMs(med);
+        const hasLog = row?.plannedAt && (state.intakeLogs || []).some(
+          log => log.medicationId === med?.id && log.plannedAt === row.plannedAt
+        );
+        const hasCorrection = row?.plannedAt && (state.intakeCorrections || []).some(
+          item => item.medicationId === med?.id && item.plannedAt === row.plannedAt
+        );
+
+        if (
+          med &&
+          createdMs &&
+          localDateFromISO(new Date(createdMs).toISOString()) === today &&
+          Number.isFinite(plannedMs) &&
+          plannedMs < createdMs &&
+          !hasLog &&
+          !hasCorrection
+        ) {
+          return;
+        }
+
+        const key = `${med?.id || ''}|${row?.plannedAt || ''}`;
         byKey.set(key, row);
       });
 
