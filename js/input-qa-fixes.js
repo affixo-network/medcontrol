@@ -79,8 +79,15 @@
 
       if (!shouldBeCompleted && med.courseCompleted) {
         med.courseCompleted = false;
-        recordRowHistory(med, 'course_status_corrected', 'Статус курса исправлен: курс не завершён.');
         changed = true;
+      }
+
+      if (Array.isArray(med.rowHistory)) {
+        const filtered = med.rowHistory.filter(entry => entry?.event !== 'course_status_corrected');
+        if (filtered.length !== med.rowHistory.length) {
+          med.rowHistory = filtered;
+          changed = true;
+        }
       }
     });
     if (changed) saveState(state);
@@ -173,10 +180,6 @@
         if (eventText === 'course_completed') {
           eventCell.textContent = 'Курс завершён';
           if (statusCell) statusCell.textContent = 'Курс завершён';
-        }
-        if (eventText === 'course_status_corrected') {
-          eventCell.textContent = 'Статус курса исправлен';
-          if (statusCell) statusCell.textContent = 'Курс не завершён';
         }
       });
       return template.innerHTML;
