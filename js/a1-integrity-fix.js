@@ -46,14 +46,65 @@
     return false;
   }
 
+  function currentDayProtectedTimes(before) {
+    const today = currentLocalDate();
+    if (!appliesOnDate(before, today)) return [];
+
+    const state = getState();
+    const now = Date.now();
+    return (before.times || [])
+      .filter(Boolean)
+      .filter(time => {
+        const plannedAt = getScheduledDateTime(today, time);
+        const plannedMs = new Date(plannedAt).getTime();
+        const hasLog = (state.intakeLogs || []).some(
+          log => log.medicationId === before.id && log.plannedAt === plannedAt
+        );
+        const hasCorrection = (state.intakeCorrections || []).some(
+          item => item.medicationId === before.id && item.plannedAt === plannedAt
+        );
+        return plannedMs <= now || hasLog || hasCorrection;
+      })
+      .sort();
+  }
+
+  function validateOnlineEditAgainstToday(before, after) {
+    if (!before || !after) return;
+    const protectedTimes = currentDayProtectedTimes(before);
+    if (!protectedTimes.length) return;
+
+    const today = currentLocalDate();
+    const afterAppliesToday = appliesOnDate(after, today);
+    const afterTimes = new Set((after.times || []).filter(Boolean));
+    const invalidated = protectedTimes.filter(
+      time => !afterAppliesToday || !afterTimes.has(time)
+    );
+
+    if (invalidated.length) {
+      const error = new Error('online_edit_conflicts_today');
+      error.conflictTimes = invalidated;
+      throw error;
+    }
+  }
+
   const originalHint = window.showMedicationHint;
   if (typeof originalHint === 'function') {
-    window.showMedicationHint = function(code) {
+    window.showMedicationHint = function(code, details) {
       if (code === 'schedule_no_applicable_date') {
         alert(
           'Расписание не может быть сохранено.\n\n' +
-          'В выбранном периоде, начиная с текущей даты, нет ни одного расчётного приёма. ' +
+          'Начиная с текущей даты и до окончания курса нет ни одного допустимого расчётного приёма. ' +
           'Проверьте дни недели / даты и дату окончания.'
+        );
+        return;
+      }
+      if (code === 'online_edit_conflicts_today') {
+        const times = Array.isArray(details) && details.length ? details.join(', ') : '—';
+        alert(
+          'Изменение не сохранено.\n\n' +
+          `Оно противоречит уже наступившим или зафиксированным расчётным приёмам текущего дня: ${times}.\n\n` +
+          'Эти строки уже являются частью хронологии и не могут быть удалены задним числом. ' +
+          'Измените только ещё не наступившую часть расписания.'
         );
         return;
       }
@@ -68,7 +119,37 @@
       if ((prefix === 'create_' || prefix === 'edit_') && !hasApplicableDateFromToday(item)) {
         throw new Error('schedule_no_applicable_date');
       }
+
+      if (prefix === 'edit_') {
+        const before = getState().medications.find(
+          med => med.id === window.__editingMedicationId
+        );
+        if (before) {
+          item.id = before.id;
+          try {
+            validateOnlineEditAgainstToday(before, item);
+          } catch (error) {
+            if (error?.message === 'online_edit_conflicts_today') {
+              window.__onlineEditConflictTimes = error.conflictTimes || [];
+            }
+            throw error;
+          }
+        }
+      }
+
       return item;
+    };
+  }
+
+  const originalSaveMedicationEdit = window.saveMedicationEdit;
+  if (typeof originalSaveMedicationEdit === 'function') {
+    window.saveMedicationEdit = function(id) {
+      window.__onlineEditConflictTimes = [];
+      try {
+        return originalSaveMedicationEdit(id);
+      } catch (error) {
+        throw error;
+      }
     };
   }
 
@@ -84,6 +165,35 @@
       return originalRowHistoryHtml(visibleEntries);
     };
   }
+
+  window.saveTemporalCancellation = function() {
+    const pending = window.__pendingTemporalCancellation;
+    if (!pending) return;
+
+    const state = getState();
+    const med = state.medications.find(item => item.id === pending.medicationId);
+    if (!med || med.cancelled) return;
+
+    if (typeof ensureTemporalChangeState === 'function') {
+      ensureTemporalChangeState(med);
+    }
+
+    med.temporalChangePermissions[pending.kind] = true;
+    med.temporalPending[pending.kind] = true;
+    med.temporalPendingAt = nowISO();
+
+    saveState(state);
+    document.getElementById('temporalCancellationDialog')?.close();
+    window.__pendingTemporalCancellation = null;
+
+    alert(
+      pending.kind === 'schedule'
+        ? 'Разрешение на изменение расписания открыто. Само расписание ещё не изменено. Перейдите во «Ввод» и сохраните новое расписание.'
+        : 'Разрешение на изменение времени открыто. Само время ещё не изменено. Перейдите во «Ввод» и сохраните новое время.'
+    );
+
+    mount('action');
+  };
 
   function endOfTodayMs(today) {
     const next = plusDays(today, 1);
@@ -190,6 +300,24 @@
       return [...byKey.values()].sort(
         (a, b) => (a?.plannedMs ?? Infinity) - (b?.plannedMs ?? Infinity)
       );
+    };
+  }
+
+  const previousHint = window.showMedicationHint;
+  if (typeof previousHint === 'function') {
+    window.showMedicationHint = function(code) {
+      if (code === 'online_edit_conflicts_today') {
+        const times = window.__onlineEditConflictTimes || [];
+        window.__onlineEditConflictTimes = [];
+        alert(
+          'Изменение не сохранено.\n\n' +
+          `Оно противоречит уже наступившим или зафиксированным расчётным приёмам текущего дня: ${times.join(', ') || '—'}.\n\n` +
+          'Эти строки уже являются частью хронологии и не могут быть удалены задним числом. ' +
+          'Измените только ещё не наступившую часть расписания.'
+        );
+        return;
+      }
+      return previousHint(code);
     };
   }
 })();
