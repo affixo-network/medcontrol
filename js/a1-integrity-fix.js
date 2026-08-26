@@ -15,14 +15,18 @@
 
   function appliesOnDate(med, dateISO) {
     if (!med || !dateISO) return false;
+
     if (med.scheduleType === 'explicit_dates') {
       return Array.isArray(med.explicitDates) && med.explicitDates.includes(dateISO);
     }
+
     if (med.startDate && dateISO < med.startDate) return false;
     if (med.endDate && dateISO > med.endDate) return false;
+
     if (med.scheduleType === 'weekdays') {
       return Array.isArray(med.weekdays) && med.weekdays.includes(weekdayCode(dateISO));
     }
+
     return med.scheduleType === 'daily' || !med.scheduleType;
   }
 
@@ -34,80 +38,195 @@
     return med.endDate || '';
   }
 
-  function hasApplicableDateFromToday(med) {
+  function temporalSignature(med) {
+    return JSON.stringify({
+      scheduleType: med?.scheduleType || 'daily',
+      weekdays: Array.isArray(med?.weekdays) ? [...med.weekdays].sort() : [],
+      explicitDates: Array.isArray(med?.explicitDates) ? [...med.explicitDates].sort() : [],
+      startDate: med?.startDate || '',
+      endDate: med?.endDate || '',
+      times: Array.isArray(med?.times) ? [...med.times].filter(Boolean).sort() : []
+    });
+  }
+
+  function temporalChanged(before, after) {
+    return temporalSignature(before) !== temporalSignature(after);
+  }
+
+  function futureSlots(med, nowMs) {
     const today = currentLocalDate();
     const lastDate = lastScheduleDate(med);
-    if (!lastDate || lastDate < today) return false;
+    if (!lastDate || lastDate < today) return [];
+
+    const times = (med.times || []).filter(Boolean).slice().sort();
+    const out = [];
+
     for (let offset = 0; offset <= 370; offset += 1) {
       const dateISO = plusDays(today, offset);
       if (!dateISO || dateISO > lastDate) break;
-      if (appliesOnDate(med, dateISO)) return true;
+      if (!appliesOnDate(med, dateISO)) continue;
+
+      for (const time of times) {
+        const plannedAt = getScheduledDateTime(dateISO, time);
+        const plannedMs = new Date(plannedAt).getTime();
+        if (Number.isFinite(plannedMs) && plannedMs > nowMs) {
+          out.push({ dateISO, time, plannedAt, plannedMs });
+        }
+      }
     }
-    return false;
+
+    return out.sort((a, b) => a.plannedMs - b.plannedMs);
   }
 
-  function currentDayProtectedTimes(before) {
+  function pastTimesCreatedToday(med, nowMs) {
     const today = currentLocalDate();
-    if (!appliesOnDate(before, today)) return [];
+    if (!appliesOnDate(med, today)) return [];
 
-    const state = getState();
-    const now = Date.now();
-    return (before.times || [])
+    return (med.times || [])
       .filter(Boolean)
       .filter(time => {
-        const plannedAt = getScheduledDateTime(today, time);
-        const plannedMs = new Date(plannedAt).getTime();
-        const hasLog = (state.intakeLogs || []).some(
-          log => log.medicationId === before.id && log.plannedAt === plannedAt
-        );
-        const hasCorrection = (state.intakeCorrections || []).some(
-          item => item.medicationId === before.id && item.plannedAt === plannedAt
-        );
-        return plannedMs <= now || hasLog || hasCorrection;
+        const plannedMs = new Date(getScheduledDateTime(today, time)).getTime();
+        return Number.isFinite(plannedMs) && plannedMs <= nowMs;
       })
       .sort();
   }
 
-  function validateOnlineEditAgainstToday(before, after) {
-    if (!before || !after) return;
-    const protectedTimes = currentDayProtectedTimes(before);
-    if (!protectedTimes.length) return;
+  function scheduleHistoryVersions(med) {
+    const history = Array.isArray(med?.rowHistory) ? med.rowHistory.slice() : [];
+    history.sort((a, b) => new Date(a?.at || 0) - new Date(b?.at || 0));
 
+    const versions = [];
+    let version = {};
+
+    history.forEach(entry => {
+      const action = entry?.action || entry?.event || '';
+      if (action === 'course_completed' || action === 'course_status_corrected') return;
+
+      const atMs = new Date(entry?.at || 0).getTime();
+      if (!Number.isFinite(atMs)) return;
+
+      let changed = false;
+
+      if (action === 'created' && entry.snapshot && typeof entry.snapshot === 'object') {
+        version = { ...entry.snapshot };
+        changed = true;
+      } else if (
+        (action === 'edited' || action === 'activated' || action === 'deactivated') &&
+        entry.changes &&
+        typeof entry.changes === 'object'
+      ) {
+        version = { ...version, ...entry.changes };
+        changed = true;
+      }
+
+      if (changed) {
+        versions.push({ startMs: atMs, value: { ...version } });
+      }
+    });
+
+    return versions;
+  }
+
+  function committedPastTimesForToday(med, nowMs) {
     const today = currentLocalDate();
-    const afterAppliesToday = appliesOnDate(after, today);
-    const afterTimes = new Set((after.times || []).filter(Boolean));
-    const invalidated = protectedTimes.filter(
-      time => !afterAppliesToday || !afterTimes.has(time)
-    );
+    const versions = scheduleHistoryVersions(med);
+    const committed = new Set();
 
-    if (invalidated.length) {
-      const error = new Error('online_edit_conflicts_today');
-      error.conflictTimes = invalidated;
-      throw error;
+    versions.forEach((item, index) => {
+      const nextStartMs = versions[index + 1]?.startMs ?? Infinity;
+      const version = item.value;
+      if (!appliesOnDate(version, today)) return;
+
+      (version.times || []).filter(Boolean).forEach(time => {
+        const plannedAt = getScheduledDateTime(today, time);
+        const plannedMs = new Date(plannedAt).getTime();
+        if (!Number.isFinite(plannedMs)) return;
+
+        if (
+          plannedMs >= item.startMs &&
+          plannedMs < nextStartMs &&
+          plannedMs <= nowMs
+        ) {
+          committed.add(time);
+        }
+      });
+    });
+
+    const state = getState();
+    (state.intakeLogs || [])
+      .filter(log => log.medicationId === med.id && localDateFromISO(log.plannedAt) === today)
+      .forEach(log => {
+        const parts = formatDateTime(log.plannedAt).split(', ');
+        if (parts[1]) committed.add(parts[1]);
+      });
+
+    (state.intakeCorrections || [])
+      .filter(item => item.medicationId === med.id && localDateFromISO(item.plannedAt) === today)
+      .forEach(item => {
+        const parts = formatDateTime(item.plannedAt).split(', ');
+        if (parts[1]) committed.add(parts[1]);
+      });
+
+    return [...committed].sort();
+  }
+
+  function newlyAddedPastTimes(before, after, nowMs) {
+    const today = currentLocalDate();
+    if (!appliesOnDate(after, today)) return [];
+
+    const existing = new Set(committedPastTimesForToday(before, nowMs));
+
+    if (appliesOnDate(before, today)) {
+      (before.times || []).filter(Boolean).forEach(time => {
+        const plannedMs = new Date(getScheduledDateTime(today, time)).getTime();
+        if (Number.isFinite(plannedMs) && plannedMs <= nowMs) existing.add(time);
+      });
     }
+
+    return (after.times || [])
+      .filter(Boolean)
+      .filter(time => {
+        const plannedMs = new Date(getScheduledDateTime(today, time)).getTime();
+        return Number.isFinite(plannedMs) && plannedMs <= nowMs && !existing.has(time);
+      })
+      .sort();
   }
 
   const originalHint = window.showMedicationHint;
   if (typeof originalHint === 'function') {
-    window.showMedicationHint = function(code, details) {
-      if (code === 'schedule_no_applicable_date') {
+    window.showMedicationHint = function(code) {
+      if (code === 'schedule_no_future_intake') {
         alert(
           'Расписание не может быть сохранено.\n\n' +
-          'Начиная с текущей даты и до окончания курса нет ни одного допустимого расчётного приёма. ' +
-          'Проверьте дни недели / даты и дату окончания.'
+          'После текущего момента и до окончания курса нет ни одного будущего расчётного приёма.\n\n' +
+          'Проверьте дату окончания, дни недели / даты и время приёма.'
         );
         return;
       }
-      if (code === 'online_edit_conflicts_today') {
-        const times = Array.isArray(details) && details.length ? details.join(', ') : '—';
+
+      if (code === 'schedule_past_time_create') {
+        const times = window.__a1ConflictTimes || [];
+        window.__a1ConflictTimes = [];
+        alert(
+          'Препарат не создан.\n\n' +
+          `На сегодняшний день указано уже прошедшее время: ${times.join(', ') || '—'}.\n\n` +
+          'Новый препарат не может создавать расчётные приёмы задним временем. ' +
+          'Удалите прошедшее время либо выберите дату/расписание, начинающееся позже.'
+        );
+        return;
+      }
+
+      if (code === 'schedule_retroactive_time_edit') {
+        const times = window.__a1ConflictTimes || [];
+        window.__a1ConflictTimes = [];
         alert(
           'Изменение не сохранено.\n\n' +
-          `Оно противоречит уже наступившим или зафиксированным расчётным приёмам текущего дня: ${times}.\n\n` +
-          'Эти строки уже являются частью хронологии и не могут быть удалены задним числом. ' +
-          'Измените только ещё не наступившую часть расписания.'
+          `Добавляется уже прошедшее расчётное время текущего дня: ${times.join(', ') || '—'}.\n\n` +
+          'Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.'
         );
         return;
       }
+
       return originalHint(code);
     };
   }
@@ -116,40 +235,43 @@
   if (typeof originalCreateMedicationFromForm === 'function') {
     window.createMedicationFromForm = function(prefix) {
       const item = originalCreateMedicationFromForm(prefix);
-      if ((prefix === 'create_' || prefix === 'edit_') && !hasApplicableDateFromToday(item)) {
-        throw new Error('schedule_no_applicable_date');
+      const nowMs = Date.now();
+
+      if (prefix === 'create_') {
+        const pastTimes = pastTimesCreatedToday(item, nowMs);
+        if (pastTimes.length) {
+          window.__a1ConflictTimes = pastTimes;
+          throw new Error('schedule_past_time_create');
+        }
+
+        if (!futureSlots(item, nowMs).length) {
+          throw new Error('schedule_no_future_intake');
+        }
       }
 
       if (prefix === 'edit_') {
         const before = getState().medications.find(
           med => med.id === window.__editingMedicationId
         );
+
         if (before) {
           item.id = before.id;
-          try {
-            validateOnlineEditAgainstToday(before, item);
-          } catch (error) {
-            if (error?.message === 'online_edit_conflicts_today') {
-              window.__onlineEditConflictTimes = error.conflictTimes || [];
+
+          if (temporalChanged(before, item)) {
+            const retroactiveTimes = newlyAddedPastTimes(before, item, nowMs);
+            if (retroactiveTimes.length) {
+              window.__a1ConflictTimes = retroactiveTimes;
+              throw new Error('schedule_retroactive_time_edit');
             }
-            throw error;
+
+            if (!futureSlots(item, nowMs).length) {
+              throw new Error('schedule_no_future_intake');
+            }
           }
         }
       }
 
       return item;
-    };
-  }
-
-  const originalSaveMedicationEdit = window.saveMedicationEdit;
-  if (typeof originalSaveMedicationEdit === 'function') {
-    window.saveMedicationEdit = function(id) {
-      window.__onlineEditConflictTimes = [];
-      try {
-        return originalSaveMedicationEdit(id);
-      } catch (error) {
-        throw error;
-      }
     };
   }
 
@@ -195,44 +317,13 @@
     mount('action');
   };
 
-  function endOfTodayMs(today) {
-    const next = plusDays(today, 1);
-    return next ? new Date(`${next}T00:00:00`).getTime() - 1 : Infinity;
-  }
-
-  function historicalPlannedTimesForToday(med, today) {
-    const history = Array.isArray(med?.rowHistory) ? med.rowHistory.slice() : [];
-    history.sort((a, b) => new Date(a?.at || 0) - new Date(b?.at || 0));
-
-    let version = {};
-    const times = new Set();
-    const cutoff = endOfTodayMs(today);
-
-    history.forEach(entry => {
-      const atMs = new Date(entry?.at || 0).getTime();
-      if (Number.isFinite(atMs) && atMs > cutoff) return;
-
-      if (entry?.action === 'created' && entry.snapshot && typeof entry.snapshot === 'object') {
-        version = { ...entry.snapshot };
-      } else if (entry?.changes && typeof entry.changes === 'object') {
-        version = { ...version, ...entry.changes };
-      }
-
-      if (appliesOnDate(version, today)) {
-        (version.times || []).filter(Boolean).forEach(time => times.add(time));
-      }
-    });
-
-    return [...times].sort();
-  }
-
   function correctionCount(medicationId, plannedAt) {
     return (getState().intakeCorrections || []).filter(
       item => item.medicationId === medicationId && item.plannedAt === plannedAt
     ).length;
   }
 
-  function rowFromHistoricalPlan(med, today, time, now) {
+  function rowFromCommittedPlan(med, today, time, nowMs) {
     const plannedAt = getScheduledDateTime(today, time);
     const plannedMs = new Date(plannedAt).getTime();
     const log = getLogForSchedule(med.id, plannedAt);
@@ -255,20 +346,19 @@
       };
     }
 
-    const waiting = plannedMs > now;
     return {
       medication: med,
       plannedDate: today,
       plannedTime: time,
       plannedAt,
       plannedMs,
-      status: waiting ? 'waiting' : 'missed',
+      status: plannedMs > nowMs ? 'waiting' : 'missed',
       actualAt: null,
       canTake: true,
       canCorrect: false,
       correctionCount: count,
-      countdownMode: waiting ? 'remaining' : 'late',
-      countdownMs: waiting ? plannedMs - now : now - plannedMs
+      countdownMode: plannedMs > nowMs ? 'remaining' : 'late',
+      countdownMs: Math.abs(plannedMs - nowMs)
     };
   }
 
@@ -278,7 +368,7 @@
       const baseRows = originalBuildTimeline() || [];
       const state = getState();
       const today = currentLocalDate();
-      const now = Date.now();
+      const nowMs = Date.now();
       const byKey = new Map();
 
       baseRows.forEach(row => {
@@ -288,11 +378,12 @@
 
       (state.medications || []).forEach(med => {
         if (!med || med.cancelled || !med.active) return;
-        historicalPlannedTimesForToday(med, today).forEach(time => {
+
+        committedPastTimesForToday(med, nowMs).forEach(time => {
           const plannedAt = getScheduledDateTime(today, time);
           const key = `${med.id}|${plannedAt}`;
           if (!byKey.has(key)) {
-            byKey.set(key, rowFromHistoricalPlan(med, today, time, now));
+            byKey.set(key, rowFromCommittedPlan(med, today, time, nowMs));
           }
         });
       });
@@ -303,21 +394,19 @@
     };
   }
 
-  const previousHint = window.showMedicationHint;
-  if (typeof previousHint === 'function') {
-    window.showMedicationHint = function(code) {
-      if (code === 'online_edit_conflicts_today') {
-        const times = window.__onlineEditConflictTimes || [];
-        window.__onlineEditConflictTimes = [];
-        alert(
-          'Изменение не сохранено.\n\n' +
-          `Оно противоречит уже наступившим или зафиксированным расчётным приёмам текущего дня: ${times.join(', ') || '—'}.\n\n` +
-          'Эти строки уже являются частью хронологии и не могут быть удалены задним числом. ' +
-          'Измените только ещё не наступившую часть расписания.'
-        );
-        return;
-      }
-      return previousHint(code);
+  const originalRenderInputPage = window.renderInputPage;
+  if (typeof originalRenderInputPage === 'function') {
+    window.renderInputPage = function() {
+      originalRenderInputPage();
+
+      [...document.querySelectorAll('section')].forEach(section => {
+        const heading = section.querySelector('h2');
+        if (heading?.textContent?.trim() !== 'Завершённые курсы') return;
+        section.querySelectorAll('.status').forEach(status => {
+          status.textContent = '—';
+          status.className = 'status';
+        });
+      });
     };
   }
 })();
