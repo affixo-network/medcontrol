@@ -83,7 +83,10 @@
       }
 
       if (Array.isArray(med.rowHistory)) {
-        const filtered = med.rowHistory.filter(entry => entry?.event !== 'course_status_corrected');
+        const filtered = med.rowHistory.filter(entry =>
+          entry?.action !== 'course_status_corrected' &&
+          entry?.event !== 'course_status_corrected'
+        );
         if (filtered.length !== med.rowHistory.length) {
           med.rowHistory = filtered;
           changed = true;
@@ -167,7 +170,13 @@
   const originalRowHistoryHtml = window.rowHistoryHtml;
   if (typeof originalRowHistoryHtml === 'function') {
     window.rowHistoryHtml = function(entries) {
-      const html = originalRowHistoryHtml(entries);
+      const visibleEntries = Array.isArray(entries)
+        ? entries.filter(entry =>
+            entry?.action !== 'course_status_corrected' &&
+            entry?.event !== 'course_status_corrected'
+          )
+        : entries;
+      const html = originalRowHistoryHtml(visibleEntries);
       const template = document.createElement('template');
       template.innerHTML = html;
       const table = template.content.querySelector('table');
