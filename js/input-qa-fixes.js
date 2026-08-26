@@ -113,6 +113,25 @@
     return parts[1] || '—';
   }
 
+  function completedLifecycleHtml(med) {
+    const entries = Array.isArray(med.rowHistory) ? med.rowHistory : [];
+    const completionEntries = entries.filter(entry => (entry?.action || entry?.event) === 'course_completed');
+    if (!completionEntries.length) return '';
+
+    const rows = completionEntries.map(entry => `
+      <tr>
+        <td>${escapeHtml(formatDateTime(entry.at || ''))}</td>
+        <td>Курс завершён автоматически</td>
+      </tr>`).join('');
+
+    return `
+      <h3 style="margin-top:18px">События жизненного цикла</h3>
+      <table>
+        <thead><tr><th>Дата/время</th><th>Событие</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
   window.showCompletedCourseHistory = function(id) {
     const med = (getState().medications || []).find(item => item.id === id);
     if (!med) return;
@@ -124,12 +143,31 @@
 
     if (title) title.textContent = `История препарата «${med.name}»`;
 
+    const rowEntries = Array.isArray(med.rowHistory)
+      ? med.rowHistory.filter(entry => {
+          const action = entry?.action || entry?.event || '';
+          return action !== 'course_completed' && action !== 'course_status_corrected';
+        })
+      : [];
+
     const slots = completedHistoryPlannedAts(id);
+    const hasAnySavedHistory = rowEntries.length > 0 || slots.length > 0 || (med.rowHistory || []).some(entry => (entry?.action || entry?.event) === 'course_completed');
+
+    const medicationHistoryHtml = rowEntries.length
+      ? rowHistoryHtml(rowEntries)
+      : '<p class="muted">Исторические события для этой старой записи отсутствуют в сохранённых данных.</p>';
+
     const slotHtml = slots.length
       ? `<div class="inline" style="gap:8px;flex-wrap:wrap">${slots.map(plannedAt => `<button type="button" onclick="showCompletedSlotHistory('${id}','${plannedAt}')">${escapeHtml(formatDateTime(plannedAt))}</button>`).join('')}</div>`
-      : '<p class="muted">Событий расчётных приёмов пока нет.</p>';
+      : '<p class="muted">Сохранённых событий расчётных приёмов для этой записи нет.</p>';
 
-    content.innerHTML = `${rowHistoryHtml(med.rowHistory || [])}<h3 style="margin-top:18px">История расчётных приёмов</h3>${slotHtml}`;
+    content.innerHTML = `
+      ${!hasAnySavedHistory ? '<p class="muted">Для этой старой завершённой записи исторические события отсутствуют в сохранённых данных.</p>' : ''}
+      <h3>История препарата</h3>
+      ${medicationHistoryHtml}
+      ${completedLifecycleHtml(med)}
+      <h3 style="margin-top:18px">История расчётных приёмов</h3>
+      ${slotHtml}`;
     dialog.showModal();
   };
 
@@ -188,7 +226,7 @@
         const eventText = eventCell?.textContent?.trim();
         if (eventText === 'course_completed') {
           eventCell.textContent = 'Курс завершён';
-          if (statusCell) statusCell.textContent = 'Курс завершён';
+          if (statusCell) statusCell.textContent = '—';
         }
       });
       return template.innerHTML;
@@ -243,7 +281,7 @@
           if (!source) return;
           const row = source.cloneNode(true);
           const status = row.querySelector('.status');
-          if (status) status.textContent = mode === 'completed' ? 'Курс завершён' : mode === 'passive' ? 'Пассивно' : 'Активно';
+          if (status) status.textContent = mode === 'completed' ? '—' : mode === 'passive' ? 'Пассивно' : 'Активно';
           const actions = row.lastElementChild;
           if (actions && mode === 'completed') {
             actions.innerHTML = `<button onclick="showCompletedCourseHistory('${med.id}')">История</button>`;
@@ -276,7 +314,7 @@
       };
 
       appendSection('Пассивные препараты', passiveMeds, 'passive');
-      appendSection('Завершённые курсы', completedMeds, 'completed');
+      appendSection('Архив завершённых курсов', completedMeds, 'completed');
     };
   }
 
