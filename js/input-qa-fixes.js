@@ -61,8 +61,7 @@
     if (!med || med.cancelled) return false;
     const lastDate = medicationLastDate(med);
     if (!lastDate) return false;
-    if (lastDate < currentLocalDate()) return true;
-    return !hasApplicableDateFromToday(med);
+    return lastDate < currentLocalDate();
   }
 
   function reconcileCompletedCourses(state) {
@@ -73,6 +72,7 @@
 
       if (shouldBeCompleted && !med.courseCompleted) {
         med.courseCompleted = true;
+        med.active = false;
         recordRowHistory(med, 'course_completed', 'Курс приёма препарата завершён автоматически.');
         changed = true;
       }
@@ -88,6 +88,58 @@
 
   window.isCompletedMedicationCourse = function(med) {
     return Boolean(med && !med.cancelled && shouldCompleteCourse(med));
+  };
+
+  function completedHistoryPlannedAts(medicationId) {
+    const state = getState();
+    return [...new Set([
+      ...(state.intakeLogs || []).filter(x => x.medicationId === medicationId).map(x => x.plannedAt),
+      ...(state.intakeCorrections || []).filter(x => x.medicationId === medicationId).map(x => x.plannedAt)
+    ].filter(Boolean))].sort((a, b) => new Date(a) - new Date(b));
+  }
+
+  function plannedTimeLabel(plannedAt) {
+    const parts = formatDateTime(plannedAt).split(', ');
+    return parts[1] || '—';
+  }
+
+  window.showCompletedCourseHistory = function(id) {
+    const med = (getState().medications || []).find(item => item.id === id);
+    if (!med) return;
+
+    const dialog = document.getElementById('rowHistoryDialog');
+    const content = document.getElementById('rowHistoryContent');
+    const title = dialog?.querySelector('h2');
+    if (!dialog || !content) return;
+
+    if (title) title.textContent = `История препарата «${med.name}»`;
+
+    const slots = completedHistoryPlannedAts(id);
+    const slotHtml = slots.length
+      ? `<div class="inline" style="gap:8px;flex-wrap:wrap">${slots.map(plannedAt => `<button type="button" onclick="showCompletedSlotHistory('${id}','${plannedAt}')">${escapeHtml(formatDateTime(plannedAt))}</button>`).join('')}</div>`
+      : '<p class="muted">Событий расчётных приёмов пока нет.</p>';
+
+    content.innerHTML = `${rowHistoryHtml(med.rowHistory || [])}<h3 style="margin-top:18px">История расчётных приёмов</h3>${slotHtml}`;
+    dialog.showModal();
+  };
+
+  window.showCompletedSlotHistory = function(id, plannedAt) {
+    const med = (getState().medications || []).find(item => item.id === id);
+    if (!med) return;
+
+    const dialog = document.getElementById('rowHistoryDialog');
+    const content = document.getElementById('rowHistoryContent');
+    const title = dialog?.querySelector('h2');
+    if (!dialog || !content) return;
+
+    if (title) title.textContent = `История приёма препарата «${med.name}» — расчётное время ${plannedTimeLabel(plannedAt)}`;
+
+    const historyHtml = typeof window.intakeHistoryRows === 'function'
+      ? window.intakeHistoryRows(id, 'all', plannedAt)
+      : '<p class="muted">История приёма недоступна.</p>';
+
+    content.innerHTML = `<div style="margin-bottom:12px"><button type="button" onclick="showCompletedCourseHistory('${id}')">Назад к истории препарата</button></div>${historyHtml}`;
+    dialog.showModal();
   };
 
   const originalCreateMedication = window.createMedication;
@@ -115,6 +167,17 @@
       if (!table) return html;
       table.querySelectorAll('tr').forEach(row => {
         if (row.children.length === 15) row.lastElementChild?.remove();
+        const eventCell = row.children[1];
+        const statusCell = row.children[13];
+        const eventText = eventCell?.textContent?.trim();
+        if (eventText === 'course_completed') {
+          eventCell.textContent = 'Курс завершён';
+          if (statusCell) statusCell.textContent = 'Курс завершён';
+        }
+        if (eventText === 'course_status_corrected') {
+          eventCell.textContent = 'Статус курса исправлен';
+          if (statusCell) statusCell.textContent = 'Курс не завершён';
+        }
       });
       return template.innerHTML;
     };
@@ -171,7 +234,7 @@
           if (status) status.textContent = mode === 'completed' ? 'Курс завершён' : mode === 'passive' ? 'Пассивно' : 'Активно';
           const actions = row.lastElementChild;
           if (actions && mode === 'completed') {
-            actions.innerHTML = `<button onclick="showRowHistory('${med.id}')">История</button>`;
+            actions.innerHTML = `<button onclick="showCompletedCourseHistory('${med.id}')">История</button>`;
           } else if (actions && mode === 'passive') {
             actions.querySelectorAll('button').forEach(button => {
               const onclick = button.getAttribute('onclick') || '';
