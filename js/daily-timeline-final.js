@@ -1,8 +1,29 @@
 (function(){
+  const TEMPORAL_KEYS=['scheduleType','weekdays','explicitDates','startDate','endDate','times'];
+
   function plusDays(iso,n){
     const [y,m,d]=iso.split('-').map(Number);
     const dt=new Date(Date.UTC(y,m-1,d+n,12));
     return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
+  }
+
+  function withTemporal(base, temporal){
+    if(!temporal) return base;
+    const copy={...base};
+    TEMPORAL_KEYS.forEach(key=>{
+      const value=temporal[key];
+      copy[key]=Array.isArray(value)?[...value]:value;
+    });
+    return copy;
+  }
+
+  function todayMedication(med,today){
+    const app=med.temporalApplication;
+    if(!app||app.date!==today) return med;
+    if((app.scope==='today'||app.scope==='future')&&app.todayTemporal){
+      return withTemporal(med,app.todayTemporal);
+    }
+    return med;
   }
 
   function scheduledSlots(med,start,days){
@@ -56,6 +77,14 @@
     };
   }
 
+  function cutoffForToday(med,today){
+    const app=med.temporalApplication;
+    if(!app||app.date!==today) return null;
+    if(app.scope!=='today'&&app.scope!=='today_future') return null;
+    const ms=new Date(app.changedAt||'').getTime();
+    return Number.isNaN(ms)?null:ms;
+  }
+
   window.buildMedControlTimeline=function(){
     const state=getState();
     const today=currentLocalDate();
@@ -66,10 +95,13 @@
       if(med.cancelled||med.courseCompleted||!med.active) continue;
       if(typeof ensureTemporalChangeState==='function') ensureTemporalChangeState(med);
 
-      const scheduled=scheduledSlots(med,today,370);
-      const todayScheduled=scheduled.filter(slot=>slot.date===today);
+      const todayMed=todayMedication(med,today);
+      const cutoff=cutoffForToday(med,today);
+      let todayScheduled=scheduledSlots(todayMed,today,0);
+      if(cutoff!=null){
+        todayScheduled=todayScheduled.filter(slot=>slot.plannedMs>=cutoff);
+      }
 
-      // Preserve every current-day event already recorded even if a later edit changed the time list.
       const historicalToday=(state.intakeLogs||[])
         .filter(log=>log.medicationId===med.id&&localDateFromISO(log.plannedAt)===today)
         .map(log=>slotFromPlannedAt(log.plannedAt));
@@ -80,10 +112,12 @@
       const currentDaySlots=uniqueSlots([...todayScheduled,...historicalToday,...correctionToday]);
       currentDaySlots.forEach(slot=>rows.push(effectiveRow(med,slot,now)));
 
+      const futureStart=plusDays(today,1);
+      const futureScheduled=scheduledSlots(med,futureStart,369);
       if((med.scheduleType==='weekdays'||med.scheduleType==='explicit_dates')&&!todayScheduled.length){
-        const next=scheduled.find(slot=>slot.date>today);
+        const next=futureScheduled[0];
         if(next){
-          scheduled
+          futureScheduled
             .filter(slot=>slot.date===next.date)
             .forEach(slot=>rows.push(effectiveRow(med,slot,now)));
         }
