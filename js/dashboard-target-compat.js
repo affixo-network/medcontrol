@@ -22,7 +22,7 @@
       <td>${timing(x)}</td>
       <td>${x.actualAt?escapeHtml(formatDateTime(x.actualAt)):'—'}</td>
       <td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x.status))}</span></td>
-      <td><button type="button" onclick="window.showIntakeHistory('${x.medication.id}','${x.plannedAt}')">История</button></td>
+      <td><button onclick="showIntakeHistory('${x.medication.id}')">История</button></td>
     </tr>`).join('');
     const body=`<section class="card"><h1>MedControl — Табло</h1><p>Табло сохраняет временную картину и предоставляет доступ к истории по каждой строке.</p></section>
       <section class="card"><table><thead>
@@ -30,7 +30,7 @@
       <tr><th rowspan="2">Название препарата</th><th colspan="2">Доза</th><th colspan="2">Запланированный приём</th><th rowspan="2">Время</th><th rowspan="2">Статус</th><th rowspan="2">История</th></tr>
       <tr><th>Количество приёма</th><th>Единица приёма</th><th>Дата</th><th>Время</th></tr>
       </thead><tbody>${rows||'<tr><td colspan="10">Нет записей</td></tr>'}</tbody></table></section>
-      <dialog id="intakeHistoryDialog"><h2>История</h2><div class="inline" style="margin-bottom:12px"><label>Период</label><select id="historyPeriodSelect" onchange="refreshIntakeHistory()"><option value="today">Сегодня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="all">Весь период</option></select></div><div id="intakeHistoryContent"></div><div class="right"><button type="button" onclick="document.getElementById('intakeHistoryDialog').close()">Закрыть</button></div></dialog>`;
+      <dialog id="intakeHistoryDialog"><h2>История</h2><div class="inline" style="margin-bottom:12px"><label>Период</label><select id="historyPeriodSelect" onchange="refreshIntakeHistory()"><option value="today">Сегодня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="all">Весь период</option></select></div><div id="intakeHistoryContent"></div><div class="right"><button onclick="document.getElementById('intakeHistoryDialog').close()">Закрыть</button></div></dialog>`;
     document.body.innerHTML=appShell('MedControl — Табло','dashboard',body);
     scheduleClock();
 
