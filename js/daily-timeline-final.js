@@ -96,6 +96,7 @@
       if(typeof ensureTemporalChangeState==='function') ensureTemporalChangeState(med);
 
       const todayMed=todayMedication(med,today);
+      const activeTodayTimes=new Set((todayMed.times||[]).filter(Boolean));
       const cutoff=cutoffForToday(med,today);
       let todayScheduled=scheduledSlots(todayMed,today,0);
       if(cutoff!=null){
@@ -104,10 +105,12 @@
 
       const historicalToday=(state.intakeLogs||[])
         .filter(log=>log.medicationId===med.id&&localDateFromISO(log.plannedAt)===today)
-        .map(log=>slotFromPlannedAt(log.plannedAt));
+        .map(log=>slotFromPlannedAt(log.plannedAt))
+        .filter(slot=>activeTodayTimes.has(slot.time));
       const correctionToday=(state.intakeCorrections||[])
         .filter(c=>c.medicationId===med.id&&localDateFromISO(c.plannedAt)===today)
-        .map(c=>slotFromPlannedAt(c.plannedAt));
+        .map(c=>slotFromPlannedAt(c.plannedAt))
+        .filter(slot=>activeTodayTimes.has(slot.time));
 
       const currentDaySlots=uniqueSlots([...todayScheduled,...historicalToday,...correctionToday]);
       currentDaySlots.forEach(slot=>rows.push(effectiveRow(med,slot,now)));
@@ -117,9 +120,7 @@
       if((med.scheduleType==='weekdays'||med.scheduleType==='explicit_dates')&&!todayScheduled.length){
         const next=futureScheduled[0];
         if(next){
-          futureScheduled
-            .filter(slot=>slot.date===next.date)
-            .forEach(slot=>rows.push(effectiveRow(med,slot,now)));
+          futureScheduled.filter(slot=>slot.date===next.date).forEach(slot=>rows.push(effectiveRow(med,slot,now)));
         }
       }
     }
