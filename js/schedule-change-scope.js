@@ -69,12 +69,24 @@
     dialog.showModal();
   }
 
-  function appendScopeToLatestHistory(med, scope){
-    if (!scope || !SCOPE_LABELS[scope] || !Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
+  function annotateLatestHistory(med, scope, beforeTemporal, updatedMedication){
+    if (!Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
     const entry = med.rowHistory[med.rowHistory.length - 1];
     if (!entry || entry.action !== 'edited') return;
-    entry.scheduleScope = scope;
-    entry.scheduleScopeLabel = SCOPE_LABELS[scope];
+
+    if (scope && SCOPE_LABELS[scope]) {
+      entry.scheduleScope = scope;
+      entry.scheduleScopeLabel = SCOPE_LABELS[scope];
+    }
+
+    entry.changes = entry.changes || {};
+    TEMPORAL_KEYS.forEach(key => {
+      const beforeValue = beforeTemporal?.[key];
+      const afterValue = updatedMedication?.[key];
+      if (JSON.stringify(beforeValue) !== JSON.stringify(afterValue)) {
+        entry.changes[key] = Array.isArray(afterValue) ? [...afterValue] : (afterValue ?? '');
+      }
+    });
   }
 
   window.saveMedicationEdit = function(id){
@@ -108,7 +120,7 @@
         }
         completeTemporalEdit(med, previousSnapshot, updatedMedication);
         recordRowHistory(med, 'edited', medicationRuleSummary(updatedMedication), previousSnapshot);
-        appendScopeToLatestHistory(med, scope);
+        annotateLatestHistory(med, scope, beforeTemporal, updatedMedication);
         saveState(state);
         document.getElementById('editDialog')?.close();
         mount('input');
