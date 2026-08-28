@@ -117,7 +117,7 @@
 
   function annotateLatestHistory(med, scope, beforeTemporal, updatedMedication, effectiveTodayTemporal){
     if (!Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
-    const entry = med.rowHistory[med.rowHistory.length - 1];
+    const entry = med.rowHistory[0];
     if (!entry || entry.action !== 'edited') return;
 
     if (scope && SCOPE_LABELS[scope]) {
@@ -128,6 +128,8 @@
       entry.scopeFutureTemporal = temporals.future;
       entry.changedTimeValues = addedTimes(beforeTemporal, updatedMedication);
       entry.removedTimeValues = removedTimes(beforeTemporal, updatedMedication);
+      entry.changes = entry.changes || {};
+      entry.changes.active = Boolean(med.active);
     }
 
     entry.changes = entry.changes || {};
@@ -142,34 +144,29 @@
 
   function repairCurrentScopeHistory(state){
     let changed = false;
-    const today = currentLocalDate();
     (state.medications || []).forEach(med => {
       const app = med.temporalApplication;
       if (!app || !Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
-
-      if (app.scope === 'today' && app.date === today) {
-        const rebuiltToday = rebuildTodayTemporalFromHistory(med, today);
-        if (JSON.stringify(app.todayTemporal) !== JSON.stringify(rebuiltToday)) {
-          app.todayTemporal = rebuiltToday;
-          changed = true;
-        }
-      }
 
       const editedEntries = med.rowHistory.filter(entry => entry.action === 'edited');
       if (!editedEntries.length) return;
       let target = editedEntries.find(entry => entry.at === app.changedAt) || null;
       if (!target && app.changedAt) {
         const appMs = new Date(app.changedAt).getTime();
-        target = editedEntries.filter(entry => !Number.isNaN(new Date(entry.at).getTime()) && new Date(entry.at).getTime() <= appMs + 60000)
-          .sort((a,b) => new Date(b.at) - new Date(a.at))[0] || null;
+        target = editedEntries.filter(entry => !Number.isNaN(new Date(entry.at).getTime()) && Math.abs(new Date(entry.at).getTime() - appMs) <= 60000)
+          .sort((a,b) => Math.abs(new Date(a.at).getTime()-appMs)-Math.abs(new Date(b.at).getTime()-appMs))[0] || null;
       }
-      if (!target) target = editedEntries[editedEntries.length - 1];
+      if (!target) return;
       target.changes = target.changes || {};
 
       if (app.scope && SCOPE_LABELS[app.scope]) {
         if (target.scheduleScope !== app.scope || target.scheduleScopeLabel !== SCOPE_LABELS[app.scope]) {
           target.scheduleScope = app.scope;
           target.scheduleScopeLabel = SCOPE_LABELS[app.scope];
+          changed = true;
+        }
+        if (target.changes.active !== Boolean(med.active)) {
+          target.changes.active = Boolean(med.active);
           changed = true;
         }
       }
