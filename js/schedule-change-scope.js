@@ -69,6 +69,16 @@
     dialog.showModal();
   }
 
+  function scopeTemporals(scope, beforeTemporal, updatedMedication){
+    if (scope === 'today') {
+      return { today: cloneTemporal(updatedMedication), future: cloneTemporal(beforeTemporal) };
+    }
+    if (scope === 'future') {
+      return { today: cloneTemporal(beforeTemporal), future: cloneTemporal(updatedMedication) };
+    }
+    return { today: cloneTemporal(updatedMedication), future: cloneTemporal(updatedMedication) };
+  }
+
   function annotateLatestHistory(med, scope, beforeTemporal, updatedMedication){
     if (!Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
     const entry = med.rowHistory[med.rowHistory.length - 1];
@@ -77,6 +87,9 @@
     if (scope && SCOPE_LABELS[scope]) {
       entry.scheduleScope = scope;
       entry.scheduleScopeLabel = SCOPE_LABELS[scope];
+      const temporals = scopeTemporals(scope, beforeTemporal, updatedMedication);
+      entry.scopeTodayTemporal = temporals.today;
+      entry.scopeFutureTemporal = temporals.future;
     }
 
     entry.changes = entry.changes || {};
@@ -108,16 +121,37 @@
       if (!target) target = editedEntries[editedEntries.length - 1];
 
       target.changes = target.changes || {};
-      if (app.scope && SCOPE_LABELS[app.scope] && !target.scheduleScopeLabel) {
-        target.scheduleScope = app.scope;
-        target.scheduleScopeLabel = SCOPE_LABELS[app.scope];
+      if (app.scope && SCOPE_LABELS[app.scope]) {
+        if (target.scheduleScope !== app.scope || target.scheduleScopeLabel !== SCOPE_LABELS[app.scope]) {
+          target.scheduleScope = app.scope;
+          target.scheduleScopeLabel = SCOPE_LABELS[app.scope];
+          changed = true;
+        }
+      }
+
+      let todayTemporal = null;
+      let futureTemporal = null;
+      if (app.scope === 'today' && app.todayTemporal) {
+        todayTemporal = cloneTemporal(app.todayTemporal);
+        futureTemporal = cloneTemporal(med);
+      } else if (app.scope === 'future' && app.todayTemporal) {
+        todayTemporal = cloneTemporal(app.todayTemporal);
+        futureTemporal = cloneTemporal(med);
+      } else if (app.scope === 'today_future') {
+        todayTemporal = cloneTemporal(med);
+        futureTemporal = cloneTemporal(med);
+      }
+
+      if (todayTemporal && JSON.stringify(target.scopeTodayTemporal) !== JSON.stringify(todayTemporal)) {
+        target.scopeTodayTemporal = todayTemporal;
+        changed = true;
+      }
+      if (futureTemporal && JSON.stringify(target.scopeFutureTemporal) !== JSON.stringify(futureTemporal)) {
+        target.scopeFutureTemporal = futureTemporal;
         changed = true;
       }
 
-      let effectiveTemporal = null;
-      if (app.scope === 'today' && app.todayTemporal) effectiveTemporal = app.todayTemporal;
-      else if (app.scope === 'future' || app.scope === 'today_future') effectiveTemporal = med;
-
+      const effectiveTemporal = app.scope === 'today' ? todayTemporal : futureTemporal;
       if (effectiveTemporal) {
         TEMPORAL_KEYS.forEach(key => {
           const value = effectiveTemporal[key];
