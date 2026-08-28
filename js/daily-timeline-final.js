@@ -65,7 +65,6 @@
     for(const med of (state.medications||[])){
       if(med.cancelled||med.courseCompleted||!med.active) continue;
       if(typeof ensureTemporalChangeState==='function') ensureTemporalChangeState(med);
-      if(med.temporalPending?.schedule||med.temporalPending?.time) continue;
 
       const scheduled=scheduledSlots(med,today,370);
       const todayScheduled=scheduled.filter(slot=>slot.date===today);
