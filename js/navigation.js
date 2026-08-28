@@ -1,3 +1,20 @@
+function fixPreviewNavigation() {
+  if (window.location.hostname !== 'htmlpreview.github.io') return;
+
+  const target = decodeURIComponent(window.location.search.replace(/^\?/, ''));
+  if (!/^https:\/\/github\.com\/.+\/blob\/.+\/(input|action|dashboard)\.html(?:[?#].*)?$/.test(target)) return;
+
+  const base = target.replace(/(input|action|dashboard)\.html(?:[?#].*)?$/, '');
+  document.querySelectorAll('.nav a[href]').forEach(link => {
+    const href = link.getAttribute('href');
+    if (!/^(input|action|dashboard)\.html$/.test(href || '')) return;
+    link.setAttribute(
+      'href',
+      `https://htmlpreview.github.io/?${base}${href}`
+    );
+  });
+}
+
 window.mount = function(page) {
   const state = getState();
 
@@ -6,8 +23,12 @@ window.mount = function(page) {
     saveState(state);
   }
 
-  if (page === 'input') return window.renderInputPage();
-  if (page === 'dashboard') return window.renderDashboardPage();
-  if (page === 'action') return window.renderActionPage();
-  if (page === 'settings') return window.renderSettingsPage();
+  let result;
+  if (page === 'input') result = renderInputPage();
+  else if (page === 'dashboard') result = renderDashboardPage();
+  else if (page === 'action') result = renderActionPage();
+  else if (page === 'settings') result = renderSettingsPage();
+
+  fixPreviewNavigation();
+  return result;
 };

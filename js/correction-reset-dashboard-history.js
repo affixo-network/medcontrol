@@ -1,26 +1,32 @@
 (function(){
   function state(){const s=getState();if(!Array.isArray(s.intakeCorrections))s.intakeCorrections=[];return s}
-  function primary(medicationId,plannedAt){return (getState().intakeLogs||[]).find(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt)||null}
+  function primary(medicationId,plannedAt){return (getState().intakeLogs||[]).filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(b.actualAt||b.at||0)-new Date(a.actualAt||a.at||0))[0]||null}
   function list(medicationId,plannedAt){return state().intakeCorrections.filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(a.correctedAt)-new Date(b.correctedAt))}
-  function current(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base)return null;const all=list(medicationId,plannedAt),last=all[all.length-1];if(last&&last.after&&last.after.action==='reset')return null;if(!last)return {...base,correctionCount:0,primaryActualAt:base.actualAt};return {...base,...last.after,correctionCount:all.length,primaryActualAt:base.actualAt,lastCorrection:last}}
+  function current(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base)return null;const all=list(medicationId,plannedAt),last=all[all.length-1];if(last&&new Date(last.correctedAt||0)>new Date(base.actualAt||base.at||0)&&last.after&&last.after.action==='reset')return null;if(!last||new Date(base.actualAt||base.at||0)>new Date(last.correctedAt||0))return {...base,correctionCount:all.length,primaryActualAt:base.actualAt};return {...base,...last.after,correctionCount:all.length,primaryActualAt:base.actualAt,lastCorrection:last}}
   window.getLogForSchedule=function(medicationId,plannedAt){return current(medicationId,plannedAt)};
 
   function correctionCount(medicationId,plannedAt){return list(medicationId,plannedAt).length}
   function endOfDay(dateISO){return new Date(getScheduledDateTime(dateISO,'23:59')).getTime()+59000}
   function deadline(medicationId,plannedAt){const med=(getState().medications||[]).find(x=>x.id===medicationId);if(!med)return null;const dateISO=localDateFromISO(plannedAt),plannedMs=new Date(plannedAt).getTime();const next=(med.times||[]).filter(Boolean).map(time=>new Date(getScheduledDateTime(dateISO,time)).getTime()).filter(ms=>ms>plannedMs).sort((a,b)=>a-b)[0];return Number.isFinite(next)?next:endOfDay(dateISO)}
-  function windowOpen(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base||base.action!=='taken')return false;if(localDateFromISO(plannedAt)!==currentLocalDate())return false;const d=deadline(medicationId,plannedAt);return Number.isFinite(d)&&Date.now()<d}
+  function windowOpen(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base||base.action!=='taken'||!current(medicationId,plannedAt))return false;if(localDateFromISO(plannedAt)!==currentLocalDate())return false;const d=deadline(medicationId,plannedAt);return Number.isFinite(d)&&Date.now()<d}
+
+  const inheritedMarkTaken=window.markTaken;
+  window.markTaken=function(medicationId,plannedAt){
+    const base=primary(medicationId,plannedAt),all=list(medicationId,plannedAt),last=all[all.length-1];
+    if(base&&last?.after?.action==='reset'&&new Date(last.correctedAt||0)>new Date(base.actualAt||base.at||0)){
+      const s=state(),actualAt=nowISO();
+      if(!Array.isArray(s.intakeLogs))s.intakeLogs=[];
+      s.intakeLogs.push({id:uid(),medicationId,plannedAt,actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')});
+      saveState(s);mount('action');return;
+    }
+    return inheritedMarkTaken(medicationId,plannedAt);
+  };
 
   window.openCorrection=function(medicationId,plannedAt){
     if(!primary(medicationId,plannedAt)){alert('Сначала необходимо зафиксировать «Принято».');return}
     if(!windowOpen(medicationId,plannedAt)){alert('Окно исправления закрыто.');return}
     const cur=current(medicationId,plannedAt)||primary(medicationId,plannedAt),count=correctionCount(medicationId,plannedAt),d=deadline(medicationId,plannedAt),dialog=document.getElementById('correctionDialog'),content=document.getElementById('correctionContent');if(!dialog||!content)return;
-    content.innerHTML=`<div class="form-grid">
-      <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Исправление доступно до ${escapeHtml(formatDateTime(new Date(d).toISOString()))}. Первоначальная запись сохраняется в истории.</p></div>
-      <div><label>Причина исправления</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
-      <div id="correction_time_wrap"><label>Фактическое время приёма</label><input id="correction_time" type="datetime-local" value="${escapeHtml((cur.actualAt||primary(medicationId,plannedAt).actualAt).slice(0,16))}"></div>
-      <div id="correction_hint" class="full muted">Выберите причину исправления.</div>
-      <div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Подтвердить исправление</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
-    </div>`;
+    content.innerHTML=`<div class="form-grid"><div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Исправление доступно до ${escapeHtml(formatDateTime(new Date(d).toISOString()))}. Первоначальная запись сохраняется в истории.</p></div><div><label>Причина исправления</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div><div id="correction_time_wrap"><label>Фактическое время приёма</label><input id="correction_time" type="datetime-local" value="${escapeHtml((cur.actualAt||primary(medicationId,plannedAt).actualAt).slice(0,16))}"></div><div id="correction_hint" class="full muted">Выберите причину исправления.</div><div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Подтвердить исправление</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div></div>`;
     dialog.showModal();
   };
   window.syncCorrectionMode=function(){const reason=document.getElementById('correction_reason')?.value||'',wrap=document.getElementById('correction_time_wrap'),hint=document.getElementById('correction_hint');if(!wrap||!hint)return;if(reason==='accident'){wrap.style.display='none';hint.textContent='Случайность: ошибочная фиксация «Принято» будет снята. Фактическое время очистится, а строка вернётся в текущее временное состояние «Ожидается» или «Не выполнен».'}else if(reason==='error'){wrap.style.display='block';hint.textContent='Ошибка: исправляется фактическое время приёма. Статус «Принято» сохранится, а Табло пересчитает временное отклонение.'}else{wrap.style.display='block';hint.textContent='Выберите причину исправления.'}}
