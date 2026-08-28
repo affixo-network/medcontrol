@@ -46,6 +46,17 @@ function rowHistoryHtml(entries) {
     if(Object.prototype.hasOwnProperty.call(source,unitField)){const unit=source[unitField];if(unit===''||unit===null||unit===undefined)return '—';return formatter(unit,source[otherField]||'');}
     if(Object.prototype.hasOwnProperty.call(source,otherField)){const otherValue=source[otherField];if(otherValue===''||otherValue===null||otherValue===undefined)return '—';return formatter('other',otherValue);}return '';
   };
+  const scopedTimes=entry=>{
+    if(!entry.scheduleScope) return cellValue(entry,'times',value=>Array.isArray(value)?value.join(', '):value);
+    const todayTimes=entry.scopeTodayTemporal?.times;
+    const futureTimes=entry.scopeFutureTemporal?.times;
+    const todayText=Array.isArray(todayTimes)?todayTimes.join(', '):(todayTimes||'');
+    const futureText=Array.isArray(futureTimes)?futureTimes.join(', '):(futureTimes||'');
+    if(entry.scheduleScope==='today') return todayText ? `${todayText} (сегодня); ${futureText||'—'} (последующие дни)` : '';
+    if(entry.scheduleScope==='future') return `${todayText||'—'} (сегодня); ${futureText||'—'} (последующие дни)`;
+    if(entry.scheduleScope==='today_future') return todayText||futureText||'';
+    return cellValue(entry,'times',value=>Array.isArray(value)?value.join(', '):value);
+  };
 
   return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Область изменения</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th><th>Время</th><th>Дата начала</th><th>Дата окончания</th><th>Статус</th><th>${escapeHtml(tr('medication'))}</th></tr></thead><tbody>${sortedEntries.map(entry=>{
     const legacyStatus=entry.action==='activated'?'Активно':entry.action==='deactivated'?'Пассивно':'';
@@ -57,6 +68,6 @@ function rowHistoryHtml(entries) {
     if(source&&meaningfulScheduleChange){if(scheduleType==='daily'&&entry.action==='created')scheduleParameters='Ежедневно';if(scheduleType==='weekdays'&&'weekdays' in source)scheduleParameters=formatWeekdays(source.weekdays);if(scheduleType==='explicit_dates'&&'explicitDates' in source)scheduleParameters=formatDates(source.explicitDates);}
     const eventLabel=entry.action==='activated'||entry.action==='deactivated'?'Изменено':rowHistoryActionLabel(entry.action);
     const scopeLabel=entry.scheduleScopeLabel||({today:'Только сегодня',future:'Только на последующие дни расписания',today_future:'Сегодня и на последующие дни расписания'}[entry.scheduleScope]||'');
-    return `<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td>${escapeHtml(eventLabel)}</td><td>${escapeHtml(scopeLabel)}</td><td>${escapeHtml(cellValue(entry,'manufacturer'))}</td><td>${escapeHtml(cellValue(entry,'contentValue'))}</td><td>${escapeHtml(unitCellValue(entry,'contentUnit','contentUnitOther',medicationContentUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'intakeQuantity'))}</td><td>${escapeHtml(unitCellValue(entry,'intakeUnit','intakeUnitOther',medicationIntakeUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'details'))}</td><td>${escapeHtml(scheduleText)}</td><td>${escapeHtml(scheduleParameters)}</td><td>${escapeHtml(cellValue(entry,'times',value=>Array.isArray(value)?value.join(', '):value))}</td><td>${escapeHtml(cellValue(entry,'startDate',value=>formatDate(value)))}</td><td>${escapeHtml(cellValue(entry,'endDate',value=>formatDate(value)))}</td><td>${escapeHtml(isCancelled?'Отменено':legacyStatus||cellValue(entry,'active',value=>value?'Активно':'Пассивно'))}</td><td>${escapeHtml(cellValue(entry,'name'))}</td></tr>`;
+    return `<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td>${escapeHtml(eventLabel)}</td><td>${escapeHtml(scopeLabel)}</td><td>${escapeHtml(cellValue(entry,'manufacturer'))}</td><td>${escapeHtml(cellValue(entry,'contentValue'))}</td><td>${escapeHtml(unitCellValue(entry,'contentUnit','contentUnitOther',medicationContentUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'intakeQuantity'))}</td><td>${escapeHtml(unitCellValue(entry,'intakeUnit','intakeUnitOther',medicationIntakeUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'details'))}</td><td>${escapeHtml(scheduleText)}</td><td>${escapeHtml(scheduleParameters)}</td><td>${escapeHtml(scopedTimes(entry))}</td><td>${escapeHtml(cellValue(entry,'startDate',value=>formatDate(value)))}</td><td>${escapeHtml(cellValue(entry,'endDate',value=>formatDate(value)))}</td><td>${escapeHtml(isCancelled?'Отменено':legacyStatus||cellValue(entry,'active',value=>value?'Активно':'Пассивно'))}</td><td>${escapeHtml(cellValue(entry,'name'))}</td></tr>`;
   }).join('')}</tbody></table>`;
 }
