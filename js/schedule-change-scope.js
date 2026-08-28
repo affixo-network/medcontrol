@@ -19,6 +19,18 @@
     return JSON.stringify(cloneTemporal(before)) !== JSON.stringify(cloneTemporal(after));
   }
 
+  function addedTimes(beforeTemporal, afterTemporal){
+    const before = new Set(Array.isArray(beforeTemporal?.times) ? beforeTemporal.times : []);
+    const after = Array.isArray(afterTemporal?.times) ? afterTemporal.times : [];
+    return after.filter(time => !before.has(time));
+  }
+
+  function removedTimes(beforeTemporal, afterTemporal){
+    const after = new Set(Array.isArray(afterTemporal?.times) ? afterTemporal.times : []);
+    const before = Array.isArray(beforeTemporal?.times) ? beforeTemporal.times : [];
+    return before.filter(time => !after.has(time));
+  }
+
   function hasTakenToday(state, medicationId){
     const today = currentLocalDate();
     return (state.intakeLogs || []).some(log =>
@@ -70,12 +82,8 @@
   }
 
   function scopeTemporals(scope, beforeTemporal, updatedMedication){
-    if (scope === 'today') {
-      return { today: cloneTemporal(updatedMedication), future: cloneTemporal(beforeTemporal) };
-    }
-    if (scope === 'future') {
-      return { today: cloneTemporal(beforeTemporal), future: cloneTemporal(updatedMedication) };
-    }
+    if (scope === 'today') return { today: cloneTemporal(updatedMedication), future: cloneTemporal(beforeTemporal) };
+    if (scope === 'future') return { today: cloneTemporal(beforeTemporal), future: cloneTemporal(updatedMedication) };
     return { today: cloneTemporal(updatedMedication), future: cloneTemporal(updatedMedication) };
   }
 
@@ -90,6 +98,8 @@
       const temporals = scopeTemporals(scope, beforeTemporal, updatedMedication);
       entry.scopeTodayTemporal = temporals.today;
       entry.scopeFutureTemporal = temporals.future;
+      entry.changedTimeValues = addedTimes(beforeTemporal, updatedMedication);
+      entry.removedTimeValues = removedTimes(beforeTemporal, updatedMedication);
     }
 
     entry.changes = entry.changes || {};
@@ -107,20 +117,18 @@
     (state.medications || []).forEach(med => {
       const app = med.temporalApplication;
       if (!app || !Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
-
       const editedEntries = med.rowHistory.filter(entry => entry.action === 'edited');
       if (!editedEntries.length) return;
 
       let target = editedEntries.find(entry => entry.at === app.changedAt) || null;
       if (!target && app.changedAt) {
         const appMs = new Date(app.changedAt).getTime();
-        target = editedEntries
-          .filter(entry => !Number.isNaN(new Date(entry.at).getTime()) && new Date(entry.at).getTime() <= appMs + 60000)
+        target = editedEntries.filter(entry => !Number.isNaN(new Date(entry.at).getTime()) && new Date(entry.at).getTime() <= appMs + 60000)
           .sort((a,b) => new Date(b.at) - new Date(a.at))[0] || null;
       }
       if (!target) target = editedEntries[editedEntries.length - 1];
-
       target.changes = target.changes || {};
+
       if (app.scope && SCOPE_LABELS[app.scope]) {
         if (target.scheduleScope !== app.scope || target.scheduleScopeLabel !== SCOPE_LABELS[app.scope]) {
           target.scheduleScope = app.scope;
@@ -131,10 +139,7 @@
 
       let todayTemporal = null;
       let futureTemporal = null;
-      if (app.scope === 'today' && app.todayTemporal) {
-        todayTemporal = cloneTemporal(app.todayTemporal);
-        futureTemporal = cloneTemporal(med);
-      } else if (app.scope === 'future' && app.todayTemporal) {
+      if ((app.scope === 'today' || app.scope === 'future') && app.todayTemporal) {
         todayTemporal = cloneTemporal(app.todayTemporal);
         futureTemporal = cloneTemporal(med);
       } else if (app.scope === 'today_future') {
@@ -151,13 +156,26 @@
         changed = true;
       }
 
+      if (app.scope === 'today' && todayTemporal && futureTemporal) {
+        const delta = addedTimes(futureTemporal, todayTemporal);
+        if (JSON.stringify(target.changedTimeValues) !== JSON.stringify(delta)) {
+          target.changedTimeValues = delta;
+          changed = true;
+        }
+      } else if (app.scope === 'future' && todayTemporal && futureTemporal) {
+        const delta = addedTimes(todayTemporal, futureTemporal);
+        if (JSON.stringify(target.changedTimeValues) !== JSON.stringify(delta)) {
+          target.changedTimeValues = delta;
+          changed = true;
+        }
+      }
+
       const effectiveTemporal = app.scope === 'today' ? todayTemporal : futureTemporal;
       if (effectiveTemporal) {
         TEMPORAL_KEYS.forEach(key => {
           const value = effectiveTemporal[key];
           if (value === undefined) return;
-          const current = target.changes[key];
-          if (JSON.stringify(current) !== JSON.stringify(value)) {
+          if (JSON.stringify(target.changes[key]) !== JSON.stringify(value)) {
             target.changes[key] = Array.isArray(value) ? [...value] : value;
             changed = true;
           }
@@ -168,10 +186,7 @@
   }
 
   function repairAndSave(){
-    try {
-      const state = getState();
-      if (repairCurrentScopeHistory(state)) saveState(state);
-    } catch (_) {}
+    try { const state = getState(); if (repairCurrentScopeHistory(state)) saveState(state); } catch (_) {}
   }
 
   window.saveMedicationEdit = function(id){
