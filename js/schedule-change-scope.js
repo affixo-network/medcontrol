@@ -31,6 +31,34 @@
     return before.filter(time => !after.has(time));
   }
 
+  function applyTimeDelta(baseTemporal, beforeTemporal, afterTemporal){
+    const result = cloneTemporal(baseTemporal);
+    const set = new Set(Array.isArray(result.times) ? result.times : []);
+    addedTimes(beforeTemporal, afterTemporal).forEach(time => set.add(time));
+    removedTimes(beforeTemporal, afterTemporal).forEach(time => set.delete(time));
+    result.times = [...set].sort();
+    return result;
+  }
+
+  function historyDate(entry){
+    try { return localDateFromISO(entry.at); } catch (_) { return ''; }
+  }
+
+  function rebuildTodayTemporalFromHistory(med, today){
+    let result = cloneTemporal(med);
+    const entries = Array.isArray(med.rowHistory) ? [...med.rowHistory] : [];
+    entries
+      .filter(entry => entry.action === 'edited' && historyDate(entry) === today && entry.scheduleScope === 'today')
+      .sort((a,b) => new Date(a.at) - new Date(b.at))
+      .forEach(entry => {
+        const set = new Set(Array.isArray(result.times) ? result.times : []);
+        (entry.changedTimeValues || []).forEach(time => set.add(time));
+        (entry.removedTimeValues || []).forEach(time => set.delete(time));
+        result.times = [...set].sort();
+      });
+    return result;
+  }
+
   function hasTakenToday(state, medicationId){
     const today = currentLocalDate();
     return (state.intakeLogs || []).some(log =>
@@ -81,13 +109,13 @@
     dialog.showModal();
   }
 
-  function scopeTemporals(scope, beforeTemporal, updatedMedication){
-    if (scope === 'today') return { today: cloneTemporal(updatedMedication), future: cloneTemporal(beforeTemporal) };
+  function scopeTemporals(scope, beforeTemporal, updatedMedication, effectiveTodayTemporal){
+    if (scope === 'today') return { today: cloneTemporal(effectiveTodayTemporal || updatedMedication), future: cloneTemporal(beforeTemporal) };
     if (scope === 'future') return { today: cloneTemporal(beforeTemporal), future: cloneTemporal(updatedMedication) };
     return { today: cloneTemporal(updatedMedication), future: cloneTemporal(updatedMedication) };
   }
 
-  function annotateLatestHistory(med, scope, beforeTemporal, updatedMedication){
+  function annotateLatestHistory(med, scope, beforeTemporal, updatedMedication, effectiveTodayTemporal){
     if (!Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
     const entry = med.rowHistory[med.rowHistory.length - 1];
     if (!entry || entry.action !== 'edited') return;
@@ -95,7 +123,7 @@
     if (scope && SCOPE_LABELS[scope]) {
       entry.scheduleScope = scope;
       entry.scheduleScopeLabel = SCOPE_LABELS[scope];
-      const temporals = scopeTemporals(scope, beforeTemporal, updatedMedication);
+      const temporals = scopeTemporals(scope, beforeTemporal, updatedMedication, effectiveTodayTemporal);
       entry.scopeTodayTemporal = temporals.today;
       entry.scopeFutureTemporal = temporals.future;
       entry.changedTimeValues = addedTimes(beforeTemporal, updatedMedication);
@@ -114,12 +142,21 @@
 
   function repairCurrentScopeHistory(state){
     let changed = false;
+    const today = currentLocalDate();
     (state.medications || []).forEach(med => {
       const app = med.temporalApplication;
       if (!app || !Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
+
+      if (app.scope === 'today' && app.date === today) {
+        const rebuiltToday = rebuildTodayTemporalFromHistory(med, today);
+        if (JSON.stringify(app.todayTemporal) !== JSON.stringify(rebuiltToday)) {
+          app.todayTemporal = rebuiltToday;
+          changed = true;
+        }
+      }
+
       const editedEntries = med.rowHistory.filter(entry => entry.action === 'edited');
       if (!editedEntries.length) return;
-
       let target = editedEntries.find(entry => entry.at === app.changedAt) || null;
       if (!target && app.changedAt) {
         const appMs = new Date(app.changedAt).getTime();
@@ -155,32 +192,6 @@
         target.scopeFutureTemporal = futureTemporal;
         changed = true;
       }
-
-      if (app.scope === 'today' && todayTemporal && futureTemporal) {
-        const delta = addedTimes(futureTemporal, todayTemporal);
-        if (JSON.stringify(target.changedTimeValues) !== JSON.stringify(delta)) {
-          target.changedTimeValues = delta;
-          changed = true;
-        }
-      } else if (app.scope === 'future' && todayTemporal && futureTemporal) {
-        const delta = addedTimes(todayTemporal, futureTemporal);
-        if (JSON.stringify(target.changedTimeValues) !== JSON.stringify(delta)) {
-          target.changedTimeValues = delta;
-          changed = true;
-        }
-      }
-
-      const effectiveTemporal = app.scope === 'today' ? todayTemporal : futureTemporal;
-      if (effectiveTemporal) {
-        TEMPORAL_KEYS.forEach(key => {
-          const value = effectiveTemporal[key];
-          if (value === undefined) return;
-          if (JSON.stringify(target.changes[key]) !== JSON.stringify(value)) {
-            target.changes[key] = Array.isArray(value) ? [...value] : value;
-            changed = true;
-          }
-        });
-      }
     });
     return changed;
   }
@@ -205,12 +216,18 @@
         const changedAt = nowISO();
         const today = currentLocalDate();
         applyNonTemporal(med, updatedMedication);
+        let effectiveTodayTemporal = null;
+
         if (!temporalChanged(beforeTemporal, updatedMedication)) {
           applyTemporal(med, updatedMedication);
           delete med.temporalApplication;
         } else if (scope === 'today') {
+          const existingToday = med.temporalApplication?.scope === 'today' && med.temporalApplication?.date === today && med.temporalApplication?.todayTemporal
+            ? cloneTemporal(med.temporalApplication.todayTemporal)
+            : rebuildTodayTemporalFromHistory(med, today);
+          effectiveTodayTemporal = applyTimeDelta(existingToday, beforeTemporal, updatedMedication);
           applyTemporal(med, beforeTemporal);
-          med.temporalApplication = { scope:'today', date:today, changedAt, todayTemporal:cloneTemporal(updatedMedication) };
+          med.temporalApplication = { scope:'today', date:today, changedAt, todayTemporal:effectiveTodayTemporal };
         } else if (scope === 'future') {
           applyTemporal(med, updatedMedication);
           med.temporalApplication = { scope:'future', date:today, changedAt, todayTemporal:beforeTemporal };
@@ -218,9 +235,10 @@
           applyTemporal(med, updatedMedication);
           med.temporalApplication = { scope:'today_future', date:today, changedAt };
         }
+
         completeTemporalEdit(med, previousSnapshot, updatedMedication);
         recordRowHistory(med, 'edited', medicationRuleSummary(updatedMedication), previousSnapshot);
-        annotateLatestHistory(med, scope, beforeTemporal, updatedMedication);
+        annotateLatestHistory(med, scope, beforeTemporal, updatedMedication, effectiveTodayTemporal);
         saveState(state);
         document.getElementById('editDialog')?.close();
         mount('input');
