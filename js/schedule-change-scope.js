@@ -89,6 +89,57 @@
     });
   }
 
+  function repairCurrentScopeHistory(state){
+    let changed = false;
+    (state.medications || []).forEach(med => {
+      const app = med.temporalApplication;
+      if (!app || !Array.isArray(med.rowHistory) || !med.rowHistory.length) return;
+
+      const editedEntries = med.rowHistory.filter(entry => entry.action === 'edited');
+      if (!editedEntries.length) return;
+
+      let target = editedEntries.find(entry => entry.at === app.changedAt) || null;
+      if (!target && app.changedAt) {
+        const appMs = new Date(app.changedAt).getTime();
+        target = editedEntries
+          .filter(entry => !Number.isNaN(new Date(entry.at).getTime()) && new Date(entry.at).getTime() <= appMs + 60000)
+          .sort((a,b) => new Date(b.at) - new Date(a.at))[0] || null;
+      }
+      if (!target) target = editedEntries[editedEntries.length - 1];
+
+      target.changes = target.changes || {};
+      if (app.scope && SCOPE_LABELS[app.scope] && !target.scheduleScopeLabel) {
+        target.scheduleScope = app.scope;
+        target.scheduleScopeLabel = SCOPE_LABELS[app.scope];
+        changed = true;
+      }
+
+      let effectiveTemporal = null;
+      if (app.scope === 'today' && app.todayTemporal) effectiveTemporal = app.todayTemporal;
+      else if (app.scope === 'future' || app.scope === 'today_future') effectiveTemporal = med;
+
+      if (effectiveTemporal) {
+        TEMPORAL_KEYS.forEach(key => {
+          const value = effectiveTemporal[key];
+          if (value === undefined) return;
+          const current = target.changes[key];
+          if (JSON.stringify(current) !== JSON.stringify(value)) {
+            target.changes[key] = Array.isArray(value) ? [...value] : value;
+            changed = true;
+          }
+        });
+      }
+    });
+    return changed;
+  }
+
+  function repairAndSave(){
+    try {
+      const state = getState();
+      if (repairCurrentScopeHistory(state)) saveState(state);
+    } catch (_) {}
+  }
+
   window.saveMedicationEdit = function(id){
     try {
       const state = getState();
@@ -130,4 +181,6 @@
       else persist(null);
     } catch (error) { showMedicationHint(error.message); }
   };
+
+  setTimeout(repairAndSave, 0);
 })();
