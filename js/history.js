@@ -1,73 +1,46 @@
 function rowHistoryActionLabel(action) {
-  const labels = {
-    created: 'Создано',
-    edited: 'Изменено',
-    cancelled: 'Отменено',
-    activated: 'Активировано',
-    deactivated: 'Деактивировано',
-    active: 'Активировано',
-    passive: 'Деактивировано'
-  };
+  const labels = { created:'Создано', edited:'Изменено', cancelled:'Отменено', activated:'Активировано', deactivated:'Деактивировано', active:'Активировано', passive:'Деактивировано' };
   return labels[action] || action || '—';
 }
 
 function rowHistoryHtml(entries) {
   if (!entries || !entries.length) return `<p class="muted">${escapeHtml(tr('no_history'))}</p>`;
-  const sortedEntries = [...entries].sort((a,b)=>new Date(a.at)-new Date(b.at));
+  const sortedEntries=[...entries].sort((a,b)=>new Date(a.at)-new Date(b.at));
   const weekdayLabels={Mon:'Пн',Tue:'Вт',Wed:'Ср',Thu:'Чт',Fri:'Пт',Sat:'Сб',Sun:'Вс'};
   const weekdayOrder=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const formatWeekdays=values=>Array.isArray(values)&&values.length?values.slice().sort((a,b)=>weekdayOrder.indexOf(a)-weekdayOrder.indexOf(b)).map(code=>weekdayLabels[code]||code).join(', '):'';
   const formatDates=values=>Array.isArray(values)&&values.length?values.map(value=>formatDate(value)).join(', '):'';
 
   const parseLegacyHistoryPayload=entry=>{
-    if(entry.snapshot||entry.changes||!entry.payload||typeof entry.payload!=='string') return null;
-    const payload=entry.payload.trim(); const result={};
-    const scheduleMatch=payload.match(/^(Каждый день|Дни недели|Даты)(?:;|$)/); if(scheduleMatch) result.scheduleText=scheduleMatch[1];
-    const timeMatch=payload.match(/(?:^|;\s*)Время:\s*([^;]*)/); if(timeMatch) result.times=timeMatch[1].trim();
-    const detailsMatch=payload.match(/(?:^|;\s*)Детали:\s*([^;]*)/); if(detailsMatch) result.details=detailsMatch[1].trim();
+    if(entry.snapshot||entry.changes||!entry.payload||typeof entry.payload!=='string')return null;
+    const payload=entry.payload.trim(),result={};
+    const scheduleMatch=payload.match(/^(Каждый день|Дни недели|Даты)(?:;|$)/);if(scheduleMatch)result.scheduleText=scheduleMatch[1];
+    const timeMatch=payload.match(/(?:^|;\s*)Время:\s*([^;]*)/);if(timeMatch)result.times=timeMatch[1].trim();
+    const detailsMatch=payload.match(/(?:^|;\s*)Детали:\s*([^;]*)/);if(detailsMatch)result.details=detailsMatch[1].trim();
     const ruleMatch=payload.match(/(?:^|;\s*)Правило приёма:\s*(.*)$/);
-    if(ruleMatch){
-      const rule=ruleMatch[1].trim();
-      if(result.scheduleText==='Каждый день'){const dateRange=rule.split('→');if(dateRange.length===2){result.startDate=dateRange[0].trim();result.endDate=dateRange[1].trim();}result.scheduleParameters='Ежедневно';}
-      if(result.scheduleText==='Дни недели'){const ruleParts=rule.split(';');const weekdaysText=ruleParts[0]?.trim()||'';const order=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];result.scheduleParameters=weekdaysText.split(',').map(day=>day.trim()).filter(Boolean).sort((a,b)=>order.indexOf(a)-order.indexOf(b)).join(', ');const datePart=ruleParts.slice(1).join(';').trim();if(datePart){const dateRange=datePart.split('→');if(dateRange.length===2){const startDate=dateRange[0].trim(),endDate=dateRange[1].trim();if(startDate&&startDate!=='—')result.startDate=startDate;if(endDate&&endDate!=='—')result.endDate=endDate;}}}
-      if(result.scheduleText==='Даты') result.scheduleParameters=rule;
-    }
+    if(ruleMatch){const rule=ruleMatch[1].trim();if(result.scheduleText==='Каждый день'){const r=rule.split('→');if(r.length===2){result.startDate=r[0].trim();result.endDate=r[1].trim();}result.scheduleParameters='Ежедневно';}if(result.scheduleText==='Дни недели'){const p=rule.split(';'),w=p[0]?.trim()||'',order=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];result.scheduleParameters=w.split(',').map(d=>d.trim()).filter(Boolean).sort((a,b)=>order.indexOf(a)-order.indexOf(b)).join(', ');const dp=p.slice(1).join(';').trim();if(dp){const r=dp.split('→');if(r.length===2){const s=r[0].trim(),e=r[1].trim();if(s&&s!=='—')result.startDate=s;if(e&&e!=='—')result.endDate=e;}}}if(result.scheduleText==='Даты')result.scheduleParameters=rule;}
     return result;
   };
 
-  const cellValue=(entry,field,formatter=value=>value)=>{
-    if(entry.action==='cancelled') return '';
-    const source=entry.action==='created'?entry.snapshot:entry.changes;
-    if(!source||!(field in source)){const legacy=parseLegacyHistoryPayload(entry);if(legacy&&Object.prototype.hasOwnProperty.call(legacy,field))return legacy[field];return '';}
-    const value=source[field]; if(value===''||value===null||value===undefined)return '—'; return formatter(value,source);
-  };
-  const unitCellValue=(entry,unitField,otherField,formatter)=>{
-    if(entry.action==='cancelled')return ''; const source=entry.action==='created'?entry.snapshot:entry.changes; if(!source)return '';
-    if(Object.prototype.hasOwnProperty.call(source,unitField)){const unit=source[unitField];if(unit===''||unit===null||unit===undefined)return '—';return formatter(unit,source[otherField]||'');}
-    if(Object.prototype.hasOwnProperty.call(source,otherField)){const otherValue=source[otherField];if(otherValue===''||otherValue===null||otherValue===undefined)return '—';return formatter('other',otherValue);}return '';
-  };
-  const scopedTimes=entry=>{
-    if(!entry.scheduleScope) return cellValue(entry,'times',value=>Array.isArray(value)?value.join(', '):value);
-    const todayTimes=entry.scopeTodayTemporal?.times;
-    const futureTimes=entry.scopeFutureTemporal?.times;
-    const todayText=Array.isArray(todayTimes)?todayTimes.join(', '):(todayTimes||'');
-    const futureText=Array.isArray(futureTimes)?futureTimes.join(', '):(futureTimes||'');
-    if(entry.scheduleScope==='today') return todayText ? `${todayText} (сегодня); ${futureText||'—'} (последующие дни)` : '';
-    if(entry.scheduleScope==='future') return `${todayText||'—'} (сегодня); ${futureText||'—'} (последующие дни)`;
-    if(entry.scheduleScope==='today_future') return todayText||futureText||'';
+  const cellValue=(entry,field,formatter=value=>value)=>{if(entry.action==='cancelled')return '';const source=entry.action==='created'?entry.snapshot:entry.changes;if(!source||!(field in source)){const legacy=parseLegacyHistoryPayload(entry);if(legacy&&Object.prototype.hasOwnProperty.call(legacy,field))return legacy[field];return '';}const value=source[field];if(value===''||value===null||value===undefined)return '—';return formatter(value,source);};
+  const unitCellValue=(entry,unitField,otherField,formatter)=>{if(entry.action==='cancelled')return '';const source=entry.action==='created'?entry.snapshot:entry.changes;if(!source)return '';if(Object.prototype.hasOwnProperty.call(source,unitField)){const unit=source[unitField];if(unit===''||unit===null||unit===undefined)return '—';return formatter(unit,source[otherField]||'');}if(Object.prototype.hasOwnProperty.call(source,otherField)){const other=source[otherField];if(other===''||other===null||other===undefined)return '—';return formatter('other',other);}return '';};
+  const historyTimes=entry=>{
+    if(entry.scheduleScope&&Array.isArray(entry.changedTimeValues)&&entry.changedTimeValues.length)return entry.changedTimeValues.join(', ');
+    if(entry.scheduleScope==='today'){const today=entry.scopeTodayTemporal?.times||[],future=new Set(entry.scopeFutureTemporal?.times||[]),delta=today.filter(t=>!future.has(t));if(delta.length)return delta.join(', ');}
+    if(entry.scheduleScope==='future'){const future=entry.scopeFutureTemporal?.times||[],today=new Set(entry.scopeTodayTemporal?.times||[]),delta=future.filter(t=>!today.has(t));if(delta.length)return delta.join(', ');}
     return cellValue(entry,'times',value=>Array.isArray(value)?value.join(', '):value);
   };
 
   return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Область изменения</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th><th>Время</th><th>Дата начала</th><th>Дата окончания</th><th>Статус</th><th>${escapeHtml(tr('medication'))}</th></tr></thead><tbody>${sortedEntries.map(entry=>{
     const legacyStatus=entry.action==='activated'?'Активно':entry.action==='deactivated'?'Пассивно':'';
-    const isCancelled=entry.action==='cancelled'; const legacy=parseLegacyHistoryPayload(entry); const source=isCancelled?{}:entry.action==='created'?entry.snapshot:entry.changes;
+    const isCancelled=entry.action==='cancelled',legacy=parseLegacyHistoryPayload(entry),source=isCancelled?{}:entry.action==='created'?entry.snapshot:entry.changes;
     const meaningfulScheduleChange=entry.action==='created'||Boolean(legacy?.scheduleText)||Boolean(entry.action==='edited'&&source&&['weekdays','explicitDates','startDate','endDate'].some(field=>Object.prototype.hasOwnProperty.call(source,field)));
     const scheduleType=isCancelled||!meaningfulScheduleChange?'':entry.snapshot?.scheduleType||entry.changes?.scheduleType||'';
     const scheduleText=legacy?.scheduleText||(scheduleType==='daily'?'Каждый день':scheduleType==='weekdays'?'Дни недели':scheduleType==='explicit_dates'?'Даты':'');
     let scheduleParameters=legacy?.scheduleParameters||'';
-    if(source&&meaningfulScheduleChange){if(scheduleType==='daily'&&entry.action==='created')scheduleParameters='Ежедневно';if(scheduleType==='weekdays'&&'weekdays' in source)scheduleParameters=formatWeekdays(source.weekdays);if(scheduleType==='explicit_dates'&&'explicitDates' in source)scheduleParameters=formatDates(source.explicitDates);}
+    if(source&&meaningfulScheduleChange){if(scheduleType==='daily'&&entry.action==='created')scheduleParameters='Ежедневно';if(scheduleType==='weekdays'&&'weekdays'in source)scheduleParameters=formatWeekdays(source.weekdays);if(scheduleType==='explicit_dates'&&'explicitDates'in source)scheduleParameters=formatDates(source.explicitDates);}
     const eventLabel=entry.action==='activated'||entry.action==='deactivated'?'Изменено':rowHistoryActionLabel(entry.action);
     const scopeLabel=entry.scheduleScopeLabel||({today:'Только сегодня',future:'Только на последующие дни расписания',today_future:'Сегодня и на последующие дни расписания'}[entry.scheduleScope]||'');
-    return `<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td>${escapeHtml(eventLabel)}</td><td>${escapeHtml(scopeLabel)}</td><td>${escapeHtml(cellValue(entry,'manufacturer'))}</td><td>${escapeHtml(cellValue(entry,'contentValue'))}</td><td>${escapeHtml(unitCellValue(entry,'contentUnit','contentUnitOther',medicationContentUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'intakeQuantity'))}</td><td>${escapeHtml(unitCellValue(entry,'intakeUnit','intakeUnitOther',medicationIntakeUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'details'))}</td><td>${escapeHtml(scheduleText)}</td><td>${escapeHtml(scheduleParameters)}</td><td>${escapeHtml(scopedTimes(entry))}</td><td>${escapeHtml(cellValue(entry,'startDate',value=>formatDate(value)))}</td><td>${escapeHtml(cellValue(entry,'endDate',value=>formatDate(value)))}</td><td>${escapeHtml(isCancelled?'Отменено':legacyStatus||cellValue(entry,'active',value=>value?'Активно':'Пассивно'))}</td><td>${escapeHtml(cellValue(entry,'name'))}</td></tr>`;
+    return `<tr><td>${escapeHtml(formatDateTime(entry.at))}</td><td>${escapeHtml(eventLabel)}</td><td>${escapeHtml(scopeLabel)}</td><td>${escapeHtml(cellValue(entry,'manufacturer'))}</td><td>${escapeHtml(cellValue(entry,'contentValue'))}</td><td>${escapeHtml(unitCellValue(entry,'contentUnit','contentUnitOther',medicationContentUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'intakeQuantity'))}</td><td>${escapeHtml(unitCellValue(entry,'intakeUnit','intakeUnitOther',medicationIntakeUnitLabel))}</td><td>${escapeHtml(cellValue(entry,'details'))}</td><td>${escapeHtml(scheduleText)}</td><td>${escapeHtml(scheduleParameters)}</td><td>${escapeHtml(historyTimes(entry))}</td><td>${escapeHtml(cellValue(entry,'startDate',value=>formatDate(value)))}</td><td>${escapeHtml(cellValue(entry,'endDate',value=>formatDate(value)))}</td><td>${escapeHtml(isCancelled?'Отменено':legacyStatus||cellValue(entry,'active',value=>value?'Активно':'Пассивно'))}</td><td>${escapeHtml(cellValue(entry,'name'))}</td></tr>`;
   }).join('')}</tbody></table>`;
 }
