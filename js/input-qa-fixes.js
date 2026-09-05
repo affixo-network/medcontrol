@@ -102,10 +102,28 @@
 
   function completedHistoryPlannedAts(medicationId) {
     const state = getState();
-    return [...new Set([
+    const med = (state.medications || []).find(item => item.id === medicationId);
+    const saved = [
       ...(state.intakeLogs || []).filter(x => x.medicationId === medicationId).map(x => x.plannedAt),
       ...(state.intakeCorrections || []).filter(x => x.medicationId === medicationId).map(x => x.plannedAt)
-    ].filter(Boolean))].sort((a, b) => new Date(a) - new Date(b));
+    ].filter(Boolean);
+
+    const historical = [];
+    (med?.rowHistory || []).forEach(entry => {
+      if ((entry?.action || entry?.event) !== 'edited') return;
+      if (entry?.scheduleScope) return;
+      const times = Array.isArray(entry?.changes?.times) ? entry.changes.times : [];
+      if (!times.length || !entry?.at) return;
+      const dateISO = localDateFromISO(entry.at);
+      times.forEach(time => {
+        if (!/^\d{2}:\d{2}$/.test(time)) return;
+        const candidate = new Date(`${dateISO}T${time}:00`);
+        if (!Number.isNaN(candidate.getTime())) historical.push(candidate.toISOString());
+      });
+    });
+
+    return [...new Set([...saved, ...historical])]
+      .sort((a, b) => new Date(a) - new Date(b));
   }
 
   function plannedTimeLabel(plannedAt) {
