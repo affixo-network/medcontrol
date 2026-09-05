@@ -37,21 +37,19 @@
       if(futureScheduled.length)futureByMedication.push({med,slots:futureScheduled});
     }
 
-    if(todayRows.length){
-      return todayRows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
-    }
-
     let targetDate='';
     futureByMedication.forEach(item=>{
       const date=item.slots[0]?.date||'';
       if(date&&(!targetDate||date<targetDate))targetDate=date;
     });
-    if(!targetDate)return [];
 
-    const rows=[];
-    futureByMedication.forEach(item=>{
-      item.slots.filter(slot=>slot.date===targetDate).forEach(slot=>rows.push(effectiveRow(item.med,slot,now)));
-    });
+    const rows=[...todayRows];
+    if(targetDate){
+      futureByMedication.forEach(item=>{
+        item.slots.filter(slot=>slot.date===targetDate).forEach(slot=>rows.push(effectiveRow(item.med,slot,now)));
+      });
+    }
+
     return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
   };
 })();
