@@ -1,27 +1,35 @@
 (function(){
-  const baseRenderActionPage = window.renderActionPage;
-  if (typeof baseRenderActionPage !== 'function') return;
+  function timelineEntries(){
+    return typeof buildMedControlTimeline==='function' ? (buildMedControlTimeline()||[]) : [];
+  }
 
-  function bindDirectHistoryButtons() {
-    const rows = [...document.querySelectorAll('section.card table tbody tr')];
-    const entries = typeof buildTodayEntries === 'function' ? buildTodayEntries() : [];
+  function bindDirectHistoryButtons(){
+    const rows=[...document.querySelectorAll('section.card table tbody tr')];
+    const entries=timelineEntries();
 
-    rows.forEach((row, index) => {
-      const entry = entries[index];
-      if (!entry) return;
-      const button = [...row.querySelectorAll('button')].find(b => b.textContent.trim() === 'История');
-      if (!button) return;
-      button.onclick = function(event) {
+    rows.forEach((row,index)=>{
+      const entry=entries[index];
+      if(!entry||!entry.medication||!entry.plannedAt)return;
+      const button=[...row.querySelectorAll('button')].find(b=>b.textContent.trim()==='История');
+      if(!button)return;
+      button.onclick=function(event){
         event.preventDefault();
         event.stopPropagation();
-        window.showIntakeHistory(entry.medication.id, entry.plannedAt);
+        window.showIntakeHistory(entry.medication.id,entry.plannedAt);
       };
     });
   }
 
-  window.renderActionPage = function() {
-    const result = baseRenderActionPage.apply(this, arguments);
-    bindDirectHistoryButtons();
-    return result;
-  };
+  function wrapRenderer(name){
+    const base=window[name];
+    if(typeof base!=='function')return;
+    window[name]=function(){
+      const result=base.apply(this,arguments);
+      bindDirectHistoryButtons();
+      return result;
+    };
+  }
+
+  wrapRenderer('renderActionPage');
+  wrapRenderer('renderDashboardPage');
 })();
