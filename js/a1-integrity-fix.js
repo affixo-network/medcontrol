@@ -128,6 +128,7 @@
     versions.forEach((item, index) => {
       const nextStartMs = versions[index + 1]?.startMs ?? Infinity;
       const version = item.value;
+      if (version?.active === false) return;
       if (!appliesOnDate(version, today)) return;
 
       (version.times || []).filter(Boolean).forEach(time => {
