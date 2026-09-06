@@ -11,6 +11,23 @@
   function effectiveRow(med,slot,now){const effective=getLogForSchedule(med.id,slot.plannedAt),count=correctionCount(med.id,slot.plannedAt);if(effective)return {medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:effective.action==='taken'?'taken':'cancelled',actualAt:effective.actualAt||null,canTake:false,canCorrect:effective.action==='taken',correctionCount:count,countdownMode:null,countdownMs:null};const waiting=slot.plannedMs>now;return {medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:waiting?'waiting':'missed',actualAt:null,canTake:true,canCorrect:false,correctionCount:count,countdownMode:waiting?'remaining':'late',countdownMs:waiting?slot.plannedMs-now:now-slot.plannedMs};}
   function cutoffForToday(med,today){const app=med.temporalApplication;if(!app||app.date!==today)return null;if(app.scope!=='today'&&app.scope!=='today_future')return null;const ms=new Date(app.changedAt||'').getTime();return Number.isNaN(ms)?null:ms;}
   function createdAtMs(med){const entry=(med?.rowHistory||[]).find(item=>(item?.action||item?.event)==='created');const ms=new Date(entry?.at||0).getTime();return Number.isFinite(ms)?ms:0;}
+  function activeAtSlot(med,plannedMs){
+    const history=(med?.rowHistory||[])
+      .map(entry=>({entry,ms:new Date(entry?.at||0).getTime()}))
+      .filter(item=>Number.isFinite(item.ms)&&item.ms<=plannedMs)
+      .sort((a,b)=>b.ms-a.ms);
+    for(const item of history){
+      const entry=item.entry||{};
+      if(entry.snapshot&&typeof entry.snapshot.active==='boolean') return entry.snapshot.active;
+      const action=entry.action||entry.event||'';
+      if(action==='activated'||action==='active') return true;
+      if(action==='deactivated'||action==='passive') return false;
+      const payload=typeof entry.payload==='string'?entry.payload:'';
+      if(payload.includes('Статус препарата изменён на «Активно»')) return true;
+      if(payload.includes('Статус препарата изменён на «Пассивно»')) return false;
+    }
+    return Boolean(med?.active);
+  }
 
   window.buildMedControlTimeline=function(){
     const state=getState(),today=currentLocalDate(),now=Date.now(),todayRows=[],futureByMedication=[];
@@ -25,6 +42,7 @@
       const todayMed=todayMedication(med,today),activeTodayTimes=new Set((todayMed.times||[]).filter(Boolean)),cutoff=cutoffForToday(med,today),createdMs=createdAtMs(med);
       let todayScheduled=scheduledSlots(todayMed,today,0,scopedToday);
       if(cutoff!=null)todayScheduled=todayScheduled.filter(slot=>slot.plannedMs>=cutoff);
+      todayScheduled=todayScheduled.filter(slot=>activeAtSlot(med,slot.plannedMs));
 
       const historicalToday=(state.intakeLogs||[]).filter(log=>log.medicationId===med.id&&localDateFromISO(log.plannedAt)===today).map(log=>slotFromPlannedAt(log.plannedAt)).filter(slot=>activeTodayTimes.has(slot.time));
       const correctionToday=(state.intakeCorrections||[]).filter(c=>c.medicationId===med.id&&localDateFromISO(c.plannedAt)===today).map(c=>slotFromPlannedAt(c.plannedAt)).filter(slot=>activeTodayTimes.has(slot.time));
