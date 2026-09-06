@@ -11,22 +11,27 @@
   function effectiveRow(med,slot,now){const effective=getLogForSchedule(med.id,slot.plannedAt),count=correctionCount(med.id,slot.plannedAt);if(effective)return {medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:effective.action==='taken'?'taken':'cancelled',actualAt:effective.actualAt||null,canTake:false,canCorrect:effective.action==='taken',correctionCount:count,countdownMode:null,countdownMs:null};const waiting=slot.plannedMs>now;return {medication:med,plannedDate:slot.date,plannedTime:slot.time,plannedAt:slot.plannedAt,plannedMs:slot.plannedMs,status:waiting?'waiting':'missed',actualAt:null,canTake:true,canCorrect:false,correctionCount:count,countdownMode:waiting?'remaining':'late',countdownMs:waiting?slot.plannedMs-now:now-slot.plannedMs};}
   function cutoffForToday(med,today){const app=med.temporalApplication;if(!app||app.date!==today)return null;if(app.scope!=='today'&&app.scope!=='today_future')return null;const ms=new Date(app.changedAt||'').getTime();return Number.isNaN(ms)?null:ms;}
   function createdAtMs(med){const entry=(med?.rowHistory||[]).find(item=>(item?.action||item?.event)==='created');const ms=new Date(entry?.at||0).getTime();return Number.isFinite(ms)?ms:0;}
+  function modeFromEntry(entry){
+    const action=entry?.action||entry?.event||'';
+    if(action==='activated'||action==='active')return true;
+    if(action==='deactivated'||action==='passive')return false;
+    const payload=typeof entry?.payload==='string'?entry.payload:'';
+    if(payload.includes('Статус препарата изменён на «Активно»'))return true;
+    if(payload.includes('Статус препарата изменён на «Пассивно»'))return false;
+    return null;
+  }
   function activeAtSlot(med,plannedMs){
     const history=(med?.rowHistory||[])
       .map(entry=>({entry,ms:new Date(entry?.at||0).getTime()}))
       .filter(item=>Number.isFinite(item.ms)&&item.ms<=plannedMs)
-      .sort((a,b)=>b.ms-a.ms);
+      .sort((a,b)=>a.ms-b.ms);
+    let active=null;
     for(const item of history){
-      const entry=item.entry||{};
-      if(entry.snapshot&&typeof entry.snapshot.active==='boolean') return entry.snapshot.active;
-      const action=entry.action||entry.event||'';
-      if(action==='activated'||action==='active') return true;
-      if(action==='deactivated'||action==='passive') return false;
-      const payload=typeof entry.payload==='string'?entry.payload:'';
-      if(payload.includes('Статус препарата изменён на «Активно»')) return true;
-      if(payload.includes('Статус препарата изменён на «Пассивно»')) return false;
+      const explicitMode=modeFromEntry(item.entry);
+      if(explicitMode!==null){active=explicitMode;continue;}
+      if(active===null&&item.entry?.action==='created'&&item.entry?.snapshot&&typeof item.entry.snapshot.active==='boolean')active=item.entry.snapshot.active;
     }
-    return Boolean(med?.active);
+    return active===null?Boolean(med?.active):active;
   }
 
   window.buildMedControlTimeline=function(){
@@ -55,17 +60,19 @@
       if(futureScheduled.length)futureByMedication.push({med,slots:futureScheduled});
     }
 
-    let targetDate='';
-    futureByMedication.forEach(item=>{
-      const date=item.slots[0]?.date||'';
-      if(date&&(!targetDate||date<targetDate))targetDate=date;
-    });
-
     const rows=[...todayRows];
-    if(targetDate){
+    const hasFutureToday=rows.some(row=>row.plannedMs>now&&row.status==='waiting');
+    if(!hasFutureToday){
+      let targetDate='';
       futureByMedication.forEach(item=>{
-        item.slots.filter(slot=>slot.date===targetDate).forEach(slot=>rows.push(effectiveRow(item.med,slot,now)));
+        const date=item.slots[0]?.date||'';
+        if(date&&(!targetDate||date<targetDate))targetDate=date;
       });
+      if(targetDate){
+        futureByMedication.forEach(item=>{
+          item.slots.filter(slot=>slot.date===targetDate).forEach(slot=>rows.push(effectiveRow(item.med,slot,now)));
+        });
+      }
     }
 
     return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
