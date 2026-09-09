@@ -46,25 +46,4 @@
     med.rowHistory.push({at,action:'edited',scheduleScope:scope==='daily'?null:scope,scheduleScopeLabel:scope==='today'?'Только сегодня':scope==='future'?'Только на последующие дни расписания':scope==='today_future'?'Сегодня и на последующие дни расписания':'',changes:{times:afterTimes,timeStatus:{time:c.deleteCurrent?oldTime:newTime,oldTime,newTime,deleted:c.deleteCurrent,active,scope,date}},payload:c.deleteCurrent?`Время ${oldTime} удалено.`:(newTime!==oldTime?`Время изменено: ${oldTime} → ${newTime}.`:'Изменены данные времени.'),scopeTodayTemporal:scope==='today'?after:(scope==='future'?before:scope==='today_future'?after:null),scopeFutureTemporal:scope==='today'?before:(scope==='future'||scope==='today_future'?after:null)});
     saveState(state);document.getElementById('timeStatusEditDialog')?.close();mount('input');
   };
-
-  function historicalTimes(med){
-    const current=new Set((med.times||[]).filter(Boolean)),historic=new Set();
-    (med.timeStatusHistory||[]).forEach(x=>{
-      if(x?.deleted&&x.oldTime)historic.add(x.oldTime);
-      if(x?.oldTime&&x?.newTime&&x.oldTime!==x.newTime)historic.add(x.oldTime);
-    });
-    return [...historic].filter(time=>!current.has(time)).sort();
-  }
-
-  function appendHistoricalTimeHistory(){
-    const id=window.__rowHistoryMedicationId,med=(getState().medications||[]).find(x=>x.id===id),host=document.getElementById('rowHistoryContent');
-    if(!id||!med||!host)return;
-    const times=historicalTimes(med);if(!times.length)return;
-    const section=document.createElement('div');section.id='historicalTimeHistoryLinks';section.style.marginTop='22px';
-    section.innerHTML=`<h3>Удалённые и заменённые времена</h3><p class="muted">Эти времена больше не входят в действующее расписание. Их история сохранена.</p><table><thead><tr><th>Время</th><th>Состояние</th><th>История</th></tr></thead><tbody>${times.map(time=>{const plannedAt=getScheduledDateTime(currentLocalDate(),time);return `<tr><td><strong>${esc(time)}</strong></td><td>Не входит в действующее расписание</td><td><button type="button" onclick="showInputTimeHistory('${med.id}','${plannedAt}')">История</button></td></tr>`;}).join('')}</tbody></table>`;
-    host.appendChild(section);
-  }
-
-  const originalRefresh=window.refreshGeneralMedicationHistory;
-  if(typeof originalRefresh==='function')window.refreshGeneralMedicationHistory=function(){originalRefresh();appendHistoricalTimeHistory();};
 })();
