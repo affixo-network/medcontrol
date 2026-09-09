@@ -46,23 +46,4 @@
     med.rowHistory.push({at,action:'edited',scheduleScope:scope==='daily'?null:scope,scheduleScopeLabel:scope==='today'?'Только сегодня':scope==='future'?'Только на последующие дни расписания':scope==='today_future'?'Сегодня и на последующие дни расписания':'',changes:{times:afterTimes,timeStatus:{time:c.deleteCurrent?oldTime:newTime,oldTime,newTime,deleted:c.deleteCurrent,active,scope,date}},payload:c.deleteCurrent?`Время ${oldTime} удалено.`:(newTime!==oldTime?`Время изменено: ${oldTime} → ${newTime}.`:'Изменены данные времени.'),scopeTodayTemporal:scope==='today'?after:(scope==='future'?before:scope==='today_future'?after:null),scopeFutureTemporal:scope==='today'?before:(scope==='future'||scope==='today_future'?after:null)});
     saveState(state);document.getElementById('timeStatusEditDialog')?.close();mount('input');
   };
-
-  function historicalTimes(med){
-    const active=new Set((med.times||[]).filter(Boolean)),hist=new Set();
-    (med.timeStatusHistory||[]).forEach(x=>{if(x?.deleted&&x.oldTime)hist.add(x.oldTime);if(x?.oldTime&&x?.newTime&&x.oldTime!==x.newTime)hist.add(x.oldTime);});
-    return [...hist].filter(t=>!active.has(t)).sort();
-  }
-  function appendHistoricalRows(){
-    const state=getState();
-    document.querySelectorAll('section.card').forEach(section=>{
-      if(section.querySelector('h2')?.textContent?.trim()!=='Активные препараты')return;
-      const tbody=section.querySelector('tbody');if(!tbody)return;
-      (state.medications||[]).filter(m=>!m.cancelled).forEach(med=>{
-        const base=[...tbody.querySelectorAll('tr')].find(r=>r.children[0]?.textContent?.trim()===String(med.order));if(!base)return;
-        let anchor=[...tbody.querySelectorAll(`tr[data-medication-id="${med.id}"]`)].pop()||base;
-        historicalTimes(med).forEach(time=>{const tr=document.createElement('tr');tr.dataset.historicalTime='1';tr.dataset.medicationId=med.id;const plannedAt=getScheduledDateTime(currentLocalDate(),time);tr.innerHTML=`<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><strong>${esc(time)}</strong></td><td>—</td><td>—</td><td><span class="status upcoming">Архивное время</span></td><td><button type="button" onclick="showInputTimeHistory('${med.id}','${plannedAt}')">История</button></td>`;anchor.after(tr);anchor=tr;});
-      });
-    });
-  }
-  const inherited=window.renderInputPage;if(typeof inherited==='function')window.renderInputPage=function(){inherited();appendHistoricalRows();};
 })();
