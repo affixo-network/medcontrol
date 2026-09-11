@@ -93,6 +93,21 @@
       if(h.action==='created') return Array.isArray(h.snapshot?.times)?h.snapshot.times.includes(time):(med.timeStatusHistory||[]).some(x=>x.time===time||x.oldTime===time);
       const s=JSON.stringify(h);return s.includes(time);
     });
+    const timeEvents=(med.timeStatusHistory||[]).filter(h=>h&&(h.time===time||h.oldTime===time)&&(h.deleted||(h.newTime&&h.newTime!==time)));
+    const existingKeys=new Set(rows.map(h=>`${h.at||''}|${JSON.stringify(h.changes?.timeStatus||{})}`));
+    timeEvents.forEach(h=>{
+      const synthetic={
+        at:h.at||nowISO(),
+        action:'edited',
+        scheduleScope:h.scope&&h.scope!=='daily'?h.scope:null,
+        scheduleScopeLabel:h.scope==='today'?'Только сегодня':h.scope==='future'?'Только на последующие дни расписания':h.scope==='today_future'?'Сегодня и на последующие дни расписания':'',
+        changes:{timeStatus:{time,oldTime:h.oldTime||time,newTime:h.newTime||'',deleted:!!h.deleted,replaced:!!(h.newTime&&h.newTime!==time),active:false,scope:h.scope||'daily',date:h.date||''}},
+        payload:h.deleted?`Время ${time} удалено.`:`Время ${time} заменено на ${h.newTime}.`
+      };
+      const key=`${synthetic.at}|${JSON.stringify(synthetic.changes.timeStatus)}`;
+      if(!existingKeys.has(key))rows.push(synthetic);
+    });
+    rows.sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
     c.innerHTML=rowHistoryHtml(rows);
     d.showModal();
   };
