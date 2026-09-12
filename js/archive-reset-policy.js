@@ -58,11 +58,7 @@
 
   function inputRedirectUrl(){
     if(window.location.hostname==='htmlpreview.github.io'){
-      const target=decodeURIComponent(window.location.search.replace(/^\?/,''));
-      if(/^https:\/\/github\.com\/.+\/blob\/.+\/(input|action|dashboard|archive)\.html(?:[?#].*)?$/.test(target)){
-        const inputTarget=target.replace(/(input|action|dashboard|archive)\.html(?:[?#].*)?$/,'input.html');
-        return `https://htmlpreview.github.io/?${inputTarget}`;
-      }
+      return 'https://cdn.jsdelivr.net/gh/affixo-network/medcontrol@modular-2.000/input.html';
     }
     return 'input.html';
   }
