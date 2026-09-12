@@ -35,8 +35,9 @@
     return `<section id="medControlLastMedicationHint" class="card" style="border:2px solid #111827">
       <h2>Остался последний препарат</h2>
       <p><strong>${escapeHtml(med?.name||'Последний препарат')}</strong> — последний незавершённый препарат текущего цикла.</p>
-      <p class="muted">Если до завершения его курса не будут введены новые препараты, после завершения курс автоматически перейдёт в Архив, затем MedControl автоматически полностью очистит препараты текущего цикла, Архив, историю изменений, журнал приёмов и исправлений.</p>
-      <p class="muted">После автоматической очистки можно сразу начинать ввод нового цикла препаратов.</p>
+      <p><strong>Внимание:</strong> если до завершения его курса не будут введены новые препараты, после завершения этот препарат автоматически перейдёт в Архив и MedControl автоматически выполнит полный сброс текущего цикла.</p>
+      <p><strong>Все архивные данные будут безвозвратно удалены и восстановлению в MedControl не подлежат:</strong> завершённые и отменённые препараты, завершённые приёмы «Только сегодня», удалённые и заменённые времена, история изменений, журнал приёмов и исправлений.</p>
+      <p class="muted">Если необходимо сохранить текущий цикл и его Архив, до завершения последнего курса должен быть введён новый действующий препарат. После автоматического сброса можно начинать ввод нового цикла с пустыми данными.</p>
     </section>`;
   }
 
@@ -61,15 +62,9 @@
     const {meds,current}=medicationState();
     if(!meds.length||current.length)return;
     resetInProgress=true;
-
     const oldState=getState();
-    const fresh={
-      settings:{...(oldState.settings||{})},
-      medications:[],
-      intakeLogs:[]
-    };
+    const fresh={settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]};
     saveState(fresh);
-
     try{sessionStorage.setItem('medcontrol_cycle_reset_notice','1');}catch(_){ }
     window.location.href='input.html';
   }
@@ -81,46 +76,24 @@
       if(shouldShow)sessionStorage.removeItem('medcontrol_cycle_reset_notice');
     }catch(_){ }
     if(!shouldShow)return;
-    setTimeout(()=>alert('Предыдущий цикл завершён. Последний препарат был переведён в Архив, после чего данные завершённого цикла автоматически полностью очищены. Можно начинать ввод новых препаратов.'),0);
+    setTimeout(()=>alert('Предыдущий цикл завершён. Последний препарат был переведён в Архив, после чего все данные завершённого цикла и его Архив были безвозвратно удалены. Можно начинать ввод новых препаратов.'),0);
   }
 
   function evaluateCycle(){
     removeLegacyResetUi();
     const {meds,current}=medicationState();
-    if(!meds.length){
-      clearLastMedicationHint();
-      return;
-    }
-    if(current.length===0){
-      clearLastMedicationHint();
-      automaticCycleReset();
-      return;
-    }
-    if(current.length===1){
-      showLastMedicationHint(current[0]);
-      return;
-    }
+    if(!meds.length){clearLastMedicationHint();return;}
+    if(current.length===0){clearLastMedicationHint();automaticCycleReset();return;}
+    if(current.length===1){showLastMedicationHint(current[0]);return;}
     clearLastMedicationHint();
   }
 
-  window.isMedControlMedicationArchival=function(med){
-    return isArchival(med,currentLocalDate());
-  };
-  window.areAllMedControlMedicationsArchival=function(){
-    const {meds,current}=medicationState();
-    return meds.length>0&&current.length===0;
-  };
+  window.isMedControlMedicationArchival=function(med){return isArchival(med,currentLocalDate());};
+  window.areAllMedControlMedicationsArchival=function(){const {meds,current}=medicationState();return meds.length>0&&current.length===0;};
   window.patchMedControlResetUi=evaluateCycle;
 
   const inheritedMount=window.mount;
-  if(typeof inheritedMount==='function'){
-    window.mount=function(page){
-      const result=inheritedMount(page);
-      setTimeout(evaluateCycle,0);
-      return result;
-    };
-  }
-
+  if(typeof inheritedMount==='function')window.mount=function(page){const result=inheritedMount(page);setTimeout(evaluateCycle,0);return result;};
   showCycleResetNotice();
   setTimeout(evaluateCycle,0);
   setInterval(evaluateCycle,15000);
