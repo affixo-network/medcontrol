@@ -27,6 +27,7 @@ function appShell(title, activePage, body) {
       <a href="archive.html">Архив</a>
     </div>
     <div class="meta">
+      <span class="pill" style="font-weight:700;border:2px solid #111827">VERSION 2 · modular-2.000</span>
       <span class="pill">${escapeHtml(tr('current_date'))}: <strong id="topCurrentDate"></strong></span>
       <span class="pill">${escapeHtml(tr('current_time'))}: <strong id="topCurrentTime"></strong></span>
       <span class="pill">${escapeHtml(tr('timezone'))}: <strong class="mono">${tz}</strong></span>
