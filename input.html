@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
   <title>MedControl — Ввод — Version 2</title>
+  <style>
+    body::before {
+      content: "VERSION 2 — modular-2.000";
+      position: fixed;
+      top: 8px;
+      right: 10px;
+      z-index: 2147483647;
+      padding: 7px 11px;
+      border: 2px solid #111827;
+      border-radius: 8px;
+      background: #fff;
+      color: #111827;
+      font: 700 12px Arial, sans-serif;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
   <div id="app">Загрузка MedControl…</div>
@@ -58,26 +75,9 @@
   <script src="js/input-time-editor-v3-fix.js?v=hour-minute-select-1"></script>
   <script src="js/input-time-history-scope-fix.js?v=scope-column-1"></script>
   <script>
-    (function(){
-      function addVersion2Badge(){
-        if(document.getElementById('medControlVersionMarker')) return;
-        var meta=document.querySelector('.meta');
-        if(!meta) return;
-        var badge=document.createElement('span');
-        badge.id='medControlVersionMarker';
-        badge.className='pill';
-        badge.textContent='Version 2 · modular-2.000';
-        badge.style.fontWeight='700';
-        badge.style.border='2px solid #111827';
-        meta.insertBefore(badge,meta.firstChild);
-      }
-      window.addVersion2Badge=addVersion2Badge;
-      new MutationObserver(addVersion2Badge).observe(document.documentElement,{childList:true,subtree:true});
-    })();
     try {
       if(typeof mount!=='function') throw new Error('mount() не загружен');
       mount('input');
-      addVersion2Badge();
     } catch(e) {
       window.__medcontrolShowStartupError(e && e.stack ? e.stack : e);
     }
