@@ -34,6 +34,17 @@
   <script src="js/intake-history-slot-scope.js"></script>
   <script src="js/history.js?v=scoped-time-history-1"></script>
   <script src="js/render.js"></script>
+  <script>
+    (function(){
+      if(typeof window.appShell!=='function') return;
+      var originalAppShell=window.appShell;
+      window.appShell=function(title,activePage,body){
+        var html=originalAppShell(title,activePage,body);
+        var marker='<div id="medControlVersionMarker" style="position:fixed;right:10px;bottom:10px;z-index:2147483647;padding:7px 11px;border:1px solid #111827;border-radius:8px;background:#fff;color:#111827;font:600 12px Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.12)">Version 2 · modular-2.000</div>';
+        return html.replace('</body>',marker+'</body>');
+      };
+    })();
+  </script>
   <script src="js/clock.js"></script>
   <script src="core.js"></script>
   <script src="js/settings.js"></script>
