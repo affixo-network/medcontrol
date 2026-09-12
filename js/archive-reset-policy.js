@@ -1,4 +1,6 @@
 (function(){
+  const PREVIEW_INPUT='https://htmlpreview.github.io/?https://github.com/affixo-network/medcontrol/blob/modular-2.000/input.html';
+
   function lastScheduledDate(med){
     const type=med?.scheduleType||((med?.explicitDates||[]).length?'explicit_dates':(med?.weekdays||[]).length?'weekdays':'daily');
     if(type==='explicit_dates'){
@@ -19,15 +21,13 @@
     const meds=(getState().medications||[]);
     const today=currentLocalDate();
     const current=meds.filter(med=>!isArchival(med,today));
-    const archived=meds.filter(med=>isArchival(med,today));
-    return {meds,current,archived};
+    return {meds,current};
   }
 
   function removeLegacyResetUi(){
     document.getElementById('medControlArchiveCompleteReminder')?.remove();
     [...document.querySelectorAll('section.card')].forEach(section=>{
-      const title=section.querySelector('h2')?.textContent?.trim();
-      if(title==='Управление данными')section.remove();
+      if(section.querySelector('h2')?.textContent?.trim()==='Управление данными')section.remove();
     });
   }
 
@@ -42,25 +42,16 @@
   }
 
   function showLastMedicationHint(med){
-    const existing=document.getElementById('medControlLastMedicationHint');
-    if(existing)return;
+    if(document.getElementById('medControlLastMedicationHint'))return;
     const topbar=document.querySelector('.topbar');
     if(topbar)topbar.insertAdjacentHTML('afterend',lastMedicationHintHtml(med));
-    else{
-      const wrap=document.querySelector('.wrap')||document.body;
-      wrap.insertAdjacentHTML('afterbegin',lastMedicationHintHtml(med));
-    }
+    else (document.querySelector('.wrap')||document.body).insertAdjacentHTML('afterbegin',lastMedicationHintHtml(med));
   }
 
-  function clearLastMedicationHint(){
-    document.getElementById('medControlLastMedicationHint')?.remove();
-  }
+  function clearLastMedicationHint(){document.getElementById('medControlLastMedicationHint')?.remove();}
 
   function inputRedirectUrl(){
-    if(window.location.hostname==='htmlpreview.github.io'){
-      return 'https://cdn.jsdelivr.net/gh/affixo-network/medcontrol@modular-2.000/input.html';
-    }
-    return 'input.html';
+    return window.location.hostname==='htmlpreview.github.io' ? PREVIEW_INPUT : 'input.html';
   }
 
   let resetInProgress=false;
@@ -70,10 +61,9 @@
     if(!meds.length||current.length)return;
     resetInProgress=true;
     const oldState=getState();
-    const fresh={settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]};
-    saveState(fresh);
+    saveState({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]});
     try{sessionStorage.setItem('medcontrol_cycle_reset_notice','1');}catch(_){ }
-    window.location.href=inputRedirectUrl();
+    window.location.replace(inputRedirectUrl());
   }
 
   function showCycleResetNotice(){
@@ -82,8 +72,7 @@
       shouldShow=sessionStorage.getItem('medcontrol_cycle_reset_notice')==='1';
       if(shouldShow)sessionStorage.removeItem('medcontrol_cycle_reset_notice');
     }catch(_){ }
-    if(!shouldShow)return;
-    setTimeout(()=>alert('Предыдущий цикл завершён. Последний препарат был переведён в Архив, после чего все данные завершённого цикла и его Архив были безвозвратно удалены. Можно начинать ввод новых препаратов.'),0);
+    if(shouldShow)setTimeout(()=>alert('Предыдущий цикл завершён. Последний препарат был переведён в Архив, после чего все данные завершённого цикла и его Архив были безвозвратно удалены. Можно начинать ввод новых препаратов.'),0);
   }
 
   function evaluateCycle(){
@@ -95,7 +84,7 @@
     clearLastMedicationHint();
   }
 
-  window.isMedControlMedicationArchival=function(med){return isArchival(med,currentLocalDate());};
+  window.isMedControlMedicationArchival=med=>isArchival(med,currentLocalDate());
   window.areAllMedControlMedicationsArchival=function(){const {meds,current}=medicationState();return meds.length>0&&current.length===0;};
   window.patchMedControlResetUi=evaluateCycle;
 
