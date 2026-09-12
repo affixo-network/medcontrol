@@ -66,13 +66,27 @@
     window.location.replace(inputRedirectUrl());
   }
 
+  function showCycleResetDialog(){
+    if(document.getElementById('medControlCycleResetDialog'))return;
+    const d=document.createElement('dialog');
+    d.id='medControlCycleResetDialog';
+    d.innerHTML=`<h2>Предыдущий цикл завершён</h2>
+      <p>Последний препарат был переведён в Архив, после чего все данные завершённого цикла и его Архив были безвозвратно удалены.</p>
+      <p>Можно начинать ввод новых препаратов.</p>
+      <div class="right" style="margin-top:16px"><button type="button" id="medControlCycleResetContinue">Продолжить</button></div>`;
+    document.body.appendChild(d);
+    d.querySelector('#medControlCycleResetContinue').onclick=()=>{d.close();d.remove();};
+    d.addEventListener('cancel',e=>e.preventDefault());
+    d.showModal();
+  }
+
   function showCycleResetNotice(){
     let shouldShow=false;
     try{
       shouldShow=sessionStorage.getItem('medcontrol_cycle_reset_notice')==='1';
       if(shouldShow)sessionStorage.removeItem('medcontrol_cycle_reset_notice');
     }catch(_){ }
-    if(shouldShow)setTimeout(()=>alert('Предыдущий цикл завершён. Последний препарат был переведён в Архив, после чего все данные завершённого цикла и его Архив были безвозвратно удалены. Можно начинать ввод новых препаратов.'),0);
+    if(shouldShow)setTimeout(showCycleResetDialog,0);
   }
 
   function evaluateCycle(){
