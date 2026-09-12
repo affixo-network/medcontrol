@@ -56,6 +56,17 @@
     document.getElementById('medControlLastMedicationHint')?.remove();
   }
 
+  function inputRedirectUrl(){
+    if(window.location.hostname==='htmlpreview.github.io'){
+      const target=decodeURIComponent(window.location.search.replace(/^\?/,''));
+      if(/^https:\/\/github\.com\/.+\/blob\/.+\/(input|action|dashboard|archive)\.html(?:[?#].*)?$/.test(target)){
+        const inputTarget=target.replace(/(input|action|dashboard|archive)\.html(?:[?#].*)?$/,'input.html');
+        return `https://htmlpreview.github.io/?${inputTarget}`;
+      }
+    }
+    return 'input.html';
+  }
+
   let resetInProgress=false;
   function automaticCycleReset(){
     if(resetInProgress)return;
@@ -66,7 +77,7 @@
     const fresh={settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]};
     saveState(fresh);
     try{sessionStorage.setItem('medcontrol_cycle_reset_notice','1');}catch(_){ }
-    window.location.href='input.html';
+    window.location.href=inputRedirectUrl();
   }
 
   function showCycleResetNotice(){
