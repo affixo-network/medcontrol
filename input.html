@@ -7,7 +7,6 @@
   <title>MedControl — Ввод — Version 2</title>
 </head>
 <body>
-  <div id="medControlVersionMarker" style="position:fixed;right:10px;bottom:10px;z-index:9999;padding:6px 10px;border:1px solid #111827;border-radius:8px;background:#fff;font:12px Arial,sans-serif">Version 2 · modular-2.000</div>
   <div id="app">Загрузка MedControl…</div>
   <script>
     (function(){
@@ -59,9 +58,20 @@
   <script src="js/input-time-editor-v3-fix.js?v=hour-minute-select-1"></script>
   <script src="js/input-time-history-scope-fix.js?v=scope-column-1"></script>
   <script>
+    function ensureVersion2Marker(){
+      if(document.getElementById('medControlVersionMarker')) return;
+      var marker=document.createElement('div');
+      marker.id='medControlVersionMarker';
+      marker.textContent='Version 2 · modular-2.000';
+      marker.style.cssText='position:fixed;right:10px;bottom:10px;z-index:2147483647;padding:7px 11px;border:1px solid #111827;border-radius:8px;background:#fff;color:#111827;font:600 12px Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.12)';
+      document.body.appendChild(marker);
+    }
     try {
       if(typeof mount!=='function') throw new Error('mount() не загружен');
       mount('input');
+      ensureVersion2Marker();
+      setTimeout(ensureVersion2Marker,0);
+      setInterval(ensureVersion2Marker,2000);
     } catch(e) {
       window.__medcontrolShowStartupError(e && e.stack ? e.stack : e);
     }
