@@ -4,48 +4,29 @@
   function latestTimeRecord(med,time){return (med.timeStatusHistory||[]).filter(x=>x?.time===time||x?.oldTime===time||x?.newTime===time).sort((a,b)=>new Date(a.at||0)-new Date(b.at||0)).pop();}
   function activeNow(med,time){const r=latestTimeRecord(med,time);if(r&&typeof r.active==='boolean')return r.active;if(med.timeStatuses&&typeof med.timeStatuses[time]==='boolean')return med.timeStatuses[time];return true;}
   function scopeNow(med,time){return latestTimeRecord(med,time)?.scope||'daily';}
-  function normalizeTime(value){
-    const raw=String(value||'').trim();
-    let m=raw.match(/^(\d{1,2}):(\d{1,2})$/);
-    if(!m){
-      const digits=raw.replace(/\D/g,'');
-      if(digits.length!==4)return '';
-      m=[digits,digits.slice(0,2),digits.slice(2,4)];
-    }
-    const h=Number(m[1]),min=Number(m[2]);
-    if(h<0||h>23||min<0||min>59)return '';
-    return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
-  }
-  function formatTimeInput(el){
-    if(!el)return;
-    const n=normalizeTime(el.value);
-    if(n)el.value=n;
-  }
+  function splitTime(time){const m=String(time||'').match(/^(\d{2}):(\d{2})$/);return m?[m[1],m[2]]:['00','00'];}
+  function timeOptions(max,selected){let s='';for(let i=0;i<=max;i++){const v=String(i).padStart(2,'0');s+=`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`;}return s;}
+  function selectedTime(){const h=document.getElementById('timeEditHour')?.value;const m=document.getElementById('timeEditMinute')?.value;return /^\d{2}$/.test(h||'')&&/^\d{2}$/.test(m||'')?`${h}:${m}`:'';}
 
   window.editMedicationTimeStatus=function(id,time){
     const med=(getState().medications||[]).find(x=>x.id===id);if(!med)return;
-    const d=ensureDialog(),active=activeNow(med,time),scope=scopeNow(med,time);
+    const d=ensureDialog(),active=activeNow(med,time),scope=scopeNow(med,time),[hour,minute]=splitTime(time);
     window.__timeEditV3={id,originalTime:time,deleteCurrent:false};
     d.innerHTML=`<h2>Изменить время ${esc(time)}</h2><div class="form-grid">
-      <div><label>Время</label><input id="timeEditValue" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="HH:MM" value="${esc(time)}" onblur="formatMedicationTimeInputV3(this)"><p class="muted" style="margin-top:6px">Введите время в 24-часовом формате HH:MM, например 23:20.</p></div>
+      <div><label>Время</label><div style="display:flex;align-items:center;gap:8px;max-width:220px"><select id="timeEditHour" aria-label="Часы">${timeOptions(23,hour)}</select><strong>:</strong><select id="timeEditMinute" aria-label="Минуты">${timeOptions(59,minute)}</select></div><p class="muted" style="margin-top:6px">Слева часы 00–23, справа минуты 00–59.</p></div>
       <div><label>Статус</label><select id="timeEditStatus"><option value="active" ${active?'selected':''}>Активно</option><option value="passive" ${!active?'selected':''}>Пассивно</option></select></div>
       <div class="full"><label>Параметры расписания</label><select id="timeEditScope"><option value="daily" ${scope==='daily'?'selected':''}>Без изменения расписания</option><option value="today" ${scope==='today'?'selected':''}>Только сегодня</option><option value="future" ${scope==='future'?'selected':''}>Только на последующие дни расписания</option><option value="today_future" ${scope==='today_future'?'selected':''}>Сегодня и на последующие дни расписания</option></select></div>
       <div class="full inline" style="justify-content:space-between;margin-top:8px"><button id="timeEditDeleteBtn" type="button" onclick="toggleDeleteInputTimeV3()">Удалить время</button><div><button type="button" onclick="saveInputTimeEditV4()">Сохранить</button><button type="button" onclick="document.getElementById('timeStatusEditDialog').close()">Закрыть</button></div></div>
     </div>`;
     d.showModal();
-    const input=document.getElementById('timeEditValue');
-    if(input){input.focus();input.select();}
   };
 
-  window.formatMedicationTimeInputV3=function(el){formatTimeInput(el);};
-  window.toggleDeleteInputTimeV3=function(){const c=window.__timeEditV3,input=document.getElementById('timeEditValue'),btn=document.getElementById('timeEditDeleteBtn');if(!c||!input||!btn)return;c.deleteCurrent=!c.deleteCurrent;input.disabled=c.deleteCurrent;btn.textContent=c.deleteCurrent?'Не удалять время':'Удалить время';};
+  window.toggleDeleteInputTimeV3=function(){const c=window.__timeEditV3,h=document.getElementById('timeEditHour'),m=document.getElementById('timeEditMinute'),btn=document.getElementById('timeEditDeleteBtn');if(!c||!h||!m||!btn)return;c.deleteCurrent=!c.deleteCurrent;h.disabled=c.deleteCurrent;m.disabled=c.deleteCurrent;btn.textContent=c.deleteCurrent?'Не удалять время':'Удалить время';};
 
   window.saveInputTimeEditV4=function(){
     const c=window.__timeEditV3,state=getState(),med=(state.medications||[]).find(x=>x.id===c?.id);if(!c||!med)return;
-    const input=document.getElementById('timeEditValue');
-    const oldTime=c.originalTime,newTime=normalizeTime(input?.value||oldTime),active=document.getElementById('timeEditStatus')?.value==='active',scope=document.getElementById('timeEditScope')?.value||'daily';
-    if(!c.deleteCurrent&&!newTime){alert('Укажите корректное время в формате HH:MM, например 23:20.');input?.focus();return;}
-    if(input&&newTime)input.value=newTime;
+    const oldTime=c.originalTime,newTime=selectedTime(),active=document.getElementById('timeEditStatus')?.value==='active',scope=document.getElementById('timeEditScope')?.value||'daily';
+    if(!c.deleteCurrent&&!newTime){alert('Укажите корректное время.');return;}
     if(!c.deleteCurrent&&newTime!==oldTime&&(med.times||[]).includes(newTime)){alert('Такое время уже существует.');return;}
     const oldActive=activeNow(med,oldTime),oldScope=scopeNow(med,oldTime);
     if(!c.deleteCurrent&&newTime===oldTime&&active===oldActive&&scope===oldScope){document.getElementById('timeStatusEditDialog')?.close();return;}
