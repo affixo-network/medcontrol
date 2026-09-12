@@ -94,21 +94,35 @@
       const s=JSON.stringify(h);return s.includes(time);
     });
     const timeEvents=(med.timeStatusHistory||[]).filter(h=>h&&(h.time===time||h.oldTime===time)&&(h.deleted||(h.newTime&&h.newTime!==time)));
-    const existingKeys=new Set(rows.map(h=>`${h.at||''}|${JSON.stringify(h.changes?.timeStatus||{})}`));
     timeEvents.forEach(h=>{
-      const synthetic={
+      const alreadyPresent=rows.some(r=>{
+        const ts=r?.changes?.timeStatus;
+        if(!ts||r.at!==h.at)return false;
+        if(h.deleted)return ts.time===time&&!!ts.deleted;
+        return ts.time===time&&ts.newTime===h.newTime;
+      });
+      if(alreadyPresent)return;
+      rows.push({
         at:h.at||nowISO(),
         action:'edited',
         scheduleScope:h.scope&&h.scope!=='daily'?h.scope:null,
         scheduleScopeLabel:h.scope==='today'?'Только сегодня':h.scope==='future'?'Только на последующие дни расписания':h.scope==='today_future'?'Сегодня и на последующие дни расписания':'',
         changes:{timeStatus:{time,oldTime:h.oldTime||time,newTime:h.newTime||'',deleted:!!h.deleted,replaced:!!(h.newTime&&h.newTime!==time),active:false,scope:h.scope||'daily',date:h.date||''}},
         payload:h.deleted?`Время ${time} удалено.`:`Время ${time} заменено на ${h.newTime}.`
-      };
-      const key=`${synthetic.at}|${JSON.stringify(synthetic.changes.timeStatus)}`;
-      if(!existingKeys.has(key))rows.push(synthetic);
+      });
     });
     rows.sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
-    c.innerHTML=rowHistoryHtml(rows);
+    const seen=new Set();
+    const uniqueRows=rows.filter(h=>{
+      const ts=h?.changes?.timeStatus;
+      const key=ts&&ts.time===time
+        ?`${h.at||''}|${time}|${ts.deleted?'deleted':ts.newTime?`replaced:${ts.newTime}`:`active:${ts.active}`}`
+        :`${h.at||''}|${h.action||''}|${JSON.stringify(h.changes||h.snapshot||{})}`;
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+    c.innerHTML=rowHistoryHtml(uniqueRows);
     d.showModal();
   };
   window.showArchiveSlotHistory=function(id,plannedAt){
