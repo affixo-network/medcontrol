@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>MedControl — Ввод — Version 2</title>
+</head>
+<body>
+  <div id="app">Загрузка MedControl…</div>
+  <script>
+    (function(){
+      function show(message){
+        var app=document.getElementById('app');
+        if(!app)return;
+        app.innerHTML='<div style="font-family:Arial,sans-serif;padding:24px;white-space:pre-wrap"><h1>Ошибка запуска MedControl</h1><p>'+String(message).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</p></div>';
+      }
+      window.__medcontrolShowStartupError=show;
+      window.addEventListener('error',function(e){show((e.message||'JavaScript error')+'\n'+(e.filename||'')+':'+(e.lineno||'')+':'+(e.colno||''));});
+      window.addEventListener('unhandledrejection',function(e){show('Promise error: '+(e.reason&&e.reason.stack?e.reason.stack:e.reason));});
+    })();
+  </script>
+  <script src="js/translations.js"></script>
+  <script src="js/storage.js?v=v2-empty-start-2"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/temporal-change-guard.js"></script>
+  <script src="js/language.js"></script>
+  <script src="js/medications.js"></script>
+  <script src="js/temporal-change-hotfix.js"></script>
+  <script src="js/medication-edit-noop-guard.js"></script>
+  <script src="js/schedule-change-scope.js"></script>
+  <script src="js/schedule.js"></script>
+  <script src="js/intake.js"></script>
+  <script src="js/intake-history-slot-scope.js"></script>
+  <script src="js/history.js?v=scoped-time-history-1"></script>
+  <script src="js/render.js"></script>
+  <script src="js/clock.js"></script>
+  <script src="core.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/medication-sequence-controller.js"></script>
+  <script src="js/intake-cancellation-policy.js"></script>
+  <script src="js/recovery-snapshot-2026-08-19.js"></script>
+  <script src="js/input-qa-fixes.js"></script>
+  <script src="js/edit-times-reliability.js"></script>
+  <script src="js/a1-integrity-fix.js"></script>
+  <script src="js/completed-archive-history-fallback.js"></script>
+  <script src="js/scope-history-repair.js"></script>
+  <script src="js/today-scope-resolver.js"></script>
+  <script src="js/input-temporal-scope-display.js"></script>
+  <script src="js/unified-history-ui.js?v=58cd006"></script>
+  <script src="js/time-status-controller.js?v=bf2bfd3"></script>
+  <script src="js/edit-dialog-compat.js?v=c75a1d3"></script>
+  <script src="js/input-architecture-fix.js?v=c0a1361"></script>
+  <script src="js/input-time-history-fix.js?v=e949059"></script>
+  <script src="js/input-time-editor-v2.js?v=adf40cb"></script>
+  <script src="js/archive-reset-policy.js?v=v2-continue-dialog-1"></script>
+  <script src="js/input-time-editor-v3-fix.js?v=hour-minute-select-1"></script>
+  <script src="js/input-time-history-scope-fix.js?v=scope-column-1"></script>
+  <script>
+    function addVersion2Badge(){
+      var meta=document.querySelector('.meta');
+      if(!meta || document.getElementById('medControlVersionMarker')) return;
+      var badge=document.createElement('span');
+      badge.id='medControlVersionMarker';
+      badge.className='pill';
+      badge.textContent='VERSION 2 — modular-2.000';
+      badge.style.fontWeight='700';
+      badge.style.border='2px solid #111827';
+      meta.insertBefore(badge,meta.firstChild);
+    }
+    try {
+      if(typeof mount!=='function') throw new Error('mount() не загружен');
+      mount('input');
+      addVersion2Badge();
+      setInterval(addVersion2Badge,1000);
+    } catch(e) {
+      window.__medcontrolShowStartupError(e && e.stack ? e.stack : e);
+    }
+  </script>
+</body>
+</html>
