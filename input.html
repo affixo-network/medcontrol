@@ -5,6 +5,32 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="data:,">
   <title>MedControl — Ввод — Version 2</title>
+  <style>
+    body::after {
+      content: "VERSION 2 · modular-2.000";
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 2147483647;
+      padding: 12px 18px;
+      border: 2px solid #111827;
+      border-radius: 12px;
+      background: #111827;
+      color: #ffffff;
+      font: 700 20px/1.2 Arial, sans-serif;
+      box-shadow: 0 4px 16px rgba(0,0,0,.22);
+      pointer-events: none;
+      letter-spacing: .2px;
+    }
+    @media (max-width: 700px) {
+      body::after {
+        top: 8px;
+        right: 8px;
+        padding: 8px 12px;
+        font-size: 15px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div id="app">Загрузка MedControl…</div>
