@@ -7,9 +7,21 @@
   <title>MedControl — Ввод</title>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">Загрузка MedControl…</div>
+  <script>
+    (function(){
+      function show(message){
+        var app=document.getElementById('app');
+        if(!app)return;
+        app.innerHTML='<div style="font-family:Arial,sans-serif;padding:24px;white-space:pre-wrap"><h1>Ошибка запуска MedControl</h1><p>'+String(message).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</p></div>';
+      }
+      window.__medcontrolShowStartupError=show;
+      window.addEventListener('error',function(e){show((e.message||'JavaScript error')+'\n'+(e.filename||'')+':'+(e.lineno||'')+':'+(e.colno||''));});
+      window.addEventListener('unhandledrejection',function(e){show('Promise error: '+(e.reason&&e.reason.stack?e.reason.stack:e.reason));});
+    })();
+  </script>
   <script src="js/translations.js"></script>
-  <script src="js/storage.js?v=v2-empty-start-1"></script>
+  <script src="js/storage.js?v=v2-empty-start-2"></script>
   <script src="js/utils.js"></script>
   <script src="js/temporal-change-guard.js"></script>
   <script src="js/language.js"></script>
@@ -42,9 +54,16 @@
   <script src="js/input-architecture-fix.js?v=c0a1361"></script>
   <script src="js/input-time-history-fix.js?v=e949059"></script>
   <script src="js/input-time-editor-v2.js?v=adf40cb"></script>
-  <script src="js/archive-reset-policy.js?v=v2-auto-reset-4"></script>
+  <script src="js/archive-reset-policy.js?v=v2-auto-reset-5"></script>
   <script src="js/input-time-editor-v3-fix.js?v=hour-minute-select-1"></script>
   <script src="js/input-time-history-scope-fix.js?v=scope-column-1"></script>
-  <script>mount('input');</script>
+  <script>
+    try {
+      if(typeof mount!=='function') throw new Error('mount() не загружен');
+      mount('input');
+    } catch(e) {
+      window.__medcontrolShowStartupError(e && e.stack ? e.stack : e);
+    }
+  </script>
 </body>
 </html>
