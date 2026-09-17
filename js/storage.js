@@ -1,72 +1,10 @@
-const STORAGE_KEY = 'affixo_medcontrol_standard_v3';
-const STORAGE_CORRUPT_BACKUP_KEY = `${STORAGE_KEY}_corrupt_backup`;
-const STORAGE_RECOVERY_NOTICE_KEY = `${STORAGE_KEY}_recovery_notice`;
-const STORAGE_V2_PRE_UPGRADE_BACKUP_KEY = `${STORAGE_KEY}_pre_modular_2_upgrade_backup`;
-const STORAGE_V2_PRE_UPGRADE_MARKER_KEY = `${STORAGE_KEY}_pre_modular_2_upgrade_marker`;
-
-function storageDefaultState() {
-  return {settings:{interfaceLanguage:'en',country:(typeof inferCountryFromLocale==='function'?inferCountryFromLocale():''),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',locale:navigator.language||'en-US',infoDismissed:false},medications:[],intakeLogs:[]};
-}
+const STORAGE_KEY='affixo_medcontrol_standard_v3';
+const STORAGE_CORRUPT_BACKUP_KEY=`${STORAGE_KEY}_corrupt_backup`;
+const STORAGE_RECOVERY_NOTICE_KEY=`${STORAGE_KEY}_recovery_notice`;
+const STORAGE_V2_PRE_UPGRADE_BACKUP_KEY=`${STORAGE_KEY}_pre_modular_2_upgrade_backup`;
+const STORAGE_V2_PRE_UPGRADE_MARKER_KEY=`${STORAGE_KEY}_pre_modular_2_upgrade_marker`;
+function storageDefaultState(){return {settings:{interfaceLanguage:'en',country:(typeof inferCountryFromLocale==='function'?inferCountryFromLocale():''),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC',locale:navigator.language||'en-US',infoDismissed:false},medications:[],intakeLogs:[]};}
 function storageRecoveryError(message,code,cause){const error=new Error(message);error.name='MedControlStorageRecoveryError';error.code=code;error.cause=cause;return error;}
-
-function preserveV2PreUpgradeSnapshot(raw) {
-  if (!raw) return;
-  let marker, existingBackup;
-  try {
-    marker=localStorage.getItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY);
-    existingBackup=localStorage.getItem(STORAGE_V2_PRE_UPGRADE_BACKUP_KEY);
-  } catch(error) {
-    throw storageRecoveryError('MedControl не может проверить резервную копию перед запуском Version 2. Работа остановлена.','pre_upgrade_marker_read_failed',error);
-  }
-  if(marker)return;
-  if(existingBackup){
-    try{
-      localStorage.setItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY,JSON.stringify({createdAt:new Date().toISOString(),source:'recovered_existing_pre_modular_2_backup',targetVersion:'modular-2.000',backupKey:STORAGE_V2_PRE_UPGRADE_BACKUP_KEY}));
-      return;
-    }catch(error){
-      throw storageRecoveryError('Найдена резервная копия до Version 2, но её защитный маркер восстановить не удалось. Работа остановлена; существующая резервная копия не перезаписана.','pre_upgrade_marker_recovery_failed',error);
-    }
-  }
-  try {
-    localStorage.setItem(STORAGE_V2_PRE_UPGRADE_BACKUP_KEY,raw);
-    localStorage.setItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY,JSON.stringify({createdAt:new Date().toISOString(),source:'state_before_first_modular_2_start',targetVersion:'modular-2.000',backupKey:STORAGE_V2_PRE_UPGRADE_BACKUP_KEY}));
-  } catch(error) {
-    try{localStorage.removeItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY);}catch(_){}
-    throw storageRecoveryError('Не удалось создать обязательную резервную копию данных перед первым запуском Version 2. Работа остановлена; основной storage не изменён.','pre_upgrade_backup_failed',error);
-  }
-}
-
-function getState(){
-  let raw;
-  try{raw=localStorage.getItem(STORAGE_KEY);}catch(error){throw storageRecoveryError('MedControl не может прочитать хранилище браузера. Работа остановлена, чтобы не создавать несохранённые данные.','storage_read_failed',error);}
-  if(raw){
-    preserveV2PreUpgradeSnapshot(raw);
-    try{
-      const parsed=JSON.parse(raw);
-      if(parsed===null||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('MedControl: invalid storage root.');
-      parsed.settings=parsed.settings||{};parsed.medications=Array.isArray(parsed.medications)?parsed.medications:[];parsed.intakeLogs=Array.isArray(parsed.intakeLogs)?parsed.intakeLogs:[];
-      if(!parsed.settings.interfaceLanguage)parsed.settings.interfaceLanguage='en';
-      if(typeof TRANSLATIONS!=='undefined'&&!TRANSLATIONS[parsed.settings.interfaceLanguage])parsed.settings.interfaceLanguage='en';
-      delete parsed.settings.detectedLanguage;delete parsed.settings.languageMode;
-      if(!parsed.settings.country&&typeof inferCountryFromLocale==='function')parsed.settings.country=inferCountryFromLocale();
-      if(!parsed.settings.timezone)parsed.settings.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
-      return parsed;
-    }catch(parseError){
-      try{localStorage.setItem(STORAGE_CORRUPT_BACKUP_KEY,raw);}catch(backupError){console.error('MedControl: failed to preserve corrupted storage.',backupError);throw storageRecoveryError('Обнаружены повреждённые данные MedControl, но резервную копию создать не удалось. Работа остановлена; основной storage не изменён.','corrupt_backup_failed',backupError);}
-      console.error('MedControl: corrupted storage preserved before recovery.',parseError);
-      const initial=(typeof makeDefaultState==='function')?makeDefaultState():storageDefaultState();
-      const saved=saveState(initial,{silent:true});
-      if(!saved)throw storageRecoveryError('Повреждённые данные сохранены в аварийной копии, но безопасное новое состояние записать не удалось. Работа остановлена.','recovery_state_save_failed',parseError);
-      try{localStorage.setItem(STORAGE_RECOVERY_NOTICE_KEY,JSON.stringify({at:new Date().toISOString(),backupKey:STORAGE_CORRUPT_BACKUP_KEY,reason:'corrupted_primary_storage'}));}catch(_){}
-      throw storageRecoveryError('Обнаружены повреждённые данные MedControl. Исходные данные сохранены в аварийной копии, а безопасное пустое состояние записано. Работа остановлена; перезагрузите страницу только после фиксации этого сообщения.','recovery_required',parseError);
-    }
-  }
-  const initial=(typeof makeDefaultState==='function')?makeDefaultState():storageDefaultState();
-  if(!saveState(initial,{silent:true}))throw storageRecoveryError('MedControl не смог создать исходное состояние в хранилище браузера. Работа остановлена, чтобы не создавать данные только в памяти.','initial_state_save_failed');
-  return initial;
-}
-
-function saveState(state,options={}){
-  state.settings=state.settings||{};state.settings.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}catch(error){console.error('MedControl: failed to save application state.',error);if(!options.silent&&typeof window!=='undefined'&&typeof window.alert==='function')window.alert('Не удалось сохранить изменения MedControl.\n\nПредыдущие сохранённые данные не изменены. Освободите место в хранилище браузера или проверьте его доступность и повторите действие.');return false;}
-}
+function preserveV2PreUpgradeSnapshot(raw){if(!raw)return;let marker,existingBackup;try{marker=localStorage.getItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY);existingBackup=localStorage.getItem(STORAGE_V2_PRE_UPGRADE_BACKUP_KEY);}catch(error){throw storageRecoveryError('MedControl не может проверить резервную копию перед запуском Version 2. Работа остановлена.','pre_upgrade_marker_read_failed',error);}if(marker)return;if(existingBackup){try{localStorage.setItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY,JSON.stringify({createdAt:new Date().toISOString(),source:'recovered_existing_pre_modular_2_backup',targetVersion:'modular-2.000',backupKey:STORAGE_V2_PRE_UPGRADE_BACKUP_KEY}));return;}catch(error){throw storageRecoveryError('Найдена резервная копия до Version 2, но её защитный маркер восстановить не удалось. Работа остановлена; существующая резервная копия не перезаписана.','pre_upgrade_marker_recovery_failed',error);}}try{localStorage.setItem(STORAGE_V2_PRE_UPGRADE_BACKUP_KEY,raw);localStorage.setItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY,JSON.stringify({createdAt:new Date().toISOString(),source:'state_before_first_modular_2_start',targetVersion:'modular-2.000',backupKey:STORAGE_V2_PRE_UPGRADE_BACKUP_KEY}));}catch(error){try{localStorage.removeItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY);}catch(_){}throw storageRecoveryError('Не удалось создать обязательную резервную копию данных перед первым запуском Version 2. Работа остановлена; основной storage не изменён.','pre_upgrade_backup_failed',error);}}
+function getState(){let raw;try{raw=localStorage.getItem(STORAGE_KEY);}catch(error){throw storageRecoveryError('MedControl не может прочитать хранилище браузера. Работа остановлена, чтобы не создавать несохранённые данные.','storage_read_failed',error);}if(raw){preserveV2PreUpgradeSnapshot(raw);try{const parsed=JSON.parse(raw);if(parsed===null||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('MedControl: invalid storage root.');parsed.settings=parsed.settings||{};parsed.medications=Array.isArray(parsed.medications)?parsed.medications:[];parsed.intakeLogs=Array.isArray(parsed.intakeLogs)?parsed.intakeLogs:[];if(!parsed.settings.interfaceLanguage)parsed.settings.interfaceLanguage='en';if(typeof TRANSLATIONS!=='undefined'&&!TRANSLATIONS[parsed.settings.interfaceLanguage])parsed.settings.interfaceLanguage='en';delete parsed.settings.detectedLanguage;delete parsed.settings.languageMode;if(!parsed.settings.country&&typeof inferCountryFromLocale==='function')parsed.settings.country=inferCountryFromLocale();if(!parsed.settings.timezone)parsed.settings.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';return parsed;}catch(parseError){try{localStorage.setItem(STORAGE_CORRUPT_BACKUP_KEY,raw);}catch(backupError){console.error('MedControl: failed to preserve corrupted storage.',backupError);throw storageRecoveryError('Обнаружены повреждённые данные MedControl, но резервную копию создать не удалось. Работа остановлена; основной storage не изменён.','corrupt_backup_failed',backupError);}console.error('MedControl: corrupted storage preserved before recovery.',parseError);const initial=(typeof makeDefaultState==='function')?makeDefaultState():storageDefaultState();const saved=saveState(initial,{silent:true,skipCloudSnapshot:true});if(!saved)throw storageRecoveryError('Повреждённые данные сохранены в аварийной копии, но безопасное новое состояние записать не удалось. Работа остановлена.','recovery_state_save_failed',parseError);try{localStorage.setItem(STORAGE_RECOVERY_NOTICE_KEY,JSON.stringify({at:new Date().toISOString(),backupKey:STORAGE_CORRUPT_BACKUP_KEY,reason:'corrupted_primary_storage'}));}catch(_){}throw storageRecoveryError('Обнаружены повреждённые данные MedControl. Исходные данные сохранены в аварийной копии, а безопасное пустое состояние записано. Работа остановлена; перезагрузите страницу только после фиксации этого сообщения.','recovery_required',parseError);}}const initial=(typeof makeDefaultState==='function')?makeDefaultState():storageDefaultState();if(!saveState(initial,{silent:true,skipCloudSnapshot:true}))throw storageRecoveryError('MedControl не смог создать исходное состояние в хранилище браузера. Работа остановлена, чтобы не создавать данные только в памяти.','initial_state_save_failed');return initial;}
+function saveState(state,options={}){state.settings=state.settings||{};state.settings.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}catch(error){console.error('MedControl: failed to save application state.',error);if(!options.silent&&typeof window!=='undefined'&&typeof window.alert==='function')window.alert('Не удалось сохранить изменения MedControl.\n\nПредыдущие сохранённые данные не изменены. Освободите место в хранилище браузера или проверьте его доступность и повторите действие.');return false;}}
