@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MedControl V2 — Reset Backup Self-Test</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:860px;margin:40px auto;padding:0 16px;color:#111}
+    .card{border:1px solid #ccc;border-radius:12px;padding:18px;margin:14px 0}
+    .pass{border-color:#17803d}.fail{border-color:#b42318}
+    pre{white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:12px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <h1>MedControl Version 2 — backup/reset self-test</h1>
+  <p>Эта техническая страница использует только localStorage текущего deployment-origin. Production и обычный Preview не затрагиваются.</p>
+  <div id="status" class="card">Запуск теста…</div>
+  <pre id="details"></pre>
+<script>
+(function(){
+  const PRIMARY='affixo_medcontrol_standard_v3';
+  const BACKUP='affixo_medcontrol_standard_v3_pre_reset_backup';
+  const marker='SELFTEST-'+Date.now();
+  const seed={
+    settings:{interfaceLanguage:'ru',country:'Armenia',timezone:'Asia/Yerevan',locale:'ru-RU',selfTestMarker:marker},
+    medications:[{id:'selftest-med',name:'SELFTEST',scheduleType:'daily',startDate:'2000-01-01',endDate:'2000-01-02',cancelled:false,active:true,times:['08:00']}],
+    intakeLogs:[{id:'selftest-log',medicationId:'selftest-med',scheduledAt:'2000-01-01T08:00:00.000Z',status:'taken',selfTestMarker:marker}]
+  };
+  const status=document.getElementById('status');
+  const details=document.getElementById('details');
+  function finish(ok,lines){
+    status.className='card '+(ok?'pass':'fail');
+    status.textContent=ok?'PASS — backup → reset → restore подтверждены':'FAIL — self-test не пройден';
+    details.textContent=lines.join('\n');
+  }
+  try{
+    localStorage.removeItem(BACKUP);
+    localStorage.setItem(PRIMARY,JSON.stringify(seed));
+  }catch(e){
+    finish(false,['Не удалось подготовить изолированное состояние: '+e]);
+    return;
+  }
+
+  const frame=document.createElement('iframe');
+  frame.style.display='none';
+  frame.srcdoc=`<!doctype html><html><body>
+    <script src="js/translations.js"><\/script>
+    <script src="js/storage.js"><\/script>
+    <script src="js/utils.js"><\/script>
+    <script src="js/archive-reset-policy.js?v=selftest"><\/script>
+  </body></html>`;
+  document.body.appendChild(frame);
+
+  setTimeout(function(){
+    const lines=[];
+    let current=null,backup=null;
+    try{current=JSON.parse(localStorage.getItem(PRIMARY)||'null');}catch(e){lines.push('Primary JSON error: '+e);}
+    try{backup=JSON.parse(localStorage.getItem(BACKUP)||'null');}catch(e){lines.push('Backup JSON error: '+e);}
+
+    const resetOk=!!current && Array.isArray(current.medications) && current.medications.length===0 && Array.isArray(current.intakeLogs) && current.intakeLogs.length===0;
+    const backupOk=!!backup && backup.reason==='automatic_cycle_reset' && backup.sourceVersion==='modular-2.000' && backup.state?.settings?.selfTestMarker===marker && backup.state?.medications?.[0]?.id==='selftest-med' && backup.state?.intakeLogs?.[0]?.id==='selftest-log';
+    lines.push('1. Исходное тестовое состояние создано: '+marker);
+    lines.push('2. Текущее состояние после reset очищено: '+resetOk);
+    lines.push('3. Аварийный backup содержит исходный препарат и журнал: '+backupOk);
+
+    let restoreOk=false;
+    if(backupOk){
+      try{
+        localStorage.setItem(PRIMARY,JSON.stringify(backup.state));
+        const restored=JSON.parse(localStorage.getItem(PRIMARY)||'null');
+        restoreOk=restored?.settings?.selfTestMarker===marker && restored?.medications?.[0]?.id==='selftest-med' && restored?.intakeLogs?.[0]?.id==='selftest-log';
+      }catch(e){lines.push('Restore error: '+e);}
+    }
+    lines.push('4. Восстановление из backup подтверждено: '+restoreOk);
+    finish(resetOk&&backupOk&&restoreOk,lines);
+  },1800);
+})();
+</script>
+</body>
+</html>
