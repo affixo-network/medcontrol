@@ -2,7 +2,7 @@
 (async()=>{const out=document.getElementById('out'),checks=[],check=(n,v)=>checks.push([n,!!v]);try{
  const [auth,storage,cloud,reset,input,action,dash,archive]=await Promise.all(['js/auth-guard.js','js/storage.js?v=force-majeure-20260917-1','js/cloud-snapshot.js?v=force-majeure-20260917-1','js/archive-reset-policy.js?v=force-majeure-20260917-1','input.html','action.html','dashboard.html','archive.html'].map(x=>fetch(x,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error(x+' HTTP '+r.status);return r.text()})));
  check('Auth guard uses one current force-majeure cache version',auth.includes("js/storage.js?v=force-majeure-20260917-1")&&auth.includes("js/cloud-snapshot.js?v=force-majeure-20260917-1")&&auth.includes("js/archive-reset-policy.js?v=force-majeure-20260917-1"));
- check('All four work pages use Auth Guard', [input,action,dash,archive].every(x=>x.includes('js/auth-guard.js')));
+ check('All four work pages use Auth Guard',[input,action,dash,archive].every(x=>x.includes('js/auth-guard.js')));
  check('Pre-upgrade backup cannot be overwritten when marker is lost',storage.includes('existingBackup')&&storage.includes('recovered_existing_pre_modular_2_backup'));
  check('Corrupt/initial recovery state skips cloud snapshot',storage.includes('silent:true,skipCloudSnapshot:true'));
  check('Normal successful save schedules cloud snapshot',cloud.includes('saved&&!options.skipCloudSnapshot')&&cloud.includes('scheduleCloudSnapshot(state)'));
@@ -13,5 +13,8 @@
  check('Automatic reset requires confirmed cloud snapshot before clearing',reset.indexOf('medcontrolCloudSnapshot.create')<reset.indexOf('medications:[],intakeLogs:[]')&&reset.includes('if(!cloud.ok)'));
  check('Post-reset empty state cannot replace cloud recovery point',reset.includes('skipCloudSnapshot:true'));
  check('Auth transient errors do not sign out session',auth.includes('if(sessionError)')&&auth.includes('if(userError)')&&auth.indexOf('signOut()')>auth.indexOf('if(!userData?.user)'));
-}catch(e){checks.push(['Exception: '+e.message,false])}const pass=checks.length===12&&checks.every(x=>x[1]);out.textContent=(pass?'PASS':'FAIL')+' — Version 2 force-majeure release gate\n\n'+checks.map((x,i)=>`${i+1}. ${x[0]} = ${x[1]}`).join('\n');})();
+ check('Pending cloud state is serialized through one queue',cloud.includes('snapshotQueue=snapshotQueue.then')&&cloud.includes('pendingState'));
+ check('Restore flushes pending cloud writes before choosing latest snapshot',cloud.includes('async function restoreLatestCloudSnapshot(options={}){await flushScheduledSnapshot()'));
+ check('Automatic reset flushes pending cloud writes before final-cycle snapshot',reset.indexOf('medcontrolCloudSnapshot.flush()')<reset.indexOf('medcontrolCloudSnapshot.create({state:oldState})'));
+}catch(e){checks.push(['Exception: '+e.message,false])}const pass=checks.length===15&&checks.every(x=>x[1]);out.textContent=(pass?'PASS':'FAIL')+' — Version 2 force-majeure release gate\n\n'+checks.map((x,i)=>`${i+1}. ${x[0]} = ${x[1]}`).join('\n');})();
 </script>
