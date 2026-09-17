@@ -46,6 +46,18 @@ function showDebug(obj) {
 async function goApp() {
   window.location.replace("/input.html");
 }
+async function logoutIfRequested() {
+  if (url.searchParams.get("logout") !== "1") return false;
+  const { error } = await supabase.auth.signOut();
+  showDebug({ source: "logoutIfRequested", error });
+  if (error) {
+    statusEl.textContent = error.message;
+    return true;
+  }
+  window.history.replaceState({}, "", "/auth-login.html");
+  statusEl.textContent = "Logged out. Enter email to sign in again.";
+  return true;
+}
 async function finishMagicLinkIfPresent() {
   const href = window.location.href;
   const hasTokens = href.includes("access_token=") || href.includes("refresh_token=") || href.includes("code=");
@@ -91,8 +103,11 @@ document.getElementById("send").onclick = async () => {
   }
   statusEl.textContent = "Magic link sent. Open your email and return through the link.";
 };
-await finishMagicLinkIfPresent();
-await maybeAlreadyLoggedIn();
+const loggedOut = await logoutIfRequested();
+if (!loggedOut) {
+  await finishMagicLinkIfPresent();
+  await maybeAlreadyLoggedIn();
+}
 </script>
 </body>
 </html>
