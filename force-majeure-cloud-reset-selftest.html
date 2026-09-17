@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>MedControl Force Majeure Cloud/Reset Test</title><pre id="out">RUNNING...</pre><script>
+(async()=>{const out=document.getElementById('out');const checks=[];const check=(n,v)=>checks.push([n,!!v]);try{
+ const [storage,cloud,reset]=await Promise.all(['js/storage.js?v=cloud-recovery-2','js/cloud-snapshot.js?v=cloud-safety-2','js/archive-reset-policy.js?v=cloud-reset-2'].map(x=>fetch(x).then(r=>r.text())));
+ check('Corrupt recovery запрещает cloud snapshot пустого recovery-state',/saveState\(initial,\{silent:true,skipCloudSnapshot:true\}\)/.test(storage));
+ check('Первичное пустое состояние не отправляется в cloud',/saveState\(initial,\{silent:true,skipCloudSnapshot:true\}\)/.test(storage));
+ check('Обычный успешный saveState запускает cloud snapshot',/if\(saved&&!options\.skipCloudSnapshot\)scheduleCloudSnapshot\(state\)/.test(cloud));
+ check('Cloud snapshot остаётся append-only через INSERT',/\.from\(TABLE\)\.insert\(/.test(cloud)&&!/\.from\(TABLE\)\.update\(/.test(cloud)&&!/\.from\(TABLE\)\.delete\(/.test(cloud));
+ check('Автосброс сначала подтверждает cloud snapshot старого цикла',/await window\.medcontrolCloudSnapshot\.create\(\{state:oldState\}\)/.test(reset));
+ check('При ошибке cloud автосброс останавливается до удаления данных',/if\(!cloud\.ok\)\{resetInProgress=false;window\.alert/.test(reset));
+ check('Пустое состояние после reset не становится новым cloud recovery point',/saveState\(\{settings:\{\.\.\.\(oldState\.settings\|\|\{\}\)\},medications:\[\],intakeLogs:\[\]\},\{skipCloudSnapshot:true\}\)/.test(reset));
+ check('Pre-upgrade backup не перезаписывается при потере marker',/if\(existingBackup\)/.test(storage)&&/recovered_existing_pre_modular_2_backup/.test(storage));
+}catch(e){checks.push(['Исключение: '+e.message,false]);}const pass=checks.length===8&&checks.every(x=>x[1]);out.textContent=(pass?'PASS':'FAIL')+' — force-majeure cloud/reset regression\n\n'+checks.map((x,i)=>`${i+1}. ${x[0]} = ${x[1]}`).join('\n');})();
+</script>
