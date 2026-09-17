@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MedControl V2 — Storage Recovery Self-Test</title>
+  <style>
+    body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px;color:#111}
+    .card{border:1px solid #ccc;border-radius:12px;padding:18px;margin:14px 0}
+    .pass{border-color:#17803d}.fail{border-color:#b42318}
+    pre{white-space:pre-wrap;word-break:break-word;background:#f6f6f6;padding:12px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <h1>MedControl Version 2 — storage recovery self-test</h1>
+  <p>Тест не использует реальный localStorage браузера. Реальный <code>js/storage.js</code> запускается против искусственного хранилища с управляемыми сбоями.</p>
+  <div id="status" class="card">Запуск теста…</div>
+  <pre id="details"></pre>
+<script>
+(async function(){
+  const status=document.getElementById('status');
+  const details=document.getElementById('details');
+  const PRIMARY='affixo_medcontrol_standard_v3';
+  const BACKUP=PRIMARY+'_corrupt_backup';
+
+  function finish(ok,lines){
+    status.className='card '+(ok?'pass':'fail');
+    status.textContent=ok?'PASS — аварийное восстановление storage подтверждено':'FAIL — storage recovery self-test не пройден';
+    details.textContent=lines.join('\n');
+  }
+
+  function fakeStorage(initial={},failRules={}){
+    const map=new Map(Object.entries(initial));
+    return {
+      getItem(key){
+        if(failRules.get===key||failRules.get==='*') throw new Error('forced get failure: '+key);
+        return map.has(key)?map.get(key):null;
+      },
+      setItem(key,value){
+        if(failRules.set===key||failRules.set==='*'||(Array.isArray(failRules.set)&&failRules.set.includes(key))) throw new Error('forced set failure: '+key);
+        map.set(key,String(value));
+      },
+      removeItem(key){map.delete(key);},
+      dump(){return Object.fromEntries(map.entries());}
+    };
+  }
+
+  function runScenario(storageSource,store){
+    const body=storageSource+`\nreturn (function(){\nlet value=null,error=null;\ntry{ value=getState(); }catch(e){ error={name:e.name,code:e.code,message:e.message}; }\nreturn {value,error,dump:localStorage.dump()};\n})();`;
+    const fn=new Function('localStorage','window','navigator','Intl','TRANSLATIONS','makeDefaultState','inferCountryFromLocale',body);
+    return fn(store,{alert:function(){}},{language:'ru-RU'},Intl,{en:{},ru:{}},undefined,function(){return 'Armenia';});
+  }
+
+  try{
+    const response=await fetch('js/storage.js?v=storage-recovery-selftest');
+    if(!response.ok) throw new Error('Не удалось загрузить js/storage.js: HTTP '+response.status);
+    const source=await response.text();
+    const lines=[];
+
+    const corrupt='{not-valid-json';
+    const s1=fakeStorage({[PRIMARY]:corrupt});
+    const r1=runScenario(source,s1);
+    const s1Backup=r1.dump[BACKUP]===corrupt;
+    let s1PrimarySafe=false;
+    try{
+      const parsed=JSON.parse(r1.dump[PRIMARY]||'null');
+      s1PrimarySafe=!!parsed&&Array.isArray(parsed.medications)&&Array.isArray(parsed.intakeLogs);
+    }catch(_){ }
+    const s1Stopped=r1.error?.code==='recovery_required';
+    lines.push('1. Corrupt JSON: backup создан = '+s1Backup+', safe state записан = '+s1PrimarySafe+', запуск остановлен = '+s1Stopped);
+
+    const s2=fakeStorage({[PRIMARY]:corrupt},{set:BACKUP});
+    const r2=runScenario(source,s2);
+    const s2PrimaryUntouched=r2.dump[PRIMARY]===corrupt;
+    const s2Stopped=r2.error?.code==='corrupt_backup_failed';
+    lines.push('2. Backup write failure: основной storage не изменён = '+s2PrimaryUntouched+', запуск остановлен = '+s2Stopped);
+
+    const writes=[];
+    const s3Map=new Map([[PRIMARY,corrupt]]);
+    const s3={
+      getItem(key){return s3Map.has(key)?s3Map.get(key):null;},
+      setItem(key,value){
+        writes.push(key);
+        if(key===PRIMARY && writes.includes(BACKUP)) throw new Error('forced primary save failure');
+        s3Map.set(key,String(value));
+      },
+      removeItem(key){s3Map.delete(key);},
+      dump(){return Object.fromEntries(s3Map.entries());}
+    };
+    const r3=runScenario(source,s3);
+    const s3Backup=r3.dump[BACKUP]===corrupt;
+    const s3Stopped=r3.error?.code==='recovery_state_save_failed';
+    const s3PrimaryStillCorrupt=r3.dump[PRIMARY]===corrupt;
+    lines.push('3. Safe-state write failure: backup сохранён = '+s3Backup+', исходный primary не подменён = '+s3PrimaryStillCorrupt+', запуск остановлен = '+s3Stopped);
+
+    const s4=fakeStorage({}, {get:'*'});
+    const r4=runScenario(source,s4);
+    const s4Stopped=r4.error?.code==='storage_read_failed';
+    lines.push('4. Storage read failure: запуск остановлен = '+s4Stopped);
+
+    const ok=s1Backup&&s1PrimarySafe&&s1Stopped&&s2PrimaryUntouched&&s2Stopped&&s3Backup&&s3PrimaryStillCorrupt&&s3Stopped&&s4Stopped;
+    finish(ok,lines);
+  }catch(error){
+    finish(false,['Self-test execution error: '+(error?.stack||error)]);
+  }
+})();
+</script>
+</body>
+</html>
