@@ -1,5 +1,6 @@
 (function(){
   const PREVIEW_INPUT='https://htmlpreview.github.io/?https://github.com/affixo-network/medcontrol/blob/modular-2.000/input.html';
+  const CYCLE_RESET_BACKUP_KEY='affixo_medcontrol_standard_v3_pre_reset_backup';
 
   function lastScheduledDate(med){
     const type=med?.scheduleType||((med?.explicitDates||[]).length?'explicit_dates':(med?.weekdays||[]).length?'weekdays':'daily');
@@ -54,6 +55,25 @@
     return window.location.hostname==='htmlpreview.github.io' ? PREVIEW_INPUT : 'input.html';
   }
 
+  function preserveCycleResetBackup(oldState){
+    const backup={
+      createdAt:new Date().toISOString(),
+      reason:'automatic_cycle_reset',
+      sourceVersion:'modular-2.000',
+      state:oldState
+    };
+    try{
+      localStorage.setItem(CYCLE_RESET_BACKUP_KEY,JSON.stringify(backup));
+      return true;
+    }catch(error){
+      console.error('MedControl: failed to preserve pre-reset backup.',error);
+      if(typeof window!=='undefined'&&typeof window.alert==='function'){
+        window.alert('Автоматический сброс остановлен: не удалось создать резервную копию завершённого цикла.\n\nДанные MedControl не удалены. Освободите место в хранилище браузера или проверьте его доступность и повторите попытку.');
+      }
+      return false;
+    }
+  }
+
   let resetInProgress=false;
   function automaticCycleReset(){
     if(resetInProgress)return;
@@ -61,7 +81,15 @@
     if(!meds.length||current.length)return;
     resetInProgress=true;
     const oldState=getState();
-    saveState({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]});
+    if(!preserveCycleResetBackup(oldState)){
+      resetInProgress=false;
+      return;
+    }
+    const resetSaved=saveState({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]});
+    if(!resetSaved){
+      resetInProgress=false;
+      return;
+    }
     try{sessionStorage.setItem('medcontrol_cycle_reset_notice','1');}catch(_){ }
     window.location.replace(inputRedirectUrl());
   }
@@ -71,7 +99,8 @@
     const d=document.createElement('dialog');
     d.id='medControlCycleResetDialog';
     d.innerHTML=`<h2>Предыдущий цикл завершён</h2>
-      <p>Последний препарат был переведён в Архив, после чего все данные завершённого цикла и его Архив были безвозвратно удалены.</p>
+      <p>Последний препарат был переведён в Архив, после чего данные завершённого цикла были удалены из текущего рабочего состояния.</p>
+      <p>Перед сбросом MedControl сохранил аварийную резервную копию завершённого цикла.</p>
       <p>Можно начинать ввод новых препаратов.</p>
       <div class="right" style="margin-top:16px"><button type="button" id="medControlCycleResetContinue">Продолжить</button></div>`;
     document.body.appendChild(d);
