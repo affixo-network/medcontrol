@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'affixo_medcontrol_standard_v3';
 const STORAGE_CORRUPT_BACKUP_KEY = `${STORAGE_KEY}_corrupt_backup`;
 const STORAGE_RECOVERY_NOTICE_KEY = `${STORAGE_KEY}_recovery_notice`;
+const STORAGE_V2_PRE_UPGRADE_BACKUP_KEY = `${STORAGE_KEY}_pre_modular_2_upgrade_backup`;
+const STORAGE_V2_PRE_UPGRADE_MARKER_KEY = `${STORAGE_KEY}_pre_modular_2_upgrade_marker`;
 
 function storageDefaultState() {
   return {
@@ -24,6 +26,39 @@ function storageRecoveryError(message, code, cause) {
   return error;
 }
 
+function preserveV2PreUpgradeSnapshot(raw) {
+  if (!raw) return;
+
+  let marker;
+  try {
+    marker = localStorage.getItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY);
+  } catch (error) {
+    throw storageRecoveryError(
+      'MedControl не может проверить резервную копию перед запуском Version 2. Работа остановлена.',
+      'pre_upgrade_marker_read_failed',
+      error
+    );
+  }
+  if (marker) return;
+
+  try {
+    localStorage.setItem(STORAGE_V2_PRE_UPGRADE_BACKUP_KEY, raw);
+    localStorage.setItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY, JSON.stringify({
+      createdAt: new Date().toISOString(),
+      source: 'state_before_first_modular_2_start',
+      targetVersion: 'modular-2.000',
+      backupKey: STORAGE_V2_PRE_UPGRADE_BACKUP_KEY
+    }));
+  } catch (error) {
+    try { localStorage.removeItem(STORAGE_V2_PRE_UPGRADE_MARKER_KEY); } catch (_) { }
+    throw storageRecoveryError(
+      'Не удалось создать обязательную резервную копию данных перед первым запуском Version 2. Работа остановлена; основной storage не изменён.',
+      'pre_upgrade_backup_failed',
+      error
+    );
+  }
+}
+
 function getState() {
   let raw;
   try {
@@ -37,6 +72,8 @@ function getState() {
   }
 
   if (raw) {
+    preserveV2PreUpgradeSnapshot(raw);
+
     try {
       const parsed = JSON.parse(raw);
 
