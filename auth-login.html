@@ -4,110 +4,67 @@
   <meta charset="utf-8" />
   <title>Affixo MedControl — Login</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 680px; margin: 60px auto; padding: 0 16px; color:#111; }
-    .card { border:1px solid #ddd; border-radius:12px; padding:16px; background:#fff; }
-    input, button { font: inherit; padding:10px 12px; }
-    .inline { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    .muted { color:#666; }
-    a { color: inherit; }
-  </style>
+  <style>body{font-family:Arial,sans-serif;max-width:680px;margin:60px auto;padding:0 16px;color:#111}.card{border:1px solid #ddd;border-radius:12px;padding:16px;background:#fff}input,button{font:inherit;padding:10px 12px}.inline{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{color:#666}a{color:inherit}</style>
 </head>
 <body>
   <p><a href="/">← Back to Home</a></p>
   <h1>Affixo MedControl — Login</h1>
   <div class="card">
     <p>Enter email and send magic link.</p>
-    <div class="inline">
-      <input id="email" placeholder="Email" style="min-width:260px;" />
-      <button id="send">Send magic link</button>
-    </div>
+    <div class="inline"><input id="email" placeholder="Email" style="min-width:260px;" /><button id="send">Send magic link</button></div>
     <p class="muted" id="status"></p>
-    <pre id="debug" style="margin-top:16px;color:#555; display:none; white-space:pre-wrap;"></pre>
+    <pre id="debug" style="margin-top:16px;color:#555;display:none;white-space:pre-wrap;"></pre>
   </div>
-
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const SUPABASE_URL = "https://lewdbjjaohqxbirzhrbm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const debugEl = document.getElementById("debug");
-const statusEl = document.getElementById("status");
-const url = new URL(window.location.href);
-const DEBUG = url.searchParams.get("debug") === "1";
-
-function showDebug(obj) {
-  if (!DEBUG) return;
-  debugEl.style.display = "block";
-  debugEl.textContent = JSON.stringify(obj, null, 2);
-}
-async function goApp() {
-  window.location.replace("/input.html");
-}
-async function logoutIfRequested() {
-  if (url.searchParams.get("logout") !== "1") return false;
-  const { error } = await supabase.auth.signOut();
-  showDebug({ source: "logoutIfRequested", error });
-  if (error) {
-    statusEl.textContent = error.message;
-    return true;
-  }
-  window.history.replaceState({}, "", "/auth-login.html");
-  statusEl.textContent = "Logged out. Enter email to sign in again.";
+const SUPABASE_URL="https://lewdbjjaohqxbirzhrbm.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ";
+const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const debugEl=document.getElementById("debug");
+const statusEl=document.getElementById("status");
+const url=new URL(window.location.href);
+const DEBUG=url.searchParams.get("debug")==="1";
+function showDebug(obj){if(!DEBUG)return;debugEl.style.display="block";debugEl.textContent=JSON.stringify(obj,null,2);}
+function safeNext(){const next=url.searchParams.get('next')||'/input.html';return /^\/(input|action|dashboard|archive)\.html$/.test(next)?next:'/input.html';}
+async function goApp(){window.location.replace(safeNext());}
+async function logoutIfRequested(){
+  if(url.searchParams.get("logout")!=="1")return false;
+  const {error}=await supabase.auth.signOut();
+  showDebug({source:"logoutIfRequested",error});
+  if(error){statusEl.textContent=error.message;return true;}
+  window.history.replaceState({},"","/auth-login.html");
+  statusEl.textContent="Logged out. Enter email to sign in again.";
   return true;
 }
-async function finishMagicLinkIfPresent() {
-  const href = window.location.href;
-  const hasTokens = href.includes("access_token=") || href.includes("refresh_token=") || href.includes("code=");
-  if (!hasTokens) return false;
-  const { data, error } = await supabase.auth.getSession();
-  showDebug({ source: "finishMagicLinkIfPresent", data, error });
-  if (error) {
-    statusEl.textContent = error.message;
-    return false;
-  }
-  if (data?.session) {
-    statusEl.textContent = "Login successful. Redirecting…";
-    await goApp();
-    return true;
-  }
+async function finishMagicLinkIfPresent(){
+  const href=window.location.href;
+  const hasTokens=href.includes("access_token=")||href.includes("refresh_token=")||href.includes("code=");
+  if(!hasTokens)return false;
+  const {data,error}=await supabase.auth.getSession();
+  showDebug({source:"finishMagicLinkIfPresent",data,error});
+  if(error){statusEl.textContent=error.message;return false;}
+  if(data?.session){statusEl.textContent="Login successful. Redirecting…";await goApp();return true;}
   return false;
 }
-async function maybeAlreadyLoggedIn() {
-  const { data } = await supabase.auth.getSession();
-  if (data?.session) {
-    statusEl.textContent = "Already logged in. Redirecting…";
-    await goApp();
-    return true;
-  }
+async function maybeAlreadyLoggedIn(){
+  const {data}=await supabase.auth.getSession();
+  if(data?.session){statusEl.textContent="Already logged in. Redirecting…";await goApp();return true;}
   return false;
 }
-document.getElementById("send").onclick = async () => {
-  const email = document.getElementById("email").value.trim();
-  if (!email) {
-    statusEl.textContent = "Enter email.";
-    return;
-  }
-  statusEl.textContent = "Sending magic link…";
-  const redirectTo = `${window.location.origin}/auth-login.html`;
-  const { data, error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: redirectTo }
-  });
-  showDebug({ source: "signInWithOtp", redirectTo, data, error });
-  if (error) {
-    statusEl.textContent = error.message;
-    return;
-  }
-  statusEl.textContent = "Magic link sent. Open your email and return through the link.";
+document.getElementById("send").onclick=async()=>{
+  const email=document.getElementById("email").value.trim();
+  if(!email){statusEl.textContent="Enter email.";return;}
+  statusEl.textContent="Sending magic link…";
+  const redirectUrl=new URL('/auth-login.html',window.location.origin);
+  redirectUrl.searchParams.set('next',safeNext());
+  const redirectTo=redirectUrl.toString();
+  const {data,error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo}});
+  showDebug({source:"signInWithOtp",redirectTo,data,error});
+  if(error){statusEl.textContent=error.message;return;}
+  statusEl.textContent="Magic link sent. Open your email and return through the link.";
 };
-const loggedOut = await logoutIfRequested();
-if (!loggedOut) {
-  await finishMagicLinkIfPresent();
-  await maybeAlreadyLoggedIn();
-}
+const loggedOut=await logoutIfRequested();
+if(!loggedOut){await finishMagicLinkIfPresent();await maybeAlreadyLoggedIn();}
 </script>
 </body>
 </html>
