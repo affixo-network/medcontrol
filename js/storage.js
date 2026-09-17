@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'affixo_medcontrol_standard_v3';
 const STORAGE_CORRUPT_BACKUP_KEY = `${STORAGE_KEY}_corrupt_backup`;
+const STORAGE_RECOVERY_NOTICE_KEY = `${STORAGE_KEY}_recovery_notice`;
 
 function storageDefaultState() {
   return {
@@ -15,8 +16,26 @@ function storageDefaultState() {
   };
 }
 
+function storageRecoveryError(message, code, cause) {
+  const error = new Error(message);
+  error.name = 'MedControlStorageRecoveryError';
+  error.code = code;
+  error.cause = cause;
+  return error;
+}
+
 function getState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  let raw;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch (error) {
+    throw storageRecoveryError(
+      'MedControl не может прочитать хранилище браузера. Работа остановлена, чтобы не создавать несохранённые данные.',
+      'storage_read_failed',
+      error
+    );
+  }
+
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
@@ -39,23 +58,57 @@ function getState() {
       if (!parsed.settings.timezone) parsed.settings.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
       return parsed;
-    } catch (err) {
+    } catch (parseError) {
       try {
         localStorage.setItem(STORAGE_CORRUPT_BACKUP_KEY, raw);
       } catch (backupError) {
         console.error('MedControl: failed to preserve corrupted storage.', backupError);
-        throw err;
+        throw storageRecoveryError(
+          'Обнаружены повреждённые данные MedControl, но резервную копию создать не удалось. Работа остановлена; основной storage не изменён.',
+          'corrupt_backup_failed',
+          backupError
+        );
       }
-      console.error('MedControl: corrupted storage preserved before recovery.', err);
+
+      console.error('MedControl: corrupted storage preserved before recovery.', parseError);
+
+      const initial = (typeof makeDefaultState === 'function') ? makeDefaultState() : storageDefaultState();
+      const saved = saveState(initial, { silent: true });
+      if (!saved) {
+        throw storageRecoveryError(
+          'Повреждённые данные сохранены в аварийной копии, но безопасное новое состояние записать не удалось. Работа остановлена.',
+          'recovery_state_save_failed',
+          parseError
+        );
+      }
+
+      try {
+        localStorage.setItem(STORAGE_RECOVERY_NOTICE_KEY, JSON.stringify({
+          at: new Date().toISOString(),
+          backupKey: STORAGE_CORRUPT_BACKUP_KEY,
+          reason: 'corrupted_primary_storage'
+        }));
+      } catch (_) { }
+
+      throw storageRecoveryError(
+        'Обнаружены повреждённые данные MedControl. Исходные данные сохранены в аварийной копии, а безопасное пустое состояние записано. Работа остановлена; перезагрузите страницу только после фиксации этого сообщения.',
+        'recovery_required',
+        parseError
+      );
     }
   }
 
   const initial = (typeof makeDefaultState === 'function') ? makeDefaultState() : storageDefaultState();
-  saveState(initial);
+  if (!saveState(initial, { silent: true })) {
+    throw storageRecoveryError(
+      'MedControl не смог создать исходное состояние в хранилище браузера. Работа остановлена, чтобы не создавать данные только в памяти.',
+      'initial_state_save_failed'
+    );
+  }
   return initial;
 }
 
-function saveState(state) {
+function saveState(state, options = {}) {
   state.settings = state.settings || {};
   state.settings.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
@@ -64,7 +117,7 @@ function saveState(state) {
     return true;
   } catch (error) {
     console.error('MedControl: failed to save application state.', error);
-    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+    if (!options.silent && typeof window !== 'undefined' && typeof window.alert === 'function') {
       window.alert('Не удалось сохранить изменения MedControl.\n\nПредыдущие сохранённые данные не изменены. Освободите место в хранилище браузера или проверьте его доступность и повторите действие.');
     }
     return false;
