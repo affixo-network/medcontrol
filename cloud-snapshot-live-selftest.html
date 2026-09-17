@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><title>MedControl Live Cloud Snapshot Self-Test</title><pre id="out">RUNNING...</pre><script type="module">
+(async()=>{
+ const out=document.getElementById('out');
+ const SUPABASE_URL='https://lewdbjjaohqxbirzhrbm.supabase.co';
+ const SUPABASE_ANON_KEY='sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ';
+ const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
+ const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+ const {data:{session},error:se}=await supabase.auth.getSession();
+ if(se||!session){out.textContent='FAIL — authenticated Supabase session unavailable';return}
+ const {data:{user},error:ue}=await supabase.auth.getUser();
+ if(ue||!user){out.textContent='FAIL — authenticated Supabase user unavailable';return}
+ const marker='LIVE-SELFTEST-'+Date.now();
+ const state={settings:{timezone:'UTC',cloudSelfTest:true},medications:[{id:marker,name:'Cloud Self Test'}],intakeLogs:[{id:marker+'-LOG',medicationId:marker}]};
+ const checks=[]; const check=(n,v)=>checks.push([n,!!v]);
+ try{
+   const {data:inserted,error:ie}=await supabase.from('mc_cloud_snapshots').insert({owner_user_id:user.id,state,state_version:'selftest',source_version:'modular-2.000-live-selftest'}).select('id,owner_user_id,state,state_version,source_version,created_at').single();
+   check('Authenticated INSERT в реальный Supabase',!ie&&inserted&&inserted.owner_user_id===user.id&&inserted.state?.medications?.[0]?.id===marker);
+   const {data:readback,error:re}=await supabase.from('mc_cloud_snapshots').select('id,owner_user_id,state,state_version,source_version,created_at').eq('id',inserted?.id||'00000000-0000-0000-0000-000000000000').maybeSingle();
+   check('SELECT возвращает тот же snapshot владельцу',!re&&readback?.id===inserted?.id&&readback?.state?.intakeLogs?.[0]?.id===marker+'-LOG');
+   const {error:ue2}=await supabase.from('mc_cloud_snapshots').update({source_version:'SHOULD-NOT-UPDATE'}).eq('id',inserted?.id||'00000000-0000-0000-0000-000000000000');
+   const {data:afterUpdate}=await supabase.from('mc_cloud_snapshots').select('source_version').eq('id',inserted?.id||'00000000-0000-0000-0000-000000000000').maybeSingle();
+   check('UPDATE заблокирован RLS',!!ue2||afterUpdate?.source_version==='modular-2.000-live-selftest');
+   const {error:de}=await supabase.from('mc_cloud_snapshots').delete().eq('id',inserted?.id||'00000000-0000-0000-0000-000000000000');
+   const {data:afterDelete}=await supabase.from('mc_cloud_snapshots').select('id').eq('id',inserted?.id||'00000000-0000-0000-0000-000000000000').maybeSingle();
+   check('DELETE заблокирован RLS и snapshot сохранён',!!de||afterDelete?.id===inserted?.id);
+ }catch(e){checks.push(['Исключение: '+e.message,false])}
+ const pass=checks.length===4&&checks.every(x=>x[1]); out.textContent=(pass?'PASS':'FAIL')+' — live cloud snapshot Supabase test\n\n'+checks.map((x,i)=>`${i+1}. ${x[0]} = ${x[1]}`).join('\n')+'\n\nTest marker: '+marker;
+})();
+</script>
