@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><title>MedControl Cloud Snapshot Self-Test</title><pre id="out">RUNNING...</pre><script>
+(async()=>{
+ const out=document.getElementById('out'), KEY='affixo_medcontrol_standard_v3';
+ const originalStorage=localStorage.getItem(KEY);
+ const rows=[]; let uid='selftest-user';
+ const query={select(){return this},order(){return this},limit(){return this},async maybeSingle(){return {data:rows.length?rows[rows.length-1]:null,error:null}},async single(){return {data:this._insert,error:null}}};
+ const client={from(){return {select(){return query},insert(v){const r={id:'snap-'+(rows.length+1),state:v.state,state_version:v.state_version,source_version:v.source_version,created_at:new Date().toISOString()}; rows.push(r); query._insert={id:r.id,created_at:r.created_at}; return query;}}}};
+ window.medcontrolSupabase=client; window.medcontrolSupabaseUser={id:uid};
+ window.getState=()=>JSON.parse(localStorage.getItem(KEY));
+ window.STORAGE_KEY=KEY;
+ await new Promise((res,rej)=>{const s=document.createElement('script');s.src='js/cloud-snapshot.js?v=cloud-snapshot-1';s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+ const checks=[]; const check=(n,v)=>checks.push([n,!!v]);
+ try{
+   localStorage.setItem(KEY,JSON.stringify({settings:{timezone:'UTC'},medications:[],intakeLogs:[]}));
+   let r=await medcontrolCloudSnapshot.create(); check('Пустое состояние не создаёт snapshot',r.skipped&&r.reason==='empty_local_state'&&rows.length===0);
+   const state={settings:{timezone:'UTC'},medications:[{id:'SELFTEST-MED',name:'Self Test'}],intakeLogs:[{id:'SELFTEST-LOG',medicationId:'SELFTEST-MED'}]};
+   localStorage.setItem(KEY,JSON.stringify(state)); r=await medcontrolCloudSnapshot.create(); check('Непустое состояние создаёт append-only snapshot',r.ok&&rows.length===1);
+   r=await medcontrolCloudSnapshot.create(); check('Неизменённое состояние не дублируется',r.ok&&r.skipped&&r.reason==='unchanged'&&rows.length===1);
+   localStorage.removeItem(KEY); r=await medcontrolCloudSnapshot.restoreLatest(); const restored=JSON.parse(localStorage.getItem(KEY)); check('Пустой браузер восстанавливается из cloud snapshot',r.ok&&restored.medications[0].id==='SELFTEST-MED'&&restored.intakeLogs[0].id==='SELFTEST-LOG');
+   localStorage.setItem(KEY,JSON.stringify({settings:{timezone:'UTC'},medications:[{id:'LOCAL'}],intakeLogs:[]})); r=await medcontrolCloudSnapshot.restoreLatest(); check('Cloud restore не затирает существующие локальные данные без разрешения',!r.ok&&r.reason==='local_state_exists'&&JSON.parse(localStorage.getItem(KEY)).medications[0].id==='LOCAL');
+   r=await medcontrolCloudSnapshot.restoreLatest({overwriteExisting:true}); check('Явный restore создаёт локальную safety-копию',r.ok&&r.restoreSafetyKey&&localStorage.getItem(r.restoreSafetyKey));
+ }catch(e){checks.push(['Исключение: '+e.message,false])}
+ finally{if(originalStorage===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,originalStorage)}
+ const pass=checks.every(x=>x[1]); out.textContent=(pass?'PASS':'FAIL')+' — cloud snapshot safety self-test\n\n'+checks.map((x,i)=>`${i+1}. ${x[0]} = ${x[1]}`).join('\n');
+})();
+</script>
