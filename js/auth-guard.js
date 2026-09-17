@@ -61,13 +61,21 @@
     const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
     const {data:sessionData,error:sessionError}=await supabase.auth.getSession();
-    if(sessionError||!sessionData?.session){
-      goToLogin(sessionError?'session_error':'no_session');
+    if(sessionError){
+      showStartupError('Не удалось проверить сохранённую сессию Supabase. Локальные данные MedControl не изменены. Проверьте соединение и повторите загрузку страницы.');
+      return;
+    }
+    if(!sessionData?.session){
+      goToLogin('no_session');
       return;
     }
 
     const {data:userData,error:userError}=await supabase.auth.getUser();
-    if(userError||!userData?.user){
+    if(userError){
+      showStartupError('Не удалось подтвердить пользователя Supabase. Сессия не удалена, локальные данные MedControl не изменены. Проверьте соединение и повторите загрузку страницы.');
+      return;
+    }
+    if(!userData?.user){
       await supabase.auth.signOut().catch(()=>{});
       goToLogin('invalid_session');
       return;
@@ -76,6 +84,6 @@
     await startPage();
   }catch(error){
     console.error('MedControl Auth Guard failed.',error);
-    showStartupError(error&&error.message?error.message:error);
+    showStartupError('Не удалось запустить MedControl из-за ошибки сети или загрузки авторизации. Сессия и локальные данные не изменены.\n\n'+(error&&error.message?error.message:error));
   }
 })();
