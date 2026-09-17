@@ -1,139 +1,21 @@
 (function(){
   const PREVIEW_INPUT='https://htmlpreview.github.io/?https://github.com/affixo-network/medcontrol/blob/modular-2.000/input.html';
   const CYCLE_RESET_BACKUP_KEY='affixo_medcontrol_standard_v3_pre_reset_backup';
-
-  function lastScheduledDate(med){
-    const type=med?.scheduleType||((med?.explicitDates||[]).length?'explicit_dates':(med?.weekdays||[]).length?'weekdays':'daily');
-    if(type==='explicit_dates'){
-      const dates=(med.explicitDates||[]).filter(Boolean).slice().sort();
-      return dates[dates.length-1]||'';
-    }
-    return med?.endDate||'';
-  }
-
-  function isArchival(med,today){
-    if(!med)return true;
-    if(med.cancelled)return true;
-    const end=lastScheduledDate(med);
-    return Boolean(end&&end<today);
-  }
-
-  function medicationState(){
-    const meds=(getState().medications||[]);
-    const today=currentLocalDate();
-    const current=meds.filter(med=>!isArchival(med,today));
-    return {meds,current};
-  }
-
-  function removeLegacyResetUi(){
-    document.getElementById('medControlArchiveCompleteReminder')?.remove();
-    [...document.querySelectorAll('section.card')].forEach(section=>{
-      if(section.querySelector('h2')?.textContent?.trim()==='Управление данными')section.remove();
-    });
-  }
-
-  function lastMedicationHintHtml(med){
-    return `<section id="medControlLastMedicationHint" class="card" style="border:2px solid #111827">
-      <h2>Остался последний препарат</h2>
-      <p><strong>${escapeHtml(med?.name||'Последний препарат')}</strong> — последний незавершённый препарат текущего цикла.</p>
-      <p><strong>Внимание:</strong> если до завершения его курса не будут введены новые препараты, после завершения этот препарат автоматически перейдёт в Архив и MedControl автоматически выполнит полный сброс текущего цикла.</p>
-      <p><strong>Все архивные данные будут безвозвратно удалены и восстановлению в MedControl не подлежат:</strong> завершённые и отменённые препараты, завершённые приёмы «Только сегодня», удалённые и заменённые времена, история изменений, журнал приёмов и исправлений.</p>
-      <p class="muted">Если необходимо сохранить текущий цикл и его Архив, до завершения последнего курса должен быть введён новый действующий препарат. После автоматического сброса можно начинать ввод нового цикла с пустыми данными.</p>
-    </section>`;
-  }
-
-  function showLastMedicationHint(med){
-    if(document.getElementById('medControlLastMedicationHint'))return;
-    const topbar=document.querySelector('.topbar');
-    if(topbar)topbar.insertAdjacentHTML('afterend',lastMedicationHintHtml(med));
-    else (document.querySelector('.wrap')||document.body).insertAdjacentHTML('afterbegin',lastMedicationHintHtml(med));
-  }
-
+  function lastScheduledDate(med){const type=med?.scheduleType||((med?.explicitDates||[]).length?'explicit_dates':(med?.weekdays||[]).length?'weekdays':'daily');if(type==='explicit_dates'){const dates=(med.explicitDates||[]).filter(Boolean).slice().sort();return dates[dates.length-1]||'';}return med?.endDate||'';}
+  function isArchival(med,today){if(!med)return true;if(med.cancelled)return true;const end=lastScheduledDate(med);return Boolean(end&&end<today);}
+  function medicationState(){const meds=(getState().medications||[]);const today=currentLocalDate();const current=meds.filter(med=>!isArchival(med,today));return {meds,current};}
+  function removeLegacyResetUi(){document.getElementById('medControlArchiveCompleteReminder')?.remove();[...document.querySelectorAll('section.card')].forEach(section=>{if(section.querySelector('h2')?.textContent?.trim()==='Управление данными')section.remove();});}
+  function lastMedicationHintHtml(med){return `<section id="medControlLastMedicationHint" class="card" style="border:2px solid #111827"><h2>Остался последний препарат</h2><p><strong>${escapeHtml(med?.name||'Последний препарат')}</strong> — последний незавершённый препарат текущего цикла.</p><p><strong>Внимание:</strong> если до завершения его курса не будут введены новые препараты, после завершения этот препарат автоматически перейдёт в Архив и MedControl автоматически выполнит полный сброс текущего цикла.</p><p><strong>Все архивные данные будут безвозвратно удалены из текущего рабочего состояния:</strong> завершённые и отменённые препараты, завершённые приёмы «Только сегодня», удалённые и заменённые времена, история изменений, журнал приёмов и исправлений.</p><p class="muted">Перед автоматическим сбросом MedControl сохраняет аварийную локальную копию; при доступном Supabase также подтверждает cloud snapshot завершённого цикла.</p></section>`;}
+  function showLastMedicationHint(med){if(document.getElementById('medControlLastMedicationHint'))return;const topbar=document.querySelector('.topbar');if(topbar)topbar.insertAdjacentHTML('afterend',lastMedicationHintHtml(med));else(document.querySelector('.wrap')||document.body).insertAdjacentHTML('afterbegin',lastMedicationHintHtml(med));}
   function clearLastMedicationHint(){document.getElementById('medControlLastMedicationHint')?.remove();}
-
-  function inputRedirectUrl(){
-    return window.location.hostname==='htmlpreview.github.io' ? PREVIEW_INPUT : 'input.html';
-  }
-
-  function preserveCycleResetBackup(oldState){
-    const backup={
-      createdAt:new Date().toISOString(),
-      reason:'automatic_cycle_reset',
-      sourceVersion:'modular-2.000',
-      state:oldState
-    };
-    try{
-      localStorage.setItem(CYCLE_RESET_BACKUP_KEY,JSON.stringify(backup));
-      return true;
-    }catch(error){
-      console.error('MedControl: failed to preserve pre-reset backup.',error);
-      if(typeof window!=='undefined'&&typeof window.alert==='function'){
-        window.alert('Автоматический сброс остановлен: не удалось создать резервную копию завершённого цикла.\n\nДанные MedControl не удалены. Освободите место в хранилище браузера или проверьте его доступность и повторите попытку.');
-      }
-      return false;
-    }
-  }
-
+  function inputRedirectUrl(){return window.location.hostname==='htmlpreview.github.io'?PREVIEW_INPUT:'input.html';}
+  function preserveCycleResetBackup(oldState){const backup={createdAt:new Date().toISOString(),reason:'automatic_cycle_reset',sourceVersion:'modular-2.000',state:oldState};try{localStorage.setItem(CYCLE_RESET_BACKUP_KEY,JSON.stringify(backup));return true;}catch(error){console.error('MedControl: failed to preserve pre-reset backup.',error);if(typeof window!=='undefined'&&typeof window.alert==='function')window.alert('Автоматический сброс остановлен: не удалось создать резервную копию завершённого цикла.\n\nДанные MedControl не удалены. Освободите место в хранилище браузера или проверьте его доступность и повторите попытку.');return false;}}
   let resetInProgress=false;
-  function automaticCycleReset(){
-    if(resetInProgress)return;
-    const {meds,current}=medicationState();
-    if(!meds.length||current.length)return;
-    resetInProgress=true;
-    const oldState=getState();
-    if(!preserveCycleResetBackup(oldState)){
-      resetInProgress=false;
-      return;
-    }
-    const resetSaved=saveState({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]});
-    if(!resetSaved){
-      resetInProgress=false;
-      return;
-    }
-    try{sessionStorage.setItem('medcontrol_cycle_reset_notice','1');}catch(_){ }
-    window.location.replace(inputRedirectUrl());
-  }
-
-  function showCycleResetDialog(){
-    if(document.getElementById('medControlCycleResetDialog'))return;
-    const d=document.createElement('dialog');
-    d.id='medControlCycleResetDialog';
-    d.innerHTML=`<h2>Предыдущий цикл завершён</h2>
-      <p>Последний препарат был переведён в Архив, после чего данные завершённого цикла были удалены из текущего рабочего состояния.</p>
-      <p>Перед сбросом MedControl сохранил аварийную резервную копию завершённого цикла.</p>
-      <p>Можно начинать ввод новых препаратов.</p>
-      <div class="right" style="margin-top:16px"><button type="button" id="medControlCycleResetContinue">Продолжить</button></div>`;
-    document.body.appendChild(d);
-    d.querySelector('#medControlCycleResetContinue').onclick=()=>{d.close();d.remove();};
-    d.addEventListener('cancel',e=>e.preventDefault());
-    d.showModal();
-  }
-
-  function showCycleResetNotice(){
-    let shouldShow=false;
-    try{
-      shouldShow=sessionStorage.getItem('medcontrol_cycle_reset_notice')==='1';
-      if(shouldShow)sessionStorage.removeItem('medcontrol_cycle_reset_notice');
-    }catch(_){ }
-    if(shouldShow)setTimeout(showCycleResetDialog,0);
-  }
-
-  function evaluateCycle(){
-    removeLegacyResetUi();
-    const {meds,current}=medicationState();
-    if(!meds.length){clearLastMedicationHint();return;}
-    if(current.length===0){clearLastMedicationHint();automaticCycleReset();return;}
-    if(current.length===1){showLastMedicationHint(current[0]);return;}
-    clearLastMedicationHint();
-  }
-
-  window.isMedControlMedicationArchival=med=>isArchival(med,currentLocalDate());
-  window.areAllMedControlMedicationsArchival=function(){const {meds,current}=medicationState();return meds.length>0&&current.length===0;};
-  window.patchMedControlResetUi=evaluateCycle;
-
-  const inheritedMount=window.mount;
-  if(typeof inheritedMount==='function')window.mount=function(page){const result=inheritedMount(page);setTimeout(evaluateCycle,0);return result;};
-  showCycleResetNotice();
-  setTimeout(evaluateCycle,0);
-  setInterval(evaluateCycle,15000);
+  async function automaticCycleReset(){if(resetInProgress)return;const {meds,current}=medicationState();if(!meds.length||current.length)return;resetInProgress=true;const oldState=getState();if(!preserveCycleResetBackup(oldState)){resetInProgress=false;return;}
+    if(window.medcontrolCloudSnapshot&&window.medcontrolSupabaseUser){const cloud=await window.medcontrolCloudSnapshot.create({state:oldState});if(!cloud.ok){resetInProgress=false;window.alert('Автоматический сброс остановлен: завершённый цикл сохранён локально, но cloud snapshot подтвердить не удалось. Данные текущего цикла не удалены.');return;}}
+    const resetSaved=saveState({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]},{skipCloudSnapshot:true});if(!resetSaved){resetInProgress=false;return;}try{sessionStorage.setItem('medcontrol_cycle_reset_notice','1');}catch(_){}window.location.replace(inputRedirectUrl());}
+  function showCycleResetDialog(){if(document.getElementById('medControlCycleResetDialog'))return;const d=document.createElement('dialog');d.id='medControlCycleResetDialog';d.innerHTML=`<h2>Предыдущий цикл завершён</h2><p>Последний препарат был переведён в Архив, после чего данные завершённого цикла были удалены из текущего рабочего состояния.</p><p>Перед сбросом MedControl сохранил аварийную резервную копию завершённого цикла.</p><p>Можно начинать ввод новых препаратов.</p><div class="right" style="margin-top:16px"><button type="button" id="medControlCycleResetContinue">Продолжить</button></div>`;document.body.appendChild(d);d.querySelector('#medControlCycleResetContinue').onclick=()=>{d.close();d.remove();};d.addEventListener('cancel',e=>e.preventDefault());d.showModal();}
+  function showCycleResetNotice(){let shouldShow=false;try{shouldShow=sessionStorage.getItem('medcontrol_cycle_reset_notice')==='1';if(shouldShow)sessionStorage.removeItem('medcontrol_cycle_reset_notice');}catch(_){}if(shouldShow)setTimeout(showCycleResetDialog,0);}
+  function evaluateCycle(){removeLegacyResetUi();const {meds,current}=medicationState();if(!meds.length){clearLastMedicationHint();return;}if(current.length===0){clearLastMedicationHint();automaticCycleReset();return;}if(current.length===1){showLastMedicationHint(current[0]);return;}clearLastMedicationHint();}
+  window.isMedControlMedicationArchival=med=>isArchival(med,currentLocalDate());window.areAllMedControlMedicationsArchival=function(){const {meds,current}=medicationState();return meds.length>0&&current.length===0;};window.patchMedControlResetUi=evaluateCycle;const inheritedMount=window.mount;if(typeof inheritedMount==='function')window.mount=function(page){const result=inheritedMount(page);setTimeout(evaluateCycle,0);return result;};showCycleResetNotice();setTimeout(evaluateCycle,0);setInterval(evaluateCycle,15000);
 })();
