@@ -25,6 +25,17 @@ function ensureArchiveNavigation(activePage) {
   if (activePage === 'archive') link.classList.add('active');
 }
 
+function ensureLogoutNavigation() {
+  const nav = document.querySelector('.nav');
+  if (!nav || nav.querySelector('[data-medcontrol-logout]')) return;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.medcontrolLogout = '1';
+  button.textContent = 'Выйти';
+  button.onclick = () => window.location.assign('/auth-login.html?logout=1');
+  nav.appendChild(button);
+}
+
 window.mount = function(page) {
   const state = getState();
 
@@ -40,6 +51,7 @@ window.mount = function(page) {
   else if (page === 'settings') result = renderSettingsPage();
 
   ensureArchiveNavigation(page);
+  ensureLogoutNavigation();
   fixPreviewNavigation();
   return result;
 };
