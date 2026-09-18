@@ -9,15 +9,17 @@ function addOrReplaceLog(medicationId, plannedAt, action, actualAt) {
     action,
     status: computeStatusForLog(plannedAt, actualAt, action)
   });
-  saveState(state);
+  return saveState(state);
 }
 window.markTaken = function(medicationId, plannedAt) {
-  addOrReplaceLog(medicationId, plannedAt, 'taken', nowISO());
+  if (!addOrReplaceLog(medicationId, plannedAt, 'taken', nowISO())) return false;
   mount('action');
+  return true;
 };
 window.markCancelled = function(medicationId, plannedAt) {
-  addOrReplaceLog(medicationId, plannedAt, 'cancelled', nowISO());
+  if (!addOrReplaceLog(medicationId, plannedAt, 'cancelled', nowISO())) return false;
   mount('action');
+  return true;
 };
 window.openCorrection = function(medicationId, plannedAt) {
   const existing = getLogForSchedule(medicationId, plannedAt);
@@ -35,7 +37,7 @@ window.applyCorrection = function(medicationId, plannedAt) {
   const action = document.getElementById('correction_action').value;
   const localValue = document.getElementById('correction_time').value;
   if (!localValue) return alert('Укажите время исправления.');
-  addOrReplaceLog(medicationId, plannedAt, action, new Date(localValue).toISOString());
+  if (!addOrReplaceLog(medicationId, plannedAt, action, new Date(localValue).toISOString())) return false;
   document.getElementById('correctionDialog').close();
   mount('action');
 };
