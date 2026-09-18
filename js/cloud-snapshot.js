@@ -1,6 +1,6 @@
 (function () {
   const TABLE='mc_cloud_snapshots', STATE_VERSION='standard_v3', SOURCE_VERSION='modular-2.000';
-  let snapshotQueue=Promise.resolve(), snapshotTimer=null, pendingState=null;
+  let snapshotQueue=Promise.resolve({ok:true,skipped:true,reason:'queue_empty'}), snapshotTimer=null, pendingState=null, retryState=null;
   function validState(s){return !!s&&typeof s==='object'&&!Array.isArray(s)&&s.settings&&typeof s.settings==='object'&&!Array.isArray(s.settings)&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs);}
   function meaningfulState(s){return validState(s)&&(s.medications.length>0||s.intakeLogs.length>0);}
   function cloneState(s){return s?JSON.parse(JSON.stringify(s)):null;}
@@ -18,14 +18,19 @@
   }
   function queueCloudSnapshot(state){
     const captured=cloneState(state);
-    snapshotQueue=snapshotQueue.then(()=>createCloudSnapshot({state:captured})).catch(error=>{console.error('MedControl cloud snapshot failed.',error);return {ok:false,reason:'snapshot_exception',error};});
+    snapshotQueue=snapshotQueue.then(async()=>{
+      const result=await createCloudSnapshot({state:captured});
+      if(result.ok)retryState=null;
+      else if(!result.skipped)retryState=captured;
+      return result;
+    }).catch(error=>{retryState=captured;console.error('MedControl cloud snapshot failed.',error);return {ok:false,reason:'snapshot_exception',error};});
     return snapshotQueue;
   }
   function flushScheduledSnapshot(){
     if(snapshotTimer){clearTimeout(snapshotTimer);snapshotTimer=null;}
-    if(!pendingState)return snapshotQueue;
-    const state=pendingState;pendingState=null;
-    return queueCloudSnapshot(state);
+    if(pendingState){const state=pendingState;pendingState=null;return queueCloudSnapshot(state);}
+    if(retryState){const state=retryState;retryState=null;return queueCloudSnapshot(state);}
+    return snapshotQueue;
   }
   function scheduleCloudSnapshot(state){
     pendingState=cloneState(state);
@@ -33,7 +38,7 @@
     snapshotTimer=setTimeout(()=>{snapshotTimer=null;const state=pendingState;pendingState=null;if(state)queueCloudSnapshot(state);},300);
   }
   async function getLatestCloudSnapshot(){const supabase=window.medcontrolSupabase;if(!supabase||!window.medcontrolSupabaseUser?.id)return {ok:false,reason:'auth_unavailable'};const {data,error}=await supabase.from(TABLE).select('id,state,state_version,source_version,created_at').order('created_at',{ascending:false}).limit(1).maybeSingle();if(error)return {ok:false,reason:'snapshot_read_failed',error};if(!data)return {ok:true,snapshot:null};if(!validState(data.state))return {ok:false,reason:'invalid_cloud_snapshot'};return {ok:true,snapshot:data};}
-  async function restoreLatestCloudSnapshot(options={}){await flushScheduledSnapshot();const result=await getLatestCloudSnapshot();if(!result.ok||!result.snapshot)return result;let currentRaw=null;try{currentRaw=localStorage.getItem(STORAGE_KEY);}catch(error){return {ok:false,reason:'local_read_failed',error};}if(currentRaw&&!options.overwriteExisting)return {ok:false,reason:'local_state_exists',snapshot:result.snapshot};const key=`${STORAGE_KEY}_before_cloud_restore_${Date.now()}`;try{if(currentRaw)localStorage.setItem(key,currentRaw);localStorage.setItem(STORAGE_KEY,JSON.stringify(result.snapshot.state));const verify=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!validState(verify))throw new Error('Cloud restore verification failed');}catch(error){try{if(currentRaw!==null)localStorage.setItem(STORAGE_KEY,currentRaw);}catch(_){}return {ok:false,reason:'local_restore_failed',error,restoreSafetyKey:key};}return {ok:true,snapshot:result.snapshot,restoreSafetyKey:currentRaw?key:null};}
+  async function restoreLatestCloudSnapshot(options={}){const flushed=await flushScheduledSnapshot();if(flushed&&flushed.ok===false&&!flushed.skipped)return {ok:false,reason:'pending_snapshot_failed',error:flushed.error};const result=await getLatestCloudSnapshot();if(!result.ok||!result.snapshot)return result;let currentRaw=null;try{currentRaw=localStorage.getItem(STORAGE_KEY);}catch(error){return {ok:false,reason:'local_read_failed',error};}if(currentRaw&&!options.overwriteExisting)return {ok:false,reason:'local_state_exists',snapshot:result.snapshot};const key=`${STORAGE_KEY}_before_cloud_restore_${Date.now()}`;try{if(currentRaw)localStorage.setItem(key,currentRaw);localStorage.setItem(STORAGE_KEY,JSON.stringify(result.snapshot.state));const verify=JSON.parse(localStorage.getItem(STORAGE_KEY));if(!validState(verify))throw new Error('Cloud restore verification failed');}catch(error){try{if(currentRaw!==null)localStorage.setItem(STORAGE_KEY,currentRaw);}catch(_){}return {ok:false,reason:'local_restore_failed',error,restoreSafetyKey:key};}return {ok:true,snapshot:result.snapshot,restoreSafetyKey:currentRaw?key:null};}
   const inheritedSaveState=window.saveState;
   if(typeof inheritedSaveState==='function')window.saveState=function(state,options={}){const saved=inheritedSaveState(state,options);if(saved&&!options.skipCloudSnapshot)scheduleCloudSnapshot(state);return saved;};
   window.medcontrolCloudSnapshot={create:createCloudSnapshot,queue:queueCloudSnapshot,schedule:scheduleCloudSnapshot,flush:flushScheduledSnapshot,latest:getLatestCloudSnapshot,restoreLatest:restoreLatestCloudSnapshot,validState,meaningfulState};
