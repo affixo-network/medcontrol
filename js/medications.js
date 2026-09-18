@@ -694,8 +694,9 @@ window.toggleMedicationMode = function(id) {
       : 'Статус препарата изменён на «Пассивно».'
   );
 
-  saveState(state);
+  if (!saveState(state)) return false;
   mount('input');
+  return true;
 };
 window.startMedicationCancellation = function(id) {
   const state = getState();
@@ -770,8 +771,9 @@ window.cancelMedication = function(id) {
     'Приём препарата отменён.'
   );
 
-  saveState(state);
+  if (!saveState(state)) return false;
   mount('input');
+  return true;
 };
 window.openEditMedication = function(id) {
   window.__editingMedicationId = id;
@@ -956,7 +958,7 @@ window.saveMedicationEdit = function(id) {
       previousSnapshot
     );
 
-    saveState(state);
+    if (!saveState(state)) return false;
     document.getElementById('editDialog').close();
     mount('input');
   } catch (error) {
@@ -1080,7 +1082,7 @@ window.confirmMedicationCreate = function() {
   const { state, item } = pendingMedicationCreate;
   recordRowHistory(item, 'created', medicationRuleSummary(item));
   state.medications.push(item);
-  saveState(state);
+  if (!saveState(state)) return false;
   pendingMedicationCreate = null;
   document.getElementById('medicationConfirmDialog')?.close();
   mount('input');
@@ -1118,7 +1120,8 @@ window.startMedControlReset = function() {
 function resetMedControlData() {
   const freshState = makeDefaultState();
 
-  saveState(freshState);
+  if (!saveState(freshState)) return false;
 
   mount('input');
+  return true;
 }
