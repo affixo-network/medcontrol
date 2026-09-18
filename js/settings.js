@@ -17,11 +17,7 @@ function renderSettingsPage() {
       </div>
       <div class="card"><h2>${escapeHtml(tr('settings_title_2'))}</h2>
         <div class="help"><ul>
-          <li>${escapeHtml(tr('settings_help_1'))}</li>
-          <li>${escapeHtml(tr('settings_help_2'))}</li>
-          <li>${escapeHtml(tr('settings_help_3'))}</li>
-          <li>${escapeHtml(tr('settings_help_4'))}</li>
-          <li>${escapeHtml(tr('settings_help_5'))}</li>
+          <li>${escapeHtml(tr('settings_help_1'))}</li><li>${escapeHtml(tr('settings_help_2'))}</li><li>${escapeHtml(tr('settings_help_3'))}</li><li>${escapeHtml(tr('settings_help_4'))}</li><li>${escapeHtml(tr('settings_help_5'))}</li>
         </ul></div>
       </div>
     </section>`;
@@ -30,17 +26,15 @@ function renderSettingsPage() {
 }
 window.changeInterfaceLanguage = function(language) {
   const state = getState();
-
-  state.settings.interfaceLanguage =
-    TRANSLATIONS[language] ? language : 'en';
-
-  saveState(state);
+  state.settings.interfaceLanguage = TRANSLATIONS[language] ? language : 'en';
+  if (!saveState(state)) { mount('settings'); return false; }
   window.location.reload();
+  return true;
 };
-
 window.changeCountry = function(country) {
   const state = getState();
   state.settings.country = country;
-  saveState(state);
+  if (!saveState(state)) { mount('settings'); return false; }
   mount('settings');
+  return true;
 };
