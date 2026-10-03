@@ -1077,6 +1077,18 @@ window.cancelMedicationCreate = function() {
   pendingMedicationCreate = null;
 };
 
+window.proceedMedicationCreateConfirmation = function() {
+  if (!pendingMedicationCreate) return;
+  document.getElementById('medicationConfirmDialog')?.close();
+  document.getElementById('medicationSaveDialog')?.showModal();
+};
+
+window.backToMedicationConfirmation = function() {
+  document.getElementById('medicationSaveDialog')?.close();
+  if (!pendingMedicationCreate) return;
+  document.getElementById('medicationConfirmDialog')?.showModal();
+};
+
 window.confirmMedicationCreate = function() {
   if (!pendingMedicationCreate) return;
   const { state, item } = pendingMedicationCreate;
@@ -1084,7 +1096,7 @@ window.confirmMedicationCreate = function() {
   state.medications.push(item);
   if (!saveState(state)) return false;
   pendingMedicationCreate = null;
-  document.getElementById('medicationConfirmDialog')?.close();
+  document.getElementById('medicationSaveDialog')?.close();
   mount('input');
 };
 window.startMedControlReset = function() {
