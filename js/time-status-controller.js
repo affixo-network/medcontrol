@@ -56,15 +56,61 @@
   if(typeof originalCreateMedicationFromForm==='function')window.createMedicationFromForm=function(prefix){const item=originalCreateMedicationFromForm(prefix),state=getState(),now=nowISO();if(prefix==='create_'){item.timeStatuses={};item.timeStatusHistory=[];(item.times||[]).forEach(time=>{item.timeStatuses[time]=true;item.timeStatusHistory.push({time,active:true,at:now,action:'time_created_active'});});}else if(prefix==='edit_'){const before=(state.medications||[]).find(med=>med.id===window.__editingMedicationId),oldTimes=new Set(before?.times||[]),oldStatuses={...(before?.timeStatuses||{})},history=Array.isArray(before?.timeStatusHistory)?before.timeStatusHistory.slice():[];item.timeStatuses={};item.timeStatusHistory=history;(item.times||[]).forEach(time=>{if(oldTimes.has(time))item.timeStatuses[time]=oldStatuses[time]!==false;else{item.timeStatuses[time]=true;item.timeStatusHistory.push({time,active:true,at:now,action:'time_created_active'});}});}return item;};
   function ensureTimeDialog(){if(document.getElementById('timeStatusEditDialog'))return;const d=document.createElement('dialog');d.id='timeStatusEditDialog';d.innerHTML='<h2>Изменить время</h2><label>Изменение</label><select id="timeStatusEditSelect"><option value="active">Статус: Активно</option><option value="passive">Статус: Пассивно</option><option value="temporal">Изменить время / область применения…</option></select><p class="muted" style="margin-top:10px">Для изменения самого времени далее доступны: «Только сегодня», «Только на последующие дни расписания», «Сегодня и на последующие дни расписания».</p><div class="dialog-actions"><button type="button" onclick="saveMedicationTimeStatus()">Продолжить</button><button type="button" onclick="document.getElementById(\'timeStatusEditDialog\').close()">Закрыть</button></div>';document.body.appendChild(d);}
   function restructureInputTable(){
-    const state=getState(),byOrder=new Map((state.medications||[]).filter(med=>!med.cancelled).map(med=>[String(med.order),med]));
+    const state=getState();
+    const meds=(state.medications||[]).filter(med=>!med.cancelled).slice().sort((a,b)=>(a.order||0)-(b.order||0));
     document.querySelectorAll('section').forEach(section=>{
-      const title=section.querySelector('h2')?.textContent?.trim();if(title==='Пассивные препараты'){section.remove();return;}if(title!=='Активные препараты')return;
-      const table=section.querySelector('table'),head=table?.querySelector('thead tr');if(!table||!head)return;const headers=head.querySelectorAll('th');if(headers[13])headers[13].textContent='Статус';const tbody=table.querySelector('tbody');if(!tbody)return;
-      [...tbody.querySelectorAll('tr')].filter(r=>!r.dataset.timeSubrow).forEach(baseRow=>{
-        const cells=baseRow.querySelectorAll('td');if(cells.length<15)return;const med=byOrder.get(cells[0].textContent.trim());if(!med)return;cells[10].textContent='—';cells[13].textContent='—';cells[14].innerHTML=`<div class="inline"><button type="button" onclick="openEditMedication('${med.id}')">Изменить</button><button type="button" onclick="showRowHistory('${med.id}')">История</button><button type="button" onclick="startMedicationCancellation('${med.id}')">Отменить</button></div>`;let anchor=baseRow;
-        timeRowsForMedication(med).forEach(item=>{const tr=document.createElement('tr');tr.dataset.timeSubrow='1';tr.dataset.medicationId=med.id;const statusClass=item.status==='Активно'?'success':'upcoming';const action=item.scope==='base'?`<button type="button" onclick="editMedicationTimeStatus('${med.id}','${escapeHtml(item.time)}')">Изменить</button>`:`<button type="button" onclick="editTemporalTimeRow('${med.id}')">Изменить</button>`;const plannedAt=historyPlannedAt(item);tr.innerHTML=`<td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><strong>${escapeHtml(item.time)}</strong></td><td>${escapeHtml(item.start)}</td><td>${escapeHtml(item.end)}</td><td><span class="status ${statusClass}">${escapeHtml(item.status)}</span></td><td><div class="inline">${action}<button type="button" onclick="showInputTimeHistory('${med.id}','${plannedAt}')">История</button></div></td>`;anchor.after(tr);anchor=tr;});
+      const title=section.querySelector('h2')?.textContent?.trim();
+      if(title==='Пассивные препараты'){section.remove();return;}
+      if(title!=='Активные препараты')return;
+      const table=section.querySelector('table'),head=table?.querySelector('thead tr'),tbody=table?.querySelector('tbody');
+      if(!table||!head||!tbody)return;
+
+      const maxTimes=Math.max(1,...meds.map(med=>(med.times||[]).filter(Boolean).length));
+      const baseHeaders=[...head.querySelectorAll('th')].map(th=>th.textContent.trim());
+      const timeIndex=baseHeaders.findIndex(x=>x==='Время');
+      if(timeIndex<0)return;
+
+      const newHead=[];
+      baseHeaders.forEach((label,i)=>{
+        if(i===timeIndex){
+          for(let n=0;n<maxTimes;n++)newHead.push(`<th>Время ${n+1}</th>`);
+        }else if(label==='Режим')newHead.push('<th>Статус</th>');
+        else newHead.push(`<th>${escapeHtml(label)}</th>`);
       });
-    });ensureTimeDialog();
+      head.innerHTML=newHead.join('');
+
+      const sourceRows=[...tbody.querySelectorAll('tr')].filter(r=>!r.dataset.timeSubrow);
+      tbody.innerHTML='';
+      sourceRows.forEach((baseRow,rowIndex)=>{
+        const med=meds[rowIndex];
+        if(!med)return;
+        normalizeTimeStatuses(med);
+        const old=[...baseRow.querySelectorAll('td')];
+        if(old.length<15)return;
+
+        const times=(med.times||[]).filter(Boolean).slice().sort();
+        const timeCells=[];
+        for(let i=0;i<maxTimes;i++){
+          const time=times[i];
+          if(!time){timeCells.push('<td>—</td>');continue;}
+          const active=currentTimeStatus(med,time);
+          const plannedAt=getScheduledDateTime(currentLocalDate(),time);
+          timeCells.push(`<td><strong>${escapeHtml(time)}</strong><div class="inline" style="margin-top:6px"><button type="button" onclick="editMedicationTimeStatus('${med.id}','${escapeHtml(time)}')">Изменить</button><button type="button" onclick="showInputTimeHistory('${med.id}','${plannedAt}')">История</button></div><div style="margin-top:6px"><span class="status ${active?'success':'upcoming'}">${active?'Активно':'Пассивно'}</span></div></td>`);
+        }
+
+        const status=med.active!==false?'Активно':'Пассивно';
+        const statusClass=med.active!==false?'success':'upcoming';
+        const before=old.slice(0,timeIndex).map(td=>`<td>${td.innerHTML}</td>`).join('');
+        const afterStart=old[11]?.innerHTML||'—';
+        const afterEnd=old[12]?.innerHTML||'—';
+        const actions=`<div class="inline"><button type="button" onclick="openEditMedication('${med.id}')">Изменить препарат</button><button type="button" onclick="showRowHistory('${med.id}')">История препарата</button><button type="button" onclick="startMedicationCancellation('${med.id}')">Отменить</button></div>`;
+        const tr=document.createElement('tr');
+        tr.dataset.medicationId=med.id;
+        tr.innerHTML=before+timeCells.join('')+`<td>${afterStart}</td><td>${afterEnd}</td><td><span class="status ${statusClass}">${status}</span></td><td>${actions}</td>`;
+        tbody.appendChild(tr);
+      });
+    });
+    ensureTimeDialog();
   }
   const originalRenderInputPage=window.renderInputPage;if(typeof originalRenderInputPage==='function')window.renderInputPage=function(){originalRenderInputPage();restructureInputTable();};
   normalizeAll();
