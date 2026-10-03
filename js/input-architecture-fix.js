@@ -34,32 +34,8 @@
   function contentUnit(source){return medicationContentUnitLabel(source?.contentUnit,source?.contentUnitOther||'');}
   function intakeUnit(source){return medicationIntakeUnitLabel(source?.intakeUnit,source?.intakeUnitOther||'');}
 
-  window.openEditMedication=function(id){
-    window.__editingMedicationId=id;
-    const med=(getState().medications||[]).find(x=>x.id===id),dialog=document.getElementById('editDialog'),host=document.getElementById('editDialogContent');if(!med||!dialog||!host||med.cancelled)return;
-    dialog.querySelector('h2').textContent='Изменить данные препарата';
-    host.innerHTML=`<div class="form-grid">
-      <div><label>Препарат *</label><input id="general_name" value="${esc(med.name||'')}"></div>
-      <div><label>Производитель</label><input id="general_manufacturer" value="${esc(med.manufacturer||'')}"></div>
-      <div><label>Количественное содержание *</label><input id="general_contentValue" type="number" min="0" step="any" value="${esc(med.contentValue||'')}"></div>
-      <div><label>Единица содержания *</label><select id="general_contentUnit"><option value="mcg">мкг</option><option value="mg">мг</option><option value="g">г</option><option value="kg">кг</option><option value="ml">мл</option><option value="l">л</option><option value="%">%</option><option value="mg/ml">мг/мл</option><option value="mcg/ml">мкг/мл</option><option value="mg/g">мг/г</option><option value="IU">МЕ</option><option value="unit">ед.</option><option value="other">Другое</option></select></div>
-      <div><label>Количество приёма *</label><input id="general_intakeQuantity" type="number" min="0" step="any" value="${esc(med.intakeQuantity||'')}"></div>
-      <div><label>Единица приёма *</label><select id="general_intakeUnit"><option value="tablet">таблетка</option><option value="capsule">капсула</option><option value="ml">мл</option><option value="drop">капля</option><option value="teaspoon">чайная ложка</option><option value="tablespoon">столовая ложка</option><option value="dose">доза</option><option value="puff">впрыск</option><option value="ampoule">ампула</option><option value="vial">флакон</option><option value="packet">пакет</option><option value="sachet">саше</option><option value="suppository">суппозиторий</option><option value="patch">пластырь</option><option value="injection">инъекция</option><option value="unit">единица</option><option value="other">Другое</option></select></div>
-      <div class="full"><label>Детали *</label><textarea id="general_details">${esc(med.details||'')}</textarea></div>
-      <div class="full right"><button type="button" onclick="saveMedicationGeneralEdit('${med.id}')">Сохранить</button><button type="button" onclick="document.getElementById('editDialog').close()">Закрыть</button></div>
-    </div>`;
-    document.getElementById('general_contentUnit').value=med.contentUnit||'mg';document.getElementById('general_intakeUnit').value=med.intakeUnit||'tablet';dialog.showModal();
-  };
-
-  window.saveMedicationGeneralEdit=function(id){
-    const state=getState(),med=(state.medications||[]).find(x=>x.id===id);if(!med||med.cancelled)return;
-    const updated={name:document.getElementById('general_name')?.value.trim()||'',manufacturer:document.getElementById('general_manufacturer')?.value.trim()||'',contentValue:document.getElementById('general_contentValue')?.value.trim()||'',contentUnit:document.getElementById('general_contentUnit')?.value||'',intakeQuantity:document.getElementById('general_intakeQuantity')?.value.trim()||'',intakeUnit:document.getElementById('general_intakeUnit')?.value||'',details:document.getElementById('general_details')?.value.trim()||''};
-    if(!updated.name||!updated.contentValue||!updated.contentUnit||!updated.intakeQuantity||!updated.intakeUnit||!updated.details){alert('Заполните обязательные данные препарата.');return;}
-    const changes={};GENERAL_KEYS.forEach(k=>{if(Object.prototype.hasOwnProperty.call(updated,k)&&String(med[k]??'')!==String(updated[k]??''))changes[k]=updated[k];});
-    if(!Object.keys(changes).length){document.getElementById('editDialog')?.close();return;}
-    Object.assign(med,updated);med.dose=`${med.intakeQuantity} ${med.intakeUnit==='other'?(med.intakeUnitOther||''):med.intakeUnit}`;
-    if(!Array.isArray(med.rowHistory))med.rowHistory=[];med.rowHistory.push({at:nowISO(),action:'edited',changes,payload:'Изменены данные препарата.'});saveState(state);document.getElementById('editDialog')?.close();mount('input');
-  };
+  // Keep the full medication editor from medications.js active.
+  // This architecture layer must not replace it with a reduced general-fields-only dialog.
 
   function renderGeneralHistory(med,period){
     const rows=[];const created=createdEntry(med),snap=created?.snapshot||med;
