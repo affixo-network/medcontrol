@@ -215,7 +215,7 @@
         applyNonTemporal(med, updatedMedication);
         let effectiveTodayTemporal = null;
 
-        if (!temporalChanged(beforeTemporal, updatedMedication)) {
+        if (!scope || !temporalChanged(beforeTemporal, updatedMedication)) {
           applyTemporal(med, updatedMedication);
           delete med.temporalApplication;
         } else if (scope === 'today') {
@@ -241,8 +241,7 @@
         mount('input');
       };
 
-      if (temporalChanged(beforeTemporal, updatedMedication)) askScope(hasTakenToday(state, id), persist);
-      else persist(null);
+      persist(null);
     } catch (error) { showMedicationHint(error.message); }
   };
 
