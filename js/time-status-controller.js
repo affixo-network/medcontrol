@@ -92,10 +92,7 @@
         const timeCells=[];
         for(let i=0;i<maxTimes;i++){
           const time=times[i];
-          if(!time){timeCells.push('<td>—</td>');continue;}
-          const active=currentTimeStatus(med,time);
-          const plannedAt=getScheduledDateTime(currentLocalDate(),time);
-          timeCells.push(`<td><strong>${escapeHtml(time)}</strong><div class="inline" style="margin-top:6px"><button type="button" onclick="editMedicationTimeStatus('${med.id}','${escapeHtml(time)}')">Изменить</button><button type="button" onclick="showInputTimeHistory('${med.id}','${plannedAt}')">История</button></div><div style="margin-top:6px"><span class="status ${active?'success':'upcoming'}">${active?'Активно':'Пассивно'}</span></div></td>`);
+          timeCells.push(`<td><strong>${escapeHtml(time||'—')}</strong></td>`);
         }
 
         const status=med.active!==false?'Активно':'Пассивно';
@@ -103,7 +100,7 @@
         const before=old.slice(0,timeIndex).map(td=>`<td>${td.innerHTML}</td>`).join('');
         const afterStart=old[11]?.innerHTML||'—';
         const afterEnd=old[12]?.innerHTML||'—';
-        const actions=`<div class="inline"><button type="button" onclick="openEditMedication('${med.id}')">Изменить препарат</button><button type="button" onclick="showRowHistory('${med.id}')">История препарата</button><button type="button" onclick="startMedicationCancellation('${med.id}')">Отменить</button></div>`;
+        const actions=`<div class="inline"><button type="button" onclick="openEditMedication('${med.id}')">Изменить</button><button type="button" onclick="showRowHistory('${med.id}')">История</button><button type="button" onclick="startMedicationCancellation('${med.id}')">Отменить</button></div>`;
         const tr=document.createElement('tr');
         tr.dataset.medicationId=med.id;
         tr.innerHTML=before+timeCells.join('')+`<td>${afterStart}</td><td>${afterEnd}</td><td><span class="status ${statusClass}">${status}</span></td><td>${actions}</td>`;
