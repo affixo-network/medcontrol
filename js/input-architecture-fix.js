@@ -62,10 +62,30 @@
   };
 
   function renderGeneralHistory(med,period){
-    const rows=[];const created=createdEntry(med),snap=created?.snapshot||med;if(created&&inPeriod(created.at,period))rows.push({at:created.at,event:'Создано',s:snap});
-    (med.rowHistory||[]).filter(e=>e?.action==='edited'&&inPeriod(e.at,period)).forEach(e=>{const c=e.changes||{};if(c.timeStatus||e.scheduleScope||Object.keys(c).some(k=>['times','scheduleType','weekdays','explicitDates','startDate','endDate','active'].includes(k)))return;const general={};GENERAL_KEYS.forEach(k=>{if(Object.prototype.hasOwnProperty.call(c,k))general[k]=c[k];});if(Object.keys(general).length)rows.push({at:e.at,event:'Изменено',s:general});});
+    const rows=[];const created=createdEntry(med),snap=created?.snapshot||med;
+    const week={Mon:'Пн',Tue:'Вт',Wed:'Ср',Thu:'Чт',Fri:'Пт',Sat:'Сб',Sun:'Вс'};
+    const scheduleName=s=>s?.scheduleType==='weekdays'?'Дни недели':s?.scheduleType==='explicit_dates'?'Даты':'Каждый день';
+    const scheduleParams=s=>s?.scheduleType==='weekdays'?(s.weekdays||[]).map(x=>week[x]||x).join(', ')||'—':s?.scheduleType==='explicit_dates'?(s.explicitDates||[]).map(formatDate).join(', ')||'—':'Ежедневно';
+    const fullState=source=>({manufacturer:source?.manufacturer||'',contentValue:source?.contentValue||'',contentUnit:source?.contentUnit||'',contentUnitOther:source?.contentUnitOther||'',intakeQuantity:source?.intakeQuantity||'',intakeUnit:source?.intakeUnit||'',intakeUnitOther:source?.intakeUnitOther||'',details:source?.details||'',scheduleType:source?.scheduleType||'daily',weekdays:[...(source?.weekdays||[])],explicitDates:[...(source?.explicitDates||[])],times:[...(source?.times||[])],startDate:source?.startDate||'',endDate:source?.endDate||'',active:source?.active!==false});
+    let current=fullState(snap);
+    if(created&&inPeriod(created.at,period))rows.push({at:created.at,event:'Создано',s:fullState(current)});
+    (med.rowHistory||[]).filter(e=>e&&e!==created&&inPeriod(e.at,period)).sort((a,b)=>new Date(a.at)-new Date(b.at)).forEach(e=>{
+      const c=e.changes||{};
+      if(e.action==='cancelled'){current.active=false;rows.push({at:e.at,event:'Отменено',s:fullState(current)});return;}
+      if(e.action!=='edited')return;
+      Object.keys(c).forEach(k=>{if(k==='timeStatus')return;if(Array.isArray(c[k]))current[k]=[...c[k]];else current[k]=c[k];});
+      if(c.timeStatus){
+        const x=c.timeStatus, times=[...(current.times||[])];
+        if(x.deleted){const i=times.indexOf(x.oldTime||x.time);if(i>=0)times.splice(i,1);}
+        else if(x.oldTime&&x.newTime&&x.oldTime!==x.newTime){const i=times.indexOf(x.oldTime);if(i>=0)times[i]=x.newTime;}
+        current.times=[...new Set(times.filter(Boolean))].sort();
+      }
+      rows.push({at:e.at,event:'Изменено',s:fullState(current)});
+    });
     if(!rows.length)return '<p class="muted">В выбранном периоде изменений данных препарата нет.</p>';
-    return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th></tr></thead><tbody>${rows.sort((a,b)=>new Date(a.at)-new Date(b.at)).map(r=>`<tr><td>${esc(formatDateTime(r.at))}</td><td>${r.event}</td><td>${esc(r.s.manufacturer)}</td><td>${esc(r.s.contentValue)}</td><td>${Object.prototype.hasOwnProperty.call(r.s,'contentUnit')?esc(contentUnit(r.s)):'—'}</td><td>${esc(r.s.intakeQuantity)}</td><td>${Object.prototype.hasOwnProperty.call(r.s,'intakeUnit')?esc(intakeUnit(r.s)):'—'}</td><td>${esc(r.s.details)}</td></tr>`).join('')}</tbody></table>`;
+    const maxTimes=Math.max(1,...rows.map(r=>(r.s.times||[]).length));
+    const timeHeaders=Array.from({length:maxTimes},(_,i)=>`<th>Время ${i+1}</th>`).join('');
+    return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th>${timeHeaders}<th>Дата начала</th><th>Дата окончания</th><th>Статус</th></tr></thead><tbody>${rows.sort((a,b)=>new Date(a.at)-new Date(b.at)).map(r=>{const times=r.s.times||[];const timeCells=Array.from({length:maxTimes},(_,i)=>`<td>${esc(times[i]||'—')}</td>`).join('');return `<tr><td>${esc(formatDateTime(r.at))}</td><td>${esc(r.event)}</td><td>${esc(r.s.manufacturer)}</td><td>${esc(r.s.contentValue)}</td><td>${esc(contentUnit(r.s))}</td><td>${esc(r.s.intakeQuantity)}</td><td>${esc(intakeUnit(r.s))}</td><td>${esc(r.s.details)}</td><td>${esc(scheduleName(r.s))}</td><td>${esc(scheduleParams(r.s))}</td>${timeCells}<td>${r.s.startDate?esc(formatDate(r.s.startDate)):'—'}</td><td>${r.s.endDate?esc(formatDate(r.s.endDate)):'—'}</td><td>${r.s.active?'Активно':'Пассивно'}</td></tr>`;}).join('')}</tbody></table>`;
   }
   window.showRowHistory=function(id){window.__rowHistoryMedicationId=id;window.__rowHistoryPeriod='all';const med=(getState().medications||[]).find(x=>x.id===id),dialog=document.getElementById('rowHistoryDialog');if(!med||!dialog)return;dialog.querySelector('h2').textContent=`История препарата «${med.name}»`;refreshGeneralMedicationHistory();dialog.showModal();};
   window.refreshGeneralMedicationHistory=function(){const med=(getState().medications||[]).find(x=>x.id===window.__rowHistoryMedicationId),host=document.getElementById('rowHistoryContent');if(!med||!host)return;const p=document.getElementById('generalHistoryPeriod')?.value||window.__rowHistoryPeriod||'all';window.__rowHistoryPeriod=p;host.innerHTML=periodSelector('generalHistoryPeriod','refreshGeneralMedicationHistory()',p)+renderGeneralHistory(med,p);};
