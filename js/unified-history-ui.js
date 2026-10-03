@@ -18,12 +18,40 @@
   });}
   function simplifyGeneralHistory(html){
     const box=document.createElement('div');box.innerHTML=html;const table=box.querySelector('table');if(!table)return html;
-    const headers=[...table.querySelectorAll('thead th')];
-    const removeNames=new Set(['Объект изменения','Область изменения','Параметры расписания','Время','Дата начала','Статус']);
+    let headers=[...table.querySelectorAll('thead th')];
     const eventIndex=headers.findIndex(th=>th.textContent.trim()==='Событие');
     table.querySelectorAll('tbody tr').forEach(tr=>{const cell=tr.children[eventIndex];if(cell)cell.textContent=(cell.textContent.trim()==='Создано'?'Создано':'Изменено');});
+
+    const removeNames=new Set(['Объект изменения','Область изменения']);
     const remove=[];headers.forEach((th,i)=>{if(removeNames.has(th.textContent.trim()))remove.push(i);});
     remove.sort((a,b)=>b-a).forEach(i=>table.querySelectorAll('tr').forEach(tr=>tr.children[i]?.remove()));
+
+    headers=[...table.querySelectorAll('thead th')];
+    const timeIndex=headers.findIndex(th=>th.textContent.trim()==='Время');
+    if(timeIndex>=0){
+      const rows=[...table.querySelectorAll('tbody tr')];
+      const splitTimes=rows.map(tr=>(tr.children[timeIndex]?.textContent||'').split(',').map(v=>v.trim()).filter(v=>v&&v!=='—'));
+      const maxTimes=Math.max(1,...splitTimes.map(v=>v.length));
+      const headerRow=table.querySelector('thead tr');
+      const originalTimeHeader=headerRow.children[timeIndex];
+      for(let i=0;i<maxTimes;i++){
+        const th=document.createElement('th');
+        th.textContent=`Время ${i+1}`;
+        originalTimeHeader.before(th);
+      }
+      originalTimeHeader.remove();
+
+      rows.forEach((tr,rowIndex)=>{
+        const originalTimeCell=tr.children[timeIndex];
+        const values=splitTimes[rowIndex];
+        for(let i=0;i<maxTimes;i++){
+          const td=document.createElement('td');
+          td.textContent=values[i]||'—';
+          originalTimeCell.before(td);
+        }
+        originalTimeCell.remove();
+      });
+    }
     return box.innerHTML;
   }
   window.showRowHistory=function(id){const med=getState().medications.find(x=>x.id===id);if(!med)return;window.__rowHistoryMedicationId=id;const dialog=document.getElementById('rowHistoryDialog'),title=dialog?.querySelector('h2');if(title)title.textContent=`История препарата «${med.name}»`;refreshRowHistory();dialog?.showModal();};
