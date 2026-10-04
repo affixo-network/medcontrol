@@ -80,8 +80,9 @@
 
       const sourceRows=[...tbody.querySelectorAll('tr')].filter(r=>!r.dataset.timeSubrow);
       tbody.innerHTML='';
-      sourceRows.forEach((baseRow,rowIndex)=>{
-        const med=meds[rowIndex];
+      sourceRows.forEach((baseRow)=>{
+        const onclick=[...baseRow.querySelectorAll('button[onclick]')].map(b=>b.getAttribute('onclick')||'').join(' ');
+        const med=meds.find(item=>onclick.includes(`'${item.id}'`));
         if(!med)return;
         normalizeTimeStatuses(med);
         const old=[...baseRow.querySelectorAll('td')];
