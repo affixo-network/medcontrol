@@ -70,10 +70,21 @@
     else if(change.action==='time_added'||(!change.oldTime&&change.newTime)){addTime(slots,newTime);}
     (change.addedTimes||[]).forEach(t=>addTime(slots,t));
   }
-  function eventLabel(entry,change){
+  function eventLabel(entry,change,changes,beforeTimes,afterTimes){
     if(entry.action==='created')return 'Создано';
     if(entry.action==='cancelled')return 'Отменено';
-    if(change?.deleted)return 'Изменено';
+    if(change?.deleted)return 'Удалено';
+    if(change?.oldTime&&change?.newTime&&change.oldTime!==change.newTime)return 'Заменено';
+    if(typeof change?.active==='boolean')return change.active?'Активировано':'Деактивировано';
+    if(Object.prototype.hasOwnProperty.call(changes||{},'times')){
+      const b=(beforeTimes||[]).filter(Boolean),a=(afterTimes||[]).filter(Boolean);
+      const added=a.filter(v=>!b.includes(v)),removed=b.filter(v=>!a.includes(v));
+      if(added.length&&removed.length)return 'Заменено';
+      if(added.length)return 'Добавлено';
+      if(removed.length)return 'Удалено';
+    }
+    if(ruleChanged(changes)||datesChanged(changes))return 'Заменено';
+    if(Object.prototype.hasOwnProperty.call(changes||{},'active'))return changes.active?'Активировано':'Деактивировано';
     return 'Изменено';
   }
   function statusLabel(entry,change){
@@ -104,15 +115,17 @@
       const temporal=Boolean(tc||hasTimes||ruleChanged(changes)||datesChanged(changes)||Object.prototype.hasOwnProperty.call(changes,'active')||entry.action==='cancelled');
       if(!temporal)return;
 
+      const beforeTimes=[...slots];
       if(tc)applyTimeChange(slots,tc);
       if(hasTimes)reconcileTimes(slots,changes.times);
+      const afterTimes=[...slots];
       const showRule=ruleChanged(changes);
       const showDates=datesChanged(changes);
       rule=applyRuleChanges(rule,changes);
 
       rows.push({
         at:entry.at,
-        event:eventLabel(entry,tc),
+        event:eventLabel(entry,tc,changes,beforeTimes,afterTimes),
         schedule:showRule?scheduleName(rule):'',
         params:showRule?scheduleParams(rule):'',
         times:[...slots],
