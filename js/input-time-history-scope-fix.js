@@ -73,19 +73,28 @@
   function eventLabel(entry,change,changes,beforeTimes,afterTimes){
     if(entry.action==='created')return 'Создано';
     if(entry.action==='cancelled')return 'Отменено';
-    if(change?.deleted)return 'Удалено';
-    if(change?.oldTime&&change?.newTime&&change.oldTime!==change.newTime)return 'Заменено';
-    if(typeof change?.active==='boolean')return change.active?'Активировано':'Деактивировано';
-    if(Object.prototype.hasOwnProperty.call(changes||{},'times')){
-      const b=(beforeTimes||[]).filter(Boolean),a=(afterTimes||[]).filter(Boolean);
-      const added=a.filter(v=>!b.includes(v)),removed=b.filter(v=>!a.includes(v));
-      if(added.length&&removed.length)return 'Заменено';
-      if(added.length)return 'Добавлено';
-      if(removed.length)return 'Удалено';
+    const events=[];
+    const n=Math.max((beforeTimes||[]).length,(afterTimes||[]).length);
+    for(let i=0;i<n;i++){
+      const before=(beforeTimes||[])[i]??null,after=(afterTimes||[])[i]??null;
+      if(before===after)continue;
+      if(before==null&&after!=null)events.push(`Время ${i+1} добавлено`);
+      else if(before!=null&&after==null)events.push(`Время ${i+1} удалено`);
+      else events.push(`Время ${i+1} заменено`);
     }
-    if(ruleChanged(changes)||datesChanged(changes))return 'Заменено';
-    if(Object.prototype.hasOwnProperty.call(changes||{},'active'))return changes.active?'Активировано':'Деактивировано';
-    return 'Изменено';
+    if(change&&typeof change.active==='boolean'&&!change.deleted&&!(change.oldTime&&change.newTime&&change.oldTime!==change.newTime)){
+      const t=change.time||change.oldTime||change.newTime||'';
+      const slot=Math.max(0,(beforeTimes||[]).findIndex(v=>v===t));
+      events.push(`Время ${slot+1} ${change.active?'активировано':'деактивировано'}`);
+    }
+    if(ruleChanged(changes)){
+      if(Object.prototype.hasOwnProperty.call(changes||{},'scheduleType'))events.push('Расписание заменено');
+      if(Object.prototype.hasOwnProperty.call(changes||{},'weekdays')||Object.prototype.hasOwnProperty.call(changes||{},'explicitDates'))events.push('Параметры расписания заменены');
+    }
+    if(Object.prototype.hasOwnProperty.call(changes||{},'startDate'))events.push(changes.startDate?'Дата начала заменена':'Дата начала удалена');
+    if(Object.prototype.hasOwnProperty.call(changes||{},'endDate'))events.push(changes.endDate?'Дата окончания заменена':'Дата окончания удалена');
+    if(Object.prototype.hasOwnProperty.call(changes||{},'active'))events.push(changes.active?'Препарат активирован':'Препарат деактивирован');
+    return events.join('; ')||'Изменено';
   }
   function statusLabel(entry,change){
     if(entry.action==='cancelled')return 'Отменено';
