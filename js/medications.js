@@ -865,6 +865,10 @@ window.openEditMedication = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
   if (med.cancelled) return;
+  if (med.active === false) {
+    alert('Пассивный препарат нельзя изменять. Сначала активируйте препарат.');
+    return;
+  }
   const normalizedPeriod = typeof window.medicationPeriodDates === 'function'
     ? window.medicationPeriodDates(med)
     : { startDate: med.startDate || '', endDate: med.endDate || '' };
