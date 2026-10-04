@@ -321,8 +321,17 @@ window.validateWeekdayBoundaryInput=function(prefix,boundary){
   if(!input?.value||!weekdays.length)return true;
   const date=parseIsoLocal(input.value);
   if(date&&weekdayAllowed(date,weekdays))return true;
+
+  if(boundary==='start'){
+    const today=typeof currentLocalDate==='function'?currentLocalDate():'';
+    const base=(today&&input.value<today)?today:input.value;
+    const next=nearestAllowedOnOrAfter(base,weekdays);
+    alert(`Подсказка\n\nВыбранная дата начала не соответствует дням недели расписания. Ближайшая допустимая дата начала: ${next?formatDate(next):'—'}.`);
+    return false;
+  }
+
   const options=nearestAllowedAround(input.value,weekdays).map(formatDate).join(' или ');
-  alert(`Подсказка\n\nВыбранная ${boundary==='start'?'дата начала':'дата окончания'} не соответствует дням недели расписания. Ближайшие допустимые даты: ${options||'—'}.`);
+  alert(`Подсказка\n\nВыбранная дата окончания не соответствует дням недели расписания. Ближайшие допустимые даты: ${options||'—'}.`);
   return false;
 };
 
