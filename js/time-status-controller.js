@@ -13,8 +13,8 @@
   function currentTimeStatus(med,time){normalizeTimeStatuses(med);return med.timeStatuses?.[time]!==false;}
   function timeStatusAt(med,time,plannedMs){const history=(med?.timeStatusHistory||[]).filter(item=>item&&item.time===time).map(item=>({item,ms:new Date(item.at||0).getTime()})).filter(x=>Number.isFinite(x.ms)&&x.ms<=plannedMs).sort((a,b)=>a.ms-b.ms);let active=true;history.forEach(x=>{if(typeof x.item.active==='boolean')active=x.item.active;});return active;}
   function normalizedScheduleType(med){return med?.scheduleType||((med?.explicitDates||[]).length?'explicit_dates':(med?.weekdays||[]).length?'weekdays':'daily');}
-  function baseStartDate(med){return normalizedScheduleType(med)==='daily'&&med?.startDate?formatDate(med.startDate):'—';}
-  function baseEndDate(med){return normalizedScheduleType(med)==='explicit_dates'?'—':med?.endDate?formatDate(med.endDate):'—';}
+  function baseStartDate(med){const type=normalizedScheduleType(med),explicit=[...(med?.explicitDates||[])].sort();const value=type==='explicit_dates'?(explicit[0]||med?.startDate||''):(med?.startDate||'');return value?formatDate(value):'—';}
+  function baseEndDate(med){const type=normalizedScheduleType(med),explicit=[...(med?.explicitDates||[])].sort();const value=type==='explicit_dates'?(explicit[explicit.length-1]||med?.endDate||''):(med?.endDate||'');return value?formatDate(value):'—';}
   function scopeFor(med){const app=med?.temporalApplication,today=typeof currentLocalDate==='function'?currentLocalDate():'';return app&&app.date===today&&['today','future','today_future'].includes(app.scope)?app:null;}
   function diff(a,b){const other=new Set(Array.isArray(b)?b:[]);return (Array.isArray(a)?a:[]).filter(x=>!other.has(x));}
   function timeRowsForMedication(med){
