@@ -14,12 +14,16 @@
   function within(at,p){const c=cutoff(p);return c===null||new Date(at).getTime()>=c;}
   function selector(p){return `<div class="inline" style="margin-bottom:12px"><label>Период</label><select id="timeHistoryPeriod" onchange="refreshInputTimeHistory()">${Object.entries(PERIODS).map(([v,l])=>`<option value="${v}" ${v===p?'selected':''}>${l}</option>`).join('')}</select></div>`;}
   function cloneRule(source){
+    const type=source?.scheduleType||'daily';
+    const explicit=[...(source?.explicitDates||[])].sort();
+    const start=type==='explicit_dates'&&explicit.length?explicit[0]:(source?.startDate||'');
+    const end=type==='explicit_dates'&&explicit.length?explicit[explicit.length-1]:(source?.endDate||'');
     return {
-      scheduleType:source?.scheduleType||'daily',
+      scheduleType:type,
       weekdays:[...(source?.weekdays||[])],
-      explicitDates:[...(source?.explicitDates||[])],
-      startDate:source?.startDate||'',
-      endDate:source?.endDate||''
+      explicitDates:explicit,
+      startDate:start,
+      endDate:end
     };
   }
   function applyRuleChanges(rule,changes){
