@@ -304,6 +304,9 @@ const details = document.getElementById(`${prefix}details`)?.value.trim() || '';
   const active = Boolean(document.getElementById(`${prefix}active`)?.checked);
   const weekdays = scheduleType === 'weekdays' ? readHiddenList(`${prefix}weekdays`) : [];
   const explicitDates = scheduleType === 'explicit_dates' ? readHiddenList(`${prefix}explicitDates`) : [];
+  const normalizedExplicitDates = [...new Set(explicitDates)].sort();
+  const derivedStartDate = scheduleType === 'explicit_dates' && normalizedExplicitDates.length ? normalizedExplicitDates[0] : startDate;
+  const derivedEndDate = scheduleType === 'explicit_dates' && normalizedExplicitDates.length ? normalizedExplicitDates[normalizedExplicitDates.length - 1] : endDate;
 
   if (!name) throw new Error('name');
 
@@ -388,15 +391,9 @@ return {
 
   times: [...new Set(times)].sort(),
 
-  startDate:
-    scheduleType === 'explicit_dates'
-      ? ''
-      : startDate,
+  startDate: derivedStartDate,
 
-  endDate:
-    scheduleType === 'explicit_dates'
-      ? ''
-      : endDate,
+  endDate: derivedEndDate,
 
   active,
 
@@ -407,7 +404,7 @@ return {
 
   explicitDates:
     scheduleType === 'explicit_dates'
-      ? [...new Set(explicitDates)].sort()
+      ? normalizedExplicitDates
       : []
 };}
 
@@ -1014,9 +1011,7 @@ const scheduleText = item.scheduleType === 'daily'
     ? `${tr('weekdays')}: ${item.weekdays.map(day => weekdayLabels[day] || day).join(', ')}`
     : `${tr('dates')}: ${item.explicitDates.map(formatDate).join(', ')}`;
 
-const periodText = item.scheduleType === 'explicit_dates'
-  ? tr('explicit_dates')
-  : `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
+const periodText = `${formatDate(item.startDate)} → ${formatDate(item.endDate)}`;
 
     const contentUnitText =
   medicationContentUnitLabel(
