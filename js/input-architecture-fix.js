@@ -44,10 +44,22 @@
     const scheduleParams=s=>s?.scheduleType==='weekdays'?(s.weekdays||[]).map(x=>week[x]||x).join(', ')||'—':s?.scheduleType==='explicit_dates'?(s.explicitDates||[]).map(formatDate).join(', ')||'—':'Ежедневно';
     const state=s=>({manufacturer:s?.manufacturer||'',contentValue:s?.contentValue||'',contentUnit:s?.contentUnit||'',contentUnitOther:s?.contentUnitOther||'',intakeQuantity:s?.intakeQuantity||'',intakeUnit:s?.intakeUnit||'',intakeUnitOther:s?.intakeUnitOther||'',details:s?.details||'',scheduleType:s?.scheduleType||'daily',weekdays:[...(s?.weekdays||[])],explicitDates:[...(s?.explicitDates||[])],times:[...(s?.times||[])],startDate:s?.startDate||'',endDate:s?.endDate||'',active:s?.active!==false});
     const blank=()=>({manufacturer:0,contentValue:0,contentUnit:0,intakeQuantity:0,intakeUnit:0,details:0,schedule:0,params:0,times:0,timeMask:[],startDate:0,endDate:0,status:0});
+    const isEmpty=v=>v===undefined||v===null||v===''||(Array.isArray(v)&&v.length===0);
+    const classifyValues=(before,after)=>{
+      if(JSON.stringify(before)===JSON.stringify(after))return '';
+      if(isEmpty(before)&&!isEmpty(after))return 'Добавлено';
+      if(!isEmpty(before)&&isEmpty(after))return 'Удалено';
+      return 'Заменено';
+    };
+    const eventFromOps=ops=>{
+      const order=['Добавлено','Заменено','Удалено','Активировано','Деактивировано'];
+      const unique=[...new Set(ops.filter(Boolean))];
+      return order.filter(x=>unique.includes(x)).join(' / ')||'Изменено';
+    };
     let current=state(snap);
     if(created&&inPeriod(created.at,period))rows.push({at:created.at,event:'Создано',s:state(current),show:{manufacturer:1,contentValue:1,contentUnit:1,intakeQuantity:1,intakeUnit:1,details:1,schedule:1,params:1,times:1,timeMask:'all',startDate:1,endDate:1,status:1}});
     (med.rowHistory||[]).filter(e=>e&&e!==created&&inPeriod(e.at,period)).sort((a,b)=>new Date(a.at)-new Date(b.at)).forEach(e=>{
-      const c=e.changes||{},show=blank(),beforeTimes=[...(current.times||[])];
+      const c=e.changes||{},show=blank(),beforeState=state(current),beforeTimes=[...(current.times||[])];
       if(e.action==='cancelled'){current.active=false;show.status=1;rows.push({at:e.at,event:'Отменено',s:state(current),show});return;}
       if(e.action!=='edited')return;
       show.manufacturer='manufacturer'in c; show.contentValue='contentValue'in c;
@@ -76,7 +88,25 @@
       }
       if(show.times){const afterTimes=[...(current.times||[])],n=Math.max(beforeTimes.length,afterTimes.length);show.timeMask=Array.from({length:n},(_,i)=>beforeTimes[i]!==afterTimes[i]);}
       if(show.schedule&&!show.params)show.params=1;
-      rows.push({at:e.at,event:'Изменено',s:state(current),show});
+      const afterState=state(current),ops=[];
+      if(c.timeStatus){
+        const x=c.timeStatus;
+        if(x.deleted)ops.push('Удалено');
+        else if(x.oldTime&&x.newTime&&x.oldTime!==x.newTime)ops.push('Заменено');
+        else if(typeof x.active==='boolean')ops.push(x.active?'Активировано':'Деактивировано');
+      }
+      if(Object.prototype.hasOwnProperty.call(c,'times')){
+        const b=beforeTimes.filter(Boolean),a=(afterState.times||[]).filter(Boolean);
+        const added=a.filter(v=>!b.includes(v)),removed=b.filter(v=>!a.includes(v));
+        if(added.length&&removed.length)ops.push('Заменено');
+        else if(added.length)ops.push('Добавлено');
+        else if(removed.length)ops.push('Удалено');
+      }
+      ['manufacturer','contentValue','contentUnit','contentUnitOther','intakeQuantity','intakeUnit','intakeUnitOther','details','scheduleType','weekdays','explicitDates','startDate','endDate'].forEach(k=>{
+        if(Object.prototype.hasOwnProperty.call(c,k))ops.push(classifyValues(beforeState[k],afterState[k]));
+      });
+      if(Object.prototype.hasOwnProperty.call(c,'active'))ops.push(afterState.active?'Активировано':'Деактивировано');
+      rows.push({at:e.at,event:eventFromOps(ops),s:afterState,show});
     });
     if(!rows.length)return '<p class="muted">В выбранном периоде изменений данных препарата нет.</p>';
     const maxTimes=Math.max(1,...rows.map(r=>r.s.times.length)),timeHeaders=Array.from({length:maxTimes},(_,i)=>`<th>Время ${i+1}</th>`).join('');
