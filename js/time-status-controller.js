@@ -60,8 +60,7 @@
     const meds=(state.medications||[]).filter(med=>!med.cancelled).slice().sort((a,b)=>(a.order||0)-(b.order||0));
     document.querySelectorAll('section').forEach(section=>{
       const title=section.querySelector('h2')?.textContent?.trim();
-      if(title==='Пассивные препараты'){section.remove();return;}
-      if(title!=='Активные препараты')return;
+      if(!['Активные препараты','Пассивные препараты','Препараты'].includes(title))return;
       const table=section.querySelector('table'),head=table?.querySelector('thead tr'),tbody=table?.querySelector('tbody');
       if(!table||!head||!tbody)return;
 
