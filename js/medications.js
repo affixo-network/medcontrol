@@ -451,10 +451,17 @@ function syncScheduleFields(prefix) {
     ? 'none'
     : 'block';
 
-endWrap.style.display =
-  type === 'explicit_dates'
-    ? 'none'
-    : 'block';
+  endWrap.style.display =
+    type === 'explicit_dates'
+      ? 'none'
+      : 'block';
+
+  if (type !== 'explicit_dates') {
+    const startInput = document.getElementById(`${prefix}startDate`);
+    if (startInput && !startInput.value && typeof currentLocalDate === 'function') {
+      startInput.value = currentLocalDate();
+    }
+  }
 }
 
 window.syncCreateScheduleFields = function() { syncScheduleFields('create_'); };
@@ -621,7 +628,7 @@ window.guardMedicationSequence = function(prefix, targetKey) {
   code: 'startDate',
   elementId: 'startDate',
   valid: () =>
-    scheduleType !== 'daily' ||
+    scheduleType === 'explicit_dates' ||
     Boolean(valueOf('startDate'))
 },
 {
