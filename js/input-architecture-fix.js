@@ -45,16 +45,19 @@
     const state=s=>({manufacturer:s?.manufacturer||'',contentValue:s?.contentValue||'',contentUnit:s?.contentUnit||'',contentUnitOther:s?.contentUnitOther||'',intakeQuantity:s?.intakeQuantity||'',intakeUnit:s?.intakeUnit||'',intakeUnitOther:s?.intakeUnitOther||'',details:s?.details||'',scheduleType:s?.scheduleType||'daily',weekdays:[...(s?.weekdays||[])],explicitDates:[...(s?.explicitDates||[])],times:[...(s?.times||[])],startDate:s?.startDate||'',endDate:s?.endDate||'',active:s?.active!==false});
     const blank=()=>({manufacturer:0,contentValue:0,contentUnit:0,intakeQuantity:0,intakeUnit:0,details:0,schedule:0,params:0,times:0,timeMask:[],startDate:0,endDate:0,status:0});
     const isEmpty=v=>v===undefined||v===null||v===''||(Array.isArray(v)&&v.length===0);
-    const classifyValues=(before,after)=>{
+    const changeKind=(before,after)=>{
       if(JSON.stringify(before)===JSON.stringify(after))return '';
-      if(isEmpty(before)&&!isEmpty(after))return 'Добавлено';
-      if(!isEmpty(before)&&isEmpty(after))return 'Удалено';
-      return 'Заменено';
+      if(isEmpty(before)&&!isEmpty(after))return 'added';
+      if(!isEmpty(before)&&isEmpty(after))return 'deleted';
+      return 'replaced';
     };
-    const eventFromOps=ops=>{
-      const order=['Добавлено','Заменено','Удалено','Активировано','Деактивировано'];
-      const unique=[...new Set(ops.filter(Boolean))];
-      return order.filter(x=>unique.includes(x)).join(' / ')||'Изменено';
+    const fieldEvent=(label,kind,gender='n')=>{
+      const forms={
+        added:{m:'добавлен',f:'добавлена',n:'добавлено',p:'добавлены'},
+        deleted:{m:'удалён',f:'удалена',n:'удалено',p:'удалены'},
+        replaced:{m:'заменён',f:'заменена',n:'заменено',p:'заменены'}
+      };
+      return kind?`${label} ${forms[kind][gender]}`:'';
     };
     let current=state(snap);
     if(created&&inPeriod(created.at,period))rows.push({at:created.at,event:'Создано',s:state(current),show:{manufacturer:1,contentValue:1,contentUnit:1,intakeQuantity:1,intakeUnit:1,details:1,schedule:1,params:1,times:1,timeMask:'all',startDate:1,endDate:1,status:1}});
@@ -88,25 +91,45 @@
       }
       if(show.times){const afterTimes=[...(current.times||[])],n=Math.max(beforeTimes.length,afterTimes.length);show.timeMask=Array.from({length:n},(_,i)=>beforeTimes[i]!==afterTimes[i]);}
       if(show.schedule&&!show.params)show.params=1;
-      const afterState=state(current),ops=[];
-      if(c.timeStatus){
-        const x=c.timeStatus;
-        if(x.deleted)ops.push('Удалено');
-        else if(x.oldTime&&x.newTime&&x.oldTime!==x.newTime)ops.push('Заменено');
-        else if(typeof x.active==='boolean')ops.push(x.active?'Активировано':'Деактивировано');
+      const afterState=state(current),events=[];
+      const n=Math.max(beforeTimes.length,(afterState.times||[]).length);
+      if(show.times){
+        for(let i=0;i<n;i++){
+          const before=beforeTimes[i]??null,after=(afterState.times||[])[i]??null;
+          const kind=changeKind(before,after);
+          if(kind)events.push(fieldEvent(`Время ${i+1}`,kind,'n'));
+        }
       }
-      if(Object.prototype.hasOwnProperty.call(c,'times')){
-        const b=beforeTimes.filter(Boolean),a=(afterState.times||[]).filter(Boolean);
-        const added=a.filter(v=>!b.includes(v)),removed=b.filter(v=>!a.includes(v));
-        if(added.length&&removed.length)ops.push('Заменено');
-        else if(added.length)ops.push('Добавлено');
-        else if(removed.length)ops.push('Удалено');
+      if(c.timeStatus&&typeof c.timeStatus.active==='boolean'&&!c.timeStatus.deleted&&!(c.timeStatus.oldTime&&c.timeStatus.newTime&&c.timeStatus.oldTime!==c.timeStatus.newTime)){
+        const time=c.timeStatus.time||c.timeStatus.oldTime||c.timeStatus.newTime||'';
+        const slot=Math.max(0,beforeTimes.findIndex(v=>v===time));
+        events.push(`Время ${slot+1} ${c.timeStatus.active?'активировано':'деактивировано'}`);
       }
-      ['manufacturer','contentValue','contentUnit','contentUnitOther','intakeQuantity','intakeUnit','intakeUnitOther','details','scheduleType','weekdays','explicitDates','startDate','endDate'].forEach(k=>{
-        if(Object.prototype.hasOwnProperty.call(c,k))ops.push(classifyValues(beforeState[k],afterState[k]));
+
+      const fieldSpecs=[
+        ['manufacturer','Производитель','m'],
+        ['contentValue','Количественное содержание','n'],
+        ['intakeQuantity','Количество приёма','n'],
+        ['details','Детали','p'],
+        ['scheduleType','Расписание','n'],
+        ['startDate','Дата начала','f'],
+        ['endDate','Дата окончания','f']
+      ];
+      fieldSpecs.forEach(([key,label,gender])=>{
+        if(Object.prototype.hasOwnProperty.call(c,key))events.push(fieldEvent(label,changeKind(beforeState[key],afterState[key]),gender));
       });
-      if(Object.prototype.hasOwnProperty.call(c,'active'))ops.push(afterState.active?'Активировано':'Деактивировано');
-      rows.push({at:e.at,event:eventFromOps(ops),s:afterState,show});
+      if(Object.prototype.hasOwnProperty.call(c,'contentUnit')||Object.prototype.hasOwnProperty.call(c,'contentUnitOther')){
+        events.push(fieldEvent('Единица содержания',changeKind(contentUnit(beforeState),contentUnit(afterState)),'f'));
+      }
+      if(Object.prototype.hasOwnProperty.call(c,'intakeUnit')||Object.prototype.hasOwnProperty.call(c,'intakeUnitOther')){
+        events.push(fieldEvent('Единица приёма',changeKind(intakeUnit(beforeState),intakeUnit(afterState)),'f'));
+      }
+      if(Object.prototype.hasOwnProperty.call(c,'weekdays')||Object.prototype.hasOwnProperty.call(c,'explicitDates')||Object.prototype.hasOwnProperty.call(c,'scheduleType')){
+        events.push(fieldEvent('Параметры расписания',changeKind(scheduleParams(beforeState),scheduleParams(afterState)),'p'));
+      }
+      if(Object.prototype.hasOwnProperty.call(c,'active'))events.push(afterState.active?'Препарат активирован':'Препарат деактивирован');
+
+      rows.push({at:e.at,event:events.filter(Boolean).join('; ')||'Изменено',s:afterState,show});
     });
     if(!rows.length)return '<p class="muted">В выбранном периоде изменений данных препарата нет.</p>';
     const maxTimes=Math.max(1,...rows.map(r=>r.s.times.length)),timeHeaders=Array.from({length:maxTimes},(_,i)=>`<th>Время ${i+1}</th>`).join('');
