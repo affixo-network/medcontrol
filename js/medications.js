@@ -856,6 +856,9 @@ window.openEditMedication = function(id) {
   const med = getState().medications.find(item => item.id === id);
   if (!med) return;
   if (med.cancelled) return;
+  const normalizedPeriod = typeof window.medicationPeriodDates === 'function'
+    ? window.medicationPeriodDates(med)
+    : { startDate: med.startDate || '', endDate: med.endDate || '' };
   const dialog = document.getElementById('editDialog');
   const content = document.getElementById('editDialogContent');
   content.innerHTML = `<div class="form-grid">
@@ -991,8 +994,8 @@ window.openEditMedication = function(id) {
     ${structuredTimeEditorHtml('edit_', med.times || [])}
     ${structuredWeekdayEditorHtml('edit_', med.weekdays || [])}
     ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
-    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" onchange="validateWeekdayBoundaryInput('edit_','start')" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.startDate || '')}"></div>
-    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" onchange="validateWeekdayBoundaryInput('edit_','end')" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.endDate || '')}"></div>
+    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" onchange="validateWeekdayBoundaryInput('edit_','start')" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(normalizedPeriod.startDate || '')}"></div>
+    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" onchange="validateWeekdayBoundaryInput('edit_','end')" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(normalizedPeriod.endDate || '')}"></div>
     <div class="full right">
   <button onclick="saveMedicationEdit('${med.id}')">
     ${escapeHtml(tr('save'))}
