@@ -338,7 +338,7 @@ if (intakeUnit === 'other' && !intakeUnitOther) {
 if (!details) throw new Error('details');
 if (!times.length) throw new Error('times');
 
-if (scheduleType === 'daily') {
+if (scheduleType === 'daily' || scheduleType === 'weekdays') {
   if (!startDate) {
     throw new Error('startDate');
   }
@@ -354,7 +354,6 @@ if (scheduleType === 'daily') {
 
 if (scheduleType === 'weekdays') {
   if (!weekdays.length) throw new Error('weekdays');
-  if (!endDate) throw new Error('endDate');
 }
 
 if (scheduleType === 'explicit_dates' && !explicitDates.length) {
@@ -390,9 +389,9 @@ return {
   times: [...new Set(times)].sort(),
 
   startDate:
-    scheduleType === 'daily'
-      ? startDate
-      : '',
+    scheduleType === 'explicit_dates'
+      ? ''
+      : startDate,
 
   endDate:
     scheduleType === 'explicit_dates'
@@ -451,9 +450,9 @@ function syncScheduleFields(prefix) {
   weekdaysWrap.style.display = type === 'weekdays' ? 'block' : 'none';
   datesWrap.style.display = type === 'explicit_dates' ? 'block' : 'none';
   startWrap.style.display =
-  type === 'daily'
-    ? 'block'
-    : 'none';
+  type === 'explicit_dates'
+    ? 'none'
+    : 'block';
 
 endWrap.style.display =
   type === 'explicit_dates'
