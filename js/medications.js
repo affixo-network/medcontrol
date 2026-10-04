@@ -187,6 +187,7 @@ window.syncStructuredWeekdays = function(prefix) {
   if (element) {
     element.value = values.join(',');
   }
+  window.syncWeekdayPeriodDefaults(prefix);
 };
 
 window.renderStructuredDates = function(prefix) {
@@ -254,6 +255,76 @@ function medicationContentUnitLabel(unit, otherValue = '') {
 
   return labels[unit] || unit || '—';
 }
+
+const MED_WEEKDAY_JS={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+
+function isoDateLocal(date){
+  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function parseIsoLocal(value){
+  const m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m)return null;
+  const d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+  return Number.isNaN(d.getTime())?null:d;
+}
+function weekdayAllowed(date,weekdays){
+  const allowed=new Set((weekdays||[]).map(x=>MED_WEEKDAY_JS[x]));
+  return allowed.has(date.getDay());
+}
+function nearestAllowedOnOrAfter(value,weekdays){
+  const d=parseIsoLocal(value); if(!d||(weekdays||[]).length===0)return '';
+  for(let i=0;i<7;i++){const x=new Date(d);x.setDate(d.getDate()+i);if(weekdayAllowed(x,weekdays))return isoDateLocal(x);}
+  return '';
+}
+function nearestAllowedAround(value,weekdays){
+  const d=parseIsoLocal(value); if(!d||(weekdays||[]).length===0)return [];
+  const out=[];
+  for(let dist=1;dist<=7&&out.length<2;dist++){
+    const prev=new Date(d);prev.setDate(d.getDate()-dist);
+    const next=new Date(d);next.setDate(d.getDate()+dist);
+    if(weekdayAllowed(prev,weekdays))out.push(isoDateLocal(prev));
+    if(out.length<2&&weekdayAllowed(next,weekdays))out.push(isoDateLocal(next));
+  }
+  return [...new Set(out)].sort();
+}
+window.medicationPeriodDates=function(source){
+  const type=source?.scheduleType||'daily';
+  if(type==='explicit_dates'){
+    const dates=[...(source?.explicitDates||[])].filter(Boolean).sort();
+    return {startDate:dates[0]||source?.startDate||'',endDate:dates[dates.length-1]||source?.endDate||''};
+  }
+  if(type==='weekdays'){
+    const weekdays=source?.weekdays||[];
+    const start=source?.startDate?nearestAllowedOnOrAfter(source.startDate,weekdays):'';
+    return {startDate:start||source?.startDate||'',endDate:source?.endDate||''};
+  }
+  return {startDate:source?.startDate||'',endDate:source?.endDate||''};
+};
+window.syncWeekdayPeriodDefaults=function(prefix){
+  const type=document.getElementById(`${prefix}scheduleType`)?.value;
+  if(type!=='weekdays')return;
+  const weekdays=readHiddenList(`${prefix}weekdays`);
+  if(!weekdays.length)return;
+  const start=document.getElementById(`${prefix}startDate`);
+  if(start){
+    const base=start.value||(typeof currentLocalDate==='function'?currentLocalDate():'');
+    const next=nearestAllowedOnOrAfter(base,weekdays);
+    if(next)start.value=next;
+  }
+};
+window.validateWeekdayBoundaryInput=function(prefix,boundary){
+  const type=document.getElementById(`${prefix}scheduleType`)?.value;
+  if(type!=='weekdays')return true;
+  const weekdays=readHiddenList(`${prefix}weekdays`);
+  const input=document.getElementById(`${prefix}${boundary}Date`);
+  if(!input?.value||!weekdays.length)return true;
+  const date=parseIsoLocal(input.value);
+  if(date&&weekdayAllowed(date,weekdays))return true;
+  const options=nearestAllowedAround(input.value,weekdays).map(formatDate).join(' или ');
+  alert(`Подсказка\n\nВыбранная ${boundary==='start'?'дата начала':'дата окончания'} не соответствует дням недели расписания. Ближайшие допустимые даты: ${options||'—'}.`);
+  return false;
+};
 
 function medicationIntakeUnitLabel(unit, otherValue = '') {
   if (unit === 'other') {
@@ -357,6 +428,8 @@ if (scheduleType === 'daily' || scheduleType === 'weekdays') {
 
 if (scheduleType === 'weekdays') {
   if (!weekdays.length) throw new Error('weekdays');
+  if (!window.validateWeekdayBoundaryInput(prefix,'start')) throw new Error('handled');
+  if (!window.validateWeekdayBoundaryInput(prefix,'end')) throw new Error('handled');
 }
 
 if (scheduleType === 'explicit_dates' && !explicitDates.length) {
@@ -434,6 +507,7 @@ endDate: 'Дата окончания не заполнена.',
   temporal_schedule_locked: 'Для изменения Расписания вначале отмените Расписание в разделе «Приём препаратов».',
   temporal_time_locked: 'Для изменения времени приёма вначале отмените время приёма в разделе «Приём препаратов».'
 };
+ if(code==='handled') return;
  alert(`${tr('hint_title')}\n\n${messages[code] || messages.save_failed}`);
 }
 
@@ -456,12 +530,11 @@ function syncScheduleFields(prefix) {
       ? 'none'
       : 'block';
 
-  if (type !== 'explicit_dates') {
+  if (type === 'daily') {
     const startInput = document.getElementById(`${prefix}startDate`);
-    if (startInput && !startInput.value && typeof currentLocalDate === 'function') {
-      startInput.value = currentLocalDate();
-    }
+    if (startInput && !startInput.value && typeof currentLocalDate === 'function') startInput.value = currentLocalDate();
   }
+  if (type === 'weekdays') window.syncWeekdayPeriodDefaults(prefix);
 }
 
 window.syncCreateScheduleFields = function() { syncScheduleFields('create_'); };
@@ -918,8 +991,8 @@ window.openEditMedication = function(id) {
     ${structuredTimeEditorHtml('edit_', med.times || [])}
     ${structuredWeekdayEditorHtml('edit_', med.weekdays || [])}
     ${structuredDateEditorHtml('edit_', med.explicitDates || [])}
-    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.startDate || '')}"></div>
-    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.endDate || '')}"></div>
+    <div id="edit_start_wrap"><label>${escapeHtml(tr('start_date'))} *</label><input id="edit_startDate" type="date" onchange="validateWeekdayBoundaryInput('edit_','start')" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.startDate || '')}"></div>
+    <div id="edit_end_wrap"><label>${escapeHtml(tr('end_date'))} *</label><input id="edit_endDate" type="date" onchange="validateWeekdayBoundaryInput('edit_','end')" onfocus="if(!guardTemporalEdit('schedule')) this.blur()" value="${escapeHtml(med.endDate || '')}"></div>
     <div class="full right">
   <button onclick="saveMedicationEdit('${med.id}')">
     ${escapeHtml(tr('save'))}
