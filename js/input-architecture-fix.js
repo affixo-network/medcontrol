@@ -55,8 +55,25 @@
       show.intakeUnit='intakeUnit'in c||'intakeUnitOther'in c; show.details='details'in c;
       show.schedule='scheduleType'in c; show.params='weekdays'in c||'explicitDates'in c;
       show.times='times'in c||Boolean(c.timeStatus); show.startDate='startDate'in c; show.endDate='endDate'in c; show.status='active'in c;
-      Object.keys(c).forEach(k=>{if(k==='timeStatus')return;current[k]=Array.isArray(c[k])?[...c[k]]:c[k];});
-      if(c.timeStatus){const x=c.timeStatus,t=[...(current.times||[])];if(x.deleted){const i=t.indexOf(x.oldTime||x.time);if(i>=0)t.splice(i,1);}else if(x.oldTime&&x.newTime&&x.oldTime!==x.newTime){const i=t.indexOf(x.oldTime);if(i>=0)t[i]=x.newTime;}current.times=[...new Set(t.filter(Boolean))].sort();}
+      Object.keys(c).forEach(k=>{if(k==='timeStatus'||k==='times')return;current[k]=Array.isArray(c[k])?[...c[k]]:c[k];});
+      if(Object.prototype.hasOwnProperty.call(c,'times')){
+        const desired=[...new Set((c.times||[]).filter(Boolean))].sort();
+        const slots=[...(current.times||[])];
+        const active=slots.filter(Boolean);
+        const removed=active.filter(t=>!desired.includes(t));
+        const added=desired.filter(t=>!active.includes(t));
+        const pairs=Math.min(removed.length,added.length);
+        for(let i=0;i<pairs;i++){const pos=slots.indexOf(removed[i]);if(pos>=0)slots[pos]=added[i];}
+        for(let i=pairs;i<removed.length;i++){const pos=slots.indexOf(removed[i]);if(pos>=0)slots[pos]=null;}
+        for(let i=pairs;i<added.length;i++)slots.push(added[i]);
+        current.times=slots;
+      }
+      if(c.timeStatus){
+        const x=c.timeStatus,t=[...(current.times||[])],oldTime=x.oldTime||x.time||'',newTime=x.newTime||x.time||'';
+        if(x.deleted){const i=t.indexOf(oldTime);if(i>=0)t[i]=null;}
+        else if(x.oldTime&&x.newTime&&x.oldTime!==x.newTime){const i=t.indexOf(x.oldTime);if(i>=0)t[i]=x.newTime;}
+        current.times=t;
+      }
       if(show.times){const afterTimes=[...(current.times||[])],n=Math.max(beforeTimes.length,afterTimes.length);show.timeMask=Array.from({length:n},(_,i)=>beforeTimes[i]!==afterTimes[i]);}
       if(show.schedule&&!show.params)show.params=1;
       rows.push({at:e.at,event:'Изменено',s:state(current),show});
