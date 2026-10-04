@@ -100,7 +100,7 @@
         const before=old.slice(0,timeIndex).map(td=>`<td>${td.innerHTML}</td>`).join('');
         const afterStart=old[11]?.innerHTML||'—';
         const afterEnd=old[12]?.innerHTML||'—';
-        const actions=`<div class="inline"><button type="button" onclick="openEditMedication('${med.id}')">Изменить</button><button type="button" onclick="showRowHistory('${med.id}')">История</button><button type="button" onclick="startMedicationCancellation('${med.id}')">Отменить</button></div>`;
+        const actions=`<div class="inline"><button type="button" onclick="openEditMedication('${med.id}')">Изменить</button><button type="button" onclick="toggleMedicationMode('${med.id}')">${med.active!==false?'Сделать пассивным':'Активировать'}</button><button type="button" onclick="showRowHistory('${med.id}')">История</button><button type="button" onclick="startMedicationCancellation('${med.id}')">Отменить</button></div>`;
         const tr=document.createElement('tr');
         tr.dataset.medicationId=med.id;
         tr.innerHTML=before+timeCells.join('')+`<td>${afterStart}</td><td>${afterEnd}</td><td><span class="status ${statusClass}">${status}</span></td><td>${actions}</td>`;
