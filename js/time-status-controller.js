@@ -107,6 +107,37 @@
         tbody.appendChild(tr);
       });
     });
+    // Final status-section reconciliation: each non-cancelled medication belongs
+    // to exactly one section according to its current med.active value.
+    const sections=[...document.querySelectorAll('section.card')].filter(section=>{
+      const title=section.querySelector('h2')?.textContent?.trim();
+      return title==='Активные препараты'||title==='Пассивные препараты';
+    });
+    if(sections.length){
+      const activeSection=sections.find(s=>s.querySelector('h2')?.textContent?.trim()==='Активные препараты');
+      const passiveSection=sections.find(s=>s.querySelector('h2')?.textContent?.trim()==='Пассивные препараты');
+      const activeBody=activeSection?.querySelector('tbody');
+      const passiveBody=passiveSection?.querySelector('tbody');
+      if(activeBody&&passiveBody){
+        const rowsById=new Map();
+        sections.forEach(section=>{
+          section.querySelectorAll('tbody tr').forEach(row=>{
+            const id=row.dataset.medicationId||'';
+            if(id)rowsById.set(id,row);
+          });
+        });
+        activeBody.innerHTML='';
+        passiveBody.innerHTML='';
+        meds.forEach(med=>{
+          const row=rowsById.get(med.id);
+          if(!row)return;
+          if(med.active!==false)activeBody.appendChild(row);
+          else passiveBody.appendChild(row);
+        });
+        activeSection.style.display=activeBody.children.length?'':'none';
+        passiveSection.style.display=passiveBody.children.length?'':'none';
+      }
+    }
     ensureTimeDialog();
   }
   const originalRenderInputPage=window.renderInputPage;if(typeof originalRenderInputPage==='function')window.renderInputPage=function(){originalRenderInputPage();restructureInputTable();};
