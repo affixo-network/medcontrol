@@ -130,7 +130,7 @@
     const maxTimes=Math.max(1,...all.map(r=>r.times.length));
     const timeHeaders=Array.from({length:maxTimes},(_,i)=>`<th>Время ${i+1}</th>`).join('');
     const body=rr.map(r=>{
-      const cells=Array.from({length:maxTimes},(_,i)=>`<td>${esc(r.times[i]||'—')}</td>`).join('');
+      const cells=Array.from({length:maxTimes},(_,i)=>`<td>${r.times[i]===null?'Удалено':esc(r.times[i]||'—')}</td>`).join('');
       return `<tr><td>${esc(formatDateTime(r.at))}</td><td>${esc(r.event)}</td><td>${esc(r.schedule)}</td><td>${esc(r.params)}</td>${cells}<td>${esc(r.start)}</td><td>${esc(r.end)}</td><td>${esc(r.status)}</td></tr>`;
     }).join('');
     return `<table><thead><tr><th>Дата/время записи</th><th>Событие</th><th>Расписание</th><th>Параметры расписания</th>${timeHeaders}<th>Дата начала</th><th>Дата окончания</th><th>Статус</th></tr></thead><tbody>${body}</tbody></table>`;
