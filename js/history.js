@@ -3,7 +3,7 @@ function rowHistoryActionLabel(action) {
   return labels[action]||action||'—';
 }
 
-function rowHistoryHtml(entries) {
+function rowHistoryHtml(entries, options={}) {
   if(!entries||!entries.length)return `<p class="muted">${escapeHtml(tr('no_history'))}</p>`;
   const sorted=[...entries].filter(Boolean).sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
   const created=sorted.find(e=>e.action==='created')||null;
@@ -30,12 +30,13 @@ function rowHistoryHtml(entries) {
   let current=initial;
   const rows=[];
   if(created){
-    rows.push({at:created.at,event:'Создано',s:state(initial),show:{manufacturer:1,contentValue:1,contentUnit:1,intakeQuantity:1,intakeUnit:1,details:1,schedule:1,params:1,times:1,timeMask:'all',startDate:1,endDate:1,status:1}});
+    const createdState=state(initial);
+    rows.push({at:created.at,event:'Создано',s:createdState,show:{manufacturer:1,contentValue:1,contentUnit:1,intakeQuantity:1,intakeUnit:1,details:1,schedule:1,params:1,times:1,timeMask:'all',startDate:1,endDate:1,status:1},beforeTimes:[],afterTimes:[...(createdState.times||[])],changedTimes:[...(createdState.times||[])],kind:'created'});
   }
   sorted.filter(e=>e!==created).forEach(e=>{
     const show=blank(),before=state(current),beforeTimes=[...(before.times||[])],c=e.changes||{};
-    if(e.action==='cancelled'){current={...current,active:false};show.status=1;rows.push({at:e.at,event:'Отменено',s:state(current),show});return;}
-    if(e.action==='course_completed'){current={...current,active:false};show.status=1;rows.push({at:e.at,event:'Курс завершён',s:state(current),show});return;}
+    if(e.action==='cancelled'){current={...current,active:false};show.status=1;const afterState=state(current);rows.push({at:e.at,event:'Отменено',s:afterState,show,beforeTimes:[...beforeTimes],afterTimes:[...(afterState.times||[])],changedTimes:[],kind:'status'});return;}
+    if(e.action==='course_completed'){current={...current,active:false};show.status=1;const afterState=state(current);rows.push({at:e.at,event:'Курс завершён',s:afterState,show,beforeTimes:[...beforeTimes],afterTimes:[...(afterState.times||[])],changedTimes:[],kind:'status'});return;}
     if(e.action!=='edited'&&e.action!=='activated'&&e.action!=='deactivated'&&e.action!=='active'&&e.action!=='passive')return;
 
     show.manufacturer='manufacturer'in c;show.contentValue='contentValue'in c;show.contentUnit='contentUnit'in c||'contentUnitOther'in c;
@@ -64,11 +65,18 @@ function rowHistoryHtml(entries) {
     if(payload.includes('«Активно»')){current.active=true;show.status=1;}
     if(payload.includes('«Пассивно»')){current.active=false;show.status=1;}
 
-    const after=state(current),events=[];
+    const after=state(current),events=[],changedTimes=[];
     if(show.times){
       const n=Math.max(beforeTimes.length,after.times.length);
       show.timeMask=Array.from({length:n},(_,i)=>beforeTimes[i]!==after.times[i]);
-      for(let i=0;i<n;i++){const k=kind(beforeTimes[i]??null,after.times[i]??null);if(k)events.push(form(`Время ${i+1}`,k,'n'));}
+      for(let i=0;i<n;i++){
+        const beforeTime=beforeTimes[i]??null,afterTime=after.times[i]??null,k=kind(beforeTime,afterTime);
+        if(k){
+          events.push(form(`Время ${i+1}`,k,'n'));
+          if(beforeTime)changedTimes.push(beforeTime);
+          if(afterTime)changedTimes.push(afterTime);
+        }
+      }
     }
     if(show.schedule&&!show.params)show.params=1;
     [['manufacturer','Производитель','m'],['contentValue','Количественное содержание','n'],['intakeQuantity','Количество приёма','n'],['details','Детали','p'],['scheduleType','Расписание','n'],['startDate','Дата начала','f'],['endDate','Дата окончания','f']].forEach(([k,l,g])=>{if(k in c)events.push(form(l,kind(before[k],after[k]),g));});
@@ -80,10 +88,20 @@ function rowHistoryHtml(entries) {
       else if(['activated','active'].includes(e.action))events.push('Препарат активирован');
       else if(['deactivated','passive'].includes(e.action))events.push('Препарат деактивирован');
     }
-    rows.push({at:e.at,event:events.filter(Boolean).join('; ')||rowHistoryActionLabel(e.action),s:after,show});
+    const rowKind=show.times?'time':(show.schedule||show.params||show.startDate||show.endDate?'schedule':(show.status?'status':'other'));
+    rows.push({at:e.at,event:events.filter(Boolean).join('; ')||rowHistoryActionLabel(e.action),s:after,show,beforeTimes:[...beforeTimes],afterTimes:[...(after.times||[])],changedTimes:[...new Set(changedTimes)],kind:rowKind});
   });
 
-  const maxTimes=Math.max(1,...rows.map(r=>r.s.times.length)),headers=Array.from({length:maxTimes},(_,i)=>`<th>Время ${i+1}</th>`).join('');
+  const targetTime=String(options?.targetTime||'').trim();
+  const visibleRows=targetTime?rows.filter(r=>{
+    if(r.kind==='created')return r.afterTimes.includes(targetTime);
+    if(r.changedTimes.includes(targetTime))return true;
+    if(r.kind==='schedule'||r.kind==='status')return r.beforeTimes.includes(targetTime)||r.afterTimes.includes(targetTime);
+    return false;
+  }):rows;
+
+  if(!visibleRows.length)return `<p class="muted">${escapeHtml(tr('no_history'))}</p>`;
+  const maxTimes=Math.max(1,...visibleRows.map(r=>r.s.times.length)),headers=Array.from({length:maxTimes},(_,i)=>`<th>Время ${i+1}</th>`).join('');
   const cv=(flag,v)=>flag?esc(v):'';
-  return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th>${headers}<th>Дата начала</th><th>Дата окончания</th><th>Статус</th></tr></thead><tbody>${rows.map(r=>{const tc=Array.from({length:maxTimes},(_,i)=>`<td>${r.show.times&&(r.show.timeMask==='all'||r.show.timeMask?.[i])?(r.show.timeMask==='all'?esc(r.s.times[i]||'—'):(r.s.times[i]?esc(r.s.times[i]):'Удалено')):''}</td>`).join('');return `<tr><td>${esc(formatDateTime(r.at))}</td><td>${esc(r.event)}</td><td>${cv(r.show.manufacturer,r.s.manufacturer)}</td><td>${cv(r.show.contentValue,r.s.contentValue)}</td><td>${cv(r.show.contentUnit,medicationContentUnitLabel(r.s.contentUnit,r.s.contentUnitOther||''))}</td><td>${cv(r.show.intakeQuantity,r.s.intakeQuantity)}</td><td>${cv(r.show.intakeUnit,medicationIntakeUnitLabel(r.s.intakeUnit,r.s.intakeUnitOther||''))}</td><td>${cv(r.show.details,r.s.details)}</td><td>${cv(r.show.schedule,scheduleName(r.s))}</td><td>${cv(r.show.params,scheduleParams(r.s))}</td>${tc}<td>${r.show.startDate?esc(formatDate(r.s.startDate)):''}</td><td>${r.show.endDate?esc(formatDate(r.s.endDate)):''}</td><td>${r.show.status?(r.s.active?'Активно':'Пассивно'):''}</td></tr>`;}).join('')}</tbody></table>`;
+  return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th>${headers}<th>Дата начала</th><th>Дата окончания</th><th>Статус</th></tr></thead><tbody>${visibleRows.map(r=>{const tc=Array.from({length:maxTimes},(_,i)=>`<td>${r.show.times&&(r.show.timeMask==='all'||r.show.timeMask?.[i])?(r.show.timeMask==='all'?esc(r.s.times[i]||'—'):(r.s.times[i]?esc(r.s.times[i]):'Удалено')):''}</td>`).join('');return `<tr><td>${esc(formatDateTime(r.at))}</td><td>${esc(r.event)}</td><td>${cv(r.show.manufacturer,r.s.manufacturer)}</td><td>${cv(r.show.contentValue,r.s.contentValue)}</td><td>${cv(r.show.contentUnit,medicationContentUnitLabel(r.s.contentUnit,r.s.contentUnitOther||''))}</td><td>${cv(r.show.intakeQuantity,r.s.intakeQuantity)}</td><td>${cv(r.show.intakeUnit,medicationIntakeUnitLabel(r.s.intakeUnit,r.s.intakeUnitOther||''))}</td><td>${cv(r.show.details,r.s.details)}</td><td>${cv(r.show.schedule,scheduleName(r.s))}</td><td>${cv(r.show.params,scheduleParams(r.s))}</td>${tc}<td>${r.show.startDate?esc(formatDate(r.s.startDate)):''}</td><td>${r.show.endDate?esc(formatDate(r.s.endDate)):''}</td><td>${r.show.status?(r.s.active?'Активно':'Пассивно'):''}</td></tr>`;}).join('')}</tbody></table>`;
 }
