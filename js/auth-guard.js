@@ -61,7 +61,7 @@
   async function ensurePageScripts(targetPage){
     const list=scriptsByPage[targetPage];
     if(!list)throw new Error('Неизвестная страница MedControl: '+targetPage);
-    await Promise.all(list.map(loadScript));
+    for(const src of list)await loadScript(src);
   }
   function renderPage(targetPage){
     if(targetPage==='archive'){
@@ -87,7 +87,7 @@
     return true;
   };
   async function startPage(list){
-    await Promise.all(list.map(loadScript));
+    for(const src of list)await loadScript(src);
     if(page==='archive'){
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
