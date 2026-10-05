@@ -16,17 +16,36 @@
   function removedTimes(){
     const out=[];
     meds.forEach(m=>{
-      const current=new Set((m.times||[]).filter(Boolean));
-      const byTime=new Map();
-      (m.timeStatusHistory||[]).forEach(h=>{
-        const oldTime=h?.oldTime;
-        if(!oldTime)return;
-        if(h.deleted || (h.newTime && h.newTime!==oldTime)) byTime.set(oldTime,h);
+      const entries=[...(m.rowHistory||[])].filter(Boolean).sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
+      const created=entries.find(e=>e.action==='created');
+      let times=[...((created?.snapshot?.times)||[])].filter(Boolean).sort();
+      entries.forEach(h=>{
+        if(h===created)return;
+        const c=h.changes||{},at=h.at||'',date=at?localDateFromISO(at):'';
+        if(c.timeStatus){
+          const x=c.timeStatus,old=x.oldTime||x.time||'';
+          if(x.deleted&&old){
+            out.push({m,time:old,date,at,kind:'Удалено',newTime:''});
+            const p=times.indexOf(old);if(p>=0)times.splice(p,1);
+          }else if(x.oldTime&&x.newTime&&x.oldTime!==x.newTime){
+            out.push({m,time:x.oldTime,date,at,kind:'Заменено',newTime:x.newTime});
+            const p=times.indexOf(x.oldTime);if(p>=0)times[p]=x.newTime;
+          }
+        }
+        if(Object.prototype.hasOwnProperty.call(c,'times')){
+          const next=[...new Set((c.times||[]).filter(Boolean))].sort();
+          const removed=times.filter(t=>!next.includes(t)),added=next.filter(t=>!times.includes(t)),pairs=Math.min(removed.length,added.length);
+          for(let i=0;i<pairs;i++)out.push({m,time:removed[i],date,at,kind:'Заменено',newTime:added[i]});
+          for(let i=pairs;i<removed.length;i++)out.push({m,time:removed[i],date,at,kind:'Удалено',newTime:''});
+          times=next;
+        }
       });
-      byTime.forEach((h,time)=>{
-        if(current.has(time))return;
-        const date=h.date||localDateFromISO(h.at||'')||'';
-        out.push({m,time,date,at:h.at||'',kind:h.deleted?'Удалено':'Заменено',newTime:h.newTime||''});
+      (m.timeStatusHistory||[]).forEach(h=>{
+        const old=h?.oldTime||'';
+        if(!old||(!h.deleted&&!(h.newTime&&h.newTime!==old)))return;
+        const at=h.at||'',date=h.date||localDateFromISO(at)||'',kind=h.deleted?'Удалено':'Заменено',newTime=h.newTime||'';
+        const dup=out.some(x=>x.m.id===m.id&&x.time===old&&x.at===at&&x.kind===kind&&x.newTime===newTime);
+        if(!dup)out.push({m,time:old,date,at,kind,newTime});
       });
     });
     return out.sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
