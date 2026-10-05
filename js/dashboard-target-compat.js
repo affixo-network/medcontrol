@@ -36,6 +36,8 @@
 
     if(dashboardRefreshTimer) clearTimeout(dashboardRefreshTimer);
     dashboardRefreshTimer=setTimeout(()=>{
+      if(window.medcontrolShellNavigationLoading) return;
+      if(!/\/dashboard\.html$/.test(window.location.pathname)) return;
       const dialog=document.getElementById('intakeHistoryDialog');
       if(dialog?.open) return;
       mount('dashboard');
