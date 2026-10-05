@@ -93,10 +93,11 @@ function rowHistoryHtml(entries, options={}) {
   });
 
   const targetTime=String(options?.targetTime||'').trim();
+  const timeEventsOnly=Boolean(options?.timeEventsOnly);
   const visibleRows=targetTime?rows.filter(r=>{
     if(r.kind==='created')return r.afterTimes.includes(targetTime);
     if(r.changedTimes.includes(targetTime))return true;
-    if(r.kind==='schedule'||r.kind==='status')return r.beforeTimes.includes(targetTime)||r.afterTimes.includes(targetTime);
+    if(!timeEventsOnly&&(r.kind==='schedule'||r.kind==='status'))return r.beforeTimes.includes(targetTime)||r.afterTimes.includes(targetTime);
     return false;
   }):rows;
 
