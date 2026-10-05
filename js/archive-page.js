@@ -48,7 +48,7 @@
         if(!dup)out.push({m,time:old,date,at,kind,newTime});
       });
     });
-    return out.sort((a,b)=>{const delta=new Date(b.at||0)-new Date(a.at||0);if(delta)return delta;const order=(a.m?.order||0)-(b.m?.order||0);if(order)return order;return String(a.time||'').localeCompare(String(b.time||''));});
+    return out.sort((a,b)=>{const delta=new Date(a.at||0)-new Date(b.at||0);if(delta)return delta;const order=(a.m?.order||0)-(b.m?.order||0);if(order)return order;return String(a.time||'').localeCompare(String(b.time||''));});
   }
   const removed=removedTimes();
 
