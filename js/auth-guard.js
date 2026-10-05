@@ -3,6 +3,7 @@
   const page=currentScript?.dataset?.page||'';
   const SUPABASE_URL='https://lewdbjjaohqxbirzhrbm.supabase.co';
   const SUPABASE_ANON_KEY='sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ';
+  const SUPABASE_STORAGE_KEY='sb-lewdbjjaohqxbirzhrbm-auth-token';
   const common=['js/translations.js','js/storage.js?v=force-majeure-20260918-2','js/cloud-snapshot.js?v=force-majeure-20260918-2'];
   const reset='js/archive-reset-policy.js?v=manual-reset-recovery-1';
   const scriptsByPage={
@@ -47,13 +48,49 @@
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     mount(page);
   }
+  function readStoredSession(){
+    try{
+      const raw=localStorage.getItem(SUPABASE_STORAGE_KEY);
+      if(!raw)return null;
+      const parsed=JSON.parse(raw);
+      return parsed?.currentSession||parsed?.session||parsed;
+    }catch(_){return null;}
+  }
+  function isStoredSessionFresh(session){
+    if(!session?.access_token||!session?.refresh_token||!session?.user?.id)return false;
+    if(!session.expires_at)return true;
+    return Number(session.expires_at)*1000>Date.now()+60000;
+  }
+  async function createVerifiedSupabase(){
+    const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');
+    const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data:sessionData,error:sessionError}=await supabase.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!sessionData?.session)return {supabase,session:null};
+    return {supabase,session:sessionData.session};
+  }
+  function attachVerifiedSupabase(result){
+    if(!result?.session){goToLogin('no_session');return false;}
+    window.medcontrolSupabase=result.supabase;
+    window.medcontrolSupabaseUser=result.session.user;
+    if(window.medcontrolCloudSnapshot?.queue)window.medcontrolCloudSnapshot.queue();
+    return true;
+  }
   try{
     const list=pageScripts();
     preloadPageScripts(list);
-    const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const {data:sessionData,error:sessionError}=await supabase.auth.getSession();if(sessionError){showStartupError('Не удалось проверить сохранённую сессию Supabase. Локальные данные MedControl не изменены. Проверьте соединение и повторите загрузку страницы.');return;}if(!sessionData?.session){goToLogin('no_session');return;}
-    window.medcontrolSupabase=supabase;
-    window.medcontrolSupabaseUser=sessionData.session.user;
+    const storedSession=readStoredSession();
+    if(isStoredSessionFresh(storedSession)){
+      window.medcontrolSupabaseUser=storedSession.user;
+      const verification=createVerifiedSupabase()
+        .then(result=>attachVerifiedSupabase(result))
+        .catch(error=>{console.error('MedControl background auth verification failed.',error);goToLogin('session_check_failed');});
+      await startPage(list);
+      void verification;
+      return;
+    }
+    const verified=await createVerifiedSupabase();
+    if(!attachVerifiedSupabase(verified))return;
     await startPage(list);
   }catch(error){console.error('MedControl Auth Guard failed.',error);showStartupError('Не удалось запустить MedControl. Локальные данные не удалялись.\n\n'+(error&&error.message?error.message:error));}
 })();
