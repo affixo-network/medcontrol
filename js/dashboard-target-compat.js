@@ -12,14 +12,14 @@
   let dashboardRefreshTimer=null;
 
   window.renderDashboardPage=function(){
-    const rows=buildMedControlTimeline().map(x=>`<tr>
+    const rows=buildMedControlTimeline().map((x,index)=>`<tr>
       <td>${x.medication.order}</td>
       <td>${escapeHtml(x.medication.name)}</td>
       <td>${escapeHtml(x.medication.intakeQuantity||'—')}</td>
       <td>${escapeHtml(x.medication.intakeUnitOther||x.medication.intakeUnit||'—')}</td>
       <td>${escapeHtml(formatDate(x.plannedDate))}</td>
       <td>${escapeHtml(x.plannedTime)}</td>
-      <td>${timing(x)}</td>
+      <td data-dashboard-timing="${index}">${timing(x)}</td>
       <td>${x.actualAt?escapeHtml(formatDateTime(x.actualAt)):'—'}</td>
       <td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x.status))}</span></td>
       <td><button onclick="showIntakeHistory('${x.medication.id}')">История</button></td>
@@ -35,12 +35,17 @@
     scheduleClock();
 
     if(dashboardRefreshTimer) clearTimeout(dashboardRefreshTimer);
-    dashboardRefreshTimer=setTimeout(()=>{
+    const refreshTimingCells=()=>{
       if(window.medcontrolShellNavigationLoading) return;
       if(!/\/dashboard\.html$/.test(window.location.pathname)) return;
-      const dialog=document.getElementById('intakeHistoryDialog');
-      if(dialog?.open) return;
-      mount('dashboard');
-    },1000);
+      const currentRows=buildMedControlTimeline();
+      document.querySelectorAll('[data-dashboard-timing]').forEach(cell=>{
+        const index=Number(cell.dataset.dashboardTiming);
+        const item=currentRows[index];
+        if(item)cell.innerHTML=timing(item);
+      });
+      dashboardRefreshTimer=setTimeout(refreshTimingCells,1000);
+    };
+    dashboardRefreshTimer=setTimeout(refreshTimingCells,1000);
   };
 })();
