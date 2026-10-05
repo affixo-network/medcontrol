@@ -183,4 +183,4 @@ window.renderArchivePage=function(){
   scheduleClock();
 };
 
-window.renderArchivePage();
+if(!window.medcontrolShellNavigationLoading)window.renderArchivePage();
