@@ -48,7 +48,7 @@
         if(!dup)out.push({m,time:old,date,at,kind,newTime});
       });
     });
-    return out.sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
+    return out.sort((a,b)=>{const delta=new Date(b.at||0)-new Date(a.at||0);if(delta)return delta;const order=(a.m?.order||0)-(b.m?.order||0);if(order)return order;return String(a.time||'').localeCompare(String(b.time||''));});
   }
   const removed=removedTimes();
 
@@ -88,7 +88,7 @@
   }
   function removedTimesTable(){
     if(!removed.length)return '<p class="muted">Нет удалённых или заменённых времён.</p>';
-    return `<table><thead><tr><th>№</th><th>Препарат</th><th>Время</th><th>Состояние</th><th>Дата изменения</th><th>История</th></tr></thead><tbody>${removed.map(x=>`<tr><td>${esc(x.m.order||'—')}</td><td>${esc(x.m.name||'—')}</td><td>${esc(x.time)}</td><td>${esc(x.kind+(x.newTime?' → '+x.newTime:''))}</td><td>${x.date?esc(formatDate(x.date)):'—'}</td><td><button type="button" onclick="showArchiveRemovedTimeHistory('${x.m.id}','${x.time}')">История</button></td></tr>`).join('')}</tbody></table>`;
+    return `<table><thead><tr><th>№</th><th>Препарат</th><th>Время</th><th>Состояние</th><th>Дата/время изменения</th><th>История</th></tr></thead><tbody>${removed.map(x=>`<tr><td>${esc(x.m.order||'—')}</td><td>${esc(x.m.name||'—')}</td><td>${esc(x.time)}</td><td>${esc(x.kind+(x.newTime?' → '+x.newTime:''))}</td><td>${x.at?esc(formatDateTime(x.at)):(x.date?esc(formatDate(x.date)):'—')}</td><td><button type="button" onclick="showArchiveRemovedTimeHistory('${x.m.id}','${x.time}')">История</button></td></tr>`).join('')}</tbody></table>`;
   }
   function todayTable(){
     if(!todayOnly.length)return '<p class="muted">Нет завершённых разовых назначений.</p>';
@@ -166,7 +166,7 @@
 
     rows.sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
     const seen=new Set(),unique=rows.filter(h=>{const key=`${h.at||''}|${h.action||''}|${JSON.stringify(h.changes||h.snapshot||{})}`;if(seen.has(key))return false;seen.add(key);return true;});
-    host.innerHTML=rowHistoryHtml(med.rowHistory||[],{targetTime:time});
+    host.innerHTML=rowHistoryHtml(med.rowHistory||[],{targetTime:time,timeEventsOnly:true});
     d.showModal();
   };
   window.showArchiveSlotHistory=function(id,plannedAt){
