@@ -14,11 +14,30 @@
   function showStartupError(message){const app=document.getElementById('app');if(app)app.innerHTML='<div style="font-family:Arial,sans-serif;padding:24px;white-space:pre-wrap"><h1>Ошибка запуска MedControl</h1><p>'+String(message).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+'</p></div>';}
   function goToLogin(reason){const next=window.location.pathname;const q=new URLSearchParams({next});if(reason)q.set('reason',reason);window.location.replace('/auth-login.html?'+q.toString());}
   function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=()=>reject(new Error('Не удалось загрузить '+src));document.head.appendChild(s);});}
-  async function startPage(){const list=scriptsByPage[page];if(!list)throw new Error('Неизвестная страница Auth Guard: '+page);for(const src of list)await loadScript(src);if(page==='archive'){if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();if(window.patchMedControlResetUi)window.patchMedControlResetUi();return;}if(typeof mount!=='function')throw new Error('mount() не загружен');mount(page);}
+  async function startPage(){
+    const list=scriptsByPage[page];
+    if(!list)throw new Error('Неизвестная страница Auth Guard: '+page);
+    list.forEach(src=>{
+      const link=document.createElement('link');
+      link.rel='preload';
+      link.as='script';
+      link.href=src;
+      document.head.appendChild(link);
+    });
+    for(const src of list)await loadScript(src);
+    if(page==='archive'){
+      if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
+      if(window.patchMedControlResetUi)window.patchMedControlResetUi();
+      return;
+    }
+    if(typeof mount!=='function')throw new Error('mount() не загружен');
+    mount(page);
+  }
   try{
     const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2');const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
     const {data:sessionData,error:sessionError}=await supabase.auth.getSession();if(sessionError){showStartupError('Не удалось проверить сохранённую сессию Supabase. Локальные данные MedControl не изменены. Проверьте соединение и повторите загрузку страницы.');return;}if(!sessionData?.session){goToLogin('no_session');return;}
-    const {data:userData,error:userError}=await supabase.auth.getUser();if(userError){showStartupError('Не удалось подтвердить пользователя Supabase. Сессия не удалена, локальные данные MedControl не изменены. Проверьте соединение и повторите загрузку страницы.');return;}if(!userData?.user){await supabase.auth.signOut().catch(()=>{});goToLogin('invalid_session');return;}
-    window.medcontrolSupabase=supabase;window.medcontrolSupabaseUser=userData.user;await startPage();
+    window.medcontrolSupabase=supabase;
+    window.medcontrolSupabaseUser=sessionData.session.user;
+    await startPage();
   }catch(error){console.error('MedControl Auth Guard failed.',error);showStartupError('Не удалось запустить MedControl. Локальные данные не удалялись.\n\n'+(error&&error.message?error.message:error));}
 })();
