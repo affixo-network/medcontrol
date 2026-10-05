@@ -106,42 +106,67 @@
   };
   window.showArchiveRemovedTimeHistory=function(id,time){
     const med=(getState().medications||[]).find(x=>x.id===id);if(!med)return;
-    const d=document.getElementById('archiveHistoryDialog'),t=document.getElementById('archiveHistoryTitle'),c=document.getElementById('archiveHistoryContent');if(!d||!t||!c)return;
+    const d=document.getElementById('archiveHistoryDialog'),t=document.getElementById('archiveHistoryTitle'),host=document.getElementById('archiveHistoryContent');if(!d||!t||!host)return;
     t.textContent=`История времени ${time} препарата «${med.name}»`;
-    const rows=(med.rowHistory||[]).filter(h=>{
-      if(h.action==='created') return Array.isArray(h.snapshot?.times)?h.snapshot.times.includes(time):(med.timeStatusHistory||[]).some(x=>x.time===time||x.oldTime===time);
-      const s=JSON.stringify(h);return s.includes(time);
+
+    const all=[...(med.rowHistory||[])].filter(Boolean).sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
+    const created=all.find(h=>h.action==='created')||null;
+    let currentTimes=[...((created?.snapshot?.times)||[])].filter(Boolean).sort();
+    const rows=[];
+    if(created&&currentTimes.includes(time))rows.push(created);
+
+    all.forEach(h=>{
+      if(h===created)return;
+      const c=h.changes||{};
+      const before=[...currentTimes];
+      const beforeHas=before.includes(time);
+
+      if(Object.prototype.hasOwnProperty.call(c,'times')){
+        currentTimes=[...new Set((c.times||[]).filter(Boolean))].sort();
+      }
+      const ts=c.timeStatus;
+      if(ts){
+        const old=ts.oldTime||ts.time||'';
+        if(ts.deleted){
+          const p=currentTimes.indexOf(old);if(p>=0)currentTimes.splice(p,1);
+        }else if(ts.oldTime&&ts.newTime&&ts.oldTime!==ts.newTime){
+          const p=currentTimes.indexOf(ts.oldTime);if(p>=0)currentTimes[p]=ts.newTime;
+        }
+      }
+
+      const after=[...currentTimes];
+      const afterHas=after.includes(time);
+      const directTimeChange=beforeHas!==afterHas||
+        Boolean(ts&&(ts.time===time||ts.oldTime===time||ts.newTime===time))||
+        (Object.prototype.hasOwnProperty.call(c,'times')&&(
+          before.filter(x=>!after.includes(x)).includes(time)||
+          after.filter(x=>!before.includes(x)).includes(time)
+        ));
+      const ruleChange=['scheduleType','weekdays','explicitDates','startDate','endDate'].some(k=>Object.prototype.hasOwnProperty.call(c,k));
+      const statusChange=Object.prototype.hasOwnProperty.call(c,'active')||
+        /Статус препарата изменён|активирован|пассив/.test(String(h.payload||''))||
+        ['activated','deactivated','active','passive'].includes(h.action);
+
+      if(directTimeChange||(beforeHas||afterHas)&&(ruleChange||statusChange))rows.push(h);
     });
-    const timeEvents=(med.timeStatusHistory||[]).filter(h=>h&&(h.time===time||h.oldTime===time)&&(h.deleted||(h.newTime&&h.newTime!==time)));
+
+    const timeEvents=(med.timeStatusHistory||[]).filter(h=>h&&(h.time===time||h.oldTime===time||h.newTime===time)&&(h.deleted||(h.newTime&&h.oldTime&&h.newTime!==h.oldTime)));
     timeEvents.forEach(h=>{
-      const alreadyPresent=rows.some(r=>{
+      const already=rows.some(r=>{
         const ts=r?.changes?.timeStatus;
-        if(!ts||r.at!==h.at)return false;
-        if(h.deleted)return ts.time===time&&!!ts.deleted;
-        return ts.time===time&&ts.newTime===h.newTime;
+        return r.at===h.at&&ts&&(ts.time===time||ts.oldTime===time||ts.newTime===time);
       });
-      if(alreadyPresent)return;
+      if(already)return;
       rows.push({
-        at:h.at||nowISO(),
-        action:'edited',
-        scheduleScope:h.scope&&h.scope!=='daily'?h.scope:null,
-        scheduleScopeLabel:h.scope==='today'?'Только сегодня':h.scope==='future'?'Только на последующие дни расписания':h.scope==='today_future'?'Сегодня и на последующие дни расписания':'',
-        changes:{timeStatus:{time,oldTime:h.oldTime||time,newTime:h.newTime||'',deleted:!!h.deleted,replaced:!!(h.newTime&&h.newTime!==time),active:false,scope:h.scope||'daily',date:h.date||''}},
-        payload:h.deleted?`Время ${time} удалено.`:`Время ${time} заменено на ${h.newTime}.`
+        at:h.at||nowISO(),action:'edited',
+        changes:{timeStatus:{time:h.time||h.oldTime||time,oldTime:h.oldTime||h.time||time,newTime:h.newTime||'',deleted:!!h.deleted,replaced:!!(h.newTime&&h.oldTime&&h.newTime!==h.oldTime),active:false}},
+        payload:h.deleted?`Время ${h.oldTime||h.time||time} удалено.`:`Время ${h.oldTime||time} заменено на ${h.newTime}.`
       });
     });
+
     rows.sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
-    const seen=new Set();
-    const uniqueRows=rows.filter(h=>{
-      const ts=h?.changes?.timeStatus;
-      const key=ts&&ts.time===time
-        ?`${h.at||''}|${time}|${ts.deleted?'deleted':ts.newTime?`replaced:${ts.newTime}`:`active:${ts.active}`}`
-        :`${h.at||''}|${h.action||''}|${JSON.stringify(h.changes||h.snapshot||{})}`;
-      if(seen.has(key))return false;
-      seen.add(key);
-      return true;
-    });
-    c.innerHTML=rowHistoryHtml(uniqueRows);
+    const seen=new Set(),unique=rows.filter(h=>{const key=`${h.at||''}|${h.action||''}|${JSON.stringify(h.changes||h.snapshot||{})}`;if(seen.has(key))return false;seen.add(key);return true;});
+    host.innerHTML=rowHistoryHtml(unique);
     d.showModal();
   };
   window.showArchiveSlotHistory=function(id,plannedAt){
