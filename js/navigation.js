@@ -33,3 +33,39 @@ window.mount = function(page) {
   else if (page === 'settings') result = renderSettingsPage();
   ensureArchiveNavigation(page); ensureLogoutNavigation(); fixPreviewNavigation(); return result;
 };
+
+function medcontrolPageFromLink(link) {
+  try {
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin) return null;
+    const match = url.pathname.match(/\/(input|action|dashboard|archive)\.html$/);
+    return match ? match[1] : null;
+  } catch (_) { return null; }
+}
+function medcontrolPageFromLocation() {
+  const match = window.location.pathname.match(/\/(input|action|dashboard|archive)\.html$/);
+  return match ? match[1] : null;
+}
+if (!window.__medcontrolInternalNavigationBound && window.location.hostname !== 'htmlpreview.github.io') {
+  window.__medcontrolInternalNavigationBound = true;
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest && event.target.closest('.nav a[href]');
+    if (!link) return;
+    const targetPage = medcontrolPageFromLink(link);
+    if (!targetPage || typeof window.medcontrolNavigateTo !== 'function') return;
+    event.preventDefault();
+    window.medcontrolNavigateTo(targetPage).catch(error => {
+      console.error('MedControl internal navigation failed.', error);
+      window.location.assign('/' + targetPage + '.html');
+    });
+  });
+  window.addEventListener('popstate', () => {
+    const targetPage = medcontrolPageFromLocation();
+    if (!targetPage || typeof window.medcontrolNavigateTo !== 'function') return;
+    window.medcontrolNavigateTo(targetPage, {history:false}).catch(error => {
+      console.error('MedControl history navigation failed.', error);
+      window.location.reload();
+    });
+  });
+}
