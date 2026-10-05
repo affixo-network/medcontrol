@@ -166,7 +166,7 @@
 
     rows.sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
     const seen=new Set(),unique=rows.filter(h=>{const key=`${h.at||''}|${h.action||''}|${JSON.stringify(h.changes||h.snapshot||{})}`;if(seen.has(key))return false;seen.add(key);return true;});
-    host.innerHTML=rowHistoryHtml(unique);
+    host.innerHTML=rowHistoryHtml(med.rowHistory||[],{targetTime:time});
     d.showModal();
   };
   window.showArchiveSlotHistory=function(id,plannedAt){
