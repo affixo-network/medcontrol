@@ -16,7 +16,7 @@
       <td>${x.medication.order}</td>
       <td>${escapeHtml(x.medication.name)}</td>
       <td>${escapeHtml(x.medication.intakeQuantity||'—')}</td>
-      <td>${escapeHtml(x.medication.intakeUnitOther||x.medication.intakeUnit||'—')}</td>
+      <td>${escapeHtml(typeof window.medControlIntakeUnitLabel==='function'?window.medControlIntakeUnitLabel(x.medication):(x.medication.intakeUnitOther||x.medication.intakeUnit||'—'))}</td>
       <td>${escapeHtml(formatDate(x.plannedDate))}</td>
       <td>${escapeHtml(x.plannedTime)}</td>
       <td data-dashboard-timing="${index}">${timing(x)}</td>
