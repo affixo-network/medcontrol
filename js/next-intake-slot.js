@@ -64,21 +64,13 @@
 
       if (todayEntries.length) {
         output.push(...todayEntries);
-        return;
-      }
-
-      const next = nextApplicableEntry(med, todayISO, now);
-      if (next) {
-        next.boardState = 'upcoming';
-        next.displayStatus = 'upcoming';
-        output.push(next);
       }
     });
 
     return output.sort((a, b) => new Date(a.plannedAt) - new Date(b.plannedAt));
   };
 
-  window.renderActionPage = function() {
+  if (typeof window.buildMedControlTimeline !== 'function') window.renderActionPage = function() {
     const entries = buildActionEntries();
     const rows = entries.map(item => {
       const log = item.log;
@@ -90,7 +82,7 @@
           ? `<button onclick="markTaken('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('take'))}</button> ${temporalButtons}`
           : `<button onclick="openCorrection('${item.medication.id}','${item.plannedAt}')">${escapeHtml(tr('correct'))}</button> ${temporalButtons}`;
 
-      return `<tr><td>${item.medication.order}</td><td>${escapeHtml(item.medication.name)}</td><td>${escapeHtml(item.medication.dose)}</td><td>${escapeHtml(formatDate(item.plannedDate))}</td><td>${escapeHtml(item.plannedTime)}</td><td><span class="${statusClass(item.displayStatus)}">${escapeHtml(statusLabel(item.displayStatus))}</span></td><td>${log ? escapeHtml(formatDateTime(log.actualAt)) : '—'}</td><td>${actionButtons}</td><td><button onclick="showIntakeHistory('${item.medication.id}')">${escapeHtml(tr('history'))}</button></td></tr>`;
+      return `<tr><td>${item.medication.order}</td><td>${escapeHtml(item.medication.name)}</td><td>${escapeHtml(typeof window.medControlDoseLabel==='function'?window.medControlDoseLabel(item.medication):item.medication.dose)}</td><td>${escapeHtml(formatDate(item.plannedDate))}</td><td>${escapeHtml(item.plannedTime)}</td><td><span class="${statusClass(item.displayStatus)}">${escapeHtml(statusLabel(item.displayStatus))}</span></td><td>${log ? escapeHtml(formatDateTime(log.actualAt)) : '—'}</td><td>${actionButtons}</td><td><button onclick="showIntakeHistory('${item.medication.id}')">${escapeHtml(tr('history'))}</button></td></tr>`;
     }).join('');
 
     const body = `
