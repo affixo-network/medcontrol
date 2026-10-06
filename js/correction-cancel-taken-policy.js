@@ -127,7 +127,7 @@
         );
         events.push({
           occurredAt:c.correctedAt,
-          event:c.reason==='error'?'Исправление времени':'Отмена «Принято»',
+          event:'Отмена «Принято»',
           plannedAt:c.plannedAt,
           actualAt:c.before?.actualAt || base?.actualAt || null,
           correctionAt:c.correctedAt,
