@@ -33,73 +33,69 @@
     const content=document.getElementById('correctionContent');
     if(!dialog||!content) return;
 
-    const all=corrections(medicationId,plannedAt);
-    const last=all[all.length-1];
-    const currentActual=(last?.after?.action==='taken'&&last.after.actualAt)?last.after.actualAt:base.actualAt;
-    const count=all.length;
+    const count=corrections(medicationId,plannedAt).length;
 
     content.innerHTML=`<div class="form-grid">
-      <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Первоначальная запись «Принято» сохраняется в истории.</p></div>
+      <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Фактическое время определяется моментом нажатия «Принято» и не может быть изменено вручную.</p></div>
       <div><label>Расчётное время приёма</label><input type="text" value="${escapeHtml(formatDateTime(plannedAt))}" readonly></div>
-      <div><label>Текущее фактическое время «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(currentActual))}" readonly></div>
-      <div><label>Причина исправления</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
-      <div id="correction_time_wrap" style="display:none"><label>Исправленное фактическое время</label><input id="correction_time" type="datetime-local"></div>
-      <div id="correction_hint" class="full muted">Выберите причину исправления.</div>
-      <div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Подтвердить исправление</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
+      <div><label>Фактическое время «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
+      <div><label>Причина</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
+      <div id="correction_hint" class="full muted">Выберите причину.</div>
+      <div class="full right"><button id="correction_apply" onclick="applyCorrection('${medicationId}','${plannedAt}')" disabled>Отменить «Принято»</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
     </div>`;
     dialog.showModal();
   };
 
   window.syncCorrectionMode=function(){
     const reason=document.getElementById('correction_reason')?.value||'';
-    const wrap=document.getElementById('correction_time_wrap');
     const hint=document.getElementById('correction_hint');
-    if(!wrap||!hint)return;
+    const button=document.getElementById('correction_apply');
+    if(!hint||!button)return;
     if(reason==='accident'){
-      wrap.style.display='none';
-      hint.textContent='Случайность: ошибочная фиксация «Принято» будет снята. Первоначальная запись останется в истории.';
+      hint.textContent='Случайность: ошибочно нажатое «Принято» будет отменено. Исходная запись останется в истории.';
+      button.disabled=false;
+      button.textContent='Отменить «Принято»';
     }else if(reason==='error'){
-      wrap.style.display='block';
-      hint.textContent='Ошибка: исправляется фактическое время приёма. Статус «Принято» сохраняется, первоначальная запись остаётся в истории.';
+      hint.textContent='Ошибка пользователя не изменяет фактические данные. Зафиксированное время «Принято» остаётся неизменным.';
+      button.disabled=true;
+      button.textContent='Фактическое время не изменяется';
     }else{
-      wrap.style.display='none';
-      hint.textContent='Выберите причину исправления.';
+      hint.textContent='Выберите причину.';
+      button.disabled=true;
+      button.textContent='Отменить «Принято»';
     }
   };
 
   window.applyCorrection=function(medicationId,plannedAt){
     const reason=document.getElementById('correction_reason')?.value||'';
-    if(reason!=='accident'&&reason!=='error'){
-      alert('Выберите причину: «Случайность» или «Ошибка».');return;
+    if(reason==='error'){
+      alert('Фактическое время «Принято» не может быть изменено вручную.');
+      return;
+    }
+    if(reason!=='accident'){
+      alert('Для отмены ошибочного нажатия выберите «Случайность».');return;
     }
 
     const s=ensureState();
     const base=primary(medicationId,plannedAt);
     if(!base) return;
     const all=corrections(medicationId,plannedAt);
-    const last=all[all.length-1];
-    const beforeActual=(last?.after?.action==='taken'&&last.after.actualAt)?last.after.actualAt:base.actualAt;
     const ordinal=all.length+1;
     const correctedAt=nowISO();
 
-    if(reason==='accident'){
-      if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: Случайность.\nДействие «Принято» будет отменено.\nФактическое время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
-      s.intakeCorrections.push({
-        id:uid(),medicationId,plannedAt,primaryLogId:base.id||null,ordinal,reason,correctedAt,
-        before:{actualAt:beforeActual,action:'taken',status:base.status},
-        after:{actualAt:null,action:'reset',status:null}
-      });
-    }else{
-      const localValue=document.getElementById('correction_time')?.value||'';
-      if(!localValue){alert('Укажите исправленное фактическое время приёма.');return;}
-      const actualAt=new Date(localValue).toISOString();
-      if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: Ошибка.\nБыло: ${formatDateTime(beforeActual)}\nСтанет: ${formatDateTime(actualAt)}\n\nПодтвердить?`)) return;
-      s.intakeCorrections.push({
-        id:uid(),medicationId,plannedAt,primaryLogId:base.id||null,ordinal,reason,correctedAt,
-        before:{actualAt:beforeActual,action:'taken',status:base.status},
-        after:{actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')}
-      });
-    }
+    if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: Случайность.\nДействие «Принято» будет отменено.\nФактическое время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
+
+    s.intakeCorrections.push({
+      id:uid(),
+      medicationId,
+      plannedAt,
+      primaryLogId:base.id||null,
+      ordinal,
+      reason:'accident',
+      correctedAt,
+      before:{actualAt:base.actualAt,action:'taken',status:base.status},
+      after:{actualAt:null,action:'reset',status:null}
+    });
 
     saveState(s);
     document.getElementById('correctionDialog')?.close();
