@@ -98,8 +98,13 @@ window.renderArchivePage=function(){
   function historyDialogHtml(){return `<dialog id="archiveHistoryDialog"><h2 id="archiveHistoryTitle">История</h2><div id="archiveHistoryContent"></div><div class="right" style="margin-top:14px"><button type="button" onclick="document.getElementById('archiveHistoryDialog').close()">Закрыть</button></div></dialog>`;}
 
   window.__archiveIntakeFilter=null;
+  window.__archiveIntakePeriod='30';
   window.setArchiveIntakeFilter=function(filter){
     window.__archiveIntakeFilter=filter==='missed'?'missed':'taken';
+    if(typeof window.renderArchiveIntakeHistoryBlock==='function')window.renderArchiveIntakeHistoryBlock();
+  };
+  window.setArchiveIntakePeriod=function(period){
+    window.__archiveIntakePeriod=['today','7','30','all'].includes(period)?period:'30';
     if(typeof window.renderArchiveIntakeHistoryBlock==='function')window.renderArchiveIntakeHistoryBlock();
   };
   window.collapseArchiveIntakeHistory=function(){
@@ -125,6 +130,8 @@ window.renderArchivePage=function(){
 
     const rows=[];
     const today=currentLocalDate();
+    const period=window.__archiveIntakePeriod||'30';
+    const cutoffDate=(days=>{if(period==='all')return null;if(period==='today')return today;const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-(days-1));return dateFromParts(d);})(period==='7'?7:30);
     meds.forEach(m=>{
       const slots=window.medControlArchiveCourseSlots(m)||[];
       slots.forEach(slot=>{
@@ -133,6 +140,8 @@ window.renderArchivePage=function(){
         }else{
           if(slot.result!=='Не выполнен'||slot.date>=today)return;
         }
+        if(period==='today'&&slot.date!==today)return;
+        if(cutoffDate&&period!=='today'&&slot.date<cutoffDate)return;
         rows.push({m,slot});
       });
     });
@@ -233,7 +242,7 @@ window.renderArchivePage=function(){
   };
 
   document.head.insertAdjacentHTML('beforeend',`<style>:root{--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#f8fafc;--card:#fff}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--fg);line-height:1.45}.wrap{max-width:1380px;margin:0 auto;padding:20px 16px 48px}.topbar,.card{background:var(--card);border:1px solid var(--bd);border-radius:16px}.topbar{padding:14px;margin-bottom:16px}.card{padding:18px;margin-bottom:16px}.nav,.meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.nav a{display:inline-flex;text-decoration:none;padding:10px 14px;border-radius:12px;border:1px solid var(--bd);background:#fff;color:var(--fg)}.nav .active{border-color:#111827;background:#111827;color:#fff}.meta{margin-top:12px}.pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--bd);background:#fff;font-size:12px}.mono{font-family:ui-monospace,Consolas,monospace}.muted{color:var(--muted)}h1,h2{margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{padding:10px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}th{font-size:13px;background:#fafafa}dialog{width:calc(100vw - 24px);max-width:none;border:1px solid var(--bd);border-radius:16px;padding:18px}.right{text-align:right}</style>`);
-  document.body.innerHTML=shell(`<section class="card"><h1>MedControl — Архив</h1><p class="muted">Архивные представления читают существующие данные. Ничего из Ввода и истории не удалено.</p></section><section class="card"><h2>История приёмов</h2><div class="archive-intake-filters" style="display:flex;gap:10px;margin-bottom:14px"><button id="archiveTakenFilter" type="button" onclick="setArchiveIntakeFilter('taken')">Принято</button><button id="archiveMissedFilter" type="button" onclick="setArchiveIntakeFilter('missed')">Не принято</button><button id="archiveCollapseFilter" type="button" onclick="collapseArchiveIntakeHistory()" style="display:none">Свернуть</button></div><div id="archiveIntakeHistoryContent"></div></section><section class="card"><h2>Завершённые курсы</h2>${medTable(completed,'completed')}</section><section class="card"><h2>Отменённые препараты</h2>${medTable(cancelled,'cancelled')}</section><section class="card"><h2>Удалённые и заменённые времена</h2>${removedTimesTable()}</section>${historyDialogHtml()}`);
+  document.body.innerHTML=shell(`<section class="card"><h1>MedControl — Архив</h1><p class="muted">Архивные представления читают существующие данные. Ничего из Ввода и истории не удалено.</p></section><section class="card"><h2>История приёмов</h2><div class="archive-intake-filters" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center"><button id="archiveTakenFilter" type="button" onclick="setArchiveIntakeFilter('taken')">Принято</button><button id="archiveMissedFilter" type="button" onclick="setArchiveIntakeFilter('missed')">Не принято</button><label style="display:inline-flex;gap:8px;align-items:center">Период <select id="archiveIntakePeriod" onchange="setArchiveIntakePeriod(this.value)"><option value="today">Сегодня</option><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="all">Весь период</option></select></label><button id="archiveCollapseFilter" type="button" onclick="collapseArchiveIntakeHistory()" style="display:none">Свернуть</button></div><div id="archiveIntakeHistoryContent"></div></section><section class="card"><h2>Завершённые курсы</h2>${medTable(completed,'completed')}</section><section class="card"><h2>Отменённые препараты</h2>${medTable(cancelled,'cancelled')}</section><section class="card"><h2>Удалённые и заменённые времена</h2>${removedTimesTable()}</section>${historyDialogHtml()}`);
   if(typeof ensureLogoutNavigation==='function')ensureLogoutNavigation();
   if(typeof window.renderArchiveIntakeHistoryBlock==='function')window.renderArchiveIntakeHistoryBlock();
   scheduleClock();
