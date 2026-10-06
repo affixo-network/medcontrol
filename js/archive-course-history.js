@@ -178,6 +178,9 @@
     }).sort((a,b)=>a.plannedMs-b.plannedMs);
   }
 
+  window.medControlArchiveCourseSlots=courseSlots;
+  window.dispatchEvent(new Event('medcontrolArchiveCourseSlotsReady'));
+
   function outcomesTable(med){
     const slots=courseSlots(med);
     if(!slots.length)return '<p class="muted">Сохранённых расчётных приёмов для этого курса нет.</p>';
