@@ -52,13 +52,13 @@
     const button=document.getElementById('correction_apply');
     if(!hint||!button)return;
     if(reason==='accident'){
-      hint.textContent='Случайность: ошибочно нажатое «Принято» будет отменено. Исходная запись останется в истории.';
+      hint.textContent='Случайность: отметка «Принято» будет отменена. Исходная запись и фактическое онлайн-время останутся в истории.';
       button.disabled=false;
       button.textContent='Отменить «Принято»';
     }else if(reason==='error'){
-      hint.textContent='Ошибка пользователя не изменяет фактические данные. Зафиксированное время «Принято» остаётся неизменным.';
-      button.disabled=true;
-      button.textContent='Фактическое время не изменяется';
+      hint.textContent='Ошибка: отметка «Принято» будет отменена. Исходная запись и фактическое онлайн-время останутся в истории.';
+      button.disabled=false;
+      button.textContent='Отменить «Принято»';
     }else{
       hint.textContent='Выберите причину.';
       button.disabled=true;
@@ -68,12 +68,8 @@
 
   window.applyCorrection=function(medicationId,plannedAt){
     const reason=document.getElementById('correction_reason')?.value||'';
-    if(reason==='error'){
-      alert('Фактическое время «Принято» не может быть изменено вручную.');
-      return;
-    }
-    if(reason!=='accident'){
-      alert('Для отмены ошибочного нажатия выберите «Случайность».');return;
+    if(reason!=='accident'&&reason!=='error'){
+      alert('Выберите причину: «Случайность» или «Ошибка».');return;
     }
 
     const s=ensureState();
@@ -82,8 +78,9 @@
     const all=corrections(medicationId,plannedAt);
     const ordinal=all.length+1;
     const correctedAt=nowISO();
+    const reasonLabel=reason==='accident'?'Случайность':'Ошибка';
 
-    if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: Случайность.\nДействие «Принято» будет отменено.\nФактическое время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
+    if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: ${reasonLabel}.\nДействие «Принято» будет отменено.\nФактическое онлайн-время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
 
     s.intakeCorrections.push({
       id:uid(),
@@ -91,7 +88,7 @@
       plannedAt,
       primaryLogId:base.id||null,
       ordinal,
-      reason:'accident',
+      reason,
       correctedAt,
       before:{actualAt:base.actualAt,action:'taken',status:base.status},
       after:{actualAt:null,action:'reset',status:null}
