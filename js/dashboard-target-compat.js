@@ -2,12 +2,13 @@
   function duration(ms){let t=Math.max(0,Math.floor(ms/1000)),d=Math.floor(t/86400);t%=86400;let h=Math.floor(t/3600);t%=3600;let m=Math.floor(t/60),s=t%60;return `${d} дн. ${String(h).padStart(2,'0')} ч. ${String(m).padStart(2,'0')} мин. ${String(s).padStart(2,'0')} сек.`}
   function timing(item){
     if(item.status==='waiting') return `<strong>До времени приёма осталось</strong><br>${escapeHtml(duration(item.countdownMs||0))}`;
-    if(item.status==='missed') return `<strong>Опоздание</strong><br>${escapeHtml(duration(item.countdownMs||0))}`;
+    if(item.status==='overdue') return `<strong>Опоздание</strong><br>${escapeHtml(duration(item.countdownMs||0))}`;
+    if(item.status==='missed') return '<strong>Не выполнен</strong>';
     if(item.status==='taken'&&item.actualAt&&item.plannedMs){const diff=new Date(item.actualAt).getTime()-item.plannedMs;if(Math.abs(diff)<1000)return '<strong>Принято вовремя</strong>';return diff>0?`<strong>Принято позже на</strong><br>${escapeHtml(duration(diff))}`:`<strong>Принято раньше на</strong><br>${escapeHtml(duration(-diff))}`;}
     return '—';
   }
-  function statusText(s){return({waiting:'Ожидается',missed:'Просрочено',taken:'Принято',cancelled:'Отменен'})[s]||s}
-  function statusCss(s){return s==='waiting'?'status expected':s==='missed'?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
+  function statusText(s){return({waiting:'Ожидается',overdue:'Просрочено',missed:'Не выполнен',taken:'Принято',cancelled:'Отменен'})[s]||s}
+  function statusCss(s){return s==='waiting'?'status expected':(s==='overdue'||s==='missed')?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
 
   let dashboardRefreshTimer=null;
 
