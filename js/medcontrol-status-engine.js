@@ -1,7 +1,7 @@
 (function(){
 function plusDays(iso,n){const[a,b,c]=iso.split('-').map(Number),d=new Date(Date.UTC(a,b-1,c+n,12));return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`}
-function statusText(s){return({waiting:'Ожидается',missed:'Просрочено',taken:'Принято',cancelled:'Отменен'})[s]||s}
-function statusCss(s){return s==='waiting'?'status expected':s==='missed'?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
+function statusText(s){return({waiting:'Ожидается',overdue:'Просрочено',missed:'Не выполнен',taken:'Принято',cancelled:'Отменен'})[s]||s}
+function statusCss(s){return s==='waiting'?'status expected':(s==='overdue'||s==='missed')?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
 function duration(ms){let t=Math.max(0,Math.floor(ms/1000)),d=Math.floor(t/86400);t%=86400;let h=Math.floor(t/3600);t%=3600;let m=Math.floor(t/60),s=t%60;return `${d} дн. ${String(h).padStart(2,'0')} ч. ${String(m).padStart(2,'0')} мин. ${String(s).padStart(2,'0')} сек.`}
 function slots(med,start,days=370){const out=[],times=(med.times||[]).filter(Boolean).slice().sort();for(let i=0;i<=days;i++){const date=plusDays(start,i);if(!isMedicationApplicableOnDate(med,date))continue;for(const time of times){const plannedAt=getScheduledDateTime(date,time),plannedMs=new Date(plannedAt).getTime();if(!Number.isNaN(plannedMs))out.push({date,time,plannedAt,plannedMs})}}return out.sort((a,b)=>a.plannedMs-b.plannedMs)}
 function cancelledToday(med,today){if(!med.cancelled)return false;const h=(med.rowHistory||[]).find(x=>x&&x.action==='cancelled');return !!(h&&localDateFromISO(h.at)===today)}
