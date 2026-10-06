@@ -38,8 +38,6 @@
       if(futureScheduled.length)futureByMedication.push({med,slots:futureScheduled});
     }
     const rows=[...todayRows];
-    const hasFutureToday=rows.some(row=>row.plannedMs>now&&row.status==='waiting');
-    if(!hasFutureToday){let targetDate='';futureByMedication.forEach(item=>{const date=item.slots[0]?.date||'';if(date&&(!targetDate||date<targetDate))targetDate=date;});if(targetDate){futureByMedication.forEach(item=>{item.slots.filter(slot=>slot.date===targetDate).forEach(slot=>rows.push(effectiveRow(item.med,slot,now)));});}}
     return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
   };
 })();
