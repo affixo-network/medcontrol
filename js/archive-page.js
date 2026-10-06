@@ -136,7 +136,11 @@ window.renderArchivePage=function(){
       return;
     }
 
-    host.innerHTML=`<table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th><th>Фактическое время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td></tr>`).join('')}</tbody></table>`;
+    if(filter==='taken'){
+      host.innerHTML=`<table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th><th>Фактическое время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td></tr>`).join('')}</tbody></table>`;
+    }else{
+      host.innerHTML=`<table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td></tr>`).join('')}</tbody></table>`;
+    }
   };
   window.addEventListener('medcontrolArchiveCourseSlotsReady',()=>window.renderArchiveIntakeHistoryBlock?.());
 
