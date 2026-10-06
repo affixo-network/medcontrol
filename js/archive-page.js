@@ -155,9 +155,9 @@ window.renderArchivePage=function(){
     }
 
     if(filter==='taken'){
-      host.innerHTML=`<div style="display:flex;justify-content:flex-end;gap:8px;margin:0 0 8px"><button type="button" class="active" onclick="setArchiveIntakeFilter('taken')">Принято</button><button type="button" onclick="setArchiveIntakeFilter('missed')">Не принято</button></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th><th>Фактическое время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td></tr>`).join('')}</tbody></table>`;
+      host.innerHTML=`<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><strong>Принято</strong></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th><th>Фактическое время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td></tr>`).join('')}</tbody></table>`;
     }else{
-      host.innerHTML=`<div style="display:flex;justify-content:flex-end;gap:8px;margin:0 0 8px"><button type="button" onclick="setArchiveIntakeFilter('taken')">Принято</button><button type="button" class="active" onclick="setArchiveIntakeFilter('missed')">Не принято</button></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td></tr>`).join('')}</tbody></table>`;
+      host.innerHTML=`<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><strong>Не принято</strong></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td></tr>`).join('')}</tbody></table>`;
     }
   };
   window.addEventListener('medcontrolArchiveCourseSlotsReady',()=>window.renderArchiveIntakeHistoryBlock?.());
