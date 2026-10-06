@@ -7,7 +7,7 @@
     if(item.status==='taken'&&item.actualAt&&item.plannedMs){const diff=new Date(item.actualAt).getTime()-item.plannedMs;if(Math.abs(diff)<1000)return '<strong>Принято вовремя</strong>';return diff>0?`<strong>Принято позже на</strong><br>${escapeHtml(duration(diff))}`:`<strong>Принято раньше на</strong><br>${escapeHtml(duration(-diff))}`;}
     return '—';
   }
-  function statusText(s){return({waiting:'Ожидается',overdue:'Просрочено',missed:'Не выполнен',taken:'Принято',cancelled:'Отменен'})[s]||s}
+  function statusText(item){if(!item)return '—';if(item.status==='waiting')return 'Ожидается';if(item.status==='overdue')return 'Просрочено';if(item.status==='missed')return 'Не выполнен';if(item.status==='taken'){if(item.actualAt&&item.plannedMs){const diff=new Date(item.actualAt).getTime()-item.plannedMs;if(diff>1000)return 'С опозданием';if(diff<-1000)return 'Принято раньше';}return 'Принято';}if(item.status==='cancelled')return 'Отменен';return item.status||'—'}
   function statusCss(s){return s==='waiting'?'status expected':(s==='overdue'||s==='missed')?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
 
   let dashboardRefreshTimer=null;
@@ -22,7 +22,7 @@
       <td>${escapeHtml(x.plannedTime)}</td>
       <td data-dashboard-timing="${index}">${timing(x)}</td>
       <td>${x.actualAt?escapeHtml(formatDateTime(x.actualAt)):'—'}</td>
-      <td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x.status))}</span></td>
+      <td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x))}</span></td>
       <td><button onclick="showIntakeHistory('${x.medication.id}')">История</button></td>
     </tr>`).join('');
     const body=`<section class="card"><h1>MedControl — Табло</h1><p>Табло сохраняет временную картину и предоставляет доступ к истории по каждой строке.</p></section>
