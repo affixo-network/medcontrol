@@ -33,19 +33,38 @@
     const content=document.getElementById('correctionContent');
     if(!dialog||!content) return;
 
-    const count=corrections(medicationId,plannedAt).length;
-    const correctionAt=nowISO();
+    const all=corrections(medicationId,plannedAt);
+    const last=all[all.length-1];
+    const currentActual=(last?.after?.action==='taken'&&last.after.actualAt)?last.after.actualAt:base.actualAt;
+    const count=all.length;
 
     content.innerHTML=`<div class="form-grid">
-      <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Исправление отменяет только ошибочно зафиксированное действие «Принято». Первоначальная запись сохраняется в истории.</p></div>
+      <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Первоначальная запись «Принято» сохраняется в истории.</p></div>
       <div><label>Расчётное время приёма</label><input type="text" value="${escapeHtml(formatDateTime(plannedAt))}" readonly></div>
-      <div><label>Фактическое время нажатия «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
-      <div><label>Локальное время исправления</label><input type="text" value="${escapeHtml(formatDateTime(correctionAt))}" readonly></div>
-      <div><label>Причина исправления</label><select id="correction_reason"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
-      <div class="full muted">После подтверждения статус «Принято» будет снят. Поле фактического времени на основной странице очистится до следующего подтверждённого приёма.</div>
-      <div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Отменить «Принято»</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
+      <div><label>Текущее фактическое время «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(currentActual))}" readonly></div>
+      <div><label>Причина исправления</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
+      <div id="correction_time_wrap" style="display:none"><label>Исправленное фактическое время</label><input id="correction_time" type="datetime-local"></div>
+      <div id="correction_hint" class="full muted">Выберите причину исправления.</div>
+      <div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Подтвердить исправление</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
     </div>`;
     dialog.showModal();
+  };
+
+  window.syncCorrectionMode=function(){
+    const reason=document.getElementById('correction_reason')?.value||'';
+    const wrap=document.getElementById('correction_time_wrap');
+    const hint=document.getElementById('correction_hint');
+    if(!wrap||!hint)return;
+    if(reason==='accident'){
+      wrap.style.display='none';
+      hint.textContent='Случайность: ошибочная фиксация «Принято» будет снята. Первоначальная запись останется в истории.';
+    }else if(reason==='error'){
+      wrap.style.display='block';
+      hint.textContent='Ошибка: исправляется фактическое время приёма. Статус «Принято» сохраняется, первоначальная запись остаётся в истории.';
+    }else{
+      wrap.style.display='none';
+      hint.textContent='Выберите причину исправления.';
+    }
   };
 
   window.applyCorrection=function(medicationId,plannedAt){
@@ -58,22 +77,29 @@
     const base=primary(medicationId,plannedAt);
     if(!base) return;
     const all=corrections(medicationId,plannedAt);
+    const last=all[all.length-1];
+    const beforeActual=(last?.after?.action==='taken'&&last.after.actualAt)?last.after.actualAt:base.actualAt;
     const ordinal=all.length+1;
     const correctedAt=nowISO();
 
-    if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: ${label(reason)}.\nДействие «Принято» будет отменено.\nФактическое время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
-
-    s.intakeCorrections.push({
-      id:uid(),
-      medicationId,
-      plannedAt,
-      primaryLogId:base.id||null,
-      ordinal,
-      reason,
-      correctedAt,
-      before:{actualAt:base.actualAt,action:'taken',status:base.status},
-      after:{actualAt:null,action:'reset',status:null}
-    });
+    if(reason==='accident'){
+      if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: Случайность.\nДействие «Принято» будет отменено.\nФактическое время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
+      s.intakeCorrections.push({
+        id:uid(),medicationId,plannedAt,primaryLogId:base.id||null,ordinal,reason,correctedAt,
+        before:{actualAt:beforeActual,action:'taken',status:base.status},
+        after:{actualAt:null,action:'reset',status:null}
+      });
+    }else{
+      const localValue=document.getElementById('correction_time')?.value||'';
+      if(!localValue){alert('Укажите исправленное фактическое время приёма.');return;}
+      const actualAt=new Date(localValue).toISOString();
+      if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: Ошибка.\nБыло: ${formatDateTime(beforeActual)}\nСтанет: ${formatDateTime(actualAt)}\n\nПодтвердить?`)) return;
+      s.intakeCorrections.push({
+        id:uid(),medicationId,plannedAt,primaryLogId:base.id||null,ordinal,reason,correctedAt,
+        before:{actualAt:beforeActual,action:'taken',status:base.status},
+        after:{actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')}
+      });
+    }
 
     saveState(s);
     document.getElementById('correctionDialog')?.close();
@@ -108,7 +134,7 @@
         );
         events.push({
           occurredAt:c.correctedAt,
-          event:'Отмена «Принято»',
+          event:c.reason==='error'?'Исправление времени':'Отмена «Принято»',
           plannedAt:c.plannedAt,
           actualAt:c.before?.actualAt || base?.actualAt || null,
           correctionAt:c.correctedAt,
