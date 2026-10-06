@@ -6,7 +6,7 @@
     if(item.status==='taken'&&item.actualAt&&item.plannedMs){const diff=new Date(item.actualAt).getTime()-item.plannedMs;if(Math.abs(diff)<1000)return '<strong>Принято вовремя</strong>';return diff>0?`<strong>Принято позже на</strong><br>${escapeHtml(duration(diff))}`:`<strong>Принято раньше на</strong><br>${escapeHtml(duration(-diff))}`;}
     return '—';
   }
-  function statusText(s){return({waiting:'Ожидается',missed:'Не выполнен',taken:'Принято',cancelled:'Отменен'})[s]||s}
+  function statusText(s){return({waiting:'Ожидается',missed:'Просрочено',taken:'Принято',cancelled:'Отменен'})[s]||s}
   function statusCss(s){return s==='waiting'?'status expected':s==='missed'?'status overdue':s==='taken'?'status success':s==='cancelled'?'status upcoming':'status'}
 
   let dashboardRefreshTimer=null;
