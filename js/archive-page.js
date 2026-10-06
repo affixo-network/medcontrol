@@ -10,6 +10,7 @@ window.renderArchivePage=function(){
     return m.endDate||'';
   }
   const today=currentLocalDate();
+  const archiveDateFromParts=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const completed=meds.filter(m=>!m.cancelled && medicationEnd(m) && medicationEnd(m)<today);
   const cancelled=meds.filter(m=>!!m.cancelled);
 
@@ -131,8 +132,8 @@ window.renderArchivePage=function(){
     const rows=[];
     const today=currentLocalDate();
     const period=window.__archiveIntakePeriod||'30';
-    const yesterdayDate=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-1);return dateFromParts(d);})();
-    const cutoffDate=(days=>{if(period==='all'||period==='yesterday')return null;const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-(days-1));return dateFromParts(d);})(period==='7'?7:30);
+    const yesterdayDate=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-1);return archiveDateFromParts(d);})();
+    const cutoffDate=(days=>{if(period==='all'||period==='yesterday')return null;const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-(days-1));return archiveDateFromParts(d);})(period==='7'?7:30);
     meds.forEach(m=>{
       const slots=window.medControlArchiveCourseSlots(m)||[];
       slots.forEach(slot=>{
