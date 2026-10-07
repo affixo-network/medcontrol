@@ -132,6 +132,16 @@
   window.patchMedControlResetUi=evaluateCycle;
   const inheritedMount=window.mount;
   if(typeof inheritedMount==='function')window.mount=function(page){const result=inheritedMount(page);setTimeout(evaluateCycle,0);return result;};
+  function scheduleNextDayCheck(){
+    if(window.__medcontrolCycleDayTimer)clearTimeout(window.__medcontrolCycleDayTimer);
+    const now=new Date();
+    const next=new Date(now);
+    next.setHours(24,0,1,0);
+    window.__medcontrolCycleDayTimer=setTimeout(()=>{
+      evaluateCycle();
+      scheduleNextDayCheck();
+    },Math.max(1000,next.getTime()-now.getTime()));
+  }
   setTimeout(evaluateCycle,0);
-  setInterval(evaluateCycle,15000);
+  scheduleNextDayCheck();
 })();
