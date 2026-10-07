@@ -112,6 +112,7 @@
           event:'Принято',
           plannedAt:log.plannedAt,
           actualAt:log.actualAt,
+          status:typeof statusLabel==='function'?statusLabel(log.status||(typeof computeStatusForLog==='function'?computeStatusForLog(log.plannedAt,log.actualAt,log.action):'')):(log.status||''),
           correctionAt:null,
           reason:null
         });
@@ -130,6 +131,7 @@
           event:'Отмена «Принято»',
           plannedAt:c.plannedAt,
           actualAt:c.before?.actualAt || base?.actualAt || null,
+          status:null,
           correctionAt:c.correctedAt,
           reason:label(c.reason)
         });
@@ -151,10 +153,11 @@
       <td>${escapeHtml(event.event)}</td>
       <td>${escapeHtml(formatDateTime(event.plannedAt))}</td>
       <td>${event.actualAt?escapeHtml(formatDateTime(event.actualAt)):'—'}</td>
+      <td>${event.status?escapeHtml(event.status):'—'}</td>
       <td>${event.correctionAt?escapeHtml(formatDateTime(event.correctionAt)):'—'}</td>
       <td>${event.reason?escapeHtml(event.reason):'—'}</td>
     </tr>`).join('');
 
-    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Статус</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 })();
