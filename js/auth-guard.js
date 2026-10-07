@@ -7,6 +7,7 @@
   const common=['js/translations.js','js/storage.js?v=force-majeure-20260918-2','js/cloud-snapshot.js?v=force-majeure-20260918-2'];
   const reset='js/archive-reset-policy.js?v=manual-reset-recovery-1';
   const loadedScriptPaths=new Set();
+  const prefetchedScriptPaths=new Set();
   const scriptsByPage={
     input:[...common,'js/utils.js','js/temporal-change-guard.js','js/language.js','js/medications.js?v=force-majeure-20260918-3','js/temporal-change-hotfix.js','js/medication-edit-noop-guard.js','js/schedule-change-scope.js','js/schedule.js','js/intake.js?v=force-majeure-20260918-3','js/intake-history-slot-scope.js','js/history.js?v=archive-time-events-only-5','js/render.js?v=428014d','js/clock.js','core.js','js/settings.js?v=force-majeure-20260918-2','js/navigation.js?v=force-majeure-20260918-2','js/medication-sequence-controller.js','js/intake-cancellation-policy.js','js/input-qa-fixes.js','js/edit-times-reliability.js','js/a1-integrity-fix.js','js/completed-archive-history-fallback.js','js/scope-history-repair.js','js/today-scope-resolver.js','js/input-temporal-scope-display.js','js/unified-history-ui.js?v=58cd006','js/time-status-controller.js?v=bf2bfd3','js/edit-dialog-compat.js?v=c75a1d3','js/input-architecture-fix.js?v=c0a1361','js/input-time-history-fix.js?v=e949059','js/input-time-editor-v2.js?v=adf40cb',reset,'js/input-time-editor-v3-fix.js?v=hour-minute-select-1','js/input-time-history-scope-fix.js?v=scope-column-1','js/input-draft-recovery.js?v=draft-recovery-1'],
     action:[...common,'js/utils.js','js/temporal-change-guard.js','js/language.js','js/medications.js','js/schedule.js','js/intake.js?v=force-majeure-20260918-3','js/history.js','js/render.js','js/next-intake-slot.js','js/medcontrol-status-engine.js','js/clock.js','core.js','js/settings.js','js/navigation.js?v=force-majeure-20260918-2','js/intake-cancellation-policy.js','js/correction-guard-engine.js','js/correction-reset-dashboard-history.js','js/correction-cancel-taken-policy.js','js/intake-history-title.js','js/correction-window-eod.js','js/intake-unit-display.js','js/intake-history-slot-scope.js?v=1f94159','js/a1-integrity-fix.js','js/time-status-controller.js?v=b5186b0','js/daily-timeline-final.js?v=0b2ad73','js/action-history-direct-bind.js?v=f1e12c9',reset],
@@ -31,13 +32,12 @@
     });
   }
   function prefetchOtherPageScripts(activePage){
-    const seen=new Set();
     Object.entries(scriptsByPage).forEach(([name,list])=>{
       if(name===activePage)return;
       list.forEach(src=>{
         const key=scriptKey(src);
-        if(loadedScriptPaths.has(key)||seen.has(key))return;
-        seen.add(key);
+        if(loadedScriptPaths.has(key)||prefetchedScriptPaths.has(key))return;
+        prefetchedScriptPaths.add(key);
         const link=document.createElement('link');
         link.rel='prefetch';
         link.as='script';
@@ -53,7 +53,7 @@
       const s=document.createElement('script');
       s.src=src;
       s.async=false;
-      s.onload=()=>{loadedScriptPaths.add(key);resolve();};
+      s.onload=()=>{loadedScriptPaths.add(key);prefetchedScriptPaths.delete(key);resolve();};
       s.onerror=()=>reject(new Error('Не удалось загрузить '+src));
       document.head.appendChild(s);
     });
