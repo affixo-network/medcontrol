@@ -9,6 +9,34 @@
   function contentUnit(s){return typeof medicationContentUnitLabel==='function'?medicationContentUnitLabel(s?.contentUnit,s?.contentUnitOther||''):s?.contentUnit||'—';}
   function intakeUnit(s){return typeof medicationIntakeUnitLabel==='function'?medicationIntakeUnitLabel(s?.intakeUnit,s?.intakeUnitOther||''):s?.intakeUnit||'—';}
   function statusText(s){if(s?.cancelled)return 'Отменено';if(s?.courseCompleted)return 'Завершён';return s?.active?'Активно':'Пассивно';}
+  function medicationStatusAt(med,eventAt){
+    const cutoff=new Date(eventAt).getTime();
+    const entries=Array.isArray(med?.rowHistory)?[...med.rowHistory].filter(Boolean).sort((a,b)=>new Date(a.at||0)-new Date(b.at||0)):[];
+    let s={active:med?.active!==false,cancelled:!!med?.cancelled,courseCompleted:!!med?.courseCompleted},seen=false;
+    for(const entry of entries){
+      const at=new Date(entry.at||0).getTime();
+      if(Number.isFinite(at)&&at>cutoff)break;
+      if(entry.action==='created'){
+        const snap=entry.snapshot||{};
+        s={active:snap.active!==false,cancelled:!!snap.cancelled,courseCompleted:!!snap.courseCompleted};
+        seen=true;
+        continue;
+      }
+      const ch=entry.changes||{};
+      if(Object.prototype.hasOwnProperty.call(ch,'active'))s.active=ch.active!==false;
+      if(Object.prototype.hasOwnProperty.call(ch,'cancelled'))s.cancelled=!!ch.cancelled;
+      if(Object.prototype.hasOwnProperty.call(ch,'courseCompleted'))s.courseCompleted=!!ch.courseCompleted;
+      if(['activated','active'].includes(entry.action))s.active=true;
+      if(['deactivated','passive'].includes(entry.action))s.active=false;
+      if(entry.action==='cancelled'){s.cancelled=true;s.active=false;}
+      if(entry.action==='course_completed'){s.courseCompleted=true;s.active=false;}
+      const payload=String(entry.payload||'');
+      if(payload.includes('«Активно»'))s.active=true;
+      if(payload.includes('«Пассивно»'))s.active=false;
+      seen=true;
+    }
+    return statusText(seen?s:med);
+  }
   function blankRow(at,event){return{occurredAt:at,event,scope:'',name:'',manufacturer:'',contentValue:'',contentUnit:'',intakeQuantity:'',intakeUnit:'',details:'',schedule:'',scheduleParameters:'',time:'',startDate:'',endDate:'',status:'',actualAt:null,correctionAt:null,reason:''};}
   function fullRow(at,event,s,clock,scope){const r=blankRow(at,event);r.scope=scope||'';r.name=s?.name||'—';r.manufacturer=s?.manufacturer||'—';r.contentValue=s?.contentValue||'—';r.contentUnit=contentUnit(s);r.intakeQuantity=s?.intakeQuantity||'—';r.intakeUnit=intakeUnit(s);r.details=s?.details||'—';r.schedule=scheduleText(s);r.scheduleParameters=scheduleParameters(s);r.time=clock;r.startDate=normalizedScheduleType(s)==='daily'&&s?.startDate?formatDate(s.startDate):'—';r.endDate=scope==='Только сегодня'?formatDate(localDateFromISO(at)):(normalizedScheduleType(s)==='explicit_dates'?'—':s?.endDate?formatDate(s.endDate):'—');r.status=statusText(s);return r;}
   function scopedTimes(entry){const changed=Array.isArray(entry?.changedTimeValues)?entry.changedTimeValues.filter(Boolean):[],removed=Array.isArray(entry?.removedTimeValues)?entry.removedTimeValues.filter(Boolean):[],exact=[...new Set([...changed,...removed])];if(exact.length)return exact;const t=entry?.scopeTodayTemporal?.times;return Array.isArray(t)?t.filter(Boolean):[];}
@@ -29,10 +57,10 @@
       else if(clockKnown){const row=changedRow(entry,before,after,source,clock);if(row&&filterPeriod(entry.at,period))rows.push(row);if(was&&!is)clockKnown=false;}
       state=after;
     });return rows;}
-  function intakeRowsForClock(state,medId,clock,plannedAt,period){const limit=new Date(plannedAt).getTime(),rows=[];(state.intakeLogs||[]).filter(l=>l.medicationId===medId&&timeOnly(l.plannedAt)===clock&&new Date(l.plannedAt).getTime()<=limit).forEach(l=>{if(filterPeriod(l.actualAt,period)){const r=blankRow(l.actualAt,'Принято');r.actualAt=l.actualAt;r.status='Принято';rows.push(r);}});(state.intakeCorrections||[]).filter(c=>c.medicationId===medId&&timeOnly(c.plannedAt)===clock&&new Date(c.plannedAt).getTime()<=limit).forEach(c=>{if(!filterPeriod(c.correctedAt,period))return;const base=(state.intakeLogs||[]).find(l=>l.medicationId===c.medicationId&&l.plannedAt===c.plannedAt&&(!c.primaryLogId||l.id===c.primaryLogId));const r=blankRow(c.correctedAt,'Отмена «Принято»');r.actualAt=c.before?.actualAt||base?.actualAt||null;r.correctionAt=c.correctedAt;r.reason=c.reason==='accident'?'Случайность':c.reason==='error'?'Ошибка':'—';rows.push(r);});return rows;}
+  function intakeRowsForClock(state,med,clock,plannedAt,period){const medId=med?.id,limit=new Date(plannedAt).getTime(),rows=[];(state.intakeLogs||[]).filter(l=>l.medicationId===medId&&timeOnly(l.plannedAt)===clock&&new Date(l.plannedAt).getTime()<=limit).forEach(l=>{if(filterPeriod(l.actualAt,period)){const r=blankRow(l.actualAt,'Принято');r.actualAt=l.actualAt;r.status=medicationStatusAt(med,l.actualAt);rows.push(r);}});(state.intakeCorrections||[]).filter(c=>c.medicationId===medId&&timeOnly(c.plannedAt)===clock&&new Date(c.plannedAt).getTime()<=limit).forEach(c=>{if(!filterPeriod(c.correctedAt,period))return;const base=(state.intakeLogs||[]).find(l=>l.medicationId===c.medicationId&&l.plannedAt===c.plannedAt&&(!c.primaryLogId||l.id===c.primaryLogId));const r=blankRow(c.correctedAt,'Отмена «Принято»');r.actualAt=c.before?.actualAt||base?.actualAt||null;r.correctionAt=c.correctedAt;r.reason=c.reason==='accident'?'Случайность':c.reason==='error'?'Ошибка':'—';r.status=medicationStatusAt(med,c.correctedAt);rows.push(r);});return rows;}
   function cell(v){return v===null||v===undefined||v===''?'—':escapeHtml(v);}
   function historyTable(rows,clock){const sorted=[...rows].sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));if(!sorted.length)return `<p class="muted">В выбранном периоде событий для расчётного времени ${escapeHtml(clock)} нет.</p>`;return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Область изменения</th><th>Препарат</th><th>Производитель</th><th>Количественное содержание</th><th>Единица содержания</th><th>Количество приёма</th><th>Единица приёма</th><th>Детали</th><th>Расписание</th><th>Параметры расписания</th><th>Время</th><th>Дата начала</th><th>Дата окончания</th><th>Статус</th><th>Фактическое время «Принято»</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${sorted.map(r=>`<tr><td>${cell(formatDateTime(r.occurredAt))}</td><td>${cell(r.event)}</td><td>${cell(r.scope)}</td><td>${cell(r.name)}</td><td>${cell(r.manufacturer)}</td><td>${cell(r.contentValue)}</td><td>${cell(r.contentUnit)}</td><td>${cell(r.intakeQuantity)}</td><td>${cell(r.intakeUnit)}</td><td>${cell(r.details)}</td><td>${cell(r.schedule)}</td><td>${cell(r.scheduleParameters)}</td><td>${cell(r.time)}</td><td>${cell(r.startDate)}</td><td>${cell(r.endDate)}</td><td>${cell(r.status)}</td><td>${r.actualAt?cell(formatDateTime(r.actualAt)):'—'}</td><td>${r.correctionAt?cell(formatDateTime(r.correctionAt)):'—'}</td><td>${cell(r.reason)}</td></tr>`).join('')}</tbody></table>`;}
-  window.intakeHistoryRows=function(medId,period,plannedAt){if(!plannedAt)return typeof baseRows==='function'?baseRows(medId,period):'';const state=getState(),med=(state.medications||[]).find(i=>i.id===medId),clock=timeOnly(plannedAt);return historyTable([...medicationRowsForClock(med,clock,period,plannedAt),...intakeRowsForClock(state,medId,clock,plannedAt,period)],clock);};
+  window.intakeHistoryRows=function(medId,period,plannedAt){if(!plannedAt)return typeof baseRows==='function'?baseRows(medId,period):'';const state=getState(),med=(state.medications||[]).find(i=>i.id===medId),clock=timeOnly(plannedAt);return historyTable([...medicationRowsForClock(med,clock,period,plannedAt),...intakeRowsForClock(state,med,clock,plannedAt,period)],clock);};
   window.showIntakeHistory=function(medicationId,plannedAt){window.__historyMedicationId=medicationId;window.__historyPlannedAt=plannedAt||null;refreshIntakeHistory();const d=document.getElementById('intakeHistoryDialog'),med=(getState().medications||[]).find(i=>i.id===medicationId);if(d)d.classList.add('row-history-dialog');const title=d?.querySelector('h2');if(title&&med)title.textContent=plannedAt?`История приёма препарата «${med.name}» — расчётное время ${timeOnly(plannedAt)}`:`История приёма препарата «${med.name}»`;d?.showModal();};
   window.refreshIntakeHistory=function(){const id=window.__historyMedicationId;if(!id)return;const p=document.getElementById('historyPeriodSelect')?.value||'today',c=document.getElementById('intakeHistoryContent');if(c)c.innerHTML=window.intakeHistoryRows(id,p,window.__historyPlannedAt||null);};
 })();
