@@ -17,7 +17,7 @@
   function timeActiveAtSlot(med,slot){if(typeof window.isMedicationTimeActiveAt==='function')return window.isMedicationTimeActiveAt(med,slot.time,slot.plannedMs);return med?.timeStatuses?.[slot.time]!==false;}
 
   window.buildMedControlTimeline=function(){
-    const state=getState(),today=currentLocalDate(),now=Date.now(),todayRows=[],futureByMedication=[];
+    const state=getState(),today=currentLocalDate(),now=Date.now(),todayRows=[];
     for(const med of (state.medications||[])){
       if(med.cancelled||med.courseCompleted||!med.active)continue;
       if(typeof ensureTemporalChangeState==='function')ensureTemporalChangeState(med);
@@ -34,8 +34,6 @@
       todayScheduled=todayScheduled.filter(slot=>!createdMs||slot.plannedMs>=createdMs||committedKeys.has(slot.plannedAt));
       const todaySlots=uniqueSlots([...todayScheduled,...historicalToday,...correctionToday]);
       todaySlots.forEach((slot,index)=>{const next=todaySlots[index+1];const deadlineMs=next?.plannedMs??endOfLocalDayMs(slot.date);todayRows.push(effectiveRow(med,slot,now,deadlineMs));});
-      const futureStart=plusDays(today,1),futureScheduled=scheduledSlots(med,futureStart,369).filter(slot=>timeActiveAtSlot(med,slot));
-      if(futureScheduled.length)futureByMedication.push({med,slots:futureScheduled});
     }
     const rows=[...todayRows];
     return rows.sort((a,b)=>(a.plannedMs??Infinity)-(b.plannedMs??Infinity));
