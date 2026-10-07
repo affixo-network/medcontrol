@@ -20,7 +20,7 @@
       <td>${escapeHtml(typeof window.medControlIntakeUnitLabel==='function'?window.medControlIntakeUnitLabel(x.medication):(x.medication.intakeUnitOther||x.medication.intakeUnit||'—'))}</td>
       <td>${escapeHtml(formatDate(x.plannedDate))}</td>
       <td>${escapeHtml(x.plannedTime)}</td>
-      <td data-dashboard-timing="${index}">${timing(x)}</td>
+      <td data-dashboard-timing="${index}" data-status="${escapeHtml(x.status)}" data-planned-ms="${Number.isFinite(x.plannedMs)?x.plannedMs:''}" data-deadline-ms="${Number.isFinite(x.deadlineMs)?x.deadlineMs:''}">${timing(x)}</td>
       <td>${x.actualAt?escapeHtml(formatDateTime(x.actualAt)):'—'}</td>
       <td><span class="${statusCss(x.status)}">${escapeHtml(statusText(x))}</span></td>
       <td><button onclick="showIntakeHistory('${x.medication.id}')">История</button></td>
@@ -37,14 +37,21 @@
 
     if(dashboardRefreshTimer) clearTimeout(dashboardRefreshTimer);
     const refreshTimingCells=()=>{
-      if(window.medcontrolShellNavigationLoading) return;
-      if(!/\/dashboard\.html$/.test(window.location.pathname)) return;
-      const currentRows=buildMedControlTimeline();
+      if(window.medcontrolShellNavigationLoading){dashboardRefreshTimer=setTimeout(refreshTimingCells,1000);return;}
+      if(!/\/dashboard\.html$/.test(window.location.pathname))return;
+      const now=Date.now();
+      let crossedBoundary=false;
       document.querySelectorAll('[data-dashboard-timing]').forEach(cell=>{
-        const index=Number(cell.dataset.dashboardTiming);
-        const item=currentRows[index];
-        if(item)cell.innerHTML=timing(item);
+        const status=cell.dataset.status,plannedMs=Number(cell.dataset.plannedMs),deadlineMs=Number(cell.dataset.deadlineMs);
+        if(status==='waiting'&&Number.isFinite(plannedMs)){
+          if(now>=plannedMs){crossedBoundary=true;return;}
+          cell.innerHTML=`<strong>До времени приёма осталось</strong><br>${escapeHtml(duration(plannedMs-now))}`;
+        }else if(status==='overdue'&&Number.isFinite(plannedMs)){
+          if(Number.isFinite(deadlineMs)&&now>=deadlineMs){crossedBoundary=true;return;}
+          cell.innerHTML=`<strong>Опоздание</strong><br>${escapeHtml(duration(now-plannedMs))}`;
+        }
       });
+      if(crossedBoundary){renderDashboardPage();return;}
       dashboardRefreshTimer=setTimeout(refreshTimingCells,1000);
     };
     dashboardRefreshTimer=setTimeout(refreshTimingCells,1000);
