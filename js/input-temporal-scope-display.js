@@ -6,10 +6,10 @@
     const app=scopeFor(med);if(!app||!row)return;const cells=row.querySelectorAll('td');if(cells.length<11)return;const timeCell=cells[10],todayTimes=Array.isArray(app.todayTemporal?.times)?app.todayTemporal.times:[],baseTimes=Array.isArray(med.times)?med.times:[];
     if(app.scope==='today'){
       const todayOnly=diffTimes(todayTimes,baseTimes),todayText=todayOnly.join(', ')||'—',futureText=baseTimes.join(', ')||'—';
-      timeCell.innerHTML=`<strong>${escapeHtml(todayText)}</strong><br><span class="small muted">Только сегодня: ${escapeHtml(todayText)}</span><br><span class="small">Последующие дни: ${escapeHtml(futureText)}</span>`;return;
+      const html=`<strong>${escapeHtml(todayText)}</strong><br><span class="small muted">Только сегодня: ${escapeHtml(todayText)}</span><br><span class="small">Последующие дни: ${escapeHtml(futureText)}</span>`;if(timeCell.innerHTML!==html)timeCell.innerHTML=html;return;
     }
-    if(app.scope==='future'){const todayText=todayTimes.join(', ')||'—',futureText=baseTimes.join(', ')||'—';timeCell.innerHTML=`<strong>${escapeHtml(todayText)}</strong><br><span class="small muted">Сегодня: ${escapeHtml(todayText)}</span><br><span class="small">Последующие дни: ${escapeHtml(futureText)}</span>`;return;}
-    if(app.scope==='today_future'){const text=baseTimes.join(', ')||'—';timeCell.innerHTML=`<strong>${escapeHtml(text)}</strong><br><span class="small muted">Сегодня и последующие дни: ${escapeHtml(text)}</span>`;}
+    if(app.scope==='future'){const todayText=todayTimes.join(', ')||'—',futureText=baseTimes.join(', ')||'—';const html=`<strong>${escapeHtml(todayText)}</strong><br><span class="small muted">Сегодня: ${escapeHtml(todayText)}</span><br><span class="small">Последующие дни: ${escapeHtml(futureText)}</span>`;if(timeCell.innerHTML!==html)timeCell.innerHTML=html;return;}
+    if(app.scope==='today_future'){const text=baseTimes.join(', ')||'—';const html=`<strong>${escapeHtml(text)}</strong><br><span class="small muted">Сегодня и последующие дни: ${escapeHtml(text)}</span>`;if(timeCell.innerHTML!==html)timeCell.innerHTML=html;}
   }
   function updateInputScopeDisplay(){const state=typeof getState==='function'?getState():null;if(!state||!Array.isArray(state.medications))return;state.medications.forEach(med=>{if(!scopeFor(med))return;renderScopeCell(med,findRowForMedication(med));});}
   let scheduled=false;function scheduleRefresh(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;updateInputScopeDisplay();});}
