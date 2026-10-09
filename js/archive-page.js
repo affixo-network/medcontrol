@@ -11,7 +11,7 @@ window.renderArchivePage=function(){
   }
   const today=currentLocalDate();
   const archiveDateFromParts=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const completed=meds.filter(m=>!m.cancelled && medicationEnd(m) && medicationEnd(m)<today);
+  const completed=meds.filter(m=>!m.cancelled && m.archivedCompleted===true);
   const cancelled=meds.filter(m=>!!m.cancelled);
 
   function removedTimes(){
@@ -243,7 +243,7 @@ window.renderArchivePage=function(){
   };
 
   if(!document.getElementById('medcontrolArchiveStyles'))document.head.insertAdjacentHTML('beforeend',`<style id="medcontrolArchiveStyles">:root{--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#f8fafc;--card:#fff}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--fg);line-height:1.45}.wrap{max-width:1380px;margin:0 auto;padding:20px 16px 48px}.topbar,.card{background:var(--card);border:1px solid var(--bd);border-radius:16px}.topbar{padding:14px;margin-bottom:16px}.card{padding:18px;margin-bottom:16px}.nav,.meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.nav a{display:inline-flex;text-decoration:none;padding:10px 14px;border-radius:12px;border:1px solid var(--bd);background:#fff;color:var(--fg)}.nav .active{border-color:#111827;background:#111827;color:#fff}.meta{margin-top:12px}.pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--bd);background:#fff;font-size:12px}.mono{font-family:ui-monospace,Consolas,monospace}.muted{color:var(--muted)}h1,h2{margin:0 0 12px}table{width:100%;border-collapse:collapse}th,td{padding:10px 8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}th{font-size:13px;background:#fafafa}dialog{width:calc(100vw - 24px);max-width:none;border:1px solid var(--bd);border-radius:16px;padding:18px}.right{text-align:right}</style>`);
-  document.body.innerHTML=shell(`<section class="card"><h1>MedControl — Архив</h1><p class="muted">Здесь находятся только препараты, выведенные из рабочего цикла и подлежащие окончательному сбросу.</p></section><section class="card"><h2>Отменённые препараты</h2>${medTable(cancelled,'cancelled')}</section>${historyDialogHtml()}`);
+  document.body.innerHTML=shell(`<section class="card"><h1>MedControl — Архив</h1><p class="muted">Здесь находятся только препараты, выведенные из рабочего цикла и подлежащие окончательному сбросу.</p></section><section class="card"><h2>Завершённые курсы</h2>${medTable(completed,'completed')}</section><section class="card"><h2>Отменённые препараты</h2>${medTable(cancelled,'cancelled')}</section>${historyDialogHtml()}`);
   if(typeof ensureLogoutNavigation==='function')ensureLogoutNavigation();
   if(typeof window.renderArchiveIntakeHistoryBlock==='function')window.renderArchiveIntakeHistoryBlock();
   scheduleClock();
