@@ -219,24 +219,75 @@
     return typeof statusLabel==='function'&&code?statusLabel(code):(code||'Принято');
   }
 
+  function scheduleLabel(source){
+    const type=source?.scheduleType||((source?.explicitDates||[]).length?'explicit_dates':(source?.weekdays||[]).length?'weekdays':'daily');
+    return type==='weekdays'?'Дни недели':type==='explicit_dates'?'Даты':'Каждый день';
+  }
+
+  function scheduleParameters(source){
+    const type=source?.scheduleType||((source?.explicitDates||[]).length?'explicit_dates':(source?.weekdays||[]).length?'weekdays':'daily');
+    if(type==='weekdays'){
+      const names={Mon:'Пн',Tue:'Вт',Wed:'Ср',Thu:'Чт',Fri:'Пт',Sat:'Сб',Sun:'Вс'};
+      return (source?.weekdays||[]).map(x=>names[x]||x).join(', ')||'—';
+    }
+    if(type==='explicit_dates')return (source?.explicitDates||[]).map(x=>formatDate(x)).join(', ')||'—';
+    return 'Ежедневно';
+  }
+
+  function contentText(source){
+    const value=source?.contentValue||'';
+    const unit=typeof medicationContentUnitLabel==='function'
+      ? medicationContentUnitLabel(source?.contentUnit,source?.contentUnitOther||'')
+      : (source?.contentUnitOther||source?.contentUnit||'');
+    return [value,unit].filter(Boolean).join(' ')||'—';
+  }
+
+  function intakeText(source){
+    const value=source?.intakeQuantity||'';
+    const unit=typeof medicationIntakeUnitLabel==='function'
+      ? medicationIntakeUnitLabel(source?.intakeUnit,source?.intakeUnitOther||'')
+      : (source?.intakeUnitOther||source?.intakeUnit||'');
+    return [value,unit].filter(Boolean).join(' ')||'—';
+  }
+
+  function periodText(source){
+    const start=source?.startDate?formatDate(source.startDate):'';
+    const end=source?.endDate?formatDate(source.endDate):'';
+    return start||end?`${start||'—'} → ${end||'—'}`:'—';
+  }
+
+  function courseDataForEntry(med,entry){
+    const created=entry.action==='created';
+    const source=created?(entry.snapshot||entry.changes||med):(entry.changes||{});
+    const has=key=>created||Object.prototype.hasOwnProperty.call(source,key);
+    return {
+      manufacturer:has('manufacturer')?(source.manufacturer||'—'):'',
+      content:(has('contentValue')||has('contentUnit')||has('contentUnitOther'))?contentText(created?source:{...med,...source}):'',
+      intake:(has('intakeQuantity')||has('intakeUnit')||has('intakeUnitOther'))?intakeText(created?source:{...med,...source}):'',
+      schedule:has('scheduleType')?scheduleLabel(created?source:{...med,...source}):'',
+      params:(has('scheduleType')||has('weekdays')||has('explicitDates'))?scheduleParameters(created?source:{...med,...source}):'',
+      times:has('times')?(source.times||[]).join(', '):'',
+      period:(has('startDate')||has('endDate'))?periodText(created?source:{...med,...source}):'',
+      detail:has('details')?(source.details||'—'):''
+    };
+  }
+
   function unifiedCourseJournal(med,period){
     const rows=[];
 
     scheduleEntries(med).forEach(entry=>{
       const date=historyDate(entry);
-      if(!inPeriod(date,period))return;
-      let detail='—';
-      if(entry.action==='created')detail=String(entry.snapshot?.details||entry.changes?.details||med?.details||'—').trim()||'—';
-      else if(entry?.changes&&Object.prototype.hasOwnProperty.call(entry.changes,'details'))detail=String(entry.changes.details||'—').trim()||'—';
+      if(entry.action!=='created'&&!inPeriod(date,period))return;
+      const input=courseDataForEntry(med,entry);
       rows.push({
         sortAt:new Date(entry.at||0).getTime()||0,
         when:entry.at?formatDateTime(entry.at):'—',
         event:historyEventLabel(entry),
-        planned:'—',
-        actual:'—',
-        status:'—',
-        corrections:'—',
-        detail
+        planned:'',
+        actual:'',
+        status:'',
+        corrections:'',
+        ...input
       });
     });
 
@@ -244,23 +295,31 @@
       if(!inPeriod(slot.date,period))return;
       const correction=slot.lastCorrectionAt
         ? `${formatDateTime(slot.lastCorrectionAt)}${slot.reason?` — ${slot.reason}`:''}`
-        : '—';
+        : '';
       rows.push({
         sortAt:slot.plannedMs||new Date(slot.plannedAt||0).getTime()||0,
-        when:slot.plannedAt?formatDateTime(slot.plannedAt):esc(formatDate(slot.date)),
+        when:slot.plannedAt?formatDateTime(slot.plannedAt):formatDate(slot.date),
         event:'Расчётный приём',
+        manufacturer:'',
+        content:'',
+        intake:'',
+        schedule:'',
+        params:'',
+        times:'',
+        period:'',
+        detail:correction,
         planned:slot.plannedAt?formatDateTime(slot.plannedAt):`${formatDate(slot.date)}, ${slot.time}`,
         actual:slot.actualAt?formatDateTime(slot.actualAt):'—',
         status:intakeStatusForSlot(med,slot),
-        corrections:String(slot.correctionCount||0),
-        detail:correction
+        corrections:String(slot.correctionCount||0)
       });
     });
 
     rows.sort((a,b)=>a.sortAt-b.sortAt);
     if(!rows.length)return '<p class="muted">За выбранный период записей нет.</p>';
 
-    return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время</th><th>Статус / итог</th><th>Исправлений</th><th>Детали</th></tr></thead><tbody>${rows.map(row=>`<tr><td>${esc(row.when)}</td><td>${esc(row.event)}</td><td>${esc(row.planned)}</td><td>${esc(row.actual)}</td><td>${esc(row.status)}</td><td>${esc(row.corrections)}</td><td>${esc(row.detail)}</td></tr>`).join('')}</tbody></table>`;
+    const cell=value=>esc(value||'');
+    return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Производитель</th><th>Содержание</th><th>Приём</th><th>Расписание</th><th>Параметры расписания</th><th>Время</th><th>Период курса</th><th>Детали</th><th>Расчётное время</th><th>Фактическое время</th><th>Статус / итог</th><th>Исправлений</th></tr></thead><tbody>${rows.map(row=>`<tr><td>${cell(row.when)}</td><td>${cell(row.event)}</td><td>${cell(row.manufacturer)}</td><td>${cell(row.content)}</td><td>${cell(row.intake)}</td><td>${cell(row.schedule)}</td><td>${cell(row.params)}</td><td>${cell(row.times)}</td><td>${cell(row.period)}</td><td>${cell(row.detail)}</td><td>${cell(row.planned)}</td><td>${cell(row.actual)}</td><td>${cell(row.status)}</td><td>${cell(row.corrections)}</td></tr>`).join('')}</tbody></table>`;
   }
 
   function courseHistoryPeriodSelector(period){
