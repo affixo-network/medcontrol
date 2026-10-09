@@ -40,7 +40,78 @@
     const endOfDay=getScheduledDateTime(lastDate,'23:59');
     return new Date(new Date(endOfDay).getTime()+59000).toISOString();
   }
-  function reconcileCompletedCourses(state){let changed=false;(state.medications||[]).forEach(med=>{if(med.cancelled)return;const shouldBeCompleted=shouldCompleteCourse(med);if(shouldBeCompleted){const completedAt=courseCompletionAt(state,med);if(!med.courseCompleted){med.courseCompleted=true;med.active=false;recordRowHistory(med,'course_completed','Курс приёма препарата завершён автоматически.');const createdEntry=(med.rowHistory||[]).find(entry=>entry?.action==='course_completed');if(createdEntry)createdEntry.at=completedAt;changed=true;}else{const completedEntry=(med.rowHistory||[]).find(entry=>entry?.action==='course_completed');if(completedEntry&&completedAt&&completedEntry.at!==completedAt){completedEntry.at=completedAt;changed=true;}}}if(!shouldBeCompleted&&med.courseCompleted){med.courseCompleted=false;changed=true;}if(Array.isArray(med.rowHistory)){const filtered=med.rowHistory.filter(entry=>entry?.action!=='course_status_corrected'&&entry?.event!=='course_status_corrected');if(filtered.length!==med.rowHistory.length){med.rowHistory=filtered;changed=true;}}});if(changed)saveState(state);}
+  function sameMedicationTemplate(a,b){
+    const sameArray=(x,y)=>JSON.stringify([...(x||[])].filter(Boolean).sort())===JSON.stringify([...(y||[])].filter(Boolean).sort());
+    return Boolean(a&&b&&
+      a.name===b.name&&
+      (a.manufacturer||'')===(b.manufacturer||'')&&
+      String(a.contentValue||'')===String(b.contentValue||'')&&
+      (a.contentUnit||'')===(b.contentUnit||'')&&
+      String(a.intakeQuantity||'')===String(b.intakeQuantity||'')&&
+      (a.intakeUnit||'')===(b.intakeUnit||'')&&
+      (a.details||'')===(b.details||'')&&
+      sameArray(a.times,b.times)
+    );
+  }
+  function createdAtOf(med){
+    const created=(med?.rowHistory||[]).find(entry=>entry?.action==='created');
+    return created?.at||'';
+  }
+  function reconcileCompletedCourses(state){
+    let changed=false;
+    (state.medications||[]).forEach(med=>{
+      if(med.cancelled)return;
+      const shouldBeCompleted=shouldCompleteCourse(med);
+      if(shouldBeCompleted){
+        const completedAt=courseCompletionAt(state,med);
+        if(!med.courseCompleted){
+          med.courseCompleted=true;
+          med.active=false;
+          recordRowHistory(med,'course_completed','Курс приёма препарата завершён автоматически.');
+          const createdEntry=(med.rowHistory||[]).find(entry=>entry?.action==='course_completed');
+          if(createdEntry)createdEntry.at=completedAt;
+          changed=true;
+        }else{
+          const completedEntry=(med.rowHistory||[]).find(entry=>entry?.action==='course_completed');
+          if(completedEntry&&completedAt&&completedEntry.at!==completedAt){
+            completedEntry.at=completedAt;
+            changed=true;
+          }
+        }
+
+        if(!med.archivedCompleted){
+          const completedCreatedAt=createdAtOf(med);
+          const newerCourse=(state.medications||[]).find(candidate=>{
+            if(candidate.id===med.id||candidate.cancelled||candidate.courseCompleted)return false;
+            if(!sameMedicationTemplate(med,candidate))return false;
+            const candidateCreatedAt=createdAtOf(candidate);
+            if(!candidateCreatedAt||!completedCreatedAt)return false;
+            if(new Date(candidateCreatedAt)<=new Date(completedCreatedAt))return false;
+            const oldEnd=medicationLastDate(med);
+            const newStart=candidate.startDate||((candidate.explicitDates||[]).filter(Boolean).slice().sort()[0]||'');
+            return Boolean(!oldEnd||!newStart||newStart>oldEnd);
+          });
+          if(newerCourse){
+            med.archivedCompleted=true;
+            med.archivedAt=createdAtOf(newerCourse)||nowISO();
+            changed=true;
+          }
+        }
+      }
+      if(!shouldBeCompleted&&med.courseCompleted){
+        med.courseCompleted=false;
+        changed=true;
+      }
+      if(Array.isArray(med.rowHistory)){
+        const filtered=med.rowHistory.filter(entry=>entry?.action!=='course_status_corrected'&&entry?.event!=='course_status_corrected');
+        if(filtered.length!==med.rowHistory.length){
+          med.rowHistory=filtered;
+          changed=true;
+        }
+      }
+    });
+    if(changed)saveState(state);
+  }
   window.isCompletedMedicationCourse=function(med){return Boolean(med&&!med.cancelled&&shouldCompleteCourse(med));};
 
   const originalCreateMedication=window.createMedication;
