@@ -74,13 +74,30 @@
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     mount(targetPage);
   }
+  function currentDeploymentId(){
+    return document.querySelector('script[data-deployment-id]')?.dataset?.deploymentId||'';
+  }
+  async function latestDeploymentId(targetPage){
+    try{
+      const response=await fetch('/'+targetPage+'.html?deployment_check='+Date.now(),{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok)return '';
+      const html=await response.text();
+      return html.match(/data-deployment-id=["']([^"']+)["']/)?.[1]||'';
+    }catch(_){return '';}
+  }
   window.medcontrolNavigateTo=async function(targetPage,options={}){
     if(!scriptsByPage[targetPage])return false;
+    const target='/'+targetPage+'.html';
+    const activeDeployment=currentDeploymentId();
+    const latestDeployment=await latestDeploymentId(targetPage);
+    if(activeDeployment&&latestDeployment&&activeDeployment!==latestDeployment){
+      window.location.assign(target);
+      return true;
+    }
     window.medcontrolShellNavigationLoading=true;
     try{await ensurePageScripts(targetPage);}finally{window.medcontrolShellNavigationLoading=false;}
     renderPage(targetPage);
     if(options.history!==false){
-      const target='/'+targetPage+'.html';
       if(window.location.pathname!==target)window.history.pushState({medcontrolPage:targetPage},'',target);
     }
     prefetchOtherPageScripts(targetPage);
