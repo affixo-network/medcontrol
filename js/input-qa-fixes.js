@@ -17,7 +17,30 @@
   function medicationLastDate(med) { if (med.scheduleType === 'explicit_dates') { const dates=(med.explicitDates||[]).filter(Boolean).slice().sort(); return dates.length?dates[dates.length-1]:''; } return med.endDate||''; }
   function scheduleAppliesIgnoringMode(med,dateISO){ if(!med||med.cancelled)return false;if(med.scheduleType==='explicit_dates')return(med.explicitDates||[]).includes(dateISO);if(med.startDate&&dateISO<med.startDate)return false;if(med.endDate&&dateISO>med.endDate)return false;if(med.scheduleType==='weekdays')return(med.weekdays||[]).includes(weekdayCode(dateISO));return med.scheduleType==='daily'||!med.scheduleType; }
   function shouldCompleteCourse(med){if(!med||med.cancelled)return false;const lastDate=medicationLastDate(med);if(!lastDate)return false;return lastDate<currentLocalDate();}
-  function reconcileCompletedCourses(state){let changed=false;(state.medications||[]).forEach(med=>{if(med.cancelled)return;const shouldBeCompleted=shouldCompleteCourse(med);if(shouldBeCompleted&&!med.courseCompleted){med.courseCompleted=true;med.active=false;recordRowHistory(med,'course_completed','Курс приёма препарата завершён автоматически.');changed=true;}if(!shouldBeCompleted&&med.courseCompleted){med.courseCompleted=false;changed=true;}if(Array.isArray(med.rowHistory)){const filtered=med.rowHistory.filter(entry=>entry?.action!=='course_status_corrected'&&entry?.event!=='course_status_corrected');if(filtered.length!==med.rowHistory.length){med.rowHistory=filtered;changed=true;}}});if(changed)saveState(state);}
+  function effectiveTakenAt(state,medicationId,plannedAt){
+    const logs=(state.intakeLogs||[]).filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(b.actualAt||b.at||0)-new Date(a.actualAt||a.at||0));
+    const primary=logs[0]||null;
+    if(!primary)return '';
+    const corrections=(state.intakeCorrections||[]).filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(a.correctedAt||0)-new Date(b.correctedAt||0));
+    const last=corrections[corrections.length-1]||null;
+    if(last&&new Date(last.correctedAt||0)>new Date(primary.actualAt||primary.at||0)){
+      if(last.after?.action==='reset')return '';
+      if(last.after?.action==='taken'&&last.after?.actualAt)return last.after.actualAt;
+    }
+    return primary.action==='taken'?(primary.actualAt||primary.at||''):'';
+  }
+  function courseCompletionAt(state,med){
+    const lastDate=medicationLastDate(med);
+    if(!lastDate)return nowISO();
+    const times=[...(med.times||[])].filter(Boolean).sort();
+    const lastTime=times[times.length-1]||'23:59';
+    const plannedAt=getScheduledDateTime(lastDate,lastTime);
+    const takenAt=effectiveTakenAt(state,med.id,plannedAt);
+    if(takenAt)return takenAt;
+    const endOfDay=getScheduledDateTime(lastDate,'23:59');
+    return new Date(new Date(endOfDay).getTime()+59000).toISOString();
+  }
+  function reconcileCompletedCourses(state){let changed=false;(state.medications||[]).forEach(med=>{if(med.cancelled)return;const shouldBeCompleted=shouldCompleteCourse(med);if(shouldBeCompleted){const completedAt=courseCompletionAt(state,med);if(!med.courseCompleted){med.courseCompleted=true;med.active=false;recordRowHistory(med,'course_completed','Курс приёма препарата завершён автоматически.');const createdEntry=(med.rowHistory||[]).find(entry=>entry?.action==='course_completed');if(createdEntry)createdEntry.at=completedAt;changed=true;}else{const completedEntry=(med.rowHistory||[]).find(entry=>entry?.action==='course_completed');if(completedEntry&&completedAt&&completedEntry.at!==completedAt){completedEntry.at=completedAt;changed=true;}}}if(!shouldBeCompleted&&med.courseCompleted){med.courseCompleted=false;changed=true;}if(Array.isArray(med.rowHistory)){const filtered=med.rowHistory.filter(entry=>entry?.action!=='course_status_corrected'&&entry?.event!=='course_status_corrected');if(filtered.length!==med.rowHistory.length){med.rowHistory=filtered;changed=true;}}});if(changed)saveState(state);}
   window.isCompletedMedicationCourse=function(med){return Boolean(med&&!med.cancelled&&shouldCompleteCourse(med));};
 
   const originalCreateMedication=window.createMedication;
