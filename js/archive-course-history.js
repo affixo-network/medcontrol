@@ -181,21 +181,113 @@
   window.medControlArchiveCourseSlots=courseSlots;
   window.dispatchEvent(new Event('medcontrolArchiveCourseSlotsReady'));
 
-  function outcomesTable(med){
-    const slots=courseSlots(med);
-    if(!slots.length)return '<p class="muted">Сохранённых расчётных приёмов для этого курса нет.</p>';
-    return `<table><thead><tr><th>Дата</th><th>Расчётное время</th><th>Итог</th><th>Фактическое время</th><th>Исправлений</th><th>Последнее исправление / причина</th><th>История</th></tr></thead><tbody>${slots.map(slot=>{
-      const correction=slot.lastCorrectionAt?`${formatDateTime(slot.lastCorrectionAt)}${slot.reason?` — ${slot.reason}`:''}`:'—';
-      return `<tr><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${esc(slot.result)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td><td>${slot.correctionCount}</td><td>${esc(correction)}</td><td><button type="button" onclick="showArchiveSlotHistory('${med.id}','${slot.plannedAt}')">История</button></td></tr>`;
-    }).join('')}</tbody></table>`;
+  function periodCutoff(period){
+    if(period==='all')return null;
+    const today=currentLocalDate();
+    const d=new Date(today+'T12:00:00');
+    if(period==='today')return today;
+    const days=period==='30'?30:7;
+    d.setDate(d.getDate()-(days-1));
+    return dateFromParts(d);
   }
+
+  function inPeriod(date,period){
+    if(!date)return false;
+    const cutoff=periodCutoff(period);
+    if(!cutoff)return true;
+    const today=currentLocalDate();
+    return date>=cutoff&&date<=today;
+  }
+
+  function historyEventLabel(entry){
+    if(entry?.action==='created')return 'Создано';
+    if(entry?.action==='course_completed')return 'Курс завершён';
+    if(entry?.action==='cancelled')return 'Отменено';
+    if(entry?.action==='activated'||entry?.action==='active')return 'Препарат активирован';
+    if(entry?.action==='deactivated'||entry?.action==='passive')return 'Препарат деактивирован';
+    if(entry?.action==='edited')return 'Изменено';
+    return typeof rowHistoryActionLabel==='function'?rowHistoryActionLabel(entry?.action):String(entry?.action||'Событие');
+  }
+
+  function intakeStatusForSlot(med,slot){
+    const state=getState();
+    const logs=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===slot.plannedAt)
+      .sort((a,b)=>new Date(a.actualAt||a.at||0)-new Date(b.actualAt||b.at||0));
+    const log=logs[logs.length-1]||null;
+    if(slot.result!=='Принято')return slot.result;
+    const code=log?.status||(typeof computeStatusForLog==='function'&&slot.actualAt?computeStatusForLog(slot.plannedAt,slot.actualAt,log?.action):'');
+    return typeof statusLabel==='function'&&code?statusLabel(code):(code||'Принято');
+  }
+
+  function unifiedCourseJournal(med,period){
+    const rows=[];
+
+    scheduleEntries(med).forEach(entry=>{
+      const date=historyDate(entry);
+      if(!inPeriod(date,period))return;
+      const detail=String(entry.payload||entry.scheduleScopeLabel||'').trim();
+      rows.push({
+        sortAt:new Date(entry.at||0).getTime()||0,
+        when:entry.at?formatDateTime(entry.at):'—',
+        event:historyEventLabel(entry),
+        planned:'—',
+        actual:'—',
+        status:'—',
+        corrections:'—',
+        detail:detail||'—'
+      });
+    });
+
+    courseSlots(med).forEach(slot=>{
+      if(!inPeriod(slot.date,period))return;
+      const correction=slot.lastCorrectionAt
+        ? `${formatDateTime(slot.lastCorrectionAt)}${slot.reason?` — ${slot.reason}`:''}`
+        : '—';
+      rows.push({
+        sortAt:slot.plannedMs||new Date(slot.plannedAt||0).getTime()||0,
+        when:slot.plannedAt?formatDateTime(slot.plannedAt):esc(formatDate(slot.date)),
+        event:'Расчётный приём',
+        planned:slot.plannedAt?formatDateTime(slot.plannedAt):`${formatDate(slot.date)}, ${slot.time}`,
+        actual:slot.actualAt?formatDateTime(slot.actualAt):'—',
+        status:intakeStatusForSlot(med,slot),
+        corrections:String(slot.correctionCount||0),
+        detail:correction
+      });
+    });
+
+    rows.sort((a,b)=>a.sortAt-b.sortAt);
+    if(!rows.length)return '<p class="muted">За выбранный период записей нет.</p>';
+
+    return `<table><thead><tr><th>Дата/время</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время</th><th>Статус / итог</th><th>Исправлений</th><th>Детали</th></tr></thead><tbody>${rows.map(row=>`<tr><td>${esc(row.when)}</td><td>${esc(row.event)}</td><td>${esc(row.planned)}</td><td>${esc(row.actual)}</td><td>${esc(row.status)}</td><td>${esc(row.corrections)}</td><td>${esc(row.detail)}</td></tr>`).join('')}</tbody></table>`;
+  }
+
+  function courseHistoryPeriodSelector(period){
+    return `<div class="inline" style="margin-bottom:14px"><label>Период</label><select id="archiveCourseHistoryPeriod" onchange="setArchiveCourseHistoryPeriod(this.value)"><option value="today">Сегодня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="all">Весь период</option></select></div>`;
+  }
+
+  window.renderArchiveCourseJournal=function(){
+    const id=window.__archiveCourseHistoryMedicationId;
+    const med=(getState().medications||[]).find(x=>x.id===id);
+    const host=document.getElementById('archiveHistoryContent');
+    if(!med||!host)return;
+    const period=window.__archiveCourseHistoryPeriod||'7';
+    host.innerHTML=courseHistoryPeriodSelector(period)+unifiedCourseJournal(med,period);
+    const select=document.getElementById('archiveCourseHistoryPeriod');
+    if(select)select.value=period;
+  };
+
+  window.setArchiveCourseHistoryPeriod=function(period){
+    window.__archiveCourseHistoryPeriod=period||'7';
+    window.renderArchiveCourseJournal?.();
+  };
 
   window.showArchiveMedicationHistory=function(id){
     const med=(getState().medications||[]).find(x=>x.id===id);if(!med)return;
-    const d=document.getElementById('archiveHistoryDialog'),t=document.getElementById('archiveHistoryTitle'),c=document.getElementById('archiveHistoryContent');if(!d||!t||!c)return;
+    const d=document.getElementById('archiveHistoryDialog'),t=document.getElementById('archiveHistoryTitle');if(!d||!t)return;
+    window.__archiveCourseHistoryMedicationId=id;
+    window.__archiveCourseHistoryPeriod='7';
     t.textContent=`История курса «${med.name}»`;
-    const rowHtml=typeof rowHistoryHtml==='function'?rowHistoryHtml(med.rowHistory||[]):'<p class="muted">История препарата недоступна.</p>';
-    c.innerHTML=`<h3>История препарата</h3>${rowHtml}<h3 style="margin-top:22px">Итоги приёмов курса</h3>${outcomesTable(med)}`;
+    window.renderArchiveCourseJournal();
     d.showModal();
   };
 })();
