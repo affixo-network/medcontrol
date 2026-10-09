@@ -54,12 +54,12 @@
     window.renderInputPage=function(){
       const stateBefore=getState();reconcileCompletedCourses(stateBefore);originalRenderInputPage();
       const active=document.getElementById('create_active');if(active){active.checked=true;active.disabled=true;}
-      const state=getState();const current=(state.medications||[]).filter(med=>!med.cancelled);const activeMeds=current.filter(med=>med.active&&!med.courseCompleted);const passiveMeds=current.filter(med=>!med.active&&!med.courseCompleted);const completedMeds=current.filter(med=>med.courseCompleted);
+      const state=getState();const current=(state.medications||[]).filter(med=>!med.cancelled&&!med.archivedCompleted);const activeMeds=current.filter(med=>med.active&&!med.courseCompleted);const passiveMeds=current.filter(med=>!med.active&&!med.courseCompleted);const completedMeds=current.filter(med=>med.courseCompleted);
       document.querySelectorAll('button[onclick^="toggleMedicationMode("]').forEach(button=>{const match=button.getAttribute('onclick')?.match(/toggleMedicationMode\('([^']+)'\)/);const id=match?.[1];const med=id?current.find(item=>item.id===id):null;if(med)button.textContent=med.active?'Сделать пассивным':'Активировать';});
       const sourceTable=[...document.querySelectorAll('table')].find(table=>table.querySelector('button[onclick^="openEditMedication("]'));if(!sourceTable)return;
       const rowById=new Map();sourceTable.querySelectorAll('tbody tr').forEach(row=>{const onclick=[...row.querySelectorAll('button[onclick]')].map(b=>b.getAttribute('onclick')||'').join(' ');const med=current.find(item=>onclick.includes(`'${item.id}'`));if(med)rowById.set(med.id,row.cloneNode(true));});
       const originalHeading=sourceTable.closest('section')?.querySelector('h2');if(originalHeading)originalHeading.textContent='Активные препараты';
-      const renderRows=(table,meds,mode)=>{const tbody=table.querySelector('tbody');if(!tbody)return;tbody.innerHTML='';meds.forEach(med=>{const source=rowById.get(med.id);if(!source)return;const row=source.cloneNode(true);const status=row.querySelector('.status');if(status)status.textContent=mode==='active'?'Активно':'Пассивно';const actions=row.lastElementChild;if(actions&&mode==='passive'){actions.querySelectorAll('button').forEach(button=>{const onclick=button.getAttribute('onclick')||'';if(!onclick.startsWith('toggleMedicationMode(')&&!onclick.startsWith('showRowHistory('))button.remove();});const toggle=actions.querySelector('button[onclick^="toggleMedicationMode("]');if(toggle)toggle.textContent='Активировать';}if(actions&&mode==='completed'){actions.querySelectorAll('button').forEach(button=>button.remove());const repeat=document.createElement('button');repeat.type='button';repeat.textContent='Повторить курс';repeat.setAttribute('onclick',`repeatCompletedCourse('${med.id}')`);const history=document.createElement('button');history.type='button';history.textContent='История';history.setAttribute('onclick',`showArchiveMedicationHistory('${med.id}')`);actions.appendChild(repeat);actions.appendChild(history);}tbody.appendChild(row);});};
+      const renderRows=(table,meds,mode)=>{const tbody=table.querySelector('tbody');if(!tbody)return;tbody.innerHTML='';meds.forEach(med=>{const source=rowById.get(med.id);if(!source)return;const row=source.cloneNode(true);const status=row.querySelector('.status');if(status)status.textContent=mode==='active'?'Активно':'Пассивно';const actions=row.lastElementChild;if(actions&&mode==='passive'){actions.querySelectorAll('button').forEach(button=>{const onclick=button.getAttribute('onclick')||'';if(!onclick.startsWith('toggleMedicationMode(')&&!onclick.startsWith('showRowHistory('))button.remove();});const toggle=actions.querySelector('button[onclick^="toggleMedicationMode("]');if(toggle)toggle.textContent='Активировать';}if(actions&&mode==='completed'){actions.querySelectorAll('button').forEach(button=>button.remove());const repeat=document.createElement('button');repeat.type='button';repeat.textContent='Повторить курс';repeat.setAttribute('onclick',`repeatCompletedCourse('${med.id}')`);const archive=document.createElement('button');archive.type='button';archive.textContent='Отправить в архив';archive.setAttribute('onclick',`archiveCompletedCourse('${med.id}')`);const history=document.createElement('button');history.type='button';history.textContent='История';history.setAttribute('onclick',`showArchiveMedicationHistory('${med.id}')`);actions.appendChild(repeat);actions.appendChild(archive);actions.appendChild(history);}tbody.appendChild(row);});};
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
@@ -68,7 +68,8 @@
   }
   window.repeatCompletedCourse=function(id){
     const med=(getState().medications||[]).find(item=>item.id===id);
-    if(!med||!med.courseCompleted)return;
+    if(!med||!med.courseCompleted||med.archivedCompleted)return;
+    window.__repeatCompletedCourseSourceId=id;
 
     const set=(key,value)=>{const el=document.getElementById('create_'+key);if(el)el.value=value==null?'':String(value);};
     set('name',med.name||'');
@@ -132,6 +133,40 @@
       else document.getElementById('create_startDate')?.focus();
     },0);
   };
+
+  window.archiveCompletedCourse=function(id){
+    const state=getState();
+    const med=(state.medications||[]).find(item=>item.id===id);
+    if(!med||!med.courseCompleted||med.archivedCompleted)return;
+    if(!confirm(`Отправить завершённый курс «${med.name||''}» в Архив?`))return;
+    med.archivedCompleted=true;
+    med.archivedAt=nowISO();
+    if(!saveState(state))return;
+    if(window.__repeatCompletedCourseSourceId===id)window.__repeatCompletedCourseSourceId=null;
+    mount('input');
+  };
+
+  const originalConfirmMedicationCreate=window.confirmMedicationCreate;
+  if(typeof originalConfirmMedicationCreate==='function'){
+    window.confirmMedicationCreate=function(){
+      const sourceId=window.__repeatCompletedCourseSourceId||null;
+      const beforeCount=(getState().medications||[]).length;
+      const result=originalConfirmMedicationCreate();
+      const afterState=getState();
+      const createdSuccessfully=(afterState.medications||[]).length>beforeCount;
+      if(sourceId&&createdSuccessfully){
+        const source=(afterState.medications||[]).find(item=>item.id===sourceId);
+        if(source&&source.courseCompleted&&!source.archivedCompleted){
+          source.archivedCompleted=true;
+          source.archivedAt=nowISO();
+          saveState(afterState);
+          window.__repeatCompletedCourseSourceId=null;
+          mount('input');
+        }
+      }
+      return result;
+    };
+  }
 
   const originalToggleMedicationMode=window.toggleMedicationMode;if(typeof originalToggleMedicationMode==='function'){window.toggleMedicationMode=function(id){const med=(getState().medications||[]).find(item=>item.id===id);if(med&&med.courseCompleted)return;return originalToggleMedicationMode(id);};}
 })();
