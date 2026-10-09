@@ -255,6 +255,7 @@
   }
 
   function courseDataForEntry(med,entry){
+    if(entry.action==='course_completed')return {manufacturer:'',content:'',intake:'',schedule:'',params:'',times:'',detail:''};
     const created=entry.action==='created';
     const source=created?(entry.snapshot||entry.changes||med):(entry.changes||{});
     const has=key=>created||Object.prototype.hasOwnProperty.call(source,key);
