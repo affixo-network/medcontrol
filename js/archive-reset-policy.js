@@ -15,8 +15,8 @@
   function isArchival(med,today){
     if(!med)return true;
     if(med.cancelled)return true;
-    const end=lastScheduledDate(med);
-    return Boolean(end&&end<today);
+    if(med.archivedCompleted===true)return true;
+    return false;
   }
   function medicationState(){
     const meds=(getState().medications||[]);
