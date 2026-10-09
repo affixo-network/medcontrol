@@ -36,12 +36,58 @@
       const sourceTable=[...document.querySelectorAll('table')].find(table=>table.querySelector('button[onclick^="openEditMedication("]'));if(!sourceTable)return;
       const rowById=new Map();sourceTable.querySelectorAll('tbody tr').forEach(row=>{const onclick=[...row.querySelectorAll('button[onclick]')].map(b=>b.getAttribute('onclick')||'').join(' ');const med=current.find(item=>onclick.includes(`'${item.id}'`));if(med)rowById.set(med.id,row.cloneNode(true));});
       const originalHeading=sourceTable.closest('section')?.querySelector('h2');if(originalHeading)originalHeading.textContent='Активные препараты';
-      const renderRows=(table,meds,mode)=>{const tbody=table.querySelector('tbody');if(!tbody)return;tbody.innerHTML='';meds.forEach(med=>{const source=rowById.get(med.id);if(!source)return;const row=source.cloneNode(true);const status=row.querySelector('.status');if(status)status.textContent=mode==='active'?'Активно':'Пассивно';const actions=row.lastElementChild;if(actions&&mode==='passive'){actions.querySelectorAll('button').forEach(button=>{const onclick=button.getAttribute('onclick')||'';if(!onclick.startsWith('toggleMedicationMode(')&&!onclick.startsWith('showRowHistory('))button.remove();});const toggle=actions.querySelector('button[onclick^="toggleMedicationMode("]');if(toggle)toggle.textContent='Активировать';}if(actions&&mode==='completed'){actions.querySelectorAll('button').forEach(button=>{const onclick=button.getAttribute('onclick')||'';if(!onclick.startsWith('showRowHistory('))button.remove();});}tbody.appendChild(row);});};
+      const renderRows=(table,meds,mode)=>{const tbody=table.querySelector('tbody');if(!tbody)return;tbody.innerHTML='';meds.forEach(med=>{const source=rowById.get(med.id);if(!source)return;const row=source.cloneNode(true);const status=row.querySelector('.status');if(status)status.textContent=mode==='active'?'Активно':'Пассивно';const actions=row.lastElementChild;if(actions&&mode==='passive'){actions.querySelectorAll('button').forEach(button=>{const onclick=button.getAttribute('onclick')||'';if(!onclick.startsWith('toggleMedicationMode(')&&!onclick.startsWith('showRowHistory('))button.remove();});const toggle=actions.querySelector('button[onclick^="toggleMedicationMode("]');if(toggle)toggle.textContent='Активировать';}if(actions&&mode==='completed'){actions.querySelectorAll('button').forEach(button=>{const onclick=button.getAttribute('onclick')||'';if(!onclick.startsWith('showRowHistory('))button.remove();});const repeat=document.createElement('button');repeat.type='button';repeat.textContent='Повторить курс';repeat.setAttribute('onclick',`repeatCompletedCourse('${med.id}')`);actions.insertBefore(repeat,actions.firstChild);}tbody.appendChild(row);});};
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
       const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Завершённые курсы';completedSection.appendChild(completedHeading);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);
     };
   }
+  window.repeatCompletedCourse=function(id){
+    const med=(getState().medications||[]).find(item=>item.id===id);
+    if(!med||!med.courseCompleted)return;
+
+    const set=(key,value)=>{const el=document.getElementById('create_'+key);if(el)el.value=value==null?'':String(value);};
+    set('name',med.name||'');
+    set('manufacturer',med.manufacturer||'');
+    set('contentValue',med.contentValue||'');
+    set('contentUnit',med.contentUnit||'');
+    set('contentUnitOther',med.contentUnitOther||'');
+    set('intakeQuantity',med.intakeQuantity||'');
+    set('intakeUnit',med.intakeUnit||'');
+    set('intakeUnitOther',med.intakeUnitOther||'');
+    set('details',med.details||'');
+    set('scheduleType',med.scheduleType||((med.explicitDates||[]).length?'explicit_dates':(med.weekdays||[]).length?'weekdays':'daily'));
+
+    const times=document.getElementById('create_times');
+    if(times)times.value=[...new Set((med.times||[]).filter(Boolean))].sort().join(',');
+
+    const weekdays=document.getElementById('create_weekdays');
+    if(weekdays)weekdays.value=[...new Set((med.weekdays||[]).filter(Boolean))].join(',');
+    document.querySelectorAll('input[data-prefix="create_"][data-weekday]').forEach(input=>{
+      input.checked=(med.weekdays||[]).includes(input.dataset.weekday);
+    });
+
+    const explicit=document.getElementById('create_explicitDates');
+    if(explicit)explicit.value='';
+    set('startDate','');
+    set('endDate','');
+
+    const schedule=document.getElementById('create_scheduleType');
+    if(schedule)schedule.dataset.previousValue=schedule.value;
+
+    if(typeof window.syncMedicationOtherUnit==='function'){
+      window.syncMedicationOtherUnit('create_','content');
+      window.syncMedicationOtherUnit('create_','intake');
+    }
+    if(typeof window.syncCreateScheduleFields==='function')window.syncCreateScheduleFields();
+    if(typeof window.renderStructuredTimes==='function')window.renderStructuredTimes('create_');
+    if(typeof window.renderStructuredDates==='function')window.renderStructuredDates('create_');
+
+    const first=document.getElementById('create_name');
+    first?.scrollIntoView({behavior:'smooth',block:'center'});
+    window.setTimeout(()=>document.getElementById('create_startDate')?.focus(),250);
+  };
+
   const originalToggleMedicationMode=window.toggleMedicationMode;if(typeof originalToggleMedicationMode==='function'){window.toggleMedicationMode=function(id){const med=(getState().medications||[]).find(item=>item.id===id);if(med&&med.courseCompleted)return;return originalToggleMedicationMode(id);};}
 })();
