@@ -107,9 +107,30 @@
     if(typeof window.renderStructuredTimes==='function')window.renderStructuredTimes('create_');
     if(typeof window.renderStructuredDates==='function')window.renderStructuredDates('create_');
 
-    const first=document.getElementById('create_name');
-    first?.scrollIntoView({behavior:'smooth',block:'center'});
-    window.setTimeout(()=>document.getElementById('create_startDate')?.focus(),250);
+    const formCard=document.getElementById('create_name')?.closest('.card');
+    if(formCard){
+      let notice=formCard.querySelector('[data-repeat-course-notice]');
+      if(!notice){
+        notice=document.createElement('div');
+        notice.setAttribute('data-repeat-course-notice','1');
+        notice.className='help';
+        notice.style.marginBottom='14px';
+        formCard.insertBefore(notice,formCard.querySelector('.form-grid'));
+      }
+      notice.innerHTML=`<strong>Повтор курса: ${escapeHtml(med.name||'')}</strong><br><span class="muted">Данные препарата перенесены. Укажите новые даты курса и сохраните новый курс.</span>`;
+    }
+    const createButton=document.getElementById('createMedicationButton');
+    if(createButton)createButton.textContent='Создать новый курс';
+
+    const target=formCard||document.getElementById('create_name');
+    if(target){
+      window.scrollTo({top:Math.max(0,target.getBoundingClientRect().top+window.scrollY-20),behavior:'auto'});
+    }
+    const scheduleType=document.getElementById('create_scheduleType')?.value||'daily';
+    window.setTimeout(()=>{
+      if(scheduleType==='explicit_dates')document.getElementById('create_datePicker')?.focus();
+      else document.getElementById('create_startDate')?.focus();
+    },0);
   };
 
   const originalToggleMedicationMode=window.toggleMedicationMode;if(typeof originalToggleMedicationMode==='function'){window.toggleMedicationMode=function(id){const med=(getState().medications||[]).find(item=>item.id===id);if(med&&med.courseCompleted)return;return originalToggleMedicationMode(id);};}
