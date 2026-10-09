@@ -323,27 +323,37 @@
     return `<div class="inline" style="margin-bottom:14px"><label>Период</label><select id="archiveCourseHistoryPeriod" onchange="setArchiveCourseHistoryPeriod(this.value)"><option value="today">Сегодня</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="all">Весь период</option></select></div>`;
   }
 
+  function courseHistoryHost(){
+    return document.getElementById('archiveHistoryContent')||document.getElementById('rowHistoryContent');
+  }
+  function courseHistoryDialog(){
+    return document.getElementById('archiveHistoryDialog')||document.getElementById('rowHistoryDialog');
+  }
+  function courseHistoryTitle(){
+    return document.getElementById('archiveHistoryTitle')||courseHistoryDialog()?.querySelector('h2');
+  }
+
   window.renderArchiveCourseJournal=function(){
     const id=window.__archiveCourseHistoryMedicationId;
     const med=(getState().medications||[]).find(x=>x.id===id);
-    const host=document.getElementById('archiveHistoryContent');
+    const host=courseHistoryHost();
     if(!med||!host)return;
-    const period=window.__archiveCourseHistoryPeriod||'7';
+    const period=window.__archiveCourseHistoryPeriod||'all';
     host.innerHTML=courseHistoryPeriodSelector(period)+unifiedCourseJournal(med,period);
     const select=document.getElementById('archiveCourseHistoryPeriod');
     if(select)select.value=period;
   };
 
   window.setArchiveCourseHistoryPeriod=function(period){
-    window.__archiveCourseHistoryPeriod=period||'7';
+    window.__archiveCourseHistoryPeriod=period||'all';
     window.renderArchiveCourseJournal?.();
   };
 
   window.showArchiveMedicationHistory=function(id){
     const med=(getState().medications||[]).find(x=>x.id===id);if(!med)return;
-    const d=document.getElementById('archiveHistoryDialog'),t=document.getElementById('archiveHistoryTitle');if(!d||!t)return;
+    const d=courseHistoryDialog(),t=courseHistoryTitle();if(!d||!t)return;
     window.__archiveCourseHistoryMedicationId=id;
-    window.__archiveCourseHistoryPeriod='7';
+    window.__archiveCourseHistoryPeriod='all';
     t.textContent=`История курса «${med.name}»`;
     window.renderArchiveCourseJournal();
     d.showModal();
