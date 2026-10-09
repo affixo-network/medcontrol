@@ -162,7 +162,7 @@ window.renderArchivePage=function(){
   };
   window.addEventListener('medcontrolArchiveCourseSlotsReady',()=>window.renderArchiveIntakeHistoryBlock?.());
 
-  window.showArchiveMedicationHistory=function(id){
+  if(typeof window.showArchiveMedicationHistory!=='function')window.showArchiveMedicationHistory=function(id){
     const med=(getState().medications||[]).find(x=>x.id===id);if(!med)return;
     const d=document.getElementById('archiveHistoryDialog'),t=document.getElementById('archiveHistoryTitle'),c=document.getElementById('archiveHistoryContent');if(!d||!t||!c)return;
     t.textContent=`История препарата «${med.name}»`;
