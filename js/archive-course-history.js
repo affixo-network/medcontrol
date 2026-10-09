@@ -225,7 +225,9 @@
     scheduleEntries(med).forEach(entry=>{
       const date=historyDate(entry);
       if(!inPeriod(date,period))return;
-      const detail=String(entry.payload||entry.scheduleScopeLabel||'').trim();
+      let detail='—';
+      if(entry.action==='created')detail=String(entry.snapshot?.details||entry.changes?.details||med?.details||'—').trim()||'—';
+      else if(entry?.changes&&Object.prototype.hasOwnProperty.call(entry.changes,'details'))detail=String(entry.changes.details||'—').trim()||'—';
       rows.push({
         sortAt:new Date(entry.at||0).getTime()||0,
         when:entry.at?formatDateTime(entry.at):'—',
@@ -234,7 +236,7 @@
         actual:'—',
         status:'—',
         corrections:'—',
-        detail:detail||'—'
+        detail
       });
     });
 
