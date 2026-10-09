@@ -31,7 +31,7 @@
     window.renderInputPage=function(){
       const stateBefore=getState();reconcileCompletedCourses(stateBefore);originalRenderInputPage();
       const active=document.getElementById('create_active');if(active){active.checked=true;active.disabled=true;}
-      const state=getState();const current=(state.medications||[]).filter(med=>!med.cancelled);const activeMeds=current.filter(med=>med.active&&!med.courseCompleted);const passiveMeds=current.filter(med=>!med.active&&!med.courseCompleted);
+      const state=getState();const current=(state.medications||[]).filter(med=>!med.cancelled);const activeMeds=current.filter(med=>med.active&&!med.courseCompleted);const passiveMeds=current.filter(med=>!med.active||med.courseCompleted);
       document.querySelectorAll('button[onclick^="toggleMedicationMode("]').forEach(button=>{const match=button.getAttribute('onclick')?.match(/toggleMedicationMode\('([^']+)'\)/);const id=match?.[1];const med=id?current.find(item=>item.id===id):null;if(med)button.textContent=med.active?'Сделать пассивным':'Активировать';});
       const sourceTable=[...document.querySelectorAll('table')].find(table=>table.querySelector('button[onclick^="openEditMedication("]'));if(!sourceTable)return;
       const rowById=new Map();sourceTable.querySelectorAll('tbody tr').forEach(row=>{const onclick=[...row.querySelectorAll('button[onclick]')].map(b=>b.getAttribute('onclick')||'').join(' ');const med=current.find(item=>onclick.includes(`'${item.id}'`));if(med)rowById.set(med.id,row.cloneNode(true));});
