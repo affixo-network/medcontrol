@@ -57,6 +57,17 @@
     const created=(med?.rowHistory||[]).find(entry=>entry?.action==='created');
     return created?.at||'';
   }
+
+  function oneMonthAfterISO(iso){
+    const date=new Date(iso||'');
+    if(Number.isNaN(date.getTime()))return '';
+    const day=date.getUTCDate();
+    date.setUTCDate(1);
+    date.setUTCMonth(date.getUTCMonth()+1);
+    const daysInTargetMonth=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate();
+    date.setUTCDate(Math.min(day,daysInTargetMonth));
+    return date.toISOString();
+  }
   function reconcileCompletedCourses(state){
     let changed=false;
     (state.medications||[]).forEach(med=>{
@@ -95,6 +106,13 @@
             med.archivedCompleted=true;
             med.archivedAt=createdAtOf(newerCourse)||nowISO();
             changed=true;
+          }else{
+            const autoArchiveAt=oneMonthAfterISO(completedAt);
+            if(autoArchiveAt&&new Date(nowISO())>=new Date(autoArchiveAt)){
+              med.archivedCompleted=true;
+              med.archivedAt=autoArchiveAt;
+              changed=true;
+            }
           }
         }
       }
@@ -134,7 +152,7 @@
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
-      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
+      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedHelp=document.createElement('p');completedHelp.className='muted';completedHelp.textContent='Завершённый курс можно повторить или отправить в архив. Если в течение одного месяца после завершения курс не будет повторён, он автоматически перейдёт в Архив.';completedSection.appendChild(completedHelp);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
     };
   }
   window.repeatCompletedCourse=function(id){
