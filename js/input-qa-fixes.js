@@ -134,7 +134,7 @@
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
-      const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Завершённые курсы';completedSection.appendChild(completedHeading);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);
+      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
     };
   }
   window.repeatCompletedCourse=function(id){
