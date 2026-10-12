@@ -1,7 +1,7 @@
 const {defineConfig}=require('@playwright/test');
 module.exports=defineConfig({
   testDir:'./tests',
-  testMatch:['modular3-browser.spec.js','modular3-real-modules.spec.js','modular3-deep-logic.spec.js','modular3-ui-actions.spec.js','modular3-cloud-recovery.spec.js','modular3-offline-proof.spec.js','modular3-offline-access.spec.js','modular3-offline-vault.spec.js','modular3-offline-adapter.spec.js','modular3-offline-real-sections.spec.js'],
+  testMatch:['modular3-browser.spec.js','modular3-real-modules.spec.js','modular3-deep-logic.spec.js','modular3-ui-actions.spec.js','modular3-cloud-recovery.spec.js','modular3-offline-proof.spec.js','modular3-offline-access.spec.js','modular3-offline-vault.spec.js','modular3-offline-adapter.spec.js','modular3-offline-real-sections.spec.js','modular3-offline-restart-history.spec.js'],
   timeout:45000,
   retries:0,
   use:{browserName:'chromium',headless:true,trace:'retain-on-failure'},
