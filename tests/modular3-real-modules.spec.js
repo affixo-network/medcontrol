@@ -27,9 +27,14 @@ test('real MedControl modules mount with synthetic empty local state and isolate
       return route.continue();
     });
     await page.goto('http://127.0.0.1:8765/'+name+'.html');
-    await expect.poll(async()=>page.locator('#app').innerText(),{timeout:20000}).not.toBe('MedControl');
-    const text=await page.locator('#app').innerText();
-    expect(text).not.toContain('Ошибка запуска MedControl');
+    if(name==='archive'){
+      await expect(page.getByRole('heading',{name:'MedControl — Архив'})).toBeVisible({timeout:20000});
+      await expect(page.getByRole('heading',{name:'Завершённые курсы'})).toBeVisible();
+    }else{
+      await expect.poll(async()=>page.locator('#app').innerText(),{timeout:20000}).not.toBe('MedControl');
+      const text=await page.locator('#app').innerText();
+      expect(text).not.toContain('Ошибка запуска MedControl');
+    }
     expect(pageErrors).toEqual([]);
     const local=await page.evaluate(()=>JSON.parse(localStorage.getItem('affixo_medcontrol_standard_v3')));
     expect(local.medications).toEqual([]);
