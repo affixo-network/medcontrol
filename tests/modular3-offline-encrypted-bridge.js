@@ -25,7 +25,7 @@
   },
   read(){assertOpen();return structuredClone(state);},
   write(next){assertOpen();if(!next||!Array.isArray(next.medications)||!Array.isArray(next.intakeLogs))throw Error('Invalid state');state=structuredClone(next);dirty=true;},
-  async checkpoint(){assertOpen();if(dirty){await adapter.save(state,secret);dirty=false;}return true;},
+  async checkpoint(){assertOpen();if(dirty){const snapshot=structuredClone(state);await adapter.save(snapshot,secret);if(JSON.stringify(snapshot)!==JSON.stringify(state))throw Error('State changed during checkpoint; retry required');dirty=false;}return true;},
   lock(){if(dirty)throw Error('Unsaved offline changes: checkpoint required');state=null;secret=null;},
   isDirty(){return dirty;},
   // The production storage key is deliberately not written by this test-only bridge.
