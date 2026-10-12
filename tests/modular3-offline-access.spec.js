@@ -26,7 +26,7 @@ test('offline access prototype: password, lock, reload offline, four section sel
  await expect(page.locator('#sections')).toBeVisible();
  for(const section of ['input','action','dashboard','archive']){
   await page.locator('[data-section="'+section+'"]').click();
-  await expect(page.locator('#content')).toContainText('Offline prototype section:');
+  await expect(page.locator('#content h2')).toHaveText(({input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'})[section]);
  }
  await context.close();
 });
