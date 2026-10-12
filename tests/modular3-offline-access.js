@@ -52,7 +52,7 @@ content.addEventListener('submit',e=>{
  if(e.target.id!=='add-med')return;
  e.preventDefault();
  const data=new FormData(e.target),name=String(data.get('name')||'').trim(),time=String(data.get('time')||'');
- if(!name||!/^\\d{2}:\\d{2}$/.test(time))return;
+ if(!name||!/^\d{2}:\d{2}$/.test(time))return;
  void mutate(state=>state.medications.push({id:crypto.randomUUID(),name,time}));
 });
 content.addEventListener('click',e=>{
