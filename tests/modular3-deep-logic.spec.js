@@ -41,14 +41,14 @@ test('real intake, cancellation, completion, seven-day archive, persistence - sy
  });
  expect(outcome.logs).toBe(2);
  await page.reload();
- await expect(page.getByText('Новый препарат',{exact:true})).toBeVisible({timeout:20000});
+ await expect(page.locator('#create_name')).toBeVisible({timeout:20000});
  let snapshot=await page.evaluate(()=>getState());
  expect(snapshot.medications[0].courseCompleted).toBe(true);
  expect(snapshot.medications[0].archivedCompleted).not.toBe(true);
  expect(snapshot.intakeLogs).toHaveLength(2);
  await page.clock.setFixedTime(new Date('2026-10-20T15:00:00.000Z'));
  await page.reload();
- await expect(page.getByText('Новый препарат',{exact:true})).toBeVisible({timeout:20000});
+ await expect(page.locator('#create_name')).toBeVisible({timeout:20000});
  snapshot=await page.evaluate(()=>getState());
  expect(snapshot.medications[0].archivedCompleted).toBe(true);
  expect(snapshot.intakeLogs).toHaveLength(2);
