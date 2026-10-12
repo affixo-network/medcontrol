@@ -16,7 +16,7 @@
   function weekdayCode(dateISO) { const [y,m,d]=dateISO.split('-').map(Number); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(Date.UTC(y,m-1,d,12)).getUTCDay()]; }
   function medicationLastDate(med) { if (med.scheduleType === 'explicit_dates') { const dates=(med.explicitDates||[]).filter(Boolean).slice().sort(); return dates.length?dates[dates.length-1]:''; } return med.endDate||''; }
   function scheduleAppliesIgnoringMode(med,dateISO){ if(!med||med.cancelled)return false;if(med.scheduleType==='explicit_dates')return(med.explicitDates||[]).includes(dateISO);if(med.startDate&&dateISO<med.startDate)return false;if(med.endDate&&dateISO>med.endDate)return false;if(med.scheduleType==='weekdays')return(med.weekdays||[]).includes(weekdayCode(dateISO));return med.scheduleType==='daily'||!med.scheduleType; }
-  function shouldCompleteCourse(med){if(!med||med.cancelled)return false;const lastDate=medicationLastDate(med);if(!lastDate)return false;return lastDate<currentLocalDate();}
+  function shouldCompleteCourse(med,state){if(!med||med.cancelled)return false;const lastDate=medicationLastDate(med);if(!lastDate)return false;const today=currentLocalDate();if(lastDate<today)return true;if(lastDate>today)return false;if(!scheduleAppliesIgnoringMode(med,lastDate))return false;const times=[...(med.times||[])].filter(Boolean).sort();if(!times.length)return false;const lastPlannedAt=getScheduledDateTime(lastDate,times[times.length-1]);return Boolean(effectiveTakenAt(state,med.id,lastPlannedAt));}
   function effectiveTakenAt(state,medicationId,plannedAt){
     const logs=(state.intakeLogs||[]).filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(b.actualAt||b.at||0)-new Date(a.actualAt||a.at||0));
     const primary=logs[0]||null;
@@ -68,7 +68,7 @@
     let changed=false;
     (state.medications||[]).forEach(med=>{
       if(med.cancelled)return;
-      const shouldBeCompleted=shouldCompleteCourse(med);
+      const shouldBeCompleted=shouldCompleteCourse(med,state);
       if(shouldBeCompleted){
         const completedAt=courseCompletionAt(state,med);
         if(!med.courseCompleted){
@@ -126,7 +126,7 @@
     });
     if(changed)saveState(state);
   }
-  window.isCompletedMedicationCourse=function(med){return Boolean(med&&!med.cancelled&&shouldCompleteCourse(med));};
+  window.isCompletedMedicationCourse=function(med){return Boolean(med&&!med.cancelled&&shouldCompleteCourse(med,getState()));};
 
   const originalCreateMedication=window.createMedication;
   if(typeof originalCreateMedication==='function'){window.createMedication=function(){originalCreateMedication();const content=document.getElementById('medicationConfirmContent');const table=content?.querySelector('table');if(table&&!table.querySelector('[data-confirm-status]')){const row=document.createElement('tr');row.setAttribute('data-confirm-status','1');row.innerHTML='<td>Статус</td><td>Активно</td>';table.appendChild(row);}};}
