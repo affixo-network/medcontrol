@@ -115,9 +115,15 @@
   function evaluateCycle(){
     removeLegacyResetUi();
     const {meds,current}=medicationState();
+    const unfinished=current.filter(med=>!med.courseCompleted);
     if(!meds.length){clearLastMedicationHint();return;}
     if(current.length===0){clearLastMedicationHint();showCycleReady();return;}
-    if(current.length===1){showLastMedicationHint(current[0]);return;}
+    document.getElementById('medControlCycleReady')?.remove();
+    if(unfinished.length===1){
+      clearLastMedicationHint();
+      showLastMedicationHint(unfinished[0]);
+      return;
+    }
     clearLastMedicationHint();
   }
 
