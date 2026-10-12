@@ -1,7 +1,7 @@
 const {defineConfig}=require('@playwright/test');
 module.exports=defineConfig({
   testDir:'./tests',
-  testMatch:'modular3-browser.spec.js',
+  testMatch:['modular3-browser.spec.js','modular3-real-modules.spec.js'],
   timeout:45000,
   retries:0,
   use:{browserName:'chromium',headless:true,trace:'retain-on-failure'},
