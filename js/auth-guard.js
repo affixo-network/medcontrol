@@ -87,6 +87,11 @@
   }
   window.medcontrolNavigateTo=async function(targetPage,options={}){
     if(!scriptsByPage[targetPage])return false;
+    // Input uses layered render wrappers; a fresh page guarantees they initialize in order.
+    if(targetPage==='input' && window.location.pathname!=='/input.html'){
+      window.location.assign('/input.html');
+      return true;
+    }
     const target='/'+targetPage+'.html';
     const activeDeployment=currentDeploymentId();
     const latestDeployment=await latestDeploymentId(targetPage);
