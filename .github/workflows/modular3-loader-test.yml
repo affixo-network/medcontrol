@@ -4,7 +4,9 @@ on:
     branches: [modular-2.000]
     paths:
       - 'js/modular3-script-loader.js'
+      - 'js/auth-guard.js'
       - 'tests/modular3-script-loader.test.js'
+      - 'tests/modular3-auth-guard.integration.test.js'
       - '.github/workflows/modular3-loader-test.yml'
   workflow_dispatch:
 jobs:
@@ -15,7 +17,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check loader syntax
-        run: node --check js/modular3-script-loader.js
-      - name: Run isolated loader tests
-        run: node --test tests/modular3-script-loader.test.js
+      - name: Check JavaScript syntax
+        run: |
+          node --check js/modular3-script-loader.js
+          node --check js/auth-guard.js
+      - name: Run loader and auth integration tests
+        run: node --test tests/modular3-script-loader.test.js tests/modular3-auth-guard.integration.test.js
