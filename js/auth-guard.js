@@ -58,10 +58,19 @@
       document.head.appendChild(s);
     });
   }
+  let modular3Loader=null;
+  async function ensureModular3Loader(){
+    if(modular3Loader)return modular3Loader;
+    await loadScript('js/modular3-script-loader.js');
+    if(!window.MedControlScriptLoader?.createLoader)throw new Error('MedControl script loader unavailable');
+    modular3Loader=window.MedControlScriptLoader.createLoader({load:loadScript});
+    return modular3Loader;
+  }
   async function ensurePageScripts(targetPage){
     const list=scriptsByPage[targetPage];
     if(!list)throw new Error('Неизвестная страница MedControl: '+targetPage);
-    for(const src of list)await loadScript(src);
+    const loader=await ensureModular3Loader();
+    await loader.ensureScripts(list);
   }
   function renderPage(targetPage){
     if(targetPage==='archive'){
@@ -109,7 +118,8 @@
     return true;
   };
   async function startPage(list){
-    for(const src of list)await loadScript(src);
+    const loader=await ensureModular3Loader();
+    await loader.ensureScripts(list);
     if(page==='archive'){
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
