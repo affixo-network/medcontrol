@@ -1,7 +1,7 @@
 /* Experimental test-only service worker. Never registered by production pages. */
 'use strict';
 const CACHE='medcontrol-modular3-offline-proof-v1';
-const ASSETS=['/tests/modular3-offline-proof.html','/js/storage.js','/js/utils.js','/js/intake.js','/js/schedule.js'];
+const ASSETS=['/tests/modular3-offline-proof.html','/js/storage.js','/js/utils.js','/js/temporal-change-guard.js','/js/intake.js','/js/schedule.js'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
 self.addEventListener('fetch',event=>{
