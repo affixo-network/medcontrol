@@ -42,7 +42,8 @@ const visibleMedications=state.medications.filter(med=>!med.cancelled).slice().s
 const cancelledMedications=state.medications.filter(med=>med.cancelled).slice().sort((a,b)=>a.order-b.order);
 const canResetMedControl=visibleMedications.length===0&&cancelledMedications.length>0;
 const removedTimeFacts=[];
-state.medications.forEach(med=>{
+const workingMedications=state.medications.filter(med=>!med.cancelled&&!med.archivedCompleted);
+workingMedications.forEach(med=>{
   const entries=[...(med.rowHistory||[])].filter(Boolean).sort((a,b)=>new Date(a.at||0)-new Date(b.at||0));
   const created=entries.find(e=>e.action==='created');
   let times=[...((created?.snapshot?.times)||[])].filter(Boolean).sort();
