@@ -12,6 +12,7 @@ test('real local MedControl assets and synthetic records survive Chromium offlin
  });
  await page.addScriptTag({url:'/js/storage.js'});
  await page.addScriptTag({url:'/js/utils.js'});
+ await page.addScriptTag({url:'/js/temporal-change-guard.js'});
  await page.addScriptTag({url:'/js/schedule.js'});
  await page.addScriptTag({url:'/js/intake.js'});
  await page.evaluate(()=>{
@@ -26,6 +27,7 @@ test('real local MedControl assets and synthetic records survive Chromium offlin
  await expect(page.locator('#offline-proof')).toContainText('Offline test fixture');
  await page.addScriptTag({url:'/js/storage.js'});
  await page.addScriptTag({url:'/js/utils.js'});
+ await page.addScriptTag({url:'/js/temporal-change-guard.js'});
  await page.addScriptTag({url:'/js/schedule.js'});
  await page.addScriptTag({url:'/js/intake.js'});
  const result=await page.evaluate(()=>{
