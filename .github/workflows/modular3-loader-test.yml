@@ -7,6 +7,7 @@ on:
       - 'js/auth-guard.js'
       - 'tests/modular3-script-loader.test.js'
       - 'tests/modular3-auth-guard.integration.test.js'
+      - 'tests/modular3-offline-readiness.cjs'
       - '.github/workflows/modular3-loader-test.yml'
   workflow_dispatch:
 jobs:
@@ -21,5 +22,7 @@ jobs:
         run: |
           node --check js/modular3-script-loader.js
           node --check js/auth-guard.js
+      - name: Audit offline readiness without modifying production
+        run: node tests/modular3-offline-readiness.cjs
       - name: Run loader and auth integration tests
         run: node --test tests/modular3-script-loader.test.js tests/modular3-auth-guard.integration.test.js
