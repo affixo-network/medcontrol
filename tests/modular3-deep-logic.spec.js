@@ -19,7 +19,7 @@ test('real intake, cancellation, completion, seven-day archive, persistence - sy
  });
  await page.clock.install({time:new Date('2026-10-12T15:00:00.000Z')});
  await page.goto('http://127.0.0.1:8765/input.html');
- await expect(page.getByText('Новый препарат',{exact:true})).toBeVisible({timeout:20000});
+ await expect(page.locator('#create_name')).toBeVisible({timeout:20000});
  const outcome=await page.evaluate(()=>{
    const date=currentLocalDate();
    const med={id:'SYNTHETIC-E2E-COURSE',name:'Synthetic E2E Only',active:true,cancelled:false,scheduleType:'daily',startDate:date,endDate:date,times:['09:00','18:45'],rowHistory:[{action:'created',at:new Date().toISOString(),snapshot:{times:['09:00','18:45']}}],manufacturer:'Test',contentValue:'500',contentUnit:'мг',intakeQuantity:'1',intakeUnit:'капсула'};
