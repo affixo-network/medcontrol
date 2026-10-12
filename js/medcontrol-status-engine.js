@@ -17,7 +17,7 @@ window.buildMedControlTimeline=function(){
       rows.push({medication:med,plannedDate:today,plannedTime:'—',plannedAt:null,plannedMs:null,status:'cancelled',actualAt:null,canTake:false,canCorrect:false,countdownMode:null,countdownMs:null});
       continue;
     }
-    if(med.cancelled)continue;
+    if(med.cancelled||med.courseCompleted||med.archivedCompleted===true)continue;
 
     const all=slots(med,today);
     const todaySlots=all.filter(x=>x.date===today);
