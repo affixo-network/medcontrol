@@ -39,3 +39,4 @@ test('isolated encrypted bridge checkpoints synthetic intake history and refuses
  expect(result.raw).not.toContain('SYNTHETIC-BRIDGE');
  await context.close();
 });
+
