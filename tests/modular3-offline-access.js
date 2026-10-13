@@ -8,13 +8,13 @@ let current='input',busy=false;
 function render(){
  const state=bridge.read(),meds=state.medications,logs=state.intakeLogs;
  if(current==='input'){
-  content.innerHTML='<h2>Ввод</h2><form id="add-med"><label>Препарат <input name="name" required></label><label>Время <input name="time" type="time" required value="09:00"></label><button type="submit">Добавить</button></form><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.time)+'</li>').join('')+'</ul>';
+  content.innerHTML='<h2>Ввод</h2><form id="add-med"><label>Препарат <input name="name" required></label><label>Время <input name="time" type="time" required value="09:00"></label><button type="submit">Добавить</button></form><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.times?.join(', ')||m.time||'')+'</li>').join('')+'</ul>';
  }else if(current==='action'){
   content.innerHTML='<h2>Приём препаратов</h2><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' <button type="button" data-take="'+escapeHtml(m.id)+'">Принято</button></li>').join('')+'</ul>';
  }else if(current==='dashboard'){
   content.innerHTML='<h2>Табло</h2><p>Препаратов: '+meds.length+'; записей приёма: '+logs.length+'</p><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' '+escapeHtml(m.time)+'</li>').join('')+'</ul>';
  }else{
-  content.innerHTML='<h2>Архив</h2><ul>'+logs.map(l=>'<li>'+escapeHtml(l.name)+' — '+escapeHtml(l.at)+'</li>').join('')+'</ul>';
+  content.innerHTML='<h2>Архив</h2><ul>'+logs.map(l=>'<li>'+escapeHtml(l.name)+' — '+escapeHtml(l.actualAt||l.at||'')+'</li>').join('')+'</ul>';
  }
 }
 async function mutate(update){
@@ -53,7 +53,7 @@ content.addEventListener('submit',e=>{
  e.preventDefault();
  const data=new FormData(e.target),name=String(data.get('name')||'').trim(),time=String(data.get('time')||'');
  if(!name||!/^\d{2}:\d{2}$/.test(time))return;
- void mutate(state=>state.medications.push({id:crypto.randomUUID(),name,time}));
+ void mutate(state=>window.MedControlOfflineCourseEngine.create(state,name,time,new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Yerevan'})));
 });
 content.addEventListener('click',e=>{
  const id=e.target.dataset.take;
@@ -61,6 +61,6 @@ content.addEventListener('click',e=>{
  void mutate(state=>{
   const med=state.medications.find(m=>m.id===id);
   if(!med)throw Error('Medication not found');
-  state.intakeLogs.push({medicationId:id,name:med.name,at:new Date().toISOString(),action:'taken'});
+  window.MedControlOfflineCourseEngine.record(state,id,'taken',new Date().toISOString());
  });
 });
