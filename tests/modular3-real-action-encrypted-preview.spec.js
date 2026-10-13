@@ -1,0 +1,29 @@
+'use strict';
+const {test,expect}=require('@playwright/test');
+test('real intake handlers checkpoint encrypted data before confirming and preserve cancellation history',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/tests/modular3-offline-access.html');
+ for(const path of ['/tests/modular3-real-page-write-gate.js','/js/storage.js','/tests/modular3-real-page-transaction.js','/tests/modular3-real-action-encrypted-preview.js'])await page.addScriptTag({url:path});
+ const result=await page.evaluate(async()=>{
+  const pass='Synthetic-Action-Preview-2026';
+  const initial={settings:{interfaceLanguage:'ru',timezone:'Asia/Yerevan'},medications:[{id:'med',name:'Synthetic'}],intakeLogs:[],intakeCorrections:[]};
+  await medcontrolOfflineProofAuth.enroll(pass);
+  await MedControlOfflineEncryptedBridge.initialize(initial,pass);
+  MedControlModular3RealModuleBridge.activate();
+  MedControlModular3WriteThroughPreview.start();
+  window.uid=()=>String(Math.random());
+  window.nowISO=()=>new Date().toISOString();
+  window.computeStatusForLog=()=> 'taken_on_time';
+  window.mount=()=>{window.__mounts=(window.__mounts||0)+1};
+  window.alert=()=>{window.__alerts=(window.__alerts||0)+1};
+  window.confirm=()=>true;
+  const select=document.createElement('select');select.id='correction_reason';select.innerHTML='<option value="accident">accident</option>';select.value='accident';document.body.append(select);
+  const dialog=document.createElement('div');dialog.id='correctionDialog';dialog.close=()=>{};document.body.append(dialog);
+  MedControlModular3ActionPreview.install();
+  const taken=await markTaken('med','2026-10-13T09:00:00.000Z');
+  const duplicate=await markTaken('med','2026-10-13T09:00:00.000Z');
+  const cancelled=await applyCorrection('med','2026-10-13T09:00:00.000Z');
+  const state=getState(),vault=MedControlModular3RealModuleBridge.read();
+  return {taken,duplicate,cancelled,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
+ });
+ expect(result).toEqual({taken:true,duplicate:false,cancelled:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:1});
+});
