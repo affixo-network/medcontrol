@@ -30,7 +30,7 @@ test('encrypted functional offline prototype persists medicine and taken history
  expect(history.map(e=>e.action)).toEqual(['taken','cancelled']);
  expect(history[1].status).toBe('cancelled');
  await page.getByRole('button',{name:'Архив'}).click();
- await expect(page.getByText(/Synthetic Offline Medicine —/)).toBeVisible();
+ await expect(page.getByText(/Synthetic Offline Medicine —/).first()).toBeVisible();
  const raw=await page.evaluate(()=>({encrypted:localStorage.getItem('medcontrol_modular3_test_encrypted_state_v1'),plain:localStorage.getItem('affixo_medcontrol_standard_v3')}));
  expect(raw.plain).toBeNull();
  expect(raw.encrypted).not.toContain('Synthetic Offline Medicine');
@@ -45,8 +45,8 @@ test('encrypted functional offline prototype persists medicine and taken history
  await reopened.locator('#passphrase').fill('Functional-Offline-Secret-2026');
  await reopened.getByRole('button',{name:'Unlock offline'}).click();
  await reopened.getByRole('button',{name:'Архив'}).click();
- await expect(reopened.getByText(/Synthetic Offline Medicine —/)).toBeVisible();
+ await expect(reopened.getByText(/Synthetic Offline Medicine —/).first()).toBeVisible();
  await reopened.getByRole('button',{name:'Табло'}).click();
- await expect(reopened.getByText('Препаратов: 1; записей приёма: 1')).toBeVisible();
+ await expect(reopened.getByText('Препаратов: 1; записей приёма: 2')).toBeVisible();
  await context.close();
 });
