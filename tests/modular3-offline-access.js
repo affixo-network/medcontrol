@@ -21,7 +21,7 @@ async function mutate(update){
  if(busy)return;
  busy=true;
  try{const state=bridge.read();update(state);bridge.write(state);await bridge.checkpoint();render();}
- catch(e){content.insertAdjacentHTML('beforeend','<p role="alert">'+escapeHtml(e.message)+'</p>');}
+ catch(e){content.insertAdjacentHTML('beforeend','<p role="alert">'+escapeHtml(e.message)+'</p>');console.error('Offline action rejected:',e);}
  finally{busy=false;}
 }
 form.addEventListener('submit',async e=>{
