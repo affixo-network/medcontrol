@@ -21,7 +21,7 @@ test('production integration release gate: report exact missing connections and 
  assert.ok(blockers.length>0,'If all blockers clear, replace this audit with a real production integration acceptance test');
  assert.equal(checks.productionEncrypted,false,'Do not claim production encryption while raw state is written to localStorage');
  assert.equal(checks.offlineAuthIntegrated,false,'Do not claim offline authorization while production redirects on network verification failure');
- assert.equal(checks.offlineServiceWorkerIntegrated,false,'Do not claim offline caching without a production registration');
+ assert.equal(checks.offlineServiceWorkerIntegrated,true,'Static caching registration must be integrated; offline auth and encryption remain blockers');
  assert.equal(checks.realPagesUseEncryptedBridge,false,'Do not claim encrypted bridge is integrated into the real four pages');
  console.log('MODULAR3_INTEGRATION_GATE '+JSON.stringify({ready:false,checks,blockers}));
 });
