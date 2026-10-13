@@ -24,10 +24,14 @@ self.addEventListener('fetch',event=>{
  if(url.origin!==self.location.origin||!/^\/js\/[a-zA-Z0-9._/-]+\.js$/.test(url.pathname))return;
  event.respondWith((async()=>{
   const cache=await caches.open(VERSION);
-  const cached=await cache.match(url.pathname);
-  if(cached)return cached;
-  const response=await fetch(req);
-  if(response.ok&&response.type==='basic')await cache.put(url.pathname,response.clone());
-  return response;
+  try{
+   const response=await fetch(req);
+   if(response.ok&&response.type==='basic')await cache.put(url.pathname,response.clone());
+   return response;
+  }catch(error){
+   const cached=await cache.match(url.pathname);
+   if(cached)return cached;
+   throw error;
+  }
  })());
 });
