@@ -1,0 +1,1 @@
+(function(root){ 'use strict'; function applicable(med,date){ return isMedicationApplicableOnDate(med,date); } function status(planned,actual,action){ return computeStatusForLog(planned,actual,action); } root.MedControlOfflineCourseEngine=Object.freeze({applicable,status}); })(window);
