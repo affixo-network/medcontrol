@@ -11,6 +11,8 @@ test('integrated rehearsal: encrypted migration of synthetic existing MedControl
   const key='affixo_medcontrol_standard_v3',secret='Synthetic-Migration-Password-2026';
   localStorage.setItem(key,JSON.stringify(original));
   const before=localStorage.getItem(key);
+  await medcontrolOfflineProofAuth.enroll(secret);
+  medcontrolOfflineProofAuth.lock();
   await MedControlOfflineStorageAdapter.save(JSON.parse(before),secret);
   const copy=await MedControlOfflineStorageAdapter.load(secret);
   if(JSON.stringify(copy)!==before)throw Error('Migration roundtrip mismatch');
