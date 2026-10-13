@@ -1,5 +1,8 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
 test('encrypted real storage transactions survive offline page restart without plaintext persistence',async({browser})=>{
  const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
  const page=await context.newPage();
@@ -27,7 +30,11 @@ test('encrypted real storage transactions survive offline page restart without p
  await restarted.route('**/*',async route=>{
   const url=new URL(route.request().url());
   if(url.origin!=='http://127.0.0.1:8765')return route.abort();
-  return route.continue();
+  const name=decodeURIComponent(url.pathname).replace(/^\\/+/, '');
+  const file=path.resolve(root,name);
+  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile())return route.abort();
+  const ext=path.extname(file);
+  return route.fulfill({status:200,contentType:ext==='.js'?'application/javascript':ext==='.html'?'text/html':ext==='.css'?'text/css':'application/octet-stream',body:fs.readFileSync(file)});
  });
  await restarted.goto('http://127.0.0.1:8765/tests/modular3-offline-access.html');
  const result=await restarted.evaluate(async secret=>{
