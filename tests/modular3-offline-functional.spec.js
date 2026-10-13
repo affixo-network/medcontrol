@@ -19,6 +19,10 @@ test('encrypted functional offline prototype persists medicine and taken history
  await page.getByRole('button',{name:'Принято'}).click();
  await page.getByRole('button',{name:'Табло'}).click();
  await expect(page.getByText('Препаратов: 1; записей приёма: 1')).toBeVisible();
+ const status=await page.evaluate(()=>MedControlOfflineEncryptedBridge.read().intakeLogs[0]);
+ expect(status.plannedAt).toBeTruthy();
+ expect(status.actualAt).toBeTruthy();
+ expect(['taken_early','taken_on_time','taken_late']).toContain(status.status);
  await page.getByRole('button',{name:'Архив'}).click();
  await expect(page.getByText(/Synthetic Offline Medicine —/)).toBeVisible();
  const raw=await page.evaluate(()=>({encrypted:localStorage.getItem('medcontrol_modular3_test_encrypted_state_v1'),plain:localStorage.getItem('affixo_medcontrol_standard_v3')}));
