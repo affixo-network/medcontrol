@@ -30,7 +30,7 @@ test('encrypted real storage transactions survive offline page restart without p
  await restarted.route('**/*',async route=>{
   const url=new URL(route.request().url());
   if(url.origin!=='http://127.0.0.1:8765')return route.abort();
-  const name=decodeURIComponent(url.pathname).replace(/^\\/+/, '');
+  const name=decodeURIComponent(url.pathname).split('/').filter(Boolean).join('/');
   const file=path.resolve(root,name);
   if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile())return route.abort();
   const ext=path.extname(file);
