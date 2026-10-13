@@ -35,6 +35,7 @@ on:
       - 'tests/modular3-real-ui-volume.spec.js'
       - 'tests/modular3-storage-faults.spec.js'
       - 'tests/modular3-offline-interrupted-checkpoint.spec.js'
+      - 'tests/modular3-integration-rehearsal.spec.js'
       - 'tests/modular3-offline-course-engine.js'
       - 'js/schedule.js'
       - 'js/temporal-change-guard.js'
