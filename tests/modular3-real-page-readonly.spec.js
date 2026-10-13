@@ -38,10 +38,12 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   await page.goto('http://127.0.0.1:8765/'+section+'.html');
   await expect(page.locator('body')).toContainText('MedControl',{timeout:20000});
   const state=await page.evaluate(()=>({
-   view:getState().medications.some(m=>m.id==='synthetic-readonly'),
-   save:saveState(getState(),{silent:true,skipCloudSnapshot:true}),
+   diagnostic:(()=>{try{getState();return 'ok';}catch(e){return {message:e.message,cause:e.cause?.message,authorization:window.__previewAuthorized,adapter:MedControlModular3RealPageReadOnly.status()};}})(),
+   view:(()=>{try{return getState().medications.some(m=>m.id==='synthetic-readonly');}catch(_){return false;}})(),
+   save:(()=>{try{return saveState({settings:{},medications:[],intakeLogs:[]},{silent:true,skipCloudSnapshot:true});}catch(_){return false;}})(),
    status:MedControlModular3RealPageReadOnly.status()
   }));
+  expect(state.diagnostic,section+' storage read diagnosis').toBe('ok');
   expect(state.view,section+' synthetic data').toBe(true);
   expect(state.save,section+' plaintext write rejected').toBe(false);
   expect(state.status.blockedWrites,section+' blocked writes').toBeGreaterThan(0);
