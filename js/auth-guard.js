@@ -128,6 +128,11 @@
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     mount(page);
   }
+  function registerStaticOfflineCache(){
+    if(!('serviceWorker' in navigator)||!window.isSecureContext)return;
+    navigator.serviceWorker.register('/js/modular3-static-cache-sw.js',{scope:'/'})
+      .catch(error=>console.warn('Static offline cache unavailable.',error));
+  }
   function readStoredSession(){
     try{
       const raw=localStorage.getItem(SUPABASE_STORAGE_KEY);
@@ -166,6 +171,7 @@
         .then(result=>attachVerifiedSupabase(result))
         .catch(error=>{console.error('MedControl background auth verification failed.',error);goToLogin('session_check_failed');});
       await startPage(list);
+      registerStaticOfflineCache();
       prefetchOtherPageScripts(page);
       void verification;
       return;
@@ -173,6 +179,7 @@
     const verified=await createVerifiedSupabase();
     if(!attachVerifiedSupabase(verified))return;
     await startPage(list);
+    registerStaticOfflineCache();
     prefetchOtherPageScripts(page);
   }catch(error){console.error('MedControl Auth Guard failed.',error);showStartupError('Не удалось запустить MedControl. Локальные данные не удалялись.\n\n'+(error&&error.message?error.message:error));}
 })();
