@@ -49,6 +49,7 @@ on:
       - 'tests/modular3-real-page-checkpoint-sequence.spec.js'
       - 'tests/modular3-real-page-transaction.js'
       - 'tests/modular3-real-page-transaction.spec.js'
+      - 'tests/modular3-real-transaction-offline-restart.spec.js'
       - 'tests/modular3-offline-course-engine.js'
       - 'js/schedule.js'
       - 'js/temporal-change-guard.js'
