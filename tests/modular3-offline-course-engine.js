@@ -40,7 +40,7 @@ function reconcile(state,nowISO=new Date().toISOString()){
   const completed=(lastDate<=today&&latest?.action==='taken')||now>=finalDayEnd;
   if(completed&&!med.courseCompleted){
    med.courseCompleted=true;med.active=false;
-   med.courseCompletedAt=latest?.action==='taken'?latest.actualAt:new Date(finalDayEnd).toISOString();
+   med.courseCompletedAt=latest?.action==='taken'&&Date.parse(latest.actualAt)<=finalDayEnd?latest.actualAt:new Date(finalDayEnd).toISOString();
    changed=true;
   }else if(!completed&&med.courseCompleted&&!med.archivedCompleted){
    med.courseCompleted=false;med.active=true;med.courseCompletedAt=null;changed=true;
