@@ -3,7 +3,7 @@ const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const guard=fs.readFileSync(path.join(root,'js/auth-guard.js'),'utf8');
-test('real MedControl input reads synthetic preview in memory and cannot overwrite original storage',async({browser})=>{
+test('all four real MedControl pages read synthetic preview and cannot overwrite original storage',async({browser})=>{
  const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
  const synthetic={settings:{interfaceLanguage:'ru',country:'AM',timezone:'Asia/Yerevan',locale:'ru-RU',infoDismissed:true},medications:[{id:'synthetic-readonly',name:'Synthetic Preview',active:false,times:['09:00']}],intakeLogs:[]};
  await context.addInitScript(({synthetic})=>{
@@ -32,25 +32,26 @@ test('real MedControl input reads synthetic preview in memory and cannot overwri
   return route.fulfill({status:200,contentType:ext==='.js'?'application/javascript':ext==='.html'?'text/html':ext==='.css'?'text/css':'application/octet-stream',body:fs.readFileSync(file)});
  });
  await context.setOffline(true);
- const page=await context.newPage(),errors=[];
- page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:8765/input.html');
- await expect(page.locator('body')).toContainText('MedControl',{timeout:20000});
- const state=await page.evaluate(()=>({
-  original:Storage.prototype.getItem.call(localStorage,'affixo_medcontrol_standard_v3'),
-  view:getState().medications.some(m=>m.id==='synthetic-readonly'),
-  save:saveState(getState(),{silent:true,skipCloudSnapshot:true}),
-  status:MedControlModular3RealPageReadOnly.status()
- }));
- expect(state.view).toBeTruthy();
- expect(state.save).toBe(false);
- expect(state.status.blockedWrites).toBeGreaterThan(0);
- expect(state.original).toContain('synthetic-readonly'); // virtual read; raw persistence checked below
- const raw=await page.evaluate(()=>{
-  MedControlModular3RealPageReadOnly.stop();
-  return localStorage.getItem('affixo_medcontrol_standard_v3');
- });
- expect(raw).toBeNull();
- expect(errors).toEqual([]);
+ for(const section of ['input','action','dashboard','archive']){
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:8765/'+section+'.html');
+  await expect(page.locator('body')).toContainText('MedControl',{timeout:20000});
+  const state=await page.evaluate(()=>({
+   view:getState().medications.some(m=>m.id==='synthetic-readonly'),
+   save:saveState(getState(),{silent:true,skipCloudSnapshot:true}),
+   status:MedControlModular3RealPageReadOnly.status()
+  }));
+  expect(state.view,section+' synthetic data').toBeTruthy();
+  expect(state.save,section+' plaintext write rejected').toBe(false);
+  expect(state.status.blockedWrites,section+' blocked writes').toBeGreaterThan(0);
+  const raw=await page.evaluate(()=>{
+   MedControlModular3RealPageReadOnly.stop();
+   return localStorage.getItem('affixo_medcontrol_standard_v3');
+  });
+  expect(raw,section+' actual persisted storage').toBeNull();
+  expect(errors,section+' runtime errors').toEqual([]);
+  await page.close();
+ }
  await context.close();
 });
