@@ -55,6 +55,11 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   expect(denied,section+' locked read rejected').toBe(true);
   const lockedWrite=await page.evaluate(()=>saveState({settings:{},medications:[],intakeLogs:[]},{silent:true,skipCloudSnapshot:true}));
   expect(lockedWrite,section+' locked write rejected').toBe(false);
+  const unlockedAgain=await page.evaluate(()=>{
+   window.__previewAuthorized=true;
+   return getState().medications.some(m=>m.id==='synthetic-readonly');
+  });
+  expect(unlockedAgain,section+' read restored after authorization').toBe(true);
   const raw=await page.evaluate(()=>{
    MedControlModular3RealPageReadOnly.stop();
    return localStorage.getItem('affixo_medcontrol_standard_v3');
