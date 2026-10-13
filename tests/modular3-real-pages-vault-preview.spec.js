@@ -12,18 +12,22 @@ test('four real pages consume a decrypted synthetic vault snapshot only inside i
  await page.goto('http://127.0.0.1:8765/tests/modular3-offline-access.html');
  const encrypted=await page.evaluate(async({sample})=>await MedControlOfflineVault.seal(sample,'Real-Sections-Preview-2026'),{sample});
  await page.close();
- await context.addInitScript(async({encrypted})=>{
-  // This test never injects plaintext into a real user's origin.
-  const enc=new TextEncoder(),dec=new TextDecoder();
-  const from64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-  const subtle=(globalThis.crypto&&globalThis.crypto.subtle)||null;
-  if(!subtle)throw Error('Secure-context Web Crypto unavailable');
-  const base=await subtle.importKey('raw',enc.encode('Real-Sections-Preview-2026'),'PBKDF2',false,['deriveKey']);
-  const key=await subtle.deriveKey({name:'PBKDF2',salt:from64(encrypted.salt),iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
-  const plain=await subtle.decrypt({name:'AES-GCM',iv:from64(encrypted.iv)},key,from64(encrypted.ciphertext));
-  localStorage.setItem('affixo_medcontrol_standard_v3',dec.decode(plain));
+ const decrypted=await (async()=>{
+  const verify=await context.newPage();
+  await verify.goto('http://127.0.0.1:8765/tests/modular3-offline-access.html');
+  const result=await verify.evaluate(async({encrypted})=>{
+   const original=await MedControlOfflineVault.open(encrypted,'Real-Sections-Preview-2026');
+   return JSON.stringify(original);
+  },{encrypted});
+  await verify.close();
+  return result;
+ })();
+ await context.addInitScript(({decrypted})=>{
+  // Browser init scripts run in frames without guaranteed secure-context Web Crypto.
+  // The synthetic preview is decrypted on localhost before offline navigation.
+  localStorage.setItem('affixo_medcontrol_standard_v3',decrypted);
   localStorage.removeItem('sb-lewdbjjaohqxbirzhrbm-auth-token');
- },{encrypted});
+ },{decrypted});
  await context.route('**/*',async route=>{
   const url=new URL(route.request().url());
   if(url.origin!=='http://127.0.0.1:8765')return route.abort();
