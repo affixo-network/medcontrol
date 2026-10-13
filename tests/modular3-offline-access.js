@@ -8,13 +8,13 @@ let current='input',busy=false;
 function render(){
  const state=bridge.read(),meds=state.medications,logs=state.intakeLogs;
  if(current==='input'){
-  content.innerHTML='<h2>Ввод</h2><form id="add-med"><label>Препарат <input name="name" required></label><label>Время <input name="time" type="time" required value="09:00"></label><button type="submit">Добавить</button></form><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.times?.join(', ')||m.time||'')+'</li>').join('')+'</ul>';
+  content.innerHTML='<h2>Ввод</h2><form id="add-med"><label>Препарат <input name="name" required></label><label>Время <input name="time" type="time" required value="09:00"></label><button type="submit">Добавить</button></form><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.times?.join(', ')||m.time||'')+' — '+(m.archivedCompleted?'Архив':m.courseCompleted?'Курс завершён':'Активен')+'</li>').join('')+'</ul>';
  }else if(current==='action'){
   content.innerHTML='<h2>Приём препаратов</h2><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' <button type="button" data-take="'+escapeHtml(m.id)+'">Принято</button> <button type="button" data-cancel="'+escapeHtml(m.id)+'">Отменить случайное нажатие</button></li>').join('')+'</ul>';
  }else if(current==='dashboard'){
   content.innerHTML='<h2>Табло</h2><p>Препаратов: '+meds.length+'; записей приёма: '+logs.length+'</p><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' '+escapeHtml(m.time)+'</li>').join('')+'</ul>';
  }else{
-  content.innerHTML='<h2>Архив</h2><ul>'+logs.map(l=>'<li>'+escapeHtml(l.name)+' — '+escapeHtml(l.actualAt||l.at||'')+'</li>').join('')+'</ul>';
+  content.innerHTML='<h2>Архив</h2><h3>Завершённые курсы</h3><ul>'+meds.filter(m=>m.archivedCompleted).map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.archivedAt)+'</li>').join('')+'</ul><h3>История событий</h3><ul>'+logs.map(l=>'<li>'+escapeHtml(l.name)+' — '+escapeHtml(l.actualAt||l.at||'')+'</li>').join('')+'</ul>';
  }
 }
 async function mutate(update){
@@ -34,6 +34,8 @@ form.addEventListener('submit',async e=>{
   if(!ok)throw Error('Wrong passphrase');
   if(exists)await bridge.unlock(secret);else await bridge.initialize(initial(),secret);
   document.getElementById('passphrase').value='';
+  const state=bridge.read();
+  if(window.MedControlOfflineCourseEngine.reconcile(state)){bridge.write(state);await bridge.checkpoint();}
   form.hidden=true;nav.hidden=false;render();
  }catch(error){window.medcontrolOfflineProofAuth.lock();content.textContent='Access denied: '+error.message;}
 });
