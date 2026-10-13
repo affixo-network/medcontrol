@@ -14,7 +14,10 @@
   if(localStorage.getItem(DEST)!==null)throw Error('Preview vault appeared');
   localStorage.setItem(DEST,JSON.stringify(sealed));
   const check=await root.MedControlOfflineVault.open(JSON.parse(localStorage.getItem(DEST)),secret);
-  if(JSON.stringify(check)!==original)throw Error('Copy verification failed');
+  if(JSON.stringify(check)!==original){
+   if(localStorage.getItem(DEST)===JSON.stringify(sealed))localStorage.removeItem(DEST);
+   throw Error('Copy verification failed');
+  }
   if(localStorage.getItem(SOURCE)!==original)throw Error('Original changed');
   return {medications:check.medications.length,intakeLogs:check.intakeLogs.length};
  }
