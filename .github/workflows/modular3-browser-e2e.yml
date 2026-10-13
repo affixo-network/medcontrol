@@ -4,6 +4,8 @@ on:
     branches: [modular-2.000]
     paths:
       - 'js/auth-guard.js'
+      - 'js/modular3-static-cache-sw.js'
+      - 'tests/modular3-production-static-cache.spec.js'
       - 'js/modular3-script-loader.js'
       - 'input.html'
       - 'action.html'
