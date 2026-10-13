@@ -14,6 +14,9 @@
    const current=getState();
    const next=structuredClone(current);
    mutator(next);
+   // Mirror production saveState normalization BEFORE encrypted checkpoint.
+   next.settings=next.settings||{};
+   next.settings.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
    await gate.checkpoint(next);
    const saved=saveState(next,{silent:true,skipCloudSnapshot:true});
    if(!saved)throw Error('Preview save rejected after encrypted checkpoint');
