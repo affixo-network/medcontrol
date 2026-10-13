@@ -19,11 +19,15 @@
   snapshot=JSON.stringify(state);active=true;
  }
  Storage.prototype.getItem=function(k){
-  if(active&&this===localStorage&&k===key)return snapshot;
+  if(active&&this===localStorage&&k===key){
+   if(!encrypted.status().enabled)throw Error('Preview locked: encrypted data unavailable');
+   return snapshot;
+  }
   return originalGet.apply(this,arguments);
  };
  Storage.prototype.setItem=function(k,v){
   if(active&&this===localStorage&&k===key){
+   if(!encrypted.status().enabled)throw Error('Preview locked: writes unavailable');
    const raw=String(v);
    if(approved!==raw){rejected++;throw Error('Encrypted checkpoint required before legacy save');}
    snapshot=raw;approved=null;return;
