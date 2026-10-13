@@ -4,7 +4,7 @@ const form=document.getElementById('unlock'),nav=document.getElementById('sectio
 const bridge=window.MedControlOfflineEncryptedBridge;
 const initial=()=>({settings:{interfaceLanguage:'ru',timezone:'Asia/Yerevan'},medications:[],intakeLogs:[]});
 const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let current='input',busy=false;
+let current='input',busy=false,mutationQueue=Promise.resolve();
 function render(){
  const state=bridge.read(),meds=state.medications,logs=state.intakeLogs;
  if(current==='input'){
@@ -17,12 +17,22 @@ function render(){
   content.innerHTML='<h2>Архив</h2><h3>Завершённые курсы</h3><ul>'+meds.filter(m=>m.archivedCompleted).map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.archivedAt)+'</li>').join('')+'</ul><h3>История событий</h3><ul>'+logs.map(l=>'<li>'+escapeHtml(l.name)+' — '+escapeHtml(l.actualAt||l.at||'')+'</li>').join('')+'</ul>';
  }
 }
-async function mutate(update){
- if(busy)return;
- busy=true;
- try{const state=bridge.read();update(state);bridge.write(state);await bridge.checkpoint();render();}
- catch(e){content.insertAdjacentHTML('beforeend','<p role="alert">'+escapeHtml(e.message)+'</p>');console.error('Offline action rejected:',e);}
- finally{busy=false;}
+function mutate(update){
+ const task=mutationQueue.then(async()=>{
+  busy=true;
+  try{
+   const state=bridge.read();
+   update(state);
+   bridge.write(state);
+   await bridge.checkpoint();
+   render();
+  }catch(e){
+   content.insertAdjacentHTML('beforeend','<p role="alert">'+escapeHtml(e.message)+'</p>');
+   console.error('Offline action rejected:',e);
+  }finally{busy=false;}
+ });
+ mutationQueue=task.catch(()=>{});
+ return task;
 }
 form.addEventListener('submit',async e=>{
  e.preventDefault();
@@ -41,7 +51,7 @@ form.addEventListener('submit',async e=>{
 });
 nav.addEventListener('click',async e=>{
  if(e.target.id==='lock'){
-  if(busy)return;
+  await mutationQueue;
   try{await bridge.checkpoint();bridge.lock();window.medcontrolOfflineProofAuth.lock();nav.hidden=true;form.hidden=false;content.textContent='Locked';}
   catch(error){content.textContent='Lock refused: '+error.message;}
   return;
