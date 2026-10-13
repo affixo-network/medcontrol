@@ -31,6 +31,7 @@ root.MedControlModular3ActionPreview=Object.freeze({
    },()=>mount('action'));
   };
   root.applyCorrection=function(medicationId,plannedAt){
+   if(busy)return false;
    const reason=document.getElementById('correction_reason')?.value;
    if(reason!=='accident'){root.alert('Допустима только причина «Случайность».');return false;}
    const state=getState();
