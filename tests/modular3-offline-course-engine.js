@@ -18,7 +18,40 @@ function record(state,id,action,actualAt){
  if(action==='taken'&&old?.action==='taken')throw Error('Already taken');
  const entry={id:crypto.randomUUID(),medicationId:id,name:med.name,plannedAt,actualAt,action,status:computeStatusForLog(plannedAt,actualAt,action)};
  state.intakeLogs.push(entry);
+ reconcile(state,actualAt);
  return entry;
 }
-root.MedControlOfflineCourseEngine=Object.freeze({create,record});
+function reconcile(state,nowISO=new Date().toISOString()){
+ const now=new Date(nowISO).getTime();
+ if(!Number.isFinite(now))throw Error('Invalid current time');
+ let changed=false;
+ for(const med of state.medications){
+  if(med.cancelled)continue;
+  const dates=med.scheduleType==='explicit_dates'?[...(med.explicitDates||[])].sort():[];
+  const lastDate=dates[dates.length-1]||med.endDate;
+  if(!lastDate)continue;
+  const times=[...(med.times||[])].sort();
+  if(!times.length)continue;
+  const plannedAt=getScheduledDateTime(lastDate,times[times.length-1]);
+  const events=state.intakeLogs.filter(l=>l.medicationId===med.id&&l.plannedAt===plannedAt);
+  const latest=events[events.length-1];
+  const finalDayEnd=new Date(getScheduledDateTime(lastDate,'23:59')).getTime()+59000;
+  const completed=latest?.action==='taken'||now>=finalDayEnd;
+  if(completed&&!med.courseCompleted){
+   med.courseCompleted=true;med.active=false;
+   med.courseCompletedAt=latest?.action==='taken'?latest.actualAt:new Date(finalDayEnd).toISOString();
+   changed=true;
+  }else if(!completed&&med.courseCompleted&&!med.archivedCompleted){
+   med.courseCompleted=false;med.active=true;med.courseCompletedAt=null;changed=true;
+  }
+  if(med.courseCompleted&&!med.archivedCompleted){
+   const completedAt=new Date(med.courseCompletedAt).getTime();
+   if(Number.isFinite(completedAt)&&now>=completedAt+7*86400000){
+    med.archivedCompleted=true;med.archivedAt=new Date(completedAt+7*86400000).toISOString();changed=true;
+   }
+  }
+ }
+ return changed;
+}
+root.MedControlOfflineCourseEngine=Object.freeze({create,record,reconcile});
 })(window);
