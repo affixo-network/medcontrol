@@ -129,7 +129,7 @@
     mount(page);
   }
   function registerStaticOfflineCache(){
-    if(!('serviceWorker' in navigator)||!window.isSecureContext)return;
+    if(typeof navigator==='undefined'||!('serviceWorker' in navigator)||!window.isSecureContext)return;
     navigator.serviceWorker.register('/js/modular3-static-cache-sw.js',{scope:'/'})
       .catch(error=>console.warn('Static offline cache unavailable.',error));
   }
