@@ -45,6 +45,7 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   expect(state.view,section+' synthetic data').toBe(true);
   expect(state.save,section+' plaintext write rejected').toBe(false);
   expect(state.status.blockedWrites,section+' blocked writes').toBeGreaterThan(0);
+  expect(errors,section+' startup runtime errors').toEqual([]);
   const denied=await page.evaluate(()=>{
    window.__previewAuthorized=false;
    try{getState();return false;}catch(_){return true;}
@@ -57,7 +58,7 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
    return localStorage.getItem('affixo_medcontrol_standard_v3');
   });
   expect(raw,section+' actual persisted storage').toBeNull();
-  expect(errors,section+' runtime errors').toEqual([]);
+  expect(errors.every(message=>message.includes('MedControl не может прочитать хранилище браузера.')),section+' only expected locked-read errors').toBe(true);
   await page.close();
  }
  await context.close();
