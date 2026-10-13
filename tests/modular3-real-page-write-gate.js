@@ -40,6 +40,7 @@
  };
  async function checkpoint(next){
   if(!active)throw Error('Preview not active');
+  if(!encrypted.status().enabled)throw Error('Preview locked: checkpoint unavailable');
   if(approved!==null)throw Error('Previous approval unconsumed');
   if(!next||!Array.isArray(next.medications)||!Array.isArray(next.intakeLogs))throw Error('Invalid state');
   const raw=JSON.stringify(next);
