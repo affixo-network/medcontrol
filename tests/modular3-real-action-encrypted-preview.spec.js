@@ -25,7 +25,7 @@ test('real intake handlers checkpoint encrypted data before confirming and prese
   const repeatedCancellation=await applyCorrection('med','2026-10-13T09:00:00.000Z');
   const invalidMedication=await markTaken('missing-med','2026-10-13T09:00:00.000Z');
   const before=JSON.stringify(MedControlModular3RealModuleBridge.read());
-  const unauthorizedWrite=(()=>{try{saveState({...getState(),intakeLogs:[]});return true;}catch(_){return false;}})();
+  const unauthorizedWrite=(()=>{try{return saveState({...getState(),intakeLogs:[]});}catch(_){return false;}})();
   const unchanged=before===JSON.stringify(MedControlModular3RealModuleBridge.read());
   const state=getState(),vault=MedControlModular3RealModuleBridge.read();
   MedControlModular3WriteThroughPreview.stop();
