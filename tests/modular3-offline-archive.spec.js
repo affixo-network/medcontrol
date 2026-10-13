@@ -8,6 +8,7 @@ test('course completes on final taken slot, archives exactly seven days later, s
  await page.reload();await context.setOffline(true);await page.reload();
  await page.locator('#passphrase').fill('Archive-Synthetic-Secret-2026');
  await page.getByRole('button',{name:'Unlock offline'}).click();
+ await expect(page.locator('#sections')).toBeVisible();
  const result=await page.evaluate(async()=>{
   const bridge=window.MedControlOfflineEncryptedBridge,engine=window.MedControlOfflineCourseEngine;
   const state=bridge.read(),day=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Yerevan'});
