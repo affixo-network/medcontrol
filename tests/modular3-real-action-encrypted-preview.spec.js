@@ -28,8 +28,10 @@ test('real intake handlers checkpoint encrypted data before confirming and prese
   const unauthorizedWrite=(()=>{try{return saveState({...getState(),intakeLogs:[]});}catch(_){return false;}})();
   const unchanged=before===JSON.stringify(MedControlModular3RealModuleBridge.read());
   const state=getState(),vault=MedControlModular3RealModuleBridge.read();
+  const rawEncrypted=localStorage.getItem('medcontrol_modular3_test_encrypted_state_v1');
+  const encryptedOnly=!!rawEncrypted&&!rawEncrypted.includes('Synthetic')&&!rawEncrypted.includes('actualAt')&&!rawEncrypted.includes('intakeCorrections');
   MedControlModular3WriteThroughPreview.stop();
-  return {taken,duplicate,cancelled,repeatedCancellation,invalidMedication,unauthorizedWrite,unchanged,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
+  return {taken,duplicate,cancelled,repeatedCancellation,invalidMedication,unauthorizedWrite,unchanged,encryptedOnly,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
  });
- expect(result).toEqual({taken:true,duplicate:false,cancelled:true,repeatedCancellation:false,invalidMedication:false,unauthorizedWrite:false,unchanged:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:4});
+ expect(result).toEqual({taken:true,duplicate:false,cancelled:true,repeatedCancellation:false,invalidMedication:false,unauthorizedWrite:false,unchanged:true,encryptedOnly:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:4});
 });
