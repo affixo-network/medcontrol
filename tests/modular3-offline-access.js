@@ -10,7 +10,7 @@ function render(){
  if(current==='input'){
   content.innerHTML='<h2>Ввод</h2><form id="add-med"><label>Препарат <input name="name" required></label><label>Время <input name="time" type="time" required value="09:00"></label><button type="submit">Добавить</button></form><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' — '+escapeHtml(m.times?.join(', ')||m.time||'')+'</li>').join('')+'</ul>';
  }else if(current==='action'){
-  content.innerHTML='<h2>Приём препаратов</h2><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' <button type="button" data-take="'+escapeHtml(m.id)+'">Принято</button></li>').join('')+'</ul>';
+  content.innerHTML='<h2>Приём препаратов</h2><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' <button type="button" data-take="'+escapeHtml(m.id)+'">Принято</button> <button type="button" data-cancel="'+escapeHtml(m.id)+'">Отменить случайное нажатие</button></li>').join('')+'</ul>';
  }else if(current==='dashboard'){
   content.innerHTML='<h2>Табло</h2><p>Препаратов: '+meds.length+'; записей приёма: '+logs.length+'</p><ul>'+meds.map(m=>'<li>'+escapeHtml(m.name)+' '+escapeHtml(m.time)+'</li>').join('')+'</ul>';
  }else{
@@ -56,11 +56,7 @@ content.addEventListener('submit',e=>{
  void mutate(state=>window.MedControlOfflineCourseEngine.create(state,name,time,new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Yerevan'})));
 });
 content.addEventListener('click',e=>{
- const id=e.target.dataset.take;
+ const id=e.target.dataset.take||e.target.dataset.cancel;
  if(!id)return;
- void mutate(state=>{
-  const med=state.medications.find(m=>m.id===id);
-  if(!med)throw Error('Medication not found');
-  window.MedControlOfflineCourseEngine.record(state,id,'taken',new Date().toISOString());
- });
+ void mutate(state=>window.MedControlOfflineCourseEngine.record(state,id,e.target.dataset.cancel?'cancelled':'taken',new Date().toISOString()));
 });
