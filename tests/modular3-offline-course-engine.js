@@ -11,7 +11,7 @@ function record(state,id,action,actualAt){
  if(!med)throw Error('Unknown medication');
  if(action!=='taken'&&action!=='cancelled')throw Error('Invalid action');
  const date=med.explicitDates[0];
- if(!isMedicationApplicableOnDate(med,date))throw Error('Schedule not applicable');
+ if(!isMedicationApplicableOnDate({...med,active:true},date))throw Error('Schedule not applicable');
  const plannedAt=getScheduledDateTime(date,med.times[0]);
  const old=[...state.intakeLogs].reverse().find(l=>l.medicationId===id&&l.plannedAt===plannedAt);
  if(action==='cancelled'&&old?.action!=='taken')throw Error('Only taken intake can be cancelled');
