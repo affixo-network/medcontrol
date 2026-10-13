@@ -36,7 +36,8 @@ function reconcile(state,nowISO=new Date().toISOString()){
   const events=state.intakeLogs.filter(l=>l.medicationId===med.id&&l.plannedAt===plannedAt);
   const latest=events[events.length-1];
   const finalDayEnd=new Date(getScheduledDateTime(lastDate,'23:59')).getTime()+59000;
-  const completed=latest?.action==='taken'||now>=finalDayEnd;
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Yerevan',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const completed=(lastDate<=today&&latest?.action==='taken')||now>=finalDayEnd;
   if(completed&&!med.courseCompleted){
    med.courseCompleted=true;med.active=false;
    med.courseCompletedAt=latest?.action==='taken'?latest.actualAt:new Date(finalDayEnd).toISOString();
