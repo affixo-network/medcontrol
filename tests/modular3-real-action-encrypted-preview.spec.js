@@ -23,6 +23,7 @@ test('real intake handlers checkpoint encrypted data before confirming and prese
   const duplicate=await markTaken('med','2026-10-13T09:00:00.000Z');
   const cancelled=await applyCorrection('med','2026-10-13T09:00:00.000Z');
   const state=getState(),vault=MedControlModular3RealModuleBridge.read();
+  MedControlModular3WriteThroughPreview.stop();
   return {taken,duplicate,cancelled,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
  });
  expect(result).toEqual({taken:true,duplicate:false,cancelled:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:1});
