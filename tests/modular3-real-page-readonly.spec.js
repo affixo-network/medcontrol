@@ -23,7 +23,7 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   if(name==='js/storage.js'||name.startsWith('js/storage.js?')){
    const storage=fs.readFileSync(path.join(root,'js/storage.js'),'utf8');
    const adapter=fs.readFileSync(path.join(root,'tests/modular3-real-page-readonly-adapter.js'),'utf8');
-   return route.fulfill({status:200,contentType:'application/javascript',body:adapter+'\nMedControlModular3RealPageReadOnly.start(window.__previewSynthetic);\n'+storage});
+   return route.fulfill({status:200,contentType:'application/javascript',body:adapter+'\nMedControlModular3RealPageReadOnly.start(window.__previewSynthetic,()=>window.__previewAuthorized!==false);\n'+storage});
   }
   if(name==='js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'/* preview cloud disabled */'});
   const file=path.resolve(root,name);
@@ -45,6 +45,11 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   expect(state.view,section+' synthetic data').toBeTruthy();
   expect(state.save,section+' plaintext write rejected').toBe(false);
   expect(state.status.blockedWrites,section+' blocked writes').toBeGreaterThan(0);
+  const denied=await page.evaluate(()=>{
+   window.__previewAuthorized=false;
+   try{getState();return false;}catch(_){return true;}
+  });
+  expect(denied,section+' locked read rejected').toBe(true);
   const raw=await page.evaluate(()=>{
    MedControlModular3RealPageReadOnly.stop();
    return localStorage.getItem('affixo_medcontrol_standard_v3');
