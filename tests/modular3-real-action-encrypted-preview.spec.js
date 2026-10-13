@@ -36,10 +36,16 @@ test('real intake handlers checkpoint encrypted data before confirming and prese
   const deniedRead=(()=>{try{getState();return false;}catch(_){return true;}})();
   const allowed=await medcontrolOfflineProofAuth.unlock(pass);
   const restored=JSON.stringify(getState())===JSON.stringify(state);
+  const offlineCopy=JSON.stringify(state);
   const rawEncrypted=localStorage.getItem('medcontrol_modular3_test_encrypted_state_v1');
   const encryptedOnly=!!rawEncrypted&&!rawEncrypted.includes('Synthetic')&&!rawEncrypted.includes('actualAt')&&!rawEncrypted.includes('intakeCorrections');
   MedControlModular3WriteThroughPreview.stop();
-  return {taken,duplicate,cancelled,repeatedCancellation,invalidMedication,unauthorizedWrite,unchanged,lockedReadRejected,lockedWriteRejected,lockedCheckpointRejected,denied,deniedRead,allowed,restored,encryptedOnly,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
+  await MedControlModular3RealModuleBridge.close();
+  MedControlOfflineEncryptedBridge.lock();
+  const afterLockDenied=(()=>{try{MedControlOfflineEncryptedBridge.read();return false;}catch(_){return true;}})();
+  await MedControlOfflineEncryptedBridge.unlock(pass);
+  const afterRestartMatches=JSON.stringify(MedControlOfflineEncryptedBridge.read())===offlineCopy;
+  return {afterLockDenied,afterRestartMatches,taken,duplicate,cancelled,repeatedCancellation,invalidMedication,unauthorizedWrite,unchanged,lockedReadRejected,lockedWriteRejected,lockedCheckpointRejected,denied,deniedRead,allowed,restored,encryptedOnly,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
  });
- expect(result).toEqual({taken:true,duplicate:false,cancelled:true,repeatedCancellation:false,invalidMedication:false,unauthorizedWrite:false,unchanged:true,lockedReadRejected:true,lockedWriteRejected:true,lockedCheckpointRejected:true,denied:false,deniedRead:true,allowed:true,restored:true,encryptedOnly:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:5});
+ expect(result).toEqual({afterLockDenied:true,afterRestartMatches:true,taken:true,duplicate:false,cancelled:true,repeatedCancellation:false,invalidMedication:false,unauthorizedWrite:false,unchanged:true,lockedReadRejected:true,lockedWriteRejected:true,lockedCheckpointRejected:true,denied:false,deniedRead:true,allowed:true,restored:true,encryptedOnly:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:5});
 });
