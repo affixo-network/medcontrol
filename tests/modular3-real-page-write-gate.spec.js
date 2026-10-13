@@ -22,3 +22,25 @@ test('legacy write gate rejects plaintext save until encrypted checkpoint is ver
  });
  expect(result).toEqual({refused:true,previewLogs:1,raw:null,encrypted:true});
 });
+
+test('write gate refuses mismatched state and retains encrypted checkpoint after rejected plaintext save',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/tests/modular3-offline-access.html');
+ await page.addScriptTag({url:'/tests/modular3-real-page-write-gate.js'});
+ const result=await page.evaluate(async()=>{
+  const secret='Mismatch-Gate-Synthetic-2026';
+  const state={settings:{interfaceLanguage:'ru'},medications:[],intakeLogs:[]};
+  await medcontrolOfflineProofAuth.enroll(secret);
+  await MedControlOfflineEncryptedBridge.initialize(state,secret);
+  MedControlModular3RealModuleBridge.activate();
+  MedControlModular3WriteThroughPreview.start();
+  const next=structuredClone(state);
+  next.intakeLogs.push({id:'expected',action:'taken'});
+  await MedControlModular3WriteThroughPreview.checkpoint(next);
+  let mismatchRejected=false;
+  try{localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(state));}catch(e){mismatchRejected=true;}
+  localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(next));
+  MedControlModular3WriteThroughPreview.stop();
+  return {mismatchRejected,raw:localStorage.getItem('affixo_medcontrol_standard_v3'),logs:MedControlModular3RealModuleBridge.read().intakeLogs.length};
+ });
+ expect(result).toEqual({mismatchRejected:true,raw:null,logs:1});
+});
