@@ -41,6 +41,7 @@ root.MedControlModular3ActionPreview=Object.freeze({
    return commit(next=>{
     if(!next.intakeLogs.some(log=>log.id===base.id))throw Error('Original record missing');
     next.intakeCorrections=next.intakeCorrections||[];
+    if(next.intakeCorrections.some(x=>x.primaryLogId===base.id&&x.after?.action==='reset'))throw Error('Already cancelled');
     const ordinal=next.intakeCorrections.filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).length+1;
     next.intakeCorrections.push({id:uid(),medicationId,plannedAt,primaryLogId:base.id,ordinal,reason:'accident',correctedAt,before:{actualAt:base.actualAt,action:'taken',status:base.status},after:{actualAt:null,action:'reset',status:null}});
    },()=>{document.getElementById('correctionDialog')?.close();mount('action');});
