@@ -36,5 +36,5 @@ test('real intake handlers checkpoint encrypted data before confirming and prese
   MedControlModular3WriteThroughPreview.stop();
   return {taken,duplicate,cancelled,repeatedCancellation,invalidMedication,unauthorizedWrite,unchanged,lockedReadRejected,lockedWriteRejected,encryptedOnly,logs:state.intakeLogs.length,corrections:state.intakeCorrections.length,reason:state.intakeCorrections[0]?.reason,same:JSON.stringify(state)===JSON.stringify(vault),plaintext:localStorage.getItem('affixo_medcontrol_standard_v3'),mounts:window.__mounts,alerts:window.__alerts};
  });
- expect(result).toEqual({taken:true,duplicate:false,cancelled:true,repeatedCancellation:false,invalidMedication:false,unauthorizedWrite:false,unchanged:true,lockedReadRejected:true,lockedWriteRejected:true,encryptedOnly:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:4});
+ expect(result).toEqual({taken:true,duplicate:false,cancelled:true,repeatedCancellation:false,invalidMedication:false,unauthorizedWrite:false,unchanged:true,lockedReadRejected:true,lockedWriteRejected:true,encryptedOnly:true,logs:1,corrections:1,reason:'accident',same:true,plaintext:null,mounts:2,alerts:5});
 });
