@@ -37,7 +37,7 @@ form.addEventListener('submit',async e=>{
   const state=bridge.read();
   if(window.MedControlOfflineCourseEngine.reconcile(state)){bridge.write(state);await bridge.checkpoint();}
   form.hidden=true;nav.hidden=false;render();
- }catch(error){window.medcontrolOfflineProofAuth.lock();content.textContent='Access denied: '+error.message;}
+ }catch(error){window.medcontrolOfflineProofAuth.lock();try{bridge.lock();}catch(_){}nav.hidden=true;form.hidden=false;content.textContent='Access denied: '+error.message;}
 });
 nav.addEventListener('click',async e=>{
  if(e.target.id==='lock'){
