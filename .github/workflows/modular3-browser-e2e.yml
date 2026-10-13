@@ -4,6 +4,9 @@ on:
     branches: [modular-2.000]
     paths:
       - 'js/auth-guard.js'
+      - 'js/modular3-encrypted-vault.js'
+      - 'js/modular3-offline-credential.js'
+      - 'tests/modular3-production-crypto-primitives.spec.js'
       - 'js/modular3-static-cache-sw.js'
       - 'tests/modular3-production-static-cache.spec.js'
       - 'js/modular3-script-loader.js'
