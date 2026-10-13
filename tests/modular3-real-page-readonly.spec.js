@@ -38,7 +38,7 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   await page.goto('http://127.0.0.1:8765/'+section+'.html');
   await expect(page.locator('body')).toContainText('MedControl',{timeout:20000});
   const state=await page.evaluate(()=>({
-   view:getState().medications.some(m=>m.id==='synthetic-readonly'),
+   view:(()=>{try{return getState().medications.some(m=>m.id==='synthetic-readonly');}catch(e){return {error:e.message,cause:e.cause?.message,adapter:MedControlModular3RealPageReadOnly.status(),authorized:window.__previewAuthorized};}})(),
    save:saveState(getState(),{silent:true,skipCloudSnapshot:true}),
    status:MedControlModular3RealPageReadOnly.status()
   }));
