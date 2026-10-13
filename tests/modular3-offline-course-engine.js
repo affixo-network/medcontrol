@@ -13,11 +13,10 @@ function record(state,id,action,actualAt){
  const date=med.explicitDates[0];
  if(!isMedicationApplicableOnDate(med,date))throw Error('Schedule not applicable');
  const plannedAt=getScheduledDateTime(date,med.times[0]);
- const old=state.intakeLogs.find(l=>l.medicationId===id&&l.plannedAt===plannedAt);
+ const old=[...state.intakeLogs].reverse().find(l=>l.medicationId===id&&l.plannedAt===plannedAt);
  if(action==='cancelled'&&old?.action!=='taken')throw Error('Only taken intake can be cancelled');
  if(action==='taken'&&old?.action==='taken')throw Error('Already taken');
  const entry={id:crypto.randomUUID(),medicationId:id,name:med.name,plannedAt,actualAt,action,status:computeStatusForLog(plannedAt,actualAt,action)};
- state.intakeLogs=state.intakeLogs.filter(l=>!(l.medicationId===id&&l.plannedAt===plannedAt));
  state.intakeLogs.push(entry);
  return entry;
 }
