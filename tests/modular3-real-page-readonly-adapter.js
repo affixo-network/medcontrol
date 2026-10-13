@@ -10,7 +10,7 @@
  const originalSet=Storage.prototype.setItem;
  const originalRemove=Storage.prototype.removeItem;
  let active=false, snapshot=null, blockedWrites=0;
- let authorization=()=>true;
+ let authorization=()=>false;
  function start(decryptedState,accessCheck){
   if(active)throw Error('Preview already active');
   if(!decryptedState||!Array.isArray(decryptedState.medications)||!Array.isArray(decryptedState.intakeLogs))throw Error('Invalid decrypted preview');
@@ -30,6 +30,7 @@
  };
  Storage.prototype.setItem=function(key,value){
   if(active&&this===localStorage&&key===KEY){
+   if(!authorization())throw Error('Preview access locked');
    blockedWrites++;
    throw new DOMException('Encrypted preview is read-only; save requires a verified checkpoint','QuotaExceededError');
   }
@@ -42,6 +43,6 @@
  root.MedControlModular3RealPageReadOnly=Object.freeze({
   start,
   status:()=>({active,blockedWrites,sourceKey:KEY}),
-  stop:()=>{active=false;snapshot=null;authorization=()=>true;}
+  stop:()=>{active=false;snapshot=null;authorization=()=>false;}
  });
 })(window);
