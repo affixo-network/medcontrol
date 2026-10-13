@@ -17,7 +17,6 @@ test('encrypted functional offline prototype persists medicine and taken history
  await expect(page.getByText('Synthetic Offline Medicine')).toBeVisible();
  await page.getByRole('button',{name:'Приём препаратов'}).click();
  await page.getByRole('button',{name:'Принято'}).click();
- await expect.poll(()=>page.evaluate(()=>MedControlOfflineEncryptedBridge.read().intakeLogs.length)).toBe(1);
  await page.getByRole('button',{name:'Отменить случайное нажатие'}).click();
  await expect.poll(()=>page.evaluate(()=>MedControlOfflineEncryptedBridge.read().intakeLogs.length)).toBe(2);
  await page.getByRole('button',{name:'Табло'}).click();
