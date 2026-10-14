@@ -166,6 +166,24 @@
   try{
     const list=pageScripts();
     preloadPageScripts(list);
+    // Protected local account is independent of cloud authentication.
+    // Never load medical page scripts until the local password unlocks the vault.
+    if(localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null ||
+       localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null){
+      const loader=await ensureModular3Loader();
+      await loader.ensureScripts(protectedModules);
+      if(localStorage.getItem('medcontrol_modular3_local_credential_v1')===null ||
+         localStorage.getItem('medcontrol_modular3_protected_state_v1')===null)
+        throw new Error('Защищённые данные или локальный пароль отсутствуют. Автоматический переход к открытым данным запрещён.');
+      const password=window.prompt('MedControl: введите локальный пароль для доступа к защищённым данным.');
+      if(password===null){showStartupError('Доступ к медицинским данным закрыт. Для входа перезагрузите страницу.');return;}
+      const unlocked=await window.MedControlModular3ProtectedSession.unlock(password);
+      if(!unlocked){showStartupError('Неверный локальный пароль. Медицинские данные не открыты.');return;}
+      await startPage(list);
+      registerStaticOfflineCache();
+      prefetchOtherPageScripts(page);
+      return;
+    }
     const storedSession=readStoredSession();
     if(isStoredSessionFresh(storedSession)){
       window.medcontrolSupabaseUser=storedSession.user;
