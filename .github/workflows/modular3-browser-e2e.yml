@@ -120,6 +120,13 @@ jobs:
         run: |
           npm install --no-save --no-package-lock @playwright/test@1.58.2
           npx playwright install --with-deps chromium
+      - name: Verify protected preview test prerequisites
+        run: |
+          if [ -z "$VERCEL_OIDC_TOKEN" ]; then
+            echo 'Protected Vercel Preview requires an authorized short-lived OIDC token.'
+            echo 'Remote migration tests cannot run against the Vercel login page.'
+            exit 1
+          fi
       - name: Test deployed preview with synthetic isolated browser storage
         env:
           MEDCONTROL_TEST_BASE_URL: https://medcontrol-82nwj45jl-vahans-projects-daac8e43.vercel.app
