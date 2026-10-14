@@ -1257,7 +1257,8 @@ window.startMedControlReset = function() {
 };
 
 function resetMedControlData() {
-  if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null) {
+  if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null ||
+      localStorage.getItem('medcontrol_modular3_local_credential_v1') !== null) {
     showMedicationHint('Сброс защищённых медицинских данных отключён. История сохранена.');
     return false;
   }
