@@ -1179,15 +1179,41 @@ window.backToMedicationConfirmation = function() {
   document.getElementById('medicationConfirmDialog')?.showModal();
 };
 
-window.confirmMedicationCreate = function() {
-  if (!pendingMedicationCreate) return;
-  const { state, item } = pendingMedicationCreate;
-  recordRowHistory(item, 'created', medicationRuleSummary(item));
-  state.medications.push(item);
-  if (!saveState(state)) return false;
-  pendingMedicationCreate = null;
-  document.getElementById('medicationSaveDialog')?.close();
-  mount('input');
+let medicationCreateSaving = false;
+window.confirmMedicationCreate = async function() {
+  if (!pendingMedicationCreate || medicationCreateSaving) return false;
+  const pending = pendingMedicationCreate;
+  const { state, item } = pending;
+  const boundary = window.MedControlModular3WriteBoundary;
+  const protectedActive = Boolean(boundary?.enabled());
+  medicationCreateSaving = true;
+  const dialog = document.getElementById('medicationSaveDialog');
+  const buttons = dialog ? [...dialog.querySelectorAll('button')] : [];
+  buttons.forEach(button => { button.disabled = true; });
+  try {
+    const course = structuredClone(item);
+    recordRowHistory(course, 'created', medicationRuleSummary(course));
+    if (protectedActive) {
+      await boundary.createInputCourse(course);
+    } else {
+      if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null ||
+          localStorage.getItem('medcontrol_modular3_local_credential_v1') !== null) {
+        throw new Error('Защищённое хранилище заблокировано. Войдите с локальным паролем.');
+      }
+      state.medications.push(course);
+      if (!saveState(state)) throw new Error('Не удалось сохранить препарат.');
+    }
+    pendingMedicationCreate = null;
+    dialog?.close();
+    mount('input');
+    return true;
+  } catch (error) {
+    showMedicationHint(error.message || 'Не удалось сохранить препарат.');
+    return false;
+  } finally {
+    medicationCreateSaving = false;
+    buttons.forEach(button => { button.disabled = false; });
+  }
 };
 window.startMedControlReset = function() {
   const state = getState();
