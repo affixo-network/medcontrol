@@ -1257,10 +1257,12 @@ window.startMedControlReset = function() {
 };
 
 function resetMedControlData() {
+  if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null) {
+    showMedicationHint('Сброс защищённых медицинских данных отключён. История сохранена.');
+    return false;
+  }
   const freshState = makeDefaultState();
-
   if (!saveState(freshState)) return false;
-
   mount('input');
   return true;
 }
