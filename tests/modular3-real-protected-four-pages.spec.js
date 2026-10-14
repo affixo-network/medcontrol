@@ -28,7 +28,7 @@ test('real protected four-page shell survives an offline restart without exposin
   p.on('dialog',dialog=>dialog.accept(PASS));
   await p.goto(BASE+'/'+section+'.html');
   await expect(p.locator('#app')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
-  await expect.poll(()=>p.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.read?.()?.medications?.some(m=>m.id==='synthetic-four')))).toBe(true);
+  await expect.poll(()=>p.evaluate(()=>{try{return Boolean(window.MedControlModular3ProtectedSession?.read?.()?.medications?.some(m=>m.id==='synthetic-four'));}catch{return false;}}),{timeout:20000}).toBe(true);
   await p.close();
  }
  await context.setOffline(true);
