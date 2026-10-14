@@ -82,6 +82,7 @@ test('input confirmation awaits encryption, prevents double submit and preserves
   setPending({id:'synthetic-confirm-1',name:'Synthetic Confirm',times:['12:30'],rowHistory:[]});
   const pendingPresent=true;
   const first=confirmMedicationCreate();
+  await Promise.resolve();
   const second=await confirmMedicationCreate();
   const before={open:dialog.open,disabled:dialog.querySelector('button').disabled,calls,mounts,second};
   if(typeof finish!=='function')throw Error('Protected write was not invoked: '+JSON.stringify({calls,errors,pendingPresent,protectedEnabled:boundary.enabled(),dialogOpen:dialog.open}));
