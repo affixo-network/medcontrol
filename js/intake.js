@@ -58,13 +58,19 @@ window.openCorrection = function(medicationId, plannedAt) {
   }
   dialog.showModal();
 };
-window.applyCorrection = function(medicationId, plannedAt) {
+window.applyCorrection = async function(medicationId, plannedAt) {
   const action = document.getElementById('correction_action').value;
   const localValue = document.getElementById('correction_time').value;
   if (!localValue) return alert('Укажите время исправления.');
-  if (!addOrReplaceLog(medicationId, plannedAt, action, new Date(localValue).toISOString())) return false;
-  document.getElementById('correctionDialog').close();
-  mount('action');
+  try {
+    if (!await addOrReplaceLog(medicationId, plannedAt, action, new Date(localValue).toISOString())) return false;
+    document.getElementById('correctionDialog').close();
+    mount('action');
+    return true;
+  } catch (error) {
+    window.alert('Не удалось сохранить изменение приёма: ' + error.message);
+    return false;
+  }
 };
 window.showIntakeHistory = function(medicationId) {
   window.__historyMedicationId = medicationId;
