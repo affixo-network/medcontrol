@@ -113,6 +113,7 @@ test('interrupted migration after encrypted checkpoint keeps original and suppor
  expect(first.checkpointPresent).toBe(true);
  expect(first.credential).toBeNull();
  await page.reload();
+ await page.addScriptTag({url:ORIGIN+'/js/modular3-copy-migration.js'});
  const after=await page.evaluate(async({PASS,SOURCE,DEST,CREDENTIAL})=>{
   const source=localStorage.getItem(SOURCE);
   const encrypted=JSON.parse(localStorage.getItem(DEST));
