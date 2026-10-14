@@ -197,3 +197,28 @@ test('protected real page starts after local password without cloud session',asy
  expect(result.cloudClient).toBe(false);
  await context.close();
 });
+
+test('four real pages reopen same protected history after restart with cloud unavailable',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ await setup(page);
+ await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
+ await page.addInitScript(()=>{
+  window.prompt=()=> 'Synthetic-Only-Password-2026';
+  window.fetch=(original=>function(input,init){
+    const url=String(typeof input==='string'?input:input?.url||'');
+    if(url.includes('supabase.co'))return Promise.reject(Error('Synthetic offline cloud'));
+    return original.call(this,input,init);
+  })(window.fetch);
+ });
+ for(const section of ['input','action','dashboard','archive']){
+  await page.goto('http://127.0.0.1:8765/'+section+'.html');
+  await expect.poll(async()=>page.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
+  const state=await page.evaluate(()=>getState());
+  expect(state.medications.map(m=>m.id)).toContain('fake1');
+  expect(state.intakeLogs.map(log=>log.id)).toContain('event1');
+  expect(state.intakeCorrections.map(entry=>entry.id)).toContain('cancel1');
+  expect(state.archiveHistory.map(entry=>entry.id)).toContain('archive1');
+ }
+ await context.close();
+});
