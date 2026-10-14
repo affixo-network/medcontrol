@@ -159,3 +159,20 @@ test('real storage reads unlocked encrypted state and blocks plaintext saves',as
  expect(locked).toBe(true);
  await context.close();
 });
+
+test('missing encrypted vault with enrolled local password never falls back to plaintext',async({browser})=>{
+ const context=await browser.newContext();const page=await context.newPage();await setup(page);
+ await page.addScriptTag({url:'/js/storage.js'});
+ const result=await page.evaluate(async()=>{
+  await MedControlModular3ProtectedSession.lock();
+  localStorage.removeItem('medcontrol_modular3_protected_state_v1');
+  const key='affixo_medcontrol_standard_v3';
+  const before=localStorage.getItem(key);
+  let blocked=false;
+  try{getState();}catch(error){blocked=error.code==='protected_session_locked';}
+  const saved=saveState({settings:{},medications:[],intakeLogs:[]});
+  return {blocked,saved,plaintextUnchanged:localStorage.getItem(key)===before};
+ });
+ expect(result).toEqual({blocked:true,saved:false,plaintextUnchanged:true});
+ await context.close();
+});
