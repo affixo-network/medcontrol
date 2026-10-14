@@ -23,7 +23,7 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   if(name==='js/storage.js'||name.startsWith('js/storage.js?')){
    const storage=fs.readFileSync(path.join(root,'js/storage.js'),'utf8');
    const adapter=fs.readFileSync(path.join(root,'tests/modular3-real-page-readonly-adapter.js'),'utf8');
-   return route.fulfill({status:200,contentType:'application/javascript',body:adapter+'\nMedControlModular3RealPageReadOnly.start(window.__previewSynthetic,()=>window.__previewAuthorized!==false);\n'+storage});
+   return route.fulfill({status:200,contentType:'application/javascript',body:storage+'\n'+adapter+'\nMedControlModular3RealPageReadOnly.start(window.__previewSynthetic,()=>window.__previewAuthorized!==false);'});
   }
   if(name==='js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'/* preview cloud disabled */'});
   const file=path.resolve(root,name);
