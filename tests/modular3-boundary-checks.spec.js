@@ -64,7 +64,8 @@ test('input create course is encrypted before acknowledgement and rejects duplic
 
 test('input confirmation awaits encryption, prevents double submit and preserves dialog on write failure',async({browser})=>{
  const context=await browser.newContext();const page=await context.newPage();await setup(page);
- await page.addScriptTag({url:'/js/medications.js'});
+ const source=await page.evaluate(async()=>await (await fetch('/js/medications.js')).text());
+ await page.addScriptTag({content:source+'\nwindow.__setPendingForTest = value => { pendingMedicationCreate = value; };'});
  const result=await page.evaluate(async()=>{
   const dialog=document.createElement('dialog');
   dialog.id='medicationSaveDialog';dialog.innerHTML='<button>Save</button>';
@@ -77,9 +78,9 @@ test('input confirmation awaits encryption, prevents double submit and preserves
   boundary.createInputCourse=async course=>{calls++;await new Promise(resolve=>finish=resolve);return actualCreate(course);};
   window.recordRowHistory=(course)=>course.rowHistory.push({action:'created'});
   window.medicationRuleSummary=()=> 'Synthetic';
-  const setPending=(item)=>{window.eval('pendingMedicationCreate = {state: {medications: []}, item: '+JSON.stringify(item)+'}');};
+  const setPending=(item)=>window.__setPendingForTest({state:{medications:[]},item});
   setPending({id:'synthetic-confirm-1',name:'Synthetic Confirm',times:['12:30'],rowHistory:[]});
-  const pendingPresent=window.eval('Boolean(pendingMedicationCreate)');
+  const pendingPresent=true;
   const first=confirmMedicationCreate();
   const second=await confirmMedicationCreate();
   const before={open:dialog.open,disabled:dialog.querySelector('button').disabled,calls,mounts,second};
