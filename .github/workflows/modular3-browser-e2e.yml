@@ -6,6 +6,8 @@ on:
       - 'js/auth-guard.js'
       - 'js/modular3-encrypted-vault.js'
       - 'js/modular3-offline-credential.js'
+      - 'js/modular3-protected-session.js'
+      - 'js/modular3-protected-pages.js'
       - 'tests/modular3-production-crypto-primitives.spec.js'
       - 'js/modular3-static-cache-sw.js'
       - 'tests/modular3-production-static-cache.spec.js'
