@@ -1027,39 +1027,46 @@ window.openEditMedication = function(id) {
   syncEditScheduleFields();
 };
 
-window.saveMedicationEdit = function(id) {
+window.saveMedicationEdit = async function(id) {
+  if (medicationWritesPending.has(id)) return false;
+  medicationWritesPending.add(id);
   try {
-    const state = getState();
-    const med = state.medications.find(item => item.id === id);
-
-    if (!med) return;
-    if (med.cancelled) return;
-
-    const currentActive = Boolean(med.active);
-    const previousSnapshot = medicationHistorySnapshot(med);
-
-    const updatedMedication =
-      createMedicationFromForm('edit_');
-
-    updatedMedication.active = currentActive;
-
-    validateTemporalEditAuthorization(med, updatedMedication);
-    Object.assign(med, updatedMedication);
-    completeTemporalEdit(med, previousSnapshot, updatedMedication);
-
-    recordRowHistory(
-      med,
-      'edited',
-      medicationRuleSummary(med),
-      previousSnapshot
-    );
-
-    if (!saveState(state)) return false;
+    const updatedMedication = createMedicationFromForm('edit_');
+    const boundary = window.MedControlModular3WriteBoundary;
+    const change = med => {
+      if (med.cancelled) throw new Error('Отменённый препарат нельзя изменять.');
+      const currentActive = Boolean(med.active);
+      const previousSnapshot = medicationHistorySnapshot(med);
+      updatedMedication.active = currentActive;
+      validateTemporalEditAuthorization(med, updatedMedication);
+      Object.assign(med, updatedMedication);
+      completeTemporalEdit(med, previousSnapshot, updatedMedication);
+      recordRowHistory(med, 'edited', medicationRuleSummary(med), previousSnapshot);
+    };
+    if (boundary?.enabled()) {
+      await boundary.write('input', state => {
+        const med = state.medications?.find(item => item.id === id);
+        if (!med) throw new Error('Препарат не найден.');
+        change(med);
+      });
+    } else {
+      if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null)
+        throw new Error('Защищённое хранилище заблокировано.');
+      const state = getState();
+      const med = state.medications.find(item => item.id === id);
+      if (!med) return false;
+      change(med);
+      if (!saveState(state)) throw new Error('Не удалось сохранить изменение.');
+    }
     document.getElementById('editDialog').close();
     mount('input');
+    return true;
   } catch (error) {
-  showMedicationHint(error.message);
-}
+    showMedicationHint(error.message || 'Не удалось сохранить изменение.');
+    return false;
+  } finally {
+    medicationWritesPending.delete(id);
+  }
 };
 window.showRowHistory = function(id) {
   const med = getState().medications.find(item => item.id === id);
