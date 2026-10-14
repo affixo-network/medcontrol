@@ -13,6 +13,7 @@ on:
       - 'js/modular3-write-boundary.js'
       - 'js/cloud-snapshot.js'
       - 'tests/modular3-copy-migration.spec.js'
+      - 'tests/modular3-boundary-checks.spec.js'
       - 'tests/modular3-protected-workspace.spec.js'
       - 'modular3-protected.html'
       - 'tests/modular3-production-crypto-primitives.spec.js'
