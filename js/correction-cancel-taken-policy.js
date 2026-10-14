@@ -66,37 +66,47 @@
     }
   };
 
-  window.applyCorrection=function(medicationId,plannedAt){
+  window.applyCorrection=async function(medicationId,plannedAt){
     const reason=document.getElementById('correction_reason')?.value||'';
-    if(reason!=='accident'&&reason!=='error'){
-      alert('Выберите причину: «Случайность» или «Ошибка».');return;
+    if(reason!=='accident'){
+      alert('Для отмены «Принято» допустима только причина «Случайность».');
+      return false;
     }
-
-    const s=ensureState();
     const base=primary(medicationId,plannedAt);
-    if(!base) return;
-    const all=corrections(medicationId,plannedAt);
-    const ordinal=all.length+1;
+    if(!base)return false;
+    if(!window.confirm('Отменить случайное нажатие «Принято»? Исходное фактическое время сохранится в истории.'))return false;
+    const boundary=window.MedControlModular3WriteBoundary;
+    const protectedExists=localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null||
+      localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null;
     const correctedAt=nowISO();
-    const reasonLabel=reason==='accident'?'Случайность':'Ошибка';
-
-    if(!window.confirm(`Исправление №${ordinal}.\n\nПричина: ${reasonLabel}.\nДействие «Принято» будет отменено.\nФактическое онлайн-время исходной фиксации сохранится в истории.\n\nПодтвердить?`)) return;
-
-    s.intakeCorrections.push({
-      id:uid(),
-      medicationId,
-      plannedAt,
-      primaryLogId:base.id||null,
-      ordinal,
-      reason,
-      correctedAt,
-      before:{actualAt:base.actualAt,action:'taken',status:base.status},
-      after:{actualAt:null,action:'reset',status:null}
-    });
-
-    saveState(s);
-    document.getElementById('correctionDialog')?.close();
-    mount('action');
+    const append=state=>{
+      state.intakeCorrections=Array.isArray(state.intakeCorrections)?state.intakeCorrections:[];
+      const current=state.intakeLogs?.find(x=>x.id===base.id&&x.medicationId===medicationId&&x.plannedAt===plannedAt);
+      if(!current)throw new Error('Исходная запись не найдена.');
+      const ordinal=state.intakeCorrections.filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).length+1;
+      state.intakeCorrections.push({
+        id:uid(),medicationId,plannedAt,primaryLogId:base.id||null,ordinal,
+        reason:'accident',correctedAt,
+        before:{actualAt:base.actualAt,action:'taken',status:base.status},
+        after:{actualAt:null,action:'reset',status:null}
+      });
+    };
+    try{
+      if(protectedExists){
+        if(!boundary?.enabled())throw new Error('Защищённое хранилище заблокировано.');
+        await boundary.write('action',append);
+      }else{
+        const state=ensureState();
+        append(state);
+        if(!saveState(state))throw new Error('Не удалось сохранить отмену.');
+      }
+      document.getElementById('correctionDialog')?.close();
+      mount('action');
+      return true;
+    }catch(error){
+      alert('Отмена не сохранена: '+error.message);
+      return false;
+    }
   };
 
   window.intakeHistoryRows=function(medId,period){
