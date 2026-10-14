@@ -207,3 +207,23 @@ test('encrypted copy preserves every legacy field including schedule history and
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(result.original);
  await context.close();
 });
+
+test('protected workspace migration inspection button is read-only and reports synthetic history',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ await prepare(page);
+ const initial=await page.evaluate(({SOURCE,DEST,CREDENTIAL})=>({
+  source:localStorage.getItem(SOURCE),dest:localStorage.getItem(DEST),credential:localStorage.getItem(CREDENTIAL)
+ }),{SOURCE,DEST,CREDENTIAL});
+ await expect(page.locator('#inspect-migration')).toBeVisible();
+ await page.locator('#inspect-migration').click();
+ await expect(page.locator('#message')).toContainText('Препаратов: 3');
+ await expect(page.locator('#message')).toContainText('приёмов: 2');
+ await expect(page.locator('#message')).toContainText('отмен: 1');
+ await expect(page.locator('#message')).toContainText('Перенос не запускался');
+ const after=await page.evaluate(({SOURCE,DEST,CREDENTIAL})=>({
+  source:localStorage.getItem(SOURCE),dest:localStorage.getItem(DEST),credential:localStorage.getItem(CREDENTIAL)
+ }),{SOURCE,DEST,CREDENTIAL});
+ expect(after).toEqual(initial);
+ await context.close();
+});
