@@ -62,22 +62,39 @@ test('input create course is encrypted before acknowledgement and rejects duplic
  await context.close();
 });
 
-test('input confirmation awaits ciphertext, rejects repeat clicks and retains dialog on failed write',async({browser})=>{
+test('input confirmation awaits encryption, prevents double submit and preserves dialog on write failure',async({browser})=>{
  const context=await browser.newContext();const page=await context.newPage();await setup(page);
  await page.addScriptTag({url:'/js/medications.js'});
  const result=await page.evaluate(async()=>{
-  const dialog=document.createElement('dialog');dialog.id='medicationSaveDialog';dialog.innerHTML='<button>Save</button>';document.body.appendChild(dialog);dialog.showModal();
+  const dialog=document.createElement('dialog');
+  dialog.id='medicationSaveDialog';dialog.innerHTML='<button>Save</button>';
+  document.body.appendChild(dialog);dialog.showModal();
   let mounts=0;window.mount=()=>{mounts++;};
+  const errors=[];window.showMedicationHint=message=>errors.push(message);
   const boundary=window.MedControlModular3WriteBoundary;
   let calls=0,finish;
-  boundary.createInputCourse=()=>{calls++;return new Promise(resolve=>finish=resolve);};
-  window.createMedication=()=>{};
-  window.recordRowHistory=(course)=>{course.rowHistory.push({action:'created'});};
+  const actualCreate=boundary.createInputCourse;
+  boundary.createInputCourse=async course=>{calls++;await new Promise(resolve=>finish=resolve);return actualCreate(course);};
+  window.recordRowHistory=(course)=>course.rowHistory.push({action:'created'});
   window.medicationRuleSummary=()=> 'Synthetic';
-  window.showMedicationHint=()=>{};
-  window.__setPendingMedicationCreateForTest=undefined;
-  return {handler:typeof window.confirmMedicationCreate==='function'};
+  const setPending=(item)=>{window.eval('pendingMedicationCreate = {state: {medications: []}, item: '+JSON.stringify(item)+'}');};
+  setPending({id:'synthetic-confirm-1',name:'Synthetic Confirm',times:['12:30'],rowHistory:[]});
+  const first=confirmMedicationCreate();
+  const second=await confirmMedicationCreate();
+  const before={open:dialog.open,disabled:dialog.querySelector('button').disabled,calls,mounts,second};
+  finish();
+  const firstOk=await first;
+  const after={open:dialog.open,calls,mounts,firstOk,encrypted:localStorage.getItem('medcontrol_modular3_protected_state_v1').includes('synthetic-confirm-1')};
+  dialog.showModal();
+  boundary.createInputCourse=async()=>{calls++;throw Error('Synthetic disk failure');};
+  setPending({id:'synthetic-confirm-fail',name:'Synthetic Failure',times:['14:00'],rowHistory:[]});
+  const failed=await confirmMedicationCreate();
+  const failure={open:dialog.open,calls,mounts,failed,error:errors.some(e=>e.includes('Synthetic disk failure')),unsaved:!JSON.stringify(boundary.read('input')).includes('synthetic-confirm-fail')};
+  boundary.createInputCourse=actualCreate;
+  return {before,after,failure};
  });
- expect(result.handler).toBe(true);
+ expect(result.before).toEqual({open:true,disabled:true,calls:1,mounts:0,second:false});
+ expect(result.after).toEqual({open:false,calls:1,mounts:1,firstOk:true,encrypted:false});
+ expect(result.failure).toEqual({open:true,calls:2,mounts:1,failed:false,error:true,unsaved:true});
  await context.close();
 });
