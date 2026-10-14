@@ -130,10 +130,20 @@
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     mount(page);
   }
-  function registerStaticOfflineCache(){
-    if(typeof navigator==='undefined'||!('serviceWorker' in navigator)||!window.isSecureContext)return;
-    navigator.serviceWorker.register('/js/modular3-static-cache-sw.js',{scope:'/'})
-      .catch(error=>console.warn('Static offline cache unavailable.',error));
+  async function registerStaticOfflineCache(){
+    if(typeof navigator==='undefined'||!('serviceWorker' in navigator)||!window.isSecureContext)return false;
+    try{
+      const registration=await navigator.serviceWorker.register('/js/modular3-static-cache-sw.js',{scope:'/'});
+      const worker=registration.active||registration.waiting||registration.installing;
+      if(!worker)return false;
+      const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src)])];
+      const channel=new MessageChannel();
+      return await new Promise(resolve=>{
+        const timer=setTimeout(()=>resolve(false),30000);
+        channel.port1.onmessage=event=>{clearTimeout(timer);resolve(event.data?.ok===true);};
+        worker.postMessage({type:'MEDCONTROL_CACHE_SHELL',paths},[channel.port2]);
+      });
+    }catch(error){console.warn('Static offline cache unavailable.',error);return false;}
   }
   function readStoredSession(){
     try{
