@@ -46,3 +46,18 @@ test('four-section encrypted history survives reload and local password unlock',
  expect(state.audit).toEqual(['input','action','dashboard','archive']);
  await context.close();
 });
+
+test('input create course is encrypted before acknowledgement and rejects duplicate',async({browser})=>{
+ const context=await browser.newContext();const page=await context.newPage();await setup(page);
+ const result=await page.evaluate(async()=>{
+  const course={id:'new-synthetic-course',name:'Synthetic Input',times:['12:30']};
+  await MedControlModular3WriteBoundary.createInputCourse(course);
+  let duplicateRejected=false;
+  try{await MedControlModular3WriteBoundary.createInputCourse(course);}catch(_){duplicateRejected=true;}
+  return {duplicateRejected,encrypted:localStorage.getItem('medcontrol_modular3_protected_state_v1'),state:MedControlModular3WriteBoundary.read('input')};
+ });
+ expect(result.duplicateRejected).toBe(true);
+ expect(result.encrypted).not.toContain('new-synthetic-course');
+ expect(result.state.medications.map(m=>m.id)).toEqual(['fake1','new-synthetic-course']);
+ await context.close();
+});
