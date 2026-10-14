@@ -248,3 +248,38 @@ test('fully offline browser restart unlocks all four protected pages',async({bro
  }
  await context.close();
 });
+
+test('offline intake write survives page restart and remains encrypted',async({browser})=>{
+ const context=await browser.newContext({serviceWorkers:'allow'});
+ const page=await context.newPage();
+ await setup(page);
+ await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
+ await page.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
+ await page.goto('http://127.0.0.1:8765/action.html');
+ await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
+ await expect.poll(async()=>page.evaluate(async()=>{
+  const cache=await caches.open('medcontrol-static-modular3-v2');
+  return Boolean(await cache.match('/action.html'))&&Boolean(await cache.match('/js/modular3-write-boundary.js'));
+ })).toBe(true);
+ await context.setOffline(true);
+ const before=await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
+ const result=await page.evaluate(async()=>{
+  await MedControlModular3WriteBoundary.write('action',state=>{
+   state.intakeLogs.push({id:'offline-intake-verified',plannedAt:'2026-10-14T09:00:00Z',actualAt:'2026-10-14T09:15:00Z'});
+  });
+  const encrypted=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+  return {saved:MedControlModular3WriteBoundary.read('action').intakeLogs.some(x=>x.id==='offline-intake-verified'),plaintext:encrypted.includes('offline-intake-verified')};
+ });
+ expect(result).toEqual({saved:true,plaintext:false});
+ const after=await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
+ expect(after).not.toBe(before);
+ await page.close();
+ const reopened=await context.newPage();
+ await reopened.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
+ await reopened.goto('http://127.0.0.1:8765/archive.html');
+ await expect.poll(async()=>reopened.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
+ const history=await reopened.evaluate(()=>getState().intakeLogs.map(x=>x.id));
+ expect(history).toContain('event1');
+ expect(history).toContain('offline-intake-verified');
+ await context.close();
+});
