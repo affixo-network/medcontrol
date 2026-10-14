@@ -140,3 +140,22 @@ test('real intake handler acknowledges only encrypted persistence and rejects fa
  expect(result.plaintext).toBe(false);
  await context.close();
 });
+
+test('real storage reads unlocked encrypted state and blocks plaintext saves',async({browser})=>{
+ const context=await browser.newContext();const page=await context.newPage();await setup(page);
+ await page.addScriptTag({url:'/js/storage.js'});
+ const result=await page.evaluate(()=>{
+  const key='affixo_medcontrol_standard_v3';
+  const before=localStorage.getItem(key);
+  const state=getState();
+  const saved=saveState({...state,medications:[]});
+  return {name:state.medications[0].name,logCount:state.intakeLogs.length,saved,plaintextUnchanged:localStorage.getItem(key)===before};
+ });
+ expect(result).toEqual({name:'SYNTHETIC',logCount:1,saved:false,plaintextUnchanged:true});
+ await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
+ const locked=await page.evaluate(()=>{
+  try{getState();return false;}catch(error){return error.code==='protected_session_locked';}
+ });
+ expect(locked).toBe(true);
+ await context.close();
+});
