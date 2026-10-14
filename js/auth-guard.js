@@ -135,7 +135,10 @@
     try{
       const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
       // Wait for installation and activation before requesting a complete offline shell.
-      const ready=await navigator.serviceWorker.ready;
+      const ready=await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error('Offline worker activation timed out')),15000))
+      ]);
       const worker=ready.active;
       if(!worker)return false;
       const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src)])];
