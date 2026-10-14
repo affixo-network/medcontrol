@@ -74,8 +74,8 @@ test('input confirmation awaits encryption, prevents double submit and preserves
   const errors=[];window.showMedicationHint=message=>errors.push(message);
   const boundary=window.MedControlModular3WriteBoundary;
   let calls=0,finish;
-  const actualCreate=boundary.createInputCourse;
-  boundary.createInputCourse=async course=>{calls++;await new Promise(resolve=>finish=resolve);return actualCreate(course);};
+  const actualCreate=boundary.createInputCourse.bind(boundary);
+  window.MedControlModular3WriteBoundary={enabled:()=>true,createInputCourse:async course=>{calls++;await new Promise(resolve=>finish=resolve);return actualCreate(course);},read:boundary.read.bind(boundary)};
   window.recordRowHistory=(course)=>course.rowHistory.push({action:'created'});
   window.medicationRuleSummary=()=> 'Synthetic';
   const setPending=(item)=>window.__setPendingForTest({state:{medications:[]},item});
@@ -90,11 +90,11 @@ test('input confirmation awaits encryption, prevents double submit and preserves
   const firstOk=await first;
   const after={open:dialog.open,calls,mounts,firstOk,encrypted:localStorage.getItem('medcontrol_modular3_protected_state_v1').includes('synthetic-confirm-1')};
   dialog.showModal();
-  boundary.createInputCourse=async()=>{calls++;throw Error('Synthetic disk failure');};
+  window.MedControlModular3WriteBoundary={enabled:()=>true,createInputCourse:async()=>{calls++;throw Error('Synthetic disk failure');},read:boundary.read.bind(boundary)};
   setPending({id:'synthetic-confirm-fail',name:'Synthetic Failure',times:['14:00'],rowHistory:[]});
   const failed=await confirmMedicationCreate();
   const failure={open:dialog.open,calls,mounts,failed,error:errors.some(e=>e.includes('Synthetic disk failure')),unsaved:!JSON.stringify(boundary.read('input')).includes('synthetic-confirm-fail')};
-  boundary.createInputCourse=actualCreate;
+  window.MedControlModular3WriteBoundary=boundary;
   return {before,after,failure};
  });
  expect(result.before).toEqual({open:true,disabled:true,calls:1,mounts:0,second:false});
