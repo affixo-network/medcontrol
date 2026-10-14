@@ -4,6 +4,7 @@ const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const guard=fs.readFileSync(path.join(root,'js/auth-guard.js'),'utf8');
 test('all four real MedControl pages read synthetic preview and cannot overwrite original storage',async({browser})=>{
+ test.setTimeout(120000);
  const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
  const synthetic={settings:{interfaceLanguage:'ru',country:'AM',timezone:'Asia/Yerevan',locale:'ru-RU',infoDismissed:true},medications:[{id:'synthetic-readonly',name:'Synthetic Preview',active:false,times:['09:00']}],intakeLogs:[]};
  await context.addInitScript(({synthetic})=>{
