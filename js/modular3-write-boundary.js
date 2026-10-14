@@ -25,6 +25,14 @@
   queue=operation.catch(()=>{});
   return operation;
  }
- const api=Object.freeze({pages:PAGES,enabled:protectedMode,read,write,storageKey:KEY});
+ async function createInputCourse(course){
+  if(!course||!course.id||!Array.isArray(course.times)||!course.times.length)throw Error('Invalid course');
+  return write('input',state=>{
+   if(!Array.isArray(state.medications))throw Error('Invalid protected medications');
+   if(state.medications.some(m=>m.id===course.id))throw Error('Duplicate course');
+   state.medications.push(structuredClone(course));
+  });
+ }
+ const api=Object.freeze({pages:PAGES,enabled:protectedMode,read,write,createInputCourse,storageKey:KEY});
  root.MedControlModular3WriteBoundary=api;
 })(typeof window!=='undefined'?window:globalThis);
