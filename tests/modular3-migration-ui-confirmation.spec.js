@@ -1,6 +1,6 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
-const URL='http://127.0.0.1:8765/modular3-protected.html';
+const URL=(process.env.MEDCONTROL_TEST_BASE_URL||'http://127.0.0.1:8765').replace(/\/$/,'')+'/modular3-protected.html';
 const SOURCE='affixo_medcontrol_standard_v3';
 const DEST='medcontrol_modular3_protected_state_v1';
 const CRED='medcontrol_modular3_local_credential_v1';
