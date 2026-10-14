@@ -762,26 +762,43 @@ window.guardMedicationSequence = function(prefix, targetKey) {
   return true;
 };
 
+const medicationWritesPending = new Set();
+async function persistMedicationChange(id, change) {
+  if (medicationWritesPending.has(id)) return false;
+  medicationWritesPending.add(id);
+  try {
+    const boundary = window.MedControlModular3WriteBoundary;
+    if (boundary?.enabled()) {
+      await boundary.write('input', state => {
+        const med = state.medications?.find(item => item.id === id);
+        if (!med || med.cancelled) throw new Error('Препарат не найден или отменён.');
+        change(med, state);
+      });
+    } else {
+      if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null)
+        throw new Error('Защищённое хранилище заблокировано.');
+      const state = getState();
+      const med = state.medications.find(item => item.id === id);
+      if (!med || med.cancelled) return false;
+      change(med, state);
+      if (!saveState(state)) throw new Error('Не удалось сохранить изменение.');
+    }
+    mount('input');
+    return true;
+  } catch (error) {
+    showMedicationHint(error.message || 'Не удалось сохранить изменение.');
+    return false;
+  } finally {
+    medicationWritesPending.delete(id);
+  }
+}
 window.toggleMedicationMode = function(id) {
-  const state = getState();
-  const med = state.medications.find(item => item.id === id);
-
-  if (!med) return;
-  if (med.cancelled) return;
-
-  med.active = !Boolean(med.active);
-
-  recordRowHistory(
-    med,
-    'edited',
-    med.active
+  return persistMedicationChange(id, med => {
+    med.active = !Boolean(med.active);
+    recordRowHistory(med, 'edited', med.active
       ? 'Статус препарата изменён на «Активно».'
-      : 'Статус препарата изменён на «Пассивно».'
-  );
-
-  if (!saveState(state)) return false;
-  mount('input');
-  return true;
+      : 'Статус препарата изменён на «Пассивно».');
+  });
 };
 window.startMedicationCancellation = function(id) {
   const state = getState();
@@ -841,24 +858,11 @@ window.startMedicationCancellation = function(id) {
   window.cancelMedication(id);
 };
 window.cancelMedication = function(id) {
-  const state = getState();
-  const med = state.medications.find(item => item.id === id);
-
-  if (!med) return;
-  if (med.cancelled) return;
-
-  med.cancelled = true;
-  med.active = false;
-
-  recordRowHistory(
-    med,
-    'cancelled',
-    'Приём препарата отменён.'
-  );
-
-  if (!saveState(state)) return false;
-  mount('input');
-  return true;
+  return persistMedicationChange(id, med => {
+    med.cancelled = true;
+    med.active = false;
+    recordRowHistory(med, 'cancelled', 'Приём препарата отменён.');
+  });
 };
 window.openEditMedication = function(id) {
   window.__editingMedicationId = id;
