@@ -1,26 +1,51 @@
-function addOrReplaceLog(medicationId, plannedAt, action, actualAt) {
-  const state = getState();
-  state.intakeLogs = state.intakeLogs.filter(log => !(log.medicationId === medicationId && log.plannedAt === plannedAt));
-  state.intakeLogs.push({
-    id: uid(),
-    medicationId,
-    plannedAt,
-    actualAt,
-    action,
+const pendingProtectedIntakes = new Set();
+async function addOrReplaceLog(medicationId, plannedAt, action, actualAt) {
+  const boundary = window.MedControlModular3WriteBoundary;
+  const protectedActive = Boolean(boundary?.enabled());
+  const protectedExists = localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null ||
+    localStorage.getItem('medcontrol_modular3_local_credential_v1') !== null;
+  if (!protectedActive && protectedExists) throw new Error('Защищённое хранилище заблокировано. Войдите с локальным паролем.');
+  const log = {
+    id: uid(), medicationId, plannedAt, actualAt, action,
     status: computeStatusForLog(plannedAt, actualAt, action)
-  });
+  };
+  if (protectedActive) {
+    const key = medicationId + '|' + plannedAt;
+    if (pendingProtectedIntakes.has(key)) return false;
+    pendingProtectedIntakes.add(key);
+    try {
+      await boundary.write('action', state => {
+        if (!Array.isArray(state.intakeLogs) || !state.medications?.some(m => m.id === medicationId))
+          throw new Error('Не найден препарат или история приёмов.');
+        state.intakeLogs = state.intakeLogs.filter(existing =>
+          !(existing.medicationId === medicationId && existing.plannedAt === plannedAt));
+        state.intakeLogs.push(log);
+      });
+      return true;
+    } finally {
+      pendingProtectedIntakes.delete(key);
+    }
+  }
+  const state = getState();
+  state.intakeLogs = state.intakeLogs.filter(existing =>
+    !(existing.medicationId === medicationId && existing.plannedAt === plannedAt));
+  state.intakeLogs.push(log);
   return saveState(state);
 }
-window.markTaken = function(medicationId, plannedAt) {
-  if (!addOrReplaceLog(medicationId, plannedAt, 'taken', nowISO())) return false;
-  mount('action');
-  return true;
-};
-window.markCancelled = function(medicationId, plannedAt) {
-  if (!addOrReplaceLog(medicationId, plannedAt, 'cancelled', nowISO())) return false;
-  mount('action');
-  return true;
-};
+async function confirmIntake(medicationId, plannedAt, action) {
+  try {
+    const saved = await addOrReplaceLog(medicationId, plannedAt, action, nowISO());
+    if (!saved) return false;
+    mount('action');
+    return true;
+  } catch (error) {
+    if (typeof window.showMedicationHint === 'function') window.showMedicationHint(error.message);
+    else window.alert('Не удалось сохранить приём: ' + error.message);
+    return false;
+  }
+}
+window.markTaken = (medicationId, plannedAt) => confirmIntake(medicationId, plannedAt, 'taken');
+window.markCancelled = (medicationId, plannedAt) => confirmIntake(medicationId, plannedAt, 'cancelled');
 window.openCorrection = function(medicationId, plannedAt) {
   const existing = getLogForSchedule(medicationId, plannedAt);
   const dialog = document.getElementById('correctionDialog');
