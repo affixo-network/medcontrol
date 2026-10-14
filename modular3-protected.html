@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MedControl Protected</title><style>body{font:16px system-ui;max-width:840px;margin:2rem auto;padding:1rem}button,input{font:inherit;padding:.5rem;margin:.3rem}label{display:block;margin:.5rem 0}article{padding:1rem;border-bottom:1px solid #aaa}nav{display:flex;flex-wrap:wrap}#message{white-space:pre-wrap}</style></head>
+<body><h1>MedControl — защищённый режим</h1><p>Отдельное хранилище. Действующие записи не изменяются.</p>
+<div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock">Войти</button><button id="enroll">Создать хранилище</button></div>
+<div id="workspace" hidden><nav><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p>
+<script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-protected-workspace.js"></script></body></html>
