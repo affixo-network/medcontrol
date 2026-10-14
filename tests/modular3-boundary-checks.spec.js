@@ -176,3 +176,24 @@ test('missing encrypted vault with enrolled local password never falls back to p
  expect(result).toEqual({blocked:true,saved:false,plaintextUnchanged:true});
  await context.close();
 });
+
+test('protected real page starts after local password without cloud session',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ await setup(page);
+ await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
+ await page.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
+ await page.goto('http://127.0.0.1:8765/action.html');
+ await expect.poll(async()=>page.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
+ const result=await page.evaluate(()=>({
+  protectedCount:getState().medications.length,
+  historyCount:getState().intakeLogs.length,
+  cloudClient:Boolean(window.medcontrolSupabase),
+  protectedSession:MedControlModular3ProtectedSession.isUnlocked()
+ }));
+ expect(result.protectedSession).toBe(true);
+ expect(result.protectedCount).toBe(1);
+ expect(result.historyCount).toBe(1);
+ expect(result.cloudClient).toBe(false);
+ await context.close();
+});
