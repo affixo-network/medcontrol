@@ -11,6 +11,7 @@ on:
       - 'js/modular3-protected-workspace.js'
       - 'js/modular3-copy-migration.js'
       - 'js/modular3-write-boundary.js'
+      - 'js/medications.js'
       - 'js/cloud-snapshot.js'
       - 'tests/modular3-copy-migration.spec.js'
       - 'tests/modular3-boundary-checks.spec.js'
