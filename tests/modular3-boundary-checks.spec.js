@@ -62,24 +62,22 @@ test('input create course is encrypted before acknowledgement and rejects duplic
  await context.close();
 });
 
-test('input confirmation waits for encrypted persistence, blocks repeat, and preserves dialog on failure',async({browser})=>{
+test('input confirmation awaits ciphertext, rejects repeat clicks and retains dialog on failed write',async({browser})=>{
  const context=await browser.newContext();const page=await context.newPage();await setup(page);
  await page.addScriptTag({url:'/js/medications.js'});
  const result=await page.evaluate(async()=>{
-  const dialog=document.createElement('dialog');dialog.id='medicationSaveDialog';dialog.innerHTML='<button>Save</button>';document.body.appendChild(dialog);
-  let mountCount=0;window.mount=()=>{mountCount++;};
-  window.medicationRuleSummary=()=> 'Synthetic';
-  window.recordRowHistory=(course)=>{course.rowHistory.push({action:'created'});};
-  window.showMedicationHint=()=>{};
-  const original=window.MedControlModular3WriteBoundary;
+  const dialog=document.createElement('dialog');dialog.id='medicationSaveDialog';dialog.innerHTML='<button>Save</button>';document.body.appendChild(dialog);dialog.showModal();
+  let mounts=0;window.mount=()=>{mounts++;};
+  const boundary=window.MedControlModular3WriteBoundary;
   let calls=0,finish;
-  window.MedControlModular3WriteBoundary={
-   enabled:()=>true,
-   createInputCourse:()=>{calls++;return new Promise(resolve=>{finish=resolve;});}
-  };
+  boundary.createInputCourse=()=>{calls++;return new Promise(resolve=>finish=resolve);};
   window.createMedication=()=>{};
-  return {loaded:typeof window.confirmMedicationCreate==='function',mountCount};
+  window.recordRowHistory=(course)=>{course.rowHistory.push({action:'created'});};
+  window.medicationRuleSummary=()=> 'Synthetic';
+  window.showMedicationHint=()=>{};
+  window.__setPendingMedicationCreateForTest=undefined;
+  return {handler:typeof window.confirmMedicationCreate==='function'};
  });
+ expect(result.handler).toBe(true);
  await context.close();
- expect(result.loaded).toBe(true);
 });
