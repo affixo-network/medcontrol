@@ -15,6 +15,7 @@ on:
       - 'dashboard.html'
       - 'archive.html'
       - 'tests/modular3-browser.spec.js'
+      - 'tests/modular3-single-course-acceptance.spec.js'
       - 'tests/modular3-real-modules.spec.js'
       - 'tests/modular3-deep-logic.spec.js'
       - 'tests/modular3-ui-actions.spec.js'
