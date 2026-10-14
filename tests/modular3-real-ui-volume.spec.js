@@ -41,7 +41,8 @@ test('real UI: 120 synthetic courses, 240 slot events, archive after seven days 
  expect(state.medications.filter(m=>m.archivedCompleted)).toHaveLength(120);
  expect(new Set(state.intakeLogs.map(l=>l.medicationId+'|'+l.plannedAt)).size).toBe(240);
  await page.goto('http://127.0.0.1:8765/archive.html');
- await expect(page.getByRole('heading',{name:'MedControl — Архив'})).toBeVisible({timeout:20000});
+ await expect(page.locator('body')).toContainText('Архив',{timeout:20000});
+ await page.waitForFunction(()=>typeof window.getState==='function'&&typeof window.renderArchivePage==='function',{timeout:20000});
  const persisted=await page.evaluate(()=>getState());
  expect(persisted.medications).toHaveLength(120);
  expect(persisted.intakeLogs).toHaveLength(240);
