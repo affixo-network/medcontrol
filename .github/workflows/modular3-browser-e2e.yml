@@ -8,6 +8,8 @@ on:
       - 'js/modular3-offline-credential.js'
       - 'js/modular3-protected-session.js'
       - 'js/modular3-protected-pages.js'
+      - 'js/modular3-protected-workspace.js'
+      - 'modular3-protected.html'
       - 'tests/modular3-production-crypto-primitives.spec.js'
       - 'js/modular3-static-cache-sw.js'
       - 'tests/modular3-production-static-cache.spec.js'
