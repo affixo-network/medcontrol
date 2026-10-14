@@ -222,3 +222,29 @@ test('four real pages reopen same protected history after restart with cloud una
  }
  await context.close();
 });
+
+test('fully offline browser restart unlocks all four protected pages',async({browser})=>{
+ const context=await browser.newContext({serviceWorkers:'allow'});
+ const page=await context.newPage();
+ await setup(page);
+ await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
+ await page.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
+ await page.goto('http://127.0.0.1:8765/action.html');
+ await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
+ await expect.poll(async()=>page.evaluate(async()=>{
+  const cache=await caches.open('medcontrol-static-modular3-v2');
+  return Boolean(await cache.match('/archive.html'))&&Boolean(await cache.match('/js/archive-page.js'));
+ })).toBe(true);
+ await page.close();
+ await context.setOffline(true);
+ const reopened=await context.newPage();
+ await reopened.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
+ for(const section of ['input','action','dashboard','archive']){
+  await reopened.goto('http://127.0.0.1:8765/'+section+'.html');
+  await expect.poll(async()=>reopened.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
+  const state=await reopened.evaluate(()=>getState());
+  expect(state.medications.map(m=>m.id)).toContain('fake1');
+  expect(state.intakeLogs.map(log=>log.id)).toContain('event1');
+ }
+ await context.close();
+});
