@@ -134,7 +134,9 @@
     if(typeof navigator==='undefined'||!('serviceWorker' in navigator)||!window.isSecureContext)return false;
     try{
       const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
-      const worker=registration.active||registration.waiting||registration.installing;
+      // Wait for installation and activation before requesting a complete offline shell.
+      const ready=await navigator.serviceWorker.ready;
+      const worker=ready.active;
       if(!worker)return false;
       const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src)])];
       const channel=new MessageChannel();
