@@ -77,6 +77,13 @@
   let resetInProgress=false;
   async function manualCycleReset(){
     if(resetInProgress)return;
+    // Never export protected medical state into a plaintext cycle-reset backup.
+    const protectedExists=localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null||
+      localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null;
+    if(protectedExists){
+      window.alert('Защищённые медицинские данные нельзя сбросить через прежний механизм. История сохранена; операция остановлена.');
+      return;
+    }
     const {meds,current}=medicationState();
     if(!meds.length||current.length)return;
     if(!window.confirm('Начать заново?\n\nТекущий цикл уже находится в Архиве. После сброса рабочие данные этого цикла будут очищены. Резервная копия будет сохранена.'))return;
