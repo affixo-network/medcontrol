@@ -85,7 +85,7 @@ test('input confirmation awaits encryption, prevents double submit and preserves
   await Promise.resolve();
   const second=await confirmMedicationCreate();
   const before={open:dialog.open,disabled:dialog.querySelector('button').disabled,calls,mounts,second};
-  if(typeof finish!=='function')throw Error('Protected write was not invoked: '+JSON.stringify({calls,errors,pendingPresent,protectedEnabled:boundary.enabled(),dialogOpen:dialog.open}));
+  if(typeof finish!=='function')throw Error('Protected write was not invoked: '+JSON.stringify({calls,errors,pendingPresent,protectedEnabled:boundary.enabled(),dialogOpen:dialog.open,firstResult:await first}));
   finish();
   const firstOk=await first;
   const after={open:dialog.open,calls,mounts,firstOk,encrypted:localStorage.getItem('medcontrol_modular3_protected_state_v1').includes('synthetic-confirm-1')};
