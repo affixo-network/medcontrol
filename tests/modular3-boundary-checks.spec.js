@@ -102,3 +102,41 @@ test('input confirmation awaits encryption, prevents double submit and preserves
  expect(result.failure).toEqual({open:true,calls:2,mounts:1,failed:false,error:true,unsaved:true});
  await context.close();
 });
+
+test('real intake handler acknowledges only encrypted persistence and rejects failed writes',async({browser})=>{
+ const context=await browser.newContext();const page=await context.newPage();await setup(page);
+ const source=await page.evaluate(async()=>await (await fetch('/js/intake.js')).text());
+ await page.addScriptTag({content:source});
+ const result=await page.evaluate(async()=>{
+  window.uid=()=> 'synthetic-intake-new';
+  window.nowISO=()=> '2026-10-14T05:45:00.000Z';
+  window.computeStatusForLog=()=> 'taken_late';
+  let mounts=0;window.mount=()=>{mounts++;};
+  const original=window.MedControlModular3WriteBoundary;
+  let finish,calls=0;
+  window.MedControlModular3WriteBoundary={
+   enabled:()=>true,
+   write:async(page,mutator)=>{calls++;await new Promise(resolve=>finish=resolve);return original.write(page,mutator);}
+  };
+  const first=window.markTaken('fake1','2026-10-14T05:00:00.000Z');
+  await Promise.resolve();
+  const second=await window.markTaken('fake1','2026-10-14T05:00:00.000Z');
+  const before={second,calls,mounts};
+  if(typeof finish!=='function')throw Error('Encrypted write not started');
+  finish();
+  const accepted=await first;
+  const after={accepted,mounts,calls,logs:original.read('action').intakeLogs.filter(x=>x.id==='synthetic-intake-new').length};
+  const encrypted=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+  window.MedControlModular3WriteBoundary={enabled:()=>true,write:async()=>{throw Error('Synthetic disk fault');}};
+  window.alert=()=>{};
+  const rejected=await window.markCancelled('fake1','2026-10-14T09:00:00.000Z');
+  const failure={rejected,mounts,unchanged:encrypted===localStorage.getItem('medcontrol_modular3_protected_state_v1')};
+  window.MedControlModular3WriteBoundary=original;
+  return {before,after,failure,plaintext:encrypted.includes('synthetic-intake-new')};
+ });
+ expect(result.before).toEqual({second:false,calls:1,mounts:0});
+ expect(result.after).toEqual({accepted:true,mounts:1,calls:1,logs:1});
+ expect(result.failure).toEqual({rejected:false,mounts:1,unchanged:true});
+ expect(result.plaintext).toBe(false);
+ await context.close();
+});
