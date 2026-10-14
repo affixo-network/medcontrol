@@ -122,7 +122,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test deployed preview with synthetic isolated browser storage
         env:
-          MEDCONTROL_TEST_BASE_URL: https://medcontrol-84hfcj1r5-vahans-projects-daac8e43.vercel.app
+          MEDCONTROL_TEST_BASE_URL: https://medcontrol-82nwj45jl-vahans-projects-daac8e43.vercel.app
         run: npx playwright test tests/modular3-migration-ui-confirmation.spec.js --config=playwright.modular3.config.cjs --reporter=line
       - uses: actions/upload-artifact@v4
         if: failure()
