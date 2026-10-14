@@ -79,10 +79,11 @@ test('input confirmation awaits encryption, prevents double submit and preserves
   window.medicationRuleSummary=()=> 'Synthetic';
   const setPending=(item)=>{window.eval('pendingMedicationCreate = {state: {medications: []}, item: '+JSON.stringify(item)+'}');};
   setPending({id:'synthetic-confirm-1',name:'Synthetic Confirm',times:['12:30'],rowHistory:[]});
+  const pendingPresent=window.eval('Boolean(pendingMedicationCreate)');
   const first=confirmMedicationCreate();
   const second=await confirmMedicationCreate();
   const before={open:dialog.open,disabled:dialog.querySelector('button').disabled,calls,mounts,second};
-  if(typeof finish!=='function')throw Error('Protected write was not invoked: '+JSON.stringify({calls,errors}));
+  if(typeof finish!=='function')throw Error('Protected write was not invoked: '+JSON.stringify({calls,errors,pendingPresent,protectedEnabled:boundary.enabled(),dialogOpen:dialog.open}));
   finish();
   const firstOk=await first;
   const after={open:dialog.open,calls,mounts,firstOk,encrypted:localStorage.getItem('medcontrol_modular3_protected_state_v1').includes('synthetic-confirm-1')};
