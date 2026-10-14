@@ -133,7 +133,7 @@
   async function registerStaticOfflineCache(){
     if(typeof navigator==='undefined'||!('serviceWorker' in navigator)||!window.isSecureContext)return false;
     try{
-      const registration=await navigator.serviceWorker.register('/js/modular3-static-cache-sw.js',{scope:'/'});
+      const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
       const worker=registration.active||registration.waiting||registration.installing;
       if(!worker)return false;
       const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src)])];
