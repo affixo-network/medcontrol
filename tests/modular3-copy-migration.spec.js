@@ -125,5 +125,16 @@ test('interrupted migration after encrypted checkpoint keeps original and suppor
  expect(after.restored).toEqual(SAMPLE);
  expect(after.rejected).toBe(true);
  expect(after.credential).toBeNull();
+ const recovered=await page.evaluate(async({PASS,SOURCE,DEST,CREDENTIAL})=>{
+  const result=await MedControlModular3CopyMigration.resume(PASS);
+  return {result,source:localStorage.getItem(SOURCE),destination:localStorage.getItem(DEST),credential:localStorage.getItem(CREDENTIAL)};
+ },{PASS,SOURCE,DEST,CREDENTIAL});
+ expect(recovered.result).toMatchObject({recovered:true,sourcePreserved:true,medications:3,intakeLogs:2});
+ expect(recovered.source).toBe(first.original);
+ expect(recovered.destination).not.toBeNull();
+ expect(recovered.credential).not.toBeNull();
+ await page.reload();
+ expect(await page.evaluate(async(PASS)=>MedControlModular3ProtectedSession.unlock(PASS),PASS)).toBe(true);
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(SAMPLE);
  await context.close();
 });
