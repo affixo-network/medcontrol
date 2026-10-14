@@ -15,7 +15,8 @@ const SAMPLE={
  timeHistory:[{id:'ui-time',action:'changed',oldTime:'10:00',newTime:'14:00'}]
 };
 async function setup(browser,failWrites=false){
- const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow'});
+ const oidcToken=process.env.VERCEL_OIDC_TOKEN;
+ const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow',...(oidcToken?{extraHTTPHeaders:{'x-vercel-trusted-oidc-idp-token':oidcToken}}:{})});
  const page=await context.newPage();
  await page.addInitScript(({source,sample,dest,failWrites})=>{
    localStorage.setItem(source,JSON.stringify(sample));
@@ -28,6 +29,11 @@ async function setup(browser,failWrites=false){
    }
  },{source:SOURCE,sample:SAMPLE,dest:DEST,failWrites});
  await page.goto(URL);
+ if(await page.locator('#password').count()===0){
+  const title=await page.title();
+  if(/vercel/i.test(title))throw new Error('Preview is protected by Vercel Authentication; supply a trusted short-lived VERCEL_OIDC_TOKEN to CI without disabling protection.');
+  throw new Error('Protected migration page did not render its password field; title: '+title);
+ }
  await page.locator('#password').fill(PASS);
  return {context,page};
 }
