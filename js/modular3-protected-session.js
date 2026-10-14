@@ -15,8 +15,8 @@
    if(localStorage.getItem(DATA_KEY)||CREDENTIAL.isEnrolled())throw Error('Protected session already exists');
    if(localStorage.getItem('affixo_medcontrol_standard_v3')!==null)throw Error('Legacy data present: migration approval required');
    const sealed=await VAULT.seal(initial,password);
-   await CREDENTIAL.enroll(password);
    localStorage.setItem(DATA_KEY,JSON.stringify(sealed));
+   try{await CREDENTIAL.enroll(password);}catch(error){localStorage.removeItem(DATA_KEY);throw error;}
    secret=password;state=clone(initial);
    return true;
   },
