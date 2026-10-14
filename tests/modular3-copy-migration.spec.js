@@ -97,3 +97,33 @@ test('copy migration refuses existing destination and never overwrites legacy st
  expect(result.destination).toBe('PREEXISTING-DO-NOT-OVERWRITE');
  await context.close();
 });
+
+test('interrupted migration after encrypted checkpoint keeps original and supports safe recovery',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ await prepare(page);
+ const first=await page.evaluate(async({PASS,SOURCE,DEST,CREDENTIAL})=>{
+  const original=localStorage.getItem(SOURCE);
+  const native=MedControlModular3OfflineCredential.enroll;
+  // Simulate a process interruption after checkpoint but before credential enrollment.
+  const checkpoint=await MedControlModular3CopyMigration.preview(PASS);
+  localStorage.setItem(DEST,JSON.stringify(checkpoint.encrypted));
+  return {original,checkpointPresent:!!localStorage.getItem(DEST),credential:localStorage.getItem(CREDENTIAL)};
+ },{PASS,SOURCE,DEST,CREDENTIAL});
+ expect(first.checkpointPresent).toBe(true);
+ expect(first.credential).toBeNull();
+ await page.reload();
+ const after=await page.evaluate(async({PASS,SOURCE,DEST,CREDENTIAL})=>{
+  const source=localStorage.getItem(SOURCE);
+  const encrypted=JSON.parse(localStorage.getItem(DEST));
+  const restored=await MedControlModular3EncryptedVault.open(encrypted,PASS);
+  let rejected=false;
+  try{await MedControlModular3CopyMigration.commit(PASS);}catch(e){rejected=/already exists/i.test(e.message);}
+  return {source,restored,rejected,credential:localStorage.getItem(CREDENTIAL)};
+ },{PASS,SOURCE,DEST,CREDENTIAL});
+ expect(after.source).toBe(first.original);
+ expect(after.restored).toEqual(SAMPLE);
+ expect(after.rejected).toBe(true);
+ expect(after.credential).toBeNull();
+ await context.close();
+});
