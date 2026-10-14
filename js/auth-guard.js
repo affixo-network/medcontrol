@@ -192,7 +192,13 @@
       const unlocked=await window.MedControlModular3ProtectedSession.unlock(password);
       if(!unlocked){showStartupError('Неверный локальный пароль. Медицинские данные не открыты.');return;}
       await startPage(list);
-      registerStaticOfflineCache();
+      registerStaticOfflineCache().then(ok=>{
+        window.medcontrolOfflineShellReady=ok;
+        if(!ok)console.warn('MedControl: offline shell was not fully cached; offline restart is not yet verified.');
+      }).catch(error=>{
+        window.medcontrolOfflineShellReady=false;
+        console.warn('MedControl: offline shell preparation failed.',error);
+      });
       prefetchOtherPageScripts(page);
       return;
     }
