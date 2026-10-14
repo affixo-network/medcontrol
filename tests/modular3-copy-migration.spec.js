@@ -177,3 +177,33 @@ test('read-only inspection rejects malformed history and existing protected acco
  expect(result.destination).toBe('EXISTING-ENCRYPTED-DO-NOT-OVERWRITE');
  await context.close();
 });
+
+test('encrypted copy preserves every legacy field including schedule history and unknown metadata',async({browser})=>{
+ const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
+ const page=await context.newPage();
+ await prepare(page);
+ const result=await page.evaluate(async({SOURCE,DEST,PASS})=>{
+  const original=JSON.parse(localStorage.getItem(SOURCE));
+  original.timeHistory=[{id:'synthetic-time-1',action:'changed',oldTime:'09:00',newTime:'09:30'}];
+  original.archivedCourses=[{id:'synthetic-completed-1',courseCompleted:true}];
+  original.settings={timezone:'Asia/Yerevan',interfaceLanguage:'ru'};
+  original.unknownFutureField={nested:['preserve',0,false,null]};
+  localStorage.setItem(SOURCE,JSON.stringify(original));
+  const sourceBefore=localStorage.getItem(SOURCE);
+  const inspection=MedControlModular3CopyMigration.inspect();
+  const committed=await MedControlModular3CopyMigration.commit(PASS);
+  const encrypted=localStorage.getItem(DEST);
+  const restored=await MedControlModular3EncryptedVault.open(JSON.parse(encrypted),PASS);
+  return {inspection,committed,restored,original,sourceUnchanged:localStorage.getItem(SOURCE)===sourceBefore,encrypted};
+ },{SOURCE,DEST,PASS});
+ expect(result.inspection.counts).toMatchObject({medications:3,intakeLogs:2,intakeCorrections:1,archiveHistory:1,timeHistory:1,archivedCourses:1});
+ expect(result.restored).toEqual(result.original);
+ expect(result.sourceUnchanged).toBe(true);
+ expect(result.encrypted).not.toContain('synthetic-time-1');
+ expect(result.encrypted).not.toContain('preserve');
+ await context.setOffline(true);
+ const recovered=await page.evaluate(async(PASS)=>MedControlModular3ProtectedSession.unlock(PASS),PASS);
+ expect(recovered).toBe(true);
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(result.original);
+ await context.close();
+});
