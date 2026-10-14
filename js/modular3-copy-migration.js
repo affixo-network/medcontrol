@@ -20,6 +20,19 @@
   if(localStorage.getItem(SOURCE)!==original)throw Error('Source changed during migration');
   return Object.freeze({medications:parsed.medications.length,intakeLogs:parsed.intakeLogs.length,encrypted,source:original});
  }
+ async function resume(password){
+  const source=localStorage.getItem(SOURCE);
+  const destination=localStorage.getItem(DEST);
+  if(!source||!destination||localStorage.getItem(CREDENTIAL)!==null)throw Error('No recoverable migration checkpoint');
+  const original=JSON.parse(source);
+  if(!original||!Array.isArray(original.medications)||!Array.isArray(original.intakeLogs))throw Error('Invalid legacy data');
+  const restored=await VAULT.open(JSON.parse(destination),password);
+  if(!equal(restored,original))throw Error('Checkpoint does not match original');
+  if(localStorage.getItem(SOURCE)!==source||localStorage.getItem(DEST)!==destination||localStorage.getItem(CREDENTIAL)!==null)throw Error('Migration state changed');
+  await CRED.enroll(password);
+  if(localStorage.getItem(SOURCE)!==source||localStorage.getItem(DEST)!==destination)throw Error('Migration state changed after enrollment');
+  return Object.freeze({medications:restored.medications.length,intakeLogs:restored.intakeLogs.length,sourcePreserved:true,recovered:true});
+ }
  async function commit(password){
   const check=await preview(password);
   if(localStorage.getItem(DEST)!==null||localStorage.getItem(CREDENTIAL)!==null||localStorage.getItem(SOURCE)!==check.source)throw Error('Migration state changed');
@@ -39,5 +52,5 @@
    throw error;
   }
  }
- root.MedControlModular3CopyMigration=Object.freeze({preview,commit});
+ root.MedControlModular3CopyMigration=Object.freeze({preview,commit,resume});
 })(typeof window!=='undefined'?window:globalThis);
