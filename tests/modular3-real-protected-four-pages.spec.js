@@ -31,6 +31,12 @@ test('real protected four-page shell survives an offline restart without exposin
   await expect.poll(()=>p.evaluate(()=>{try{return Boolean(window.MedControlModular3ProtectedSession?.read?.()?.medications?.some(m=>m.id==='synthetic-four'));}catch{return false;}}),{timeout:20000}).toBe(true);
   await p.close();
  }
+ // Require a positive acknowledgement from the real service worker before going offline.
+ const readiness=await context.newPage();
+ readiness.on('dialog',dialog=>dialog.accept(PASS));
+ await readiness.goto(BASE+'/input.html');
+ await expect.poll(()=>readiness.evaluate(()=>window.medcontrolOfflineShellReady),{timeout:45000}).toBe(true);
+ await readiness.close();
  await context.setOffline(true);
  for(const section of ['input','action','dashboard','archive']){
   const p=await context.newPage();
