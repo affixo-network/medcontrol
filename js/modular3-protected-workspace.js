@@ -62,6 +62,23 @@
    notice('Проверка без изменений завершена. Препаратов: '+counts.medications+'; приёмов: '+counts.intakeLogs+'; отмен: '+(counts.intakeCorrections||0)+'; архивных событий: '+(counts.archiveHistory||0)+'. Перенос не запускался.');
   }catch(error){notice('Проверка не выполнена: '+error.message);}
  };
+ document.getElementById('commit-migration').onclick=async()=>{
+  const migration=window.MedControlModular3CopyMigration;
+  const inspection=migration.inspect();
+  if(!inspection.ready){notice('Перенос недоступен: '+inspection.reason+'. Данные не изменены.');return;}
+  if(!password.value){notice('Для переноса введите новый локальный пароль.');return;}
+  const counts=inspection.counts;
+  const confirmed=window.confirm('Создать зашифрованную копию '+counts.medications+' препаратов и '+counts.intakeLogs+' приёмов? Исходная история сохранится без изменений.');
+  if(!confirmed){notice('Перенос отменён. Исходные данные не изменены.');return;}
+  try{
+   const result=await migration.commit(password.value);
+   const unlocked=await session.unlock(password.value);
+   if(!unlocked)throw Error('Не удалось проверить локальный вход после переноса');
+   password.value='';
+   notice('Защищённая копия проверена и сохранена. Исходная история не изменена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
+   show();
+  }catch(error){notice('Перенос не завершён: '+error.message+'. Исходная история не удалялась.');}
+ };
  document.getElementById('unlock').onclick=async()=>{try{if(await session.unlock(password.value)){password.value='';notice('Автономный вход выполнен.');show();}else notice('Неверный пароль.');}catch(error){notice('Ошибка входа: '+error.message);}};
  document.getElementById('enroll').onclick=async()=>{try{await session.initialize({settings:{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},medications:[],intakeLogs:[]},password.value);password.value='';notice('Защищённое хранилище создано.');show();}catch(error){notice('Не удалось создать хранилище: '+error.message);}};
  document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{section=button.dataset.tab;render();});
