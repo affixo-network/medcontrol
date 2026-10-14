@@ -39,7 +39,7 @@
       <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Фактическое время определяется моментом нажатия «Принято» и не может быть изменено вручную.</p></div>
       <div><label>Расчётное время приёма</label><input type="text" value="${escapeHtml(formatDateTime(plannedAt))}" readonly></div>
       <div><label>Фактическое время «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
-      <div><label>Причина</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
+      <div><label>Причина</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option></select></div>
       <div id="correction_hint" class="full muted">Выберите причину.</div>
       <div class="full right"><button id="correction_apply" onclick="applyCorrection('${medicationId}','${plannedAt}')" disabled>Отменить «Принято»</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
     </div>`;
@@ -53,10 +53,6 @@
     if(!hint||!button)return;
     if(reason==='accident'){
       hint.textContent='Случайность: отметка «Принято» будет отменена. Исходная запись и фактическое онлайн-время останутся в истории.';
-      button.disabled=false;
-      button.textContent='Отменить «Принято»';
-    }else if(reason==='error'){
-      hint.textContent='Ошибка: отметка «Принято» будет отменена. Исходная запись и фактическое онлайн-время останутся в истории.';
       button.disabled=false;
       button.textContent='Отменить «Принято»';
     }else{
