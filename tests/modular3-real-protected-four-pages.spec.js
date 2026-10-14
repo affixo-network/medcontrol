@@ -37,11 +37,8 @@ test('real protected four-page shell survives an offline restart without exposin
   p.on('dialog',dialog=>dialog.accept(PASS));
   await p.goto(BASE+'/'+section+'.html');
   await expect(p.locator('#app')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
-  const result=await p.evaluate(({dest,source})=>({
-   state:window.MedControlModular3ProtectedSession?.read?.(),
-   cipher:localStorage.getItem(dest),
-   plaintext:localStorage.getItem(source)
-  }),{dest:DEST,source:SOURCE});
+  await expect.poll(async()=>p.evaluate(()=>{try{return !!window.MedControlModular3ProtectedSession.read().medications.find(m=>m.id==='synthetic-four');}catch(e){return false;}}),{timeout:20000}).toBe(true);
+  const result=await p.evaluate(({dest,source})=>({state:window.MedControlModular3ProtectedSession.read(),cipher:localStorage.getItem(dest),plaintext:localStorage.getItem(source)}),{dest:DEST,source:SOURCE});
   expect(result.state?.medications?.some(m=>m.id==='synthetic-four')).toBe(true);
   expect(result.cipher).not.toContain('Synthetic Four Sections');
   await p.close();
