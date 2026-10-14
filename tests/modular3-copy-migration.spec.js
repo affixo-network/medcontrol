@@ -139,3 +139,41 @@ test('interrupted migration after encrypted checkpoint keeps original and suppor
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(SAMPLE);
  await context.close();
 });
+
+test('read-only inspection reports legacy history and does not mutate storage',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ await prepare(page);
+ const outcome=await page.evaluate(({SOURCE,DEST,CREDENTIAL})=>{
+  const before=Object.entries(localStorage).sort((a,b)=>a[0].localeCompare(b[0]));
+  const inspected=MedControlModular3CopyMigration.inspect();
+  const after=Object.entries(localStorage).sort((a,b)=>a[0].localeCompare(b[0]));
+  return {inspected,unchanged:JSON.stringify(before)===JSON.stringify(after),sourcePresent:!!localStorage.getItem(SOURCE),destination:localStorage.getItem(DEST),credential:localStorage.getItem(CREDENTIAL)};
+ },{SOURCE,DEST,CREDENTIAL});
+ expect(outcome.inspected).toMatchObject({ready:true,reason:'ready',counts:{medications:3,intakeLogs:2,intakeCorrections:1,archiveHistory:1}});
+ expect(outcome.unchanged).toBe(true);
+ expect(outcome.sourcePresent).toBe(true);
+ expect(outcome.destination).toBeNull();
+ expect(outcome.credential).toBeNull();
+ await context.close();
+});
+test('read-only inspection rejects malformed history and existing protected account',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ await prepare(page);
+ const result=await page.evaluate(({SOURCE,DEST})=>{
+  localStorage.setItem(SOURCE,'{not-json');
+  const invalidJson=MedControlModular3CopyMigration.inspect();
+  localStorage.setItem(SOURCE,JSON.stringify({medications:[],intakeLogs:[],intakeCorrections:{unexpected:true}}));
+  const invalidHistory=MedControlModular3CopyMigration.inspect();
+  localStorage.setItem(SOURCE,JSON.stringify({medications:[],intakeLogs:[]}));
+  localStorage.setItem(DEST,'EXISTING-ENCRYPTED-DO-NOT-OVERWRITE');
+  const protectedExisting=MedControlModular3CopyMigration.inspect();
+  return {invalidJson,invalidHistory,protectedExisting,destination:localStorage.getItem(DEST)};
+ },{SOURCE,DEST});
+ expect(result.invalidJson).toMatchObject({ready:false,reason:'legacy_invalid_json'});
+ expect(result.invalidHistory).toMatchObject({ready:false,reason:'legacy_invalid_intakeCorrections'});
+ expect(result.protectedExisting).toMatchObject({ready:false,reason:'protected_account_exists',destinationPresent:true});
+ expect(result.destination).toBe('EXISTING-ENCRYPTED-DO-NOT-OVERWRITE');
+ await context.close();
+});
