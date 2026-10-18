@@ -84,6 +84,32 @@
     }catch(error){notice('Не удалось сохранить курс: '+error.message);}
    };screen.append(form);
   }
+  if(section==='dashboard'){
+   const now=new Date();
+   const date=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+   const today=[];
+   for(const med of state.medications||[]){
+    if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
+    if(med.scheduleType==='weekdays'&&!(med.weekdays||[]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]))continue;
+    if(med.scheduleType==='explicit_dates'&&!(med.explicitDates||[]).includes(date))continue;
+    for(const time of med.times||[]){
+     const plannedAt=new Date(date+'T'+time+':00').toISOString();
+     const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
+     const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
+     today.push({med,time,plannedAt,taken});
+    }
+   }
+   today.sort((a,b)=>a.plannedAt.localeCompare(b.plannedAt));
+   const summary=document.createElement('p');
+   summary.textContent='Сегодня: '+today.length+' приёмов; принято: '+today.filter(x=>x.taken).length+'; ожидается: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)>now).length+'; не принято: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)<=now).length;
+   screen.append(summary);
+   for(const item of today){
+    const line=document.createElement('p');
+    line.textContent=item.time+' — '+item.med.name+' — '+(item.taken?'Принято ('+new Date(item.taken.actualAt).toLocaleTimeString()+')':new Date(item.plannedAt)>now?'Ожидается':'Не принято');
+    screen.append(line);
+   }
+   return;
+  }
   for(const med of state.medications){
    const article=document.createElement('article');
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
