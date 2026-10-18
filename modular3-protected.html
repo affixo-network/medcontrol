@@ -16,17 +16,21 @@
    const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
    await navigator.serviceWorker.ready;
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-protected-pages.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
-   const worker=registration.active||registration.waiting||registration.installing;
-   if(!worker)throw Error('Service worker unavailable');
-   const channel=new MessageChannel();
-   const result=new Promise((resolve,reject)=>{
-    const timeout=setTimeout(()=>reject(Error('Offline cache timeout')),12000);
-    channel.port1.onmessage=e=>{clearTimeout(timeout);e.data?.ok?resolve():reject(Error(e.data?.error||'Offline cache failed'));};
-   });
-   worker.postMessage({type:'MEDCONTROL_CACHE_SHELL',paths},[channel.port2]);
-   await result;
    const cache=await caches.open('medcontrol-static-modular3-v3');
-   const cached=await Promise.all(paths.map(path=>cache.match(path)));
+   let cached=await Promise.all(paths.map(path=>cache.match(path)));
+   if(cached.some(item=>!item)){
+    if(!navigator.onLine)throw Error('Не все автономные файлы доступны в кэше');
+    const worker=registration.active||registration.waiting||registration.installing;
+    if(!worker)throw Error('Service worker unavailable');
+    const channel=new MessageChannel();
+    const result=new Promise((resolve,reject)=>{
+     const timeout=setTimeout(()=>reject(Error('Offline cache timeout')),12000);
+     channel.port1.onmessage=e=>{clearTimeout(timeout);e.data?.ok?resolve():reject(Error(e.data?.error||'Offline cache failed'));};
+    });
+    worker.postMessage({type:'MEDCONTROL_CACHE_SHELL',paths},[channel.port2]);
+    await result;
+    cached=await Promise.all(paths.map(path=>cache.match(path)));
+   }
    if(cached.some(item=>!item))throw Error('Offline files missing');
    if(!navigator.serviceWorker.controller){
     status.textContent='Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.';
