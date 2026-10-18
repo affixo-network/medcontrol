@@ -18,10 +18,15 @@
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
   if(section==='input'){
    const form=document.createElement('form');
-   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" title="Введите время в 24-часовом формате ЧЧ:ММ" required></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" title="Введите время в 24-часовом формате ЧЧ:ММ" required></label><button>Сохранить курс</button>';
+   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <select name="firstHour" aria-label="Часы первого приёма" required></select> : <select name="firstMinute" aria-label="Минуты первого приёма" required></select></label><label>Время 2 <select name="secondHour" aria-label="Часы второго приёма" required></select> : <select name="secondMinute" aria-label="Минуты второго приёма" required></select></label><button>Сохранить курс</button>';
+   for(const [name,max,placeholder] of [['firstHour',23,'ЧЧ'],['firstMinute',59,'ММ'],['secondHour',23,'ЧЧ'],['secondMinute',59,'ММ']]){
+    const select=form.elements.namedItem(name);
+    const empty=new Option(placeholder,'');empty.selected=true;empty.disabled=true;select.add(empty);
+    for(let value=0;value<=max;value++){const padded=String(value).padStart(2,'0');select.add(new Option(padded,padded));}
+   }
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
-    const first=data.get('first'),second=data.get('second');
+    const first=data.get('firstHour')+':'+data.get('firstMinute'),second=data.get('secondHour')+':'+data.get('secondMinute');
     if(first===second){notice('Расчётные времена должны различаться.');return;}
     try{
      await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),scheduleType:'daily',startDate:String(data.get('date')),endDate:String(data.get('date')),times:[first,second].sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
