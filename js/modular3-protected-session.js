@@ -7,7 +7,7 @@
  const VAULT=root.MedControlModular3EncryptedVault;
  if(!CREDENTIAL||!VAULT)throw Error('Modular-3 protected dependencies unavailable');
  const DATA_KEY='medcontrol_modular3_protected_state_v1';
- let secret=null,state=null,chain=Promise.resolve();
+ let secret=null,state=null,checkpoint=null,chain=Promise.resolve();
  const clone=x=>structuredClone(x);
  function requireOpen(){if(!secret||!state||!CREDENTIAL.isUnlocked())throw Error('Protected session locked');}
  const api={
@@ -21,17 +21,17 @@
    if(!saved)throw Error('Initial encrypted checkpoint missing');
    const restored=await VAULT.open(JSON.parse(saved),password);
    if(JSON.stringify(restored)!==JSON.stringify(initial))throw Error('Initial encrypted checkpoint mismatch');
-   secret=password;state=restored;
+   secret=password;state=restored;checkpoint=saved;
    return true;
   },
   async unlock(password){
-   secret=null;state=null;
+   secret=null;state=null;checkpoint=null;
    if(!await CREDENTIAL.unlock(password))return false;
    try{
     const raw=localStorage.getItem(DATA_KEY);
     if(!raw)throw Error('Encrypted data missing');
     const opened=await VAULT.open(JSON.parse(raw),password);
-    secret=password;state=opened;return true;
+    secret=password;state=opened;checkpoint=raw;return true;
    }catch(error){CREDENTIAL.lock();throw error;}
   },
   read(){requireOpen();return clone(state);},
@@ -39,13 +39,15 @@
    if(typeof mutator!=='function')return Promise.reject(Error('Mutation callback required'));
    const task=chain.then(async()=>{
     requireOpen();
+    if(localStorage.getItem(DATA_KEY)!==checkpoint){secret=null;state=null;checkpoint=null;CREDENTIAL.lock();throw Error('Encrypted data changed in another tab; unlock again');}
     const next=clone(state);
     await mutator(next);
     requireOpen();
+    if(localStorage.getItem(DATA_KEY)!==checkpoint){secret=null;state=null;checkpoint=null;CREDENTIAL.lock();throw Error('Encrypted data changed during edit; unlock again');}
     const sealed=await VAULT.seal(next,secret);
     const encoded=JSON.stringify(sealed);
     const previous=localStorage.getItem(DATA_KEY);
-    if(!previous)throw Error('Previous encrypted checkpoint missing');
+    if(!previous||previous!==checkpoint)throw Error('Encrypted checkpoint changed before write');
     try{
      localStorage.setItem(DATA_KEY,encoded);
      // Do not acknowledge a write until the stored ciphertext is decrypted and compared.
@@ -53,13 +55,13 @@
      if(stored!==encoded)throw Error('Encrypted checkpoint verification failed');
      const verified=await VAULT.open(JSON.parse(stored),secret);
      if(JSON.stringify(verified)!==JSON.stringify(next))throw Error('Encrypted checkpoint content mismatch');
-     state=verified;
+     state=verified;checkpoint=encoded;
      return clone(state);
     }catch(error){
      // Preserve the last verified encrypted snapshot when a new write fails.
      if(localStorage.getItem(DATA_KEY)!==previous){
       try{localStorage.setItem(DATA_KEY,previous);}catch(rollbackError){
-       secret=null;state=null;CREDENTIAL.lock();
+       secret=null;state=null;checkpoint=null;CREDENTIAL.lock();
        throw Error('Encrypted write and rollback failed; session locked: '+rollbackError.message);
       }
      }
@@ -69,7 +71,7 @@
    chain=task.catch(()=>{});
    return task;
   },
-  async lock(){await chain;secret=null;state=null;CREDENTIAL.lock();},
+  async lock(){await chain;secret=null;state=null;checkpoint=null;CREDENTIAL.lock();},
   isUnlocked(){return Boolean(secret&&state&&CREDENTIAL.isUnlocked());},
   storageKey:DATA_KEY
  };
