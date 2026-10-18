@@ -62,7 +62,12 @@
      const today=new Date();
      const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
      if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
-     if(med.scheduleType&&med.scheduleType!=='daily'&&date!==med.startDate)continue;
+     if(med.scheduleType==='weekdays'){
+      const weekday=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()];
+      if(!Array.isArray(med.weekdays)||!med.weekdays.includes(weekday))continue;
+     }else if(med.scheduleType==='explicit_dates'){
+      if(!Array.isArray(med.explicitDates)||!med.explicitDates.includes(date))continue;
+     }else if(med.scheduleType&&med.scheduleType!=='daily'&&date!==med.startDate)continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
      const log=state.intakeLogs.find(x=>x.medicationId===med.id&&x.plannedAt===plannedAt);
      const button=document.createElement('button');button.textContent=log?'Принято: '+new Date(log.actualAt).toLocaleString():'Принято '+time;button.disabled=!!log;
