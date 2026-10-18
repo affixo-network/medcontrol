@@ -5,15 +5,16 @@
 (function(root){
  'use strict';
  const session=root.MedControlModular3ProtectedSession;
- if(!session)throw Error('Protected session unavailable');
+ const boundary=root.MedControlModular3WriteBoundary;
+ if(!session||!boundary)throw Error('Protected write boundary unavailable');
  const PAGES=Object.freeze(['input','action','dashboard','archive']);
  const adapter={
   pages:PAGES,
   enabled(){return session.isUnlocked();},
-  read(page){if(!PAGES.includes(page))throw Error('Unknown page');return session.read();},
+  read(page){if(!PAGES.includes(page))throw Error('Unknown page');return boundary.read(page);},
   async change(page,mutator){
    if(!PAGES.includes(page))throw Error('Unknown page');
-   return session.transact(mutator);
+   return boundary.write(page,mutator);
   },
   async createCourse(course){
    return adapter.change('input',state=>{
