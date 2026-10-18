@@ -170,6 +170,11 @@
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
    const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+(med.startDate||'')+' — '+(med.endDate||med.startDate||'');article.append(summary);
    if(section==='input'){
+    if(!med.cancelled&&!med.archivedCompleted){
+     const toggle=document.createElement('button');toggle.type='button';toggle.textContent=med.active===false?'Активировать препарат':'Перевести в пассивный режим';
+     toggle.onclick=async()=>{toggle.disabled=true;try{await pages.changeCourse(med.id,course=>{if(course.cancelled||course.archivedCompleted)throw Error('Курс завершён');course.active=course.active===false;course.rowHistory=course.rowHistory||[];course.rowHistory.push({action:'edited',at:new Date().toISOString(),details:course.active?'Статус препарата изменён на «Активно».':'Статус препарата изменён на «Пассивно».'});});notice('Режим препарата зашифрован и сохранён.');render();}catch(error){toggle.disabled=false;notice('Не удалось изменить режим: '+error.message);}};
+     article.append(toggle);
+    }
     if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
      const edit=document.createElement('details');
      const caption=document.createElement('summary');caption.textContent='Изменить будущие времена приёма';edit.append(caption);
