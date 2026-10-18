@@ -18,7 +18,7 @@
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
   if(section==='input'){
    const form=document.createElement('form');
-   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';
+   form.innerHTML='<label>Название <input name="name" required></label><label>Производитель <input name="manufacturer"></label><label>Количественное содержание <input name="contentQuantity" type="number" min="0" step="any"></label><label>Единица содержания <input name="contentUnit"></label><label>Количество приёма <input name="intakeQuantity" type="number" min="0" step="any"></label><label>Единица приёма <input name="intakeUnit"></label><label>Детали <input name="details"></label><label>Дата начала <input name="date" type="date" required></label><label>Дата окончания <input name="endDate" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';
    for(const name of ['first','second']){
     const field=form.elements.namedItem(name);
     field.addEventListener('input',()=>{
@@ -46,9 +46,9 @@
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
     const first=String(data.get('first')),second=String(data.get('second'));
-    if(first===second){notice('Расчётные времена должны различаться.');return;}
+    if(first===second){notice('Расчётные времена должны различаться.');return;}if(String(data.get('endDate'))<String(data.get('date'))){notice('Дата окончания раньше даты начала.');return;}
     try{
-     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),scheduleType:'daily',startDate:String(data.get('date')),endDate:String(data.get('date')),times:[first,second].sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
+     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentQuantity:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),details:String(data.get('details')||''),scheduleType:'daily',startDate:String(data.get('date')),endDate:String(data.get('endDate')),times:[first,second].sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
      notice('Курс зашифрован и сохранён.');render();
     }catch(error){notice('Не удалось сохранить курс: '+error.message);}
    };screen.append(form);
