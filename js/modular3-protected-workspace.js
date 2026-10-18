@@ -163,6 +163,8 @@
    return;
   }
   for(const med of state.medications){
+   if(section==='archive'&&!(med.cancelled||med.archivedCompleted||med.active===false))continue;
+   if(section==='action'&&(med.cancelled||med.archivedCompleted||med.active===false))continue;
    const article=document.createElement('article');
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
    const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+(med.startDate||'')+' — '+(med.endDate||med.startDate||'');article.append(summary);
