@@ -19,6 +19,20 @@
   if(section==='input'){
    const form=document.createElement('form');
    form.innerHTML='<label>Название <input name="name" required></label><label>Производитель <input name="manufacturer"></label><label>Количественное содержание <input name="contentQuantity" type="number" min="0" step="any"></label><label>Единица содержания <input name="contentUnit"></label><label>Количество приёма <input name="intakeQuantity" type="number" min="0" step="any"></label><label>Единица приёма <input name="intakeUnit"></label><label>Детали <input name="details"></label><label>Дата начала <input name="date" type="date" required></label><label>Дата окончания <input name="endDate" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ (необязательно)"> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';
+   const schedule=document.createElement('fieldset');
+   schedule.innerHTML='<legend>Повторение курса</legend><label>Расписание <select name="scheduleType"><option value="daily">Каждый день</option><option value="weekdays">Дни недели</option><option value="explicit_dates">Конкретные даты</option></select></label><div data-schedule-weekdays hidden>Дни недели: </div><label data-schedule-dates hidden>Даты через запятую <input name="explicitDates" placeholder="2026-10-18, 2026-10-20"></label>';
+   const weekdaysBox=schedule.querySelector('[data-schedule-weekdays]');
+   for(const day of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']){
+    const label=document.createElement('label');
+    const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.name='weekday';checkbox.value=day;
+    label.append(checkbox,document.createTextNode(day+' '));weekdaysBox.append(label);
+   }
+   const scheduleSelect=schedule.querySelector('[name="scheduleType"]');
+   scheduleSelect.onchange=()=>{
+    weekdaysBox.hidden=scheduleSelect.value!=='weekdays';
+    schedule.querySelector('[data-schedule-dates]').hidden=scheduleSelect.value!=='explicit_dates';
+   };
+   form.querySelector('button:not([type])').before(schedule);
    for(const name of ['first','second']){
     const field=form.elements.namedItem(name);
     field.addEventListener('input',()=>{
@@ -47,8 +61,13 @@
     event.preventDefault();const data=new FormData(form);
     const first=String(data.get('first')),second=String(data.get('second'));
     if(second&&first===second){notice('Расчётные времена должны различаться.');return;}if(String(data.get('endDate'))<String(data.get('date'))){notice('Дата окончания раньше даты начала.');return;}
+    const scheduleType=String(data.get('scheduleType')||'daily');
+    const weekdays=data.getAll('weekday').map(String);
+    const explicitDates=String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort();
+    if(scheduleType==='weekdays'&&!weekdays.length){notice('Выберите дни недели.');return;}
+    if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!/^\\d{4}-\\d{2}-\\d{2}$/.test(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
     try{
-     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentQuantity:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),details:String(data.get('details')||''),scheduleType:'daily',startDate:String(data.get('date')),endDate:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
+     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentQuantity:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
      notice('Курс зашифрован и сохранён.');render();
     }catch(error){notice('Не удалось сохранить курс: '+error.message);}
    };screen.append(form);
