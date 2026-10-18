@@ -116,7 +116,7 @@
     if(scheduleType==='weekdays'&&!weekdays.length){notice('Выберите дни недели.');return;}
     if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
     try{
-     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentQuantity:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
+     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentValue:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
      notice('Курс зашифрован и сохранён.');render();
     }catch(error){notice('Не удалось сохранить курс: '+error.message);}
    };screen.append(form);
@@ -200,13 +200,13 @@
      const editInfo=document.createElement('details');
      const title=document.createElement('summary');title.textContent='Изменить сведения о препарате';editInfo.append(title);
      const form=document.createElement('form');
-     const keys=['name','manufacturer','contentQuantity','contentUnit','intakeQuantity','intakeUnit','details'];
+     const keys=['name','manufacturer','contentValue','contentUnit','intakeQuantity','intakeUnit','details'];
      const captions=['Название','Производитель','Количественное содержание','Единица содержания','Количество приёма','Единица приёма','Детали'];
      keys.forEach((key,index)=>{
       const label=document.createElement('label');label.textContent=captions[index];
-      const input=document.createElement('input');input.name=key;input.value=String(med[key]??'');
+      const input=document.createElement('input');input.name=key;input.value=String(key==='contentValue'?(med.contentValue??med.contentQuantity??''):(med[key]??''));
       if(key==='name')input.required=true;
-      if(key==='contentQuantity'||key==='intakeQuantity'){input.type='number';input.min='0';input.step='any';}
+      if(key==='contentValue'||key==='intakeQuantity'){input.type='number';input.min='0';input.step='any';}
       label.append(input);form.append(label);
      });
      const save=document.createElement('button');save.textContent='Сохранить сведения';form.append(save);
