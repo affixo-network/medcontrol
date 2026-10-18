@@ -16,6 +16,18 @@
   const state=pages.read(section);
   screen.replaceChildren();
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
+  if(section==='archive'){
+   const controls=document.createElement('div');
+   const filter=document.createElement('select');
+   filter.setAttribute('aria-label','Период истории');
+   for(const [value,label] of [['today','Сегодня'],['7','7 дней'],['30','30 дней'],['all','Весь период']]){
+    filter.add(new Option(label,value));
+   }
+   filter.value=window.__medcontrolProtectedArchivePeriod||'7';
+   filter.onchange=()=>{window.__medcontrolProtectedArchivePeriod=filter.value;render();};
+   controls.append(document.createTextNode('Период: '),filter);
+   screen.append(controls);
+  }
   if(section==='input'){
    const form=document.createElement('form');
    form.innerHTML='<label>Название <input name="name" required></label><label>Производитель <input name="manufacturer"></label><label>Количественное содержание <input name="contentQuantity" type="number" min="0" step="any"></label><label>Единица содержания <input name="contentUnit"></label><label>Количество приёма <input name="intakeQuantity" type="number" min="0" step="any"></label><label>Единица приёма <input name="intakeUnit"></label><label>Детали <input name="details"></label><label>Дата начала <input name="date" type="date" required></label><label>Дата окончания <input name="endDate" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ (необязательно)"> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';
@@ -98,7 +110,10 @@
     }
    }
    if(section==='archive'||section==='dashboard'){
-    for(const log of state.intakeLogs.filter(x=>x.medicationId===med.id)){
+    const period=section==='archive'?(window.__medcontrolProtectedArchivePeriod||'7'):'all';
+    const now=Date.now();
+    const since=period==='all'?0:period==='today'?new Date().setHours(0,0,0,0):now-Number(period)*86400000;
+    for(const log of (state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&new Date(x.plannedAt).getTime()>=since)){
      const p=document.createElement('p');p.textContent='Принято: расчётное '+new Date(log.plannedAt).toLocaleString()+'; фактическое '+new Date(log.actualAt).toLocaleString();article.append(p);
     }
    }
