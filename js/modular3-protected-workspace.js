@@ -164,6 +164,26 @@
      if(!slots.has(log.plannedAt))slots.set(log.plannedAt,[]);
      slots.get(log.plannedAt).push(log);
     }
+    if(section==='archive'){
+     const lower=Math.max(since,new Date(med.startDate+'T00:00:00').getTime());
+     const upper=Math.min(now,new Date((med.endDate||med.startDate)+'T23:59:59').getTime());
+     if(Number.isFinite(lower)&&Number.isFinite(upper)&&lower<=upper){
+      const day=new Date(lower);day.setHours(0,0,0,0);
+      const maxDays=period==='all'?3660:32;
+      for(let count=0;day.getTime()<=upper&&count<maxDays;count++,day.setDate(day.getDate()+1)){
+       const dayString=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
+       if(med.scheduleType==='weekdays'&&!(med.weekdays||[]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]))continue;
+       if(med.scheduleType==='explicit_dates'&&!(med.explicitDates||[]).includes(dayString))continue;
+       if(med.scheduleType&& !['daily','weekdays','explicit_dates'].includes(med.scheduleType)&&dayString!==med.startDate)continue;
+       for(const time of med.times||[]){
+        const slotDate=new Date(dayString+'T'+time+':00');
+        if(slotDate.getTime()>now||slotDate.getTime()<lower)continue;
+        const plannedAt=slotDate.toISOString();
+        if(!slots.has(plannedAt))slots.set(plannedAt,[]);
+       }
+      }
+     }
+    }
     for(const [plannedAt,events] of [...slots].sort((a,b)=>a[0].localeCompare(b[0]))){
      events.sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
