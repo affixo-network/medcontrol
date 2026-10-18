@@ -56,10 +56,13 @@
   for(const med of state.medications){
    const article=document.createElement('article');
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
-   const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ');article.append(summary);
+   const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+(med.startDate||'')+' — '+(med.endDate||med.startDate||'');article.append(summary);
    if(section==='action'){
     for(const time of med.times||[]){
-     const date=med.startDate;
+     const today=new Date();
+     const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+     if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
+     if(med.scheduleType&&med.scheduleType!=='daily'&&date!==med.startDate)continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
      const log=state.intakeLogs.find(x=>x.medicationId===med.id&&x.plannedAt===plannedAt);
      const button=document.createElement('button');button.textContent=log?'Принято: '+new Date(log.actualAt).toLocaleString():'Принято '+time;button.disabled=!!log;
