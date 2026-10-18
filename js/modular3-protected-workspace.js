@@ -24,6 +24,18 @@
    return active.includes(time);
   }).sort();
  }
+ function scheduledOn(med,day,time){
+  const moment=new Date(day+'T'+time+':00').getTime();
+  if(!Number.isFinite(moment))return false;
+  const changes=(med.rowHistory||[]).filter(x=>x.action==='schedule_changed'&&x.previous&&x.next&&Number.isFinite(Date.parse(x.at))).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
+  let rule=changes.length?changes[0].previous:med;
+  for(const change of changes){if(moment<Date.parse(change.at))break;rule=change.next;}
+  const type=rule.scheduleType||'daily';
+  if(type==='daily')return true;
+  if(type==='weekdays')return (rule.weekdays||[]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(day+'T12:00:00').getDay()]);
+  if(type==='explicit_dates')return (rule.explicitDates||[]).includes(day);
+  return day===med.startDate;
+ }
  function notice(text){message.textContent=text;}
  function show(){login.hidden=true;workspace.hidden=false;render();}
  function render(){
@@ -115,9 +127,8 @@
    const today=[];
    for(const med of state.medications||[]){
     if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
-    if(med.scheduleType==='weekdays'&&!(med.weekdays||[]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]))continue;
-    if(med.scheduleType==='explicit_dates'&&!(med.explicitDates||[]).includes(date))continue;
     for(const time of plannedTimes(med,date)){
+     if(!scheduledOn(med,date,time))continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
@@ -293,12 +304,7 @@
     const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
     for(const time of plannedTimes(med,date)){
      if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
-     if(med.scheduleType==='weekdays'){
-      const weekday=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()];
-      if(!Array.isArray(med.weekdays)||!med.weekdays.includes(weekday))continue;
-     }else if(med.scheduleType==='explicit_dates'){
-      if(!Array.isArray(med.explicitDates)||!med.explicitDates.includes(date))continue;
-     }else if(med.scheduleType&&med.scheduleType!=='daily'&&date!==med.startDate)continue;
+     if(!scheduledOn(med,date,time))continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const log=events.reduce((active,event)=>event.action==='taken'?event:(event.action==='cancelled'||event.action==='cancel_taken'||event.action==='undo_taken'?null:active),null);
@@ -340,10 +346,8 @@
       const maxDays=period==='all'?3660:32;
       for(let count=0;day.getTime()<=upper&&count<maxDays;count++,day.setDate(day.getDate()+1)){
        const dayString=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
-       if(med.scheduleType==='weekdays'&&!(med.weekdays||[]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()]))continue;
-       if(med.scheduleType==='explicit_dates'&&!(med.explicitDates||[]).includes(dayString))continue;
-       if(med.scheduleType&& !['daily','weekdays','explicit_dates'].includes(med.scheduleType)&&dayString!==med.startDate)continue;
        for(const time of plannedTimes(med,dayString)){
+        if(!scheduledOn(med,dayString,time))continue;
         const slotDate=new Date(dayString+'T'+time+':00');
         if(slotDate.getTime()>now||slotDate.getTime()<lower)continue;
         const plannedAt=slotDate.toISOString();
