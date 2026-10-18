@@ -121,14 +121,30 @@
     }
    }
    today.sort((a,b)=>a.plannedAt.localeCompare(b.plannedAt));
+   const panel=document.createElement('section');panel.className='card';
+   const heading=document.createElement('h2');heading.textContent='Расписание на сегодня';panel.append(heading);
    const summary=document.createElement('p');
-   summary.textContent='Сегодня: '+today.length+' приёмов; принято: '+today.filter(x=>x.taken).length+'; ожидается: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)>now).length+'; не принято: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)<=now).length;
-   screen.append(summary);
-   for(const item of today){
-    const line=document.createElement('p');
-    line.textContent=item.time+' — '+item.med.name+' — '+(item.taken?'Принято ('+new Date(item.taken.actualAt).toLocaleTimeString()+')':new Date(item.plannedAt)>now?'Ожидается':'Не принято');
-    screen.append(line);
+   summary.className='muted';
+   summary.textContent='Всего: '+today.length+'; принято: '+today.filter(x=>x.taken).length+'; ожидается: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)>now).length+'; не принято: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)<=now).length;
+   panel.append(summary);
+   const table=document.createElement('table');
+   const thead=document.createElement('thead');
+   const header=document.createElement('tr');
+   for(const label of ['№','Препарат','Доза','Расчётное время','Состояние']){const th=document.createElement('th');th.textContent=label;header.append(th);}
+   thead.append(header);table.append(thead);
+   const tbody=document.createElement('tbody');
+   for(const [index,item] of today.entries()){
+    const row=document.createElement('tr');
+    const dose=[item.med.intakeQuantity||item.med.dose||'',item.med.intakeUnit||''].filter(Boolean).join(' ');
+    const status=item.taken?'Принято · '+new Date(item.taken.actualAt).toLocaleTimeString():new Date(item.plannedAt)>now?'Ожидается':'Не принято';
+    for(const value of [String(item.med.order||index+1),item.med.name,dose,item.time,status]){
+     const td=document.createElement('td');td.textContent=value;row.append(td);
+    }
+    row.lastElementChild.className=item.taken?'success':new Date(item.plannedAt)>now?'upcoming':'overdue';
+    tbody.append(row);
    }
+   if(!today.length){const row=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent='Нет запланированных приёмов';row.append(td);tbody.append(row);}
+   table.append(tbody);panel.append(table);screen.append(panel);
    return;
   }
   for(const med of state.medications){
