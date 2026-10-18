@@ -175,8 +175,29 @@
     if(!result?.session){goToLogin('no_session');return false;}
     window.medcontrolSupabase=result.supabase;
     window.medcontrolSupabaseUser=result.session.user;
-    if(window.medcontrolCloudSnapshot?.queue)window.medcontrolCloudSnapshot.queue();
     return true;
+  }
+  async function restoreCloudBeforeOpeningPage(){
+    // Load storage and snapshot helpers without mounting a medical page.
+    const loader=await ensureModular3Loader();
+    await loader.ensureScripts(common);
+    const cloud=window.medcontrolCloudSnapshot;
+    if(!cloud)throw new Error('Cloud recovery module unavailable.');
+    const key='affixo_medcontrol_standard_v3';
+    let raw=localStorage.getItem(key);
+    if(raw){
+      let local;
+      try{local=JSON.parse(raw);}catch(_){throw new Error('Local state is unreadable. Cloud recovery stopped to preserve it.');}
+      if(!cloud.validState(local))throw new Error('Local state is invalid. Cloud recovery stopped to preserve it.');
+      if(cloud.meaningfulState(local))return;
+    }
+    const latest=await cloud.latest();
+    if(!latest.ok)throw new Error('Cloud recovery read failed: '+latest.reason);
+    if(!latest.snapshot)return;
+    if(!cloud.meaningfulState(latest.snapshot.state))
+      throw new Error('Latest cloud snapshot is empty. Recovery stopped without overwriting local data.');
+    const restored=await cloud.restoreLatest({overwriteExisting:!!raw});
+    if(!restored.ok)throw new Error('Cloud recovery failed: '+restored.reason);
   }
   try{
     const list=pageScripts();
@@ -205,20 +226,9 @@
       prefetchOtherPageScripts(page);
       return;
     }
-    const storedSession=readStoredSession();
-    if(isStoredSessionFresh(storedSession)){
-      window.medcontrolSupabaseUser=storedSession.user;
-      const verification=createVerifiedSupabase()
-        .then(result=>attachVerifiedSupabase(result))
-        .catch(error=>{console.error('MedControl background auth verification failed.',error);goToLogin('session_check_failed');});
-      await startPage(list);
-      registerStaticOfflineCache();
-      prefetchOtherPageScripts(page);
-      void verification;
-      return;
-    }
     const verified=await createVerifiedSupabase();
     if(!attachVerifiedSupabase(verified))return;
+    await restoreCloudBeforeOpeningPage();
     await startPage(list);
     registerStaticOfflineCache();
     prefetchOtherPageScripts(page);
