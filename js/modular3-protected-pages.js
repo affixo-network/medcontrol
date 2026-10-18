@@ -26,6 +26,7 @@
   async recordIntake(event){
    return adapter.change('action',state=>{
     if(!event||!event.id||!event.medicationId||!event.plannedAt||!event.actualAt)throw Error('Invalid intake');
+    if(event.action!=='taken')throw Error('Invalid intake action');
     const medication=state.medications.find(x=>x.id===event.medicationId);
     if(!medication)throw Error('Course not found');
     if(medication.active===false||medication.cancelled||medication.archivedCompleted)throw Error('Course is inactive');
