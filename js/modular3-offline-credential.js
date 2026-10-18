@@ -11,11 +11,25 @@
  }
  const api={
   async enroll(secret){
-   if(localStorage.getItem(KEY))throw Error('Credential already enrolled');
-   const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
-   const verifier=await derive(secret,salt);
-   localStorage.setItem(KEY,JSON.stringify({version:1,salt,verifier}));
-   unlocked=true;return true;
+   // All enrollment paths must prove that this password opens the existing vault.
+   // Serialize credential creation across tabs, including direct API callers.
+   if(!navigator.locks?.request)throw Error('Cross-tab credential locking unavailable');
+   return navigator.locks.request('medcontrol-modular3-credential-enroll',{mode:'exclusive'},async()=>{
+    if(localStorage.getItem(KEY)!==null)throw Error('Credential already enrolled');
+    const dataKey='medcontrol_modular3_protected_state_v1';
+    const vault=root.MedControlModular3EncryptedVault;
+    const snapshot=localStorage.getItem(dataKey);
+    if(!snapshot||!vault)throw Error('Encrypted checkpoint missing');
+    await vault.open(JSON.parse(snapshot),secret);
+    const salt=hex(crypto.getRandomValues(new Uint8Array(16)));
+    const verifier=await derive(secret,salt);
+    if(localStorage.getItem(KEY)!==null||localStorage.getItem(dataKey)!==snapshot)throw Error('Enrollment state changed');
+    const serialized=JSON.stringify({version:1,salt,verifier});
+    localStorage.setItem(KEY,serialized);
+    if(localStorage.getItem(KEY)!==serialized||localStorage.getItem(dataKey)!==snapshot)
+     throw Error('Enrollment verification failed');
+    unlocked=true;return true;
+   });
   },
   async unlock(secret){
    unlocked=false;
