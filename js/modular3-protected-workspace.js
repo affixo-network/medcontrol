@@ -133,6 +133,20 @@
       try{await pages.recordIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString(),action:'taken'});notice('Приём зашифрован и сохранён.');render();}
       catch(error){notice('Ошибка сохранения: '+error.message);}
      };article.append(button);
+     if(log){
+      const cancel=document.createElement('button');
+      cancel.type='button';
+      cancel.textContent='Отменить «Принято» (случайность)';
+      cancel.onclick=async()=>{
+       if(!window.confirm('Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.'))return;
+       cancel.disabled=true;
+       try{
+        await pages.cancelIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString()});
+        notice('Отмена зашифрована и сохранена.');render();
+       }catch(error){cancel.disabled=false;notice('Ошибка отмены: '+error.message);}
+      };
+      article.append(cancel);
+     }
     }
    }
    if(section==='archive'||section==='dashboard'){
