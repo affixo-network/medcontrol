@@ -44,14 +44,27 @@
     requireOpen();
     const sealed=await VAULT.seal(next,secret);
     const encoded=JSON.stringify(sealed);
-    localStorage.setItem(DATA_KEY,encoded);
-    // Never acknowledge a medical write until the stored ciphertext can be read and decrypted.
-    const stored=localStorage.getItem(DATA_KEY);
-    if(stored!==encoded)throw Error('Encrypted checkpoint verification failed');
-    const verified=await VAULT.open(JSON.parse(stored),secret);
-    if(JSON.stringify(verified)!==JSON.stringify(next))throw Error('Encrypted checkpoint content mismatch');
-    state=verified;
-    return clone(state);
+    const previous=localStorage.getItem(DATA_KEY);
+    if(!previous)throw Error('Previous encrypted checkpoint missing');
+    try{
+     localStorage.setItem(DATA_KEY,encoded);
+     // Do not acknowledge a write until the stored ciphertext is decrypted and compared.
+     const stored=localStorage.getItem(DATA_KEY);
+     if(stored!==encoded)throw Error('Encrypted checkpoint verification failed');
+     const verified=await VAULT.open(JSON.parse(stored),secret);
+     if(JSON.stringify(verified)!==JSON.stringify(next))throw Error('Encrypted checkpoint content mismatch');
+     state=verified;
+     return clone(state);
+    }catch(error){
+     // Preserve the last verified encrypted snapshot when a new write fails.
+     if(localStorage.getItem(DATA_KEY)!==previous){
+      try{localStorage.setItem(DATA_KEY,previous);}catch(rollbackError){
+       secret=null;state=null;CREDENTIAL.lock();
+       throw Error('Encrypted write and rollback failed; session locked: '+rollbackError.message);
+      }
+     }
+     throw error;
+    }
    });
    chain=task.catch(()=>{});
    return task;
