@@ -120,6 +120,38 @@
    const article=document.createElement('article');
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
    const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+(med.startDate||'')+' — '+(med.endDate||med.startDate||'');article.append(summary);
+   if(section==='input'){
+    const history=document.createElement('details');
+    const summaryTitle=document.createElement('summary');
+    summaryTitle.textContent='История курса и изменения';
+    history.append(summaryTitle);
+    for(const entry of med.rowHistory||[]){
+     const line=document.createElement('p');
+     line.textContent=(entry.at?new Date(entry.at).toLocaleString()+' — ':'')+(entry.action||'Событие');
+     history.append(line);
+    }
+    article.append(history);
+    if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
+     const stop=document.createElement('button');
+     stop.type='button';
+     stop.textContent='Завершить курс';
+     stop.onclick=async()=>{
+      if(!window.confirm('Завершить курс «'+med.name+'»? История и приёмы сохранятся.'))return;
+      stop.disabled=true;
+      try{
+       await pages.changeCourse(med.id,course=>{
+        if(course.active===false||course.archivedCompleted||course.cancelled)throw Error('Курс уже завершён');
+        course.active=false;
+        course.archivedCompleted=true;
+        course.rowHistory=course.rowHistory||[];
+        course.rowHistory.push({action:'completed',at:new Date().toISOString()});
+       });
+       notice('Завершение курса зашифровано и сохранено.');render();
+      }catch(error){stop.disabled=false;notice('Не удалось завершить курс: '+error.message);}
+     };
+     article.append(stop);
+    }
+   }
    if(section==='action'){
     for(const time of med.times||[]){
      const today=new Date();
