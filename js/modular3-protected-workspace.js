@@ -195,9 +195,9 @@
     }
    }
    if(section==='action'){
-    for(const time of med.times||[]){
-     const today=new Date();
-     const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+    const today=new Date();
+    const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+    for(const time of plannedTimes(med,date)){
      if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
      if(med.scheduleType==='weekdays'){
       const weekday=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][today.getDay()];
