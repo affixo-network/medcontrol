@@ -38,7 +38,7 @@ label button{vertical-align:middle}
    const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
    await navigator.serviceWorker.ready;
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-protected-pages.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
-   const cache=await caches.open('medcontrol-static-modular3-v3');
+   const cache=await caches.open('medcontrol-static-modular3-v4');
    let cached=await Promise.all(paths.map(path=>cache.match(path)));
    if(cached.some(item=>!item)){
     if(!navigator.onLine)throw Error('Не все автономные файлы доступны в кэше');
