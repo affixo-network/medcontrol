@@ -1,5 +1,27 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MedControl Protected</title><style>body{font:16px system-ui;max-width:840px;margin:2rem auto;padding:1rem}button,input{font:inherit;padding:.5rem;margin:.3rem}label{display:block;margin:.5rem 0}article{padding:1rem;border-bottom:1px solid #aaa}nav{display:flex;flex-wrap:wrap}#message{white-space:pre-wrap}</style></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MedControl Protected</title><style>
+:root{--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#f8fafc;--card:#fff;--accent:#111827}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:1120px;padding:24px 16px 48px;font:15px/1.5 Arial,sans-serif;color:var(--fg);background:var(--bg)}
+h1,h2,h3{margin:0 0 12px}h1{font-size:26px}h2{font-size:21px}h3{font-size:16px}
+p{margin:0 0 12px}body>h1,body>p:first-of-type,#login,#workspace{background:var(--card)}
+body>h1{border:1px solid var(--bd);border-bottom:0;border-radius:14px 14px 0 0;padding:20px 20px 0;margin:0}
+body>p:first-of-type{border:1px solid var(--bd);border-top:0;border-radius:0 0 14px 14px;padding:4px 20px 18px;color:var(--muted);margin:0 0 16px}
+#login,#workspace{border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:14px}
+nav{display:flex;gap:8px;flex-wrap:wrap;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--bd)}
+button,input,select{font:inherit;border:1px solid #cbd5e1;border-radius:7px;padding:9px 11px;background:white;color:inherit}
+button{cursor:pointer}button:hover:not(:disabled){background:#f1f5f9}button:disabled{opacity:.55;cursor:not-allowed}
+button[data-tab][aria-current="page"]{background:var(--accent);color:white;border-color:var(--accent)}
+label{display:block;margin:10px 0;font-weight:600}
+label input{display:block;margin-top:5px;max-width:100%;font-weight:400}
+label button{vertical-align:middle}
+#screen form{border:1px solid var(--bd);border-radius:12px;padding:16px;margin:14px 0;background:#fff}
+#screen article{padding:16px;margin:10px 0;border:1px solid var(--bd);border-radius:12px;background:#fff}
+#screen article p{color:var(--muted)}
+#screen article button{margin:4px 6px 4px 0}
+#message{white-space:pre-wrap;color:#334155;padding:4px 8px}
+@media(max-width:640px){body{padding:10px}#login,#workspace{padding:12px}nav{gap:4px}button{padding:7px}}
+</style></head>
 <body><h1>MedControl — защищённый режим</h1><p>Отдельное хранилище. Действующие записи не изменяются.</p>
 <div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock">Войти</button><button id="enroll">Создать хранилище</button><button id="inspect-migration" type="button">Проверить готовность переноса</button><button id="commit-migration" type="button">Перенести защищённую копию</button></div>
 <div id="workspace" hidden><nav><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p>
