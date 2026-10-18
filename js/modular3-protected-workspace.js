@@ -85,8 +85,8 @@
    for(const name of ['first','second']){
     const field=form.elements.namedItem(name);
     field.addEventListener('input',()=>{
-     const digits=field.value.replace(/\\D/g,'').slice(0,4);
-     if(/^\\d{2}:\\d{2}$/.test(field.value))return;
+     const digits=field.value.replace(/\D/g,'').slice(0,4);
+     if(/^\d{2}:\d{2}$/.test(field.value))return;
      if(digits.length>=3)field.value=digits.slice(0,2)+':'+digits.slice(2);
     });
     const button=form.querySelector('[data-picker="'+name+'"]');
@@ -96,7 +96,7 @@
      const picker=document.createElement('span');picker.dataset.timePicker=name;
      const hour=document.createElement('select'),minute=document.createElement('select');
      hour.setAttribute('aria-label','Часы');minute.setAttribute('aria-label','Минуты');
-     const current=/^(\\d{2}):(\\d{2})$/.exec(field.value);
+     const current=/^(\d{2}):(\d{2})$/.exec(field.value);
      for(let i=0;i<24;i++){const v=String(i).padStart(2,'0');hour.add(new Option(v,v));}
      for(let i=0;i<60;i++){const v=String(i).padStart(2,'0');minute.add(new Option(v,v));}
      if(current){hour.value=current[1];minute.value=current[2];}
@@ -114,7 +114,7 @@
     const weekdays=data.getAll('weekday').map(String);
     const explicitDates=String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort();
     if(scheduleType==='weekdays'&&!weekdays.length){notice('Выберите дни недели.');return;}
-    if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!/^\\d{4}-\\d{2}-\\d{2}$/.test(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
+    if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
     try{
      await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentQuantity:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
      notice('Курс зашифрован и сохранён.');render();
@@ -254,7 +254,7 @@
       const data=new FormData(form);
       const next={scheduleType:String(data.get('scheduleType')),weekdays:data.getAll('weekday').map(String),explicitDates:String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort()};
       if(next.scheduleType==='weekdays'&&!next.weekdays.length){notice('Выберите дни недели.');return;}
-      if(next.scheduleType==='explicit_dates'&&(!next.explicitDates.length||next.explicitDates.some(x=>!/^\\d{4}-\\d{2}-\\d{2}$/.test(x)))){notice('Проверьте конкретные даты.');return;}
+      if(next.scheduleType==='explicit_dates'&&(!next.explicitDates.length||next.explicitDates.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x)))){notice('Проверьте конкретные даты.');return;}
       if(!window.confirm('Изменить будущее расписание? История прошлых приёмов останется без изменений.'))return;
       save.disabled=true;
       try{
