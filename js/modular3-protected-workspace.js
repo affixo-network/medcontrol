@@ -26,6 +26,12 @@
    filter.value=window.__medcontrolProtectedArchivePeriod||'7';
    filter.onchange=()=>{window.__medcontrolProtectedArchivePeriod=filter.value;render();};
    controls.append(document.createTextNode('Период: '),filter);
+   const outcome=document.createElement('select');
+   outcome.setAttribute('aria-label','Статус приёма');
+   for(const [value,label] of [['all','Все'],['taken','Принято'],['missed','Не принято']])outcome.add(new Option(label,value));
+   outcome.value=window.__medcontrolProtectedArchiveOutcome||'all';
+   outcome.onchange=()=>{window.__medcontrolProtectedArchiveOutcome=outcome.value;render();};
+   controls.append(document.createTextNode(' Статус: '),outcome);
    screen.append(controls);
   }
   if(section==='input'){
@@ -153,8 +159,19 @@
     const period=section==='archive'?(window.__medcontrolProtectedArchivePeriod||'7'):'all';
     const now=Date.now();
     const since=period==='all'?0:period==='today'?new Date().setHours(0,0,0,0):now-Number(period)*86400000;
+    const slots=new Map();
     for(const log of (state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&new Date(x.plannedAt).getTime()>=since)){
-     const p=document.createElement('p');p.textContent='Принято: расчётное '+new Date(log.plannedAt).toLocaleString()+'; фактическое '+new Date(log.actualAt).toLocaleString();article.append(p);
+     if(!slots.has(log.plannedAt))slots.set(log.plannedAt,[]);
+     slots.get(log.plannedAt).push(log);
+    }
+    for(const [plannedAt,events] of [...slots].sort((a,b)=>a[0].localeCompare(b[0]))){
+     events.sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
+     const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
+     const outcome=window.__medcontrolProtectedArchiveOutcome||'all';
+     if(section==='archive'&&outcome!=='all'&&(outcome==='taken')!==Boolean(taken))continue;
+     const p=document.createElement('p');
+     p.textContent=(taken?'Принято':'Не принято')+': расчётное '+new Date(plannedAt).toLocaleString()+(taken?'; фактическое '+new Date(taken.actualAt).toLocaleString():'');
+     article.append(p);
     }
    }
    screen.append(article);
