@@ -270,6 +270,24 @@
      };
      scheduleEdit.append(form);article.append(scheduleEdit);
     }
+    if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
+     const cancelCourse=document.createElement('button');
+     cancelCourse.type='button';cancelCourse.textContent='Отменить препарат';
+     cancelCourse.onclick=async()=>{
+      if(!window.confirm('Отменить препарат «'+med.name+'»? Все уже зарегистрированные приёмы и история изменений сохранятся.'))return;
+      cancelCourse.disabled=true;
+      try{
+       await pages.changeCourse(med.id,course=>{
+        if(course.active===false||course.cancelled||course.archivedCompleted)throw Error('Препарат уже выведен из рабочего цикла');
+        course.cancelled=true;course.active=false;
+        course.rowHistory=course.rowHistory||[];
+        course.rowHistory.push({action:'cancelled',at:new Date().toISOString()});
+       });
+       notice('Отмена препарата зашифрована и сохранена.');render();
+      }catch(error){cancelCourse.disabled=false;notice('Ошибка отмены препарата: '+error.message);}
+     };
+     article.append(cancelCourse);
+    }
     const history=document.createElement('details');
     const summaryTitle=document.createElement('summary');
     summaryTitle.textContent='История курса и изменения';
