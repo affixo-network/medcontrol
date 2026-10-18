@@ -32,22 +32,26 @@
   screen.replaceChildren();
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
   if(section==='archive'){
-   const controls=document.createElement('div');
-   const filter=document.createElement('select');
-   filter.setAttribute('aria-label','Период истории');
-   for(const [value,label] of [['today','Сегодня'],['7','7 дней'],['30','30 дней'],['all','Весь период']]){
-    filter.add(new Option(label,value));
+   const controls=document.createElement('section');controls.className='card';
+   const heading=document.createElement('h2');heading.textContent='История приёмов';controls.append(heading);
+   const actions=document.createElement('div');actions.className='inline';
+   const active=window.__medcontrolProtectedArchiveOutcome||'';
+   for(const [value,label] of [['taken','Принято'],['missed','Не принято']]){
+    const button=document.createElement('button');button.type='button';button.textContent=label;
+    button.setAttribute('aria-pressed',String(active===value));
+    button.onclick=()=>{window.__medcontrolProtectedArchiveOutcome=value;render();};
+    actions.append(button);
    }
-   filter.value=window.__medcontrolProtectedArchivePeriod||'7';
-   filter.onchange=()=>{window.__medcontrolProtectedArchivePeriod=filter.value;render();};
-   controls.append(document.createTextNode('Период: '),filter);
-   const outcome=document.createElement('select');
-   outcome.setAttribute('aria-label','Статус приёма');
-   for(const [value,label] of [['all','Все'],['taken','Принято'],['missed','Не принято']])outcome.add(new Option(label,value));
-   outcome.value=window.__medcontrolProtectedArchiveOutcome||'all';
-   outcome.onchange=()=>{window.__medcontrolProtectedArchiveOutcome=outcome.value;render();};
-   controls.append(document.createTextNode(' Статус: '),outcome);
-   screen.append(controls);
+   if(active){
+    const filter=document.createElement('select');filter.setAttribute('aria-label','Период истории');
+    for(const [value,label] of [['today','Сегодня'],['7','7 дней'],['30','30 дней'],['all','Весь период']])filter.add(new Option(label,value));
+    filter.value=window.__medcontrolProtectedArchivePeriod||'7';
+    filter.onchange=()=>{window.__medcontrolProtectedArchivePeriod=filter.value;render();};
+    const periodLabel=document.createElement('label');periodLabel.textContent='Период';periodLabel.append(filter);actions.append(periodLabel);
+    const collapse=document.createElement('button');collapse.type='button';collapse.textContent='Свернуть';
+    collapse.onclick=()=>{window.__medcontrolProtectedArchiveOutcome='';render();};actions.append(collapse);
+   }
+   controls.append(actions);screen.append(controls);
   }
   if(section==='input'){
    const form=document.createElement('form');
@@ -277,8 +281,8 @@
     for(const [plannedAt,events] of [...slots].sort((a,b)=>a[0].localeCompare(b[0]))){
      events.sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
-     const outcome=window.__medcontrolProtectedArchiveOutcome||'all';
-     if(section==='archive'&&outcome!=='all'&&(outcome==='taken')!==Boolean(taken))continue;
+     const outcome=window.__medcontrolProtectedArchiveOutcome||'';
+     if(section==='archive'&&(!outcome||(outcome==='taken')!==Boolean(taken)))continue;
      const p=document.createElement('p');
      p.textContent=(taken?'Принято':'Не принято')+': расчётное '+new Date(plannedAt).toLocaleString()+(taken?'; фактическое '+new Date(taken.actualAt).toLocaleString():'');
      article.append(p);
