@@ -27,7 +27,7 @@
    return adapter.change('action',state=>{
     if(!event||!event.id||!event.medicationId||!event.plannedAt||!event.actualAt)throw Error('Invalid intake');
     if(!state.medications.some(x=>x.id===event.medicationId))throw Error('Course not found');
-    if(state.intakeLogs.some(x=>x.id===event.id))throw Error('Duplicate event');
+    if(state.intakeLogs.some(x=>x.id===event.id || (x.medicationId===event.medicationId && x.plannedAt===event.plannedAt && x.action==='taken')))throw Error('Duplicate intake');
     state.intakeLogs.push(structuredClone(event));
    });
   },
