@@ -17,7 +17,11 @@
    const sealed=await VAULT.seal(initial,password);
    localStorage.setItem(DATA_KEY,JSON.stringify(sealed));
    try{await CREDENTIAL.enroll(password);}catch(error){localStorage.removeItem(DATA_KEY);throw error;}
-   secret=password;state=clone(initial);
+   const saved=localStorage.getItem(DATA_KEY);
+   if(!saved)throw Error('Initial encrypted checkpoint missing');
+   const restored=await VAULT.open(JSON.parse(saved),password);
+   if(JSON.stringify(restored)!==JSON.stringify(initial))throw Error('Initial encrypted checkpoint mismatch');
+   secret=password;state=restored;
    return true;
   },
   async unlock(password){
