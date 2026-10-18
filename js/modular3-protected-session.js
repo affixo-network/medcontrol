@@ -39,8 +39,14 @@
     await mutator(next);
     requireOpen();
     const sealed=await VAULT.seal(next,secret);
-    localStorage.setItem(DATA_KEY,JSON.stringify(sealed));
-    state=next;
+    const encoded=JSON.stringify(sealed);
+    localStorage.setItem(DATA_KEY,encoded);
+    // Never acknowledge a medical write until the stored ciphertext can be read and decrypted.
+    const stored=localStorage.getItem(DATA_KEY);
+    if(stored!==encoded)throw Error('Encrypted checkpoint verification failed');
+    const verified=await VAULT.open(JSON.parse(stored),secret);
+    if(JSON.stringify(verified)!==JSON.stringify(next))throw Error('Encrypted checkpoint content mismatch');
+    state=verified;
     return clone(state);
    });
    chain=task.catch(()=>{});
