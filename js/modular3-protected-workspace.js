@@ -10,10 +10,18 @@
  const screen=document.getElementById('screen');
  let section='input';
  function timesForDay(med,day){
+  const changes=(med.rowHistory||[]).filter(x=>x.action==='times_changed'&&Array.isArray(x.previousTimes)&&Number.isFinite(Date.parse(x.at))).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
   const start=new Date(day+'T00:00:00').getTime();
+  for(let i=0;i<changes.length;i++){
+   if(start<Date.parse(changes[i].at))return changes[i].previousTimes;
+  }
+  return med.times||[];
+ }
+ function timesForSlot(med,day,time){
+  const slot=new Date(day+'T'+time+':00').getTime();
   const changes=(med.rowHistory||[]).filter(x=>x.action==='times_changed'&&Array.isArray(x.previousTimes)&&Number.isFinite(Date.parse(x.at))).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
   for(const change of changes){
-   if(start<Date.parse(change.at))return change.previousTimes;
+   if(slot<Date.parse(change.at))return change.previousTimes;
   }
   return med.times||[];
  }
@@ -107,6 +115,7 @@
     if(med.scheduleType==='weekdays'&&!(med.weekdays||[]).includes(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]))continue;
     if(med.scheduleType==='explicit_dates'&&!(med.explicitDates||[]).includes(date))continue;
     for(const time of timesForDay(med,date)){
+     if(!timesForSlot(med,date,time).includes(time))continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
