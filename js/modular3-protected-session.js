@@ -59,11 +59,16 @@
      return clone(state);
     }catch(error){
      // Preserve the last verified encrypted snapshot when a new write fails.
-     if(localStorage.getItem(DATA_KEY)!==previous){
+     const current=localStorage.getItem(DATA_KEY);
+     // Never overwrite a checkpoint written by another tab while rolling back.
+     if(current===encoded){
       try{localStorage.setItem(DATA_KEY,previous);}catch(rollbackError){
        secret=null;state=null;checkpoint=null;CREDENTIAL.lock();
        throw Error('Encrypted write and rollback failed; session locked: '+rollbackError.message);
       }
+     }else if(current!==previous){
+      secret=null;state=null;checkpoint=null;CREDENTIAL.lock();
+      throw Error('Encrypted checkpoint changed concurrently; session locked');
      }
      throw error;
     }
