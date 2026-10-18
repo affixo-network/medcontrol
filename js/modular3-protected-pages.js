@@ -27,8 +27,21 @@
    return adapter.change('action',state=>{
     if(!event||!event.id||!event.medicationId||!event.plannedAt||!event.actualAt)throw Error('Invalid intake');
     if(!state.medications.some(x=>x.id===event.medicationId))throw Error('Course not found');
-    if(state.intakeLogs.some(x=>x.id===event.id || (x.medicationId===event.medicationId && x.plannedAt===event.plannedAt && x.action==='taken')))throw Error('Duplicate intake');
+    if(state.intakeLogs.some(x=>x.id===event.id))throw Error('Duplicate intake ID');
+    const events=state.intakeLogs.filter(x=>x.medicationId===event.medicationId&&x.plannedAt===event.plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
+    const active=events.reduce((taken,x)=>x.action==='taken'?true:(['cancelled','cancel_taken','undo_taken'].includes(x.action)?false:taken),false);
+    if(active)throw Error('Intake already recorded');
     state.intakeLogs.push(structuredClone(event));
+   });
+  },
+  async cancelIntake(event){
+   return adapter.change('action',state=>{
+    if(!event||!event.id||!event.medicationId||!event.plannedAt||!event.actualAt)throw Error('Invalid cancellation');
+    const events=(state.intakeLogs||[]).filter(x=>x.medicationId===event.medicationId&&x.plannedAt===event.plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
+    const active=events.reduce((taken,x)=>x.action==='taken'?true:(['cancelled','cancel_taken','undo_taken'].includes(x.action)?false:taken),false);
+    if(!active)throw Error('No active intake to cancel');
+    if(state.intakeLogs.some(x=>x.id===event.id))throw Error('Duplicate cancellation');
+    state.intakeLogs.push({...structuredClone(event),action:'cancel_taken'});
    });
   },
   async changeCourse(id,mutator){
