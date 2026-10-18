@@ -202,28 +202,13 @@
   try{
     const list=pageScripts();
     preloadPageScripts(list);
-    // Protected local account is independent of cloud authentication.
-    // Never load medical page scripts until the local password unlocks the vault.
+    // A protected account must use the encrypted, asynchronous workspace.
+    // The legacy four-page UI uses synchronous saveState and cannot safely
+    // acknowledge writes after encrypted persistence. Never open it in
+    // protected mode or silently fall back to plaintext.
     if(localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null ||
        localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null){
-      const loader=await ensureModular3Loader();
-      await loader.ensureScripts(protectedModules);
-      if(localStorage.getItem('medcontrol_modular3_local_credential_v1')===null ||
-         localStorage.getItem('medcontrol_modular3_protected_state_v1')===null)
-        throw new Error('Защищённые данные или локальный пароль отсутствуют. Автоматический переход к открытым данным запрещён.');
-      const password=window.prompt('MedControl: введите локальный пароль для доступа к защищённым данным.');
-      if(password===null){showStartupError('Доступ к медицинским данным закрыт. Для входа перезагрузите страницу.');return;}
-      const unlocked=await window.MedControlModular3ProtectedSession.unlock(password);
-      if(!unlocked){showStartupError('Неверный локальный пароль. Медицинские данные не открыты.');return;}
-      await startPage(list);
-      registerStaticOfflineCache().then(ok=>{
-        window.medcontrolOfflineShellReady=ok;
-        if(!ok)console.warn('MedControl: offline shell was not fully cached; offline restart is not yet verified.');
-      }).catch(error=>{
-        window.medcontrolOfflineShellReady=false;
-        console.warn('MedControl: offline shell preparation failed.',error);
-      });
-      prefetchOtherPageScripts(page);
+      window.location.replace('/modular3-protected.html');
       return;
     }
     const verified=await createVerifiedSupabase();
