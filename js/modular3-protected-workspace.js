@@ -88,7 +88,8 @@
       if(!Array.isArray(med.explicitDates)||!med.explicitDates.includes(date))continue;
      }else if(med.scheduleType&&med.scheduleType!=='daily'&&date!==med.startDate)continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
-     const log=state.intakeLogs.find(x=>x.medicationId===med.id&&x.plannedAt===plannedAt);
+     const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
+     const log=events.reduce((active,event)=>event.action==='taken'?event:(event.action==='cancelled'||event.action==='cancel_taken'||event.action==='undo_taken'?null:active),null);
      const button=document.createElement('button');button.textContent=log?'Принято: '+new Date(log.actualAt).toLocaleString():'Принято '+time;button.disabled=!!log;
      button.onclick=async()=>{
       try{await pages.recordIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString(),action:'taken'});notice('Приём зашифрован и сохранён.');render();}
