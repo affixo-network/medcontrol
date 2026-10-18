@@ -3,4 +3,39 @@
 <body><h1>MedControl — защищённый режим</h1><p>Отдельное хранилище. Действующие записи не изменяются.</p>
 <div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock">Войти</button><button id="enroll">Создать хранилище</button><button id="inspect-migration" type="button">Проверить готовность переноса</button><button id="commit-migration" type="button">Перенести защищённую копию</button></div>
 <div id="workspace" hidden><nav><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p>
-<script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script></body></html>
+<script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
+(function(){
+ 'use strict';
+ const status=document.getElementById('message');
+ if(!('serviceWorker' in navigator)||!('caches' in window)){
+  status.textContent='Этот браузер не поддерживает автономную загрузку.';
+  return;
+ }
+ window.addEventListener('load',async function(){
+  try{
+   const registration=await navigator.serviceWorker.register('/js/modular3-static-cache-sw.js',{scope:'/'});
+   await navigator.serviceWorker.ready;
+   const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-protected-pages.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
+   const worker=registration.active||registration.waiting||registration.installing;
+   if(!worker)throw Error('Service worker unavailable');
+   const channel=new MessageChannel();
+   const result=new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>reject(Error('Offline cache timeout')),12000);
+    channel.port1.onmessage=e=>{clearTimeout(timeout);e.data?.ok?resolve():reject(Error(e.data?.error||'Offline cache failed'));};
+   });
+   worker.postMessage({type:'MEDCONTROL_CACHE_SHELL',paths},[channel.port2]);
+   await result;
+   const cache=await caches.open('medcontrol-static-modular3-v3');
+   const cached=await Promise.all(paths.map(path=>cache.match(path)));
+   if(cached.some(item=>!item))throw Error('Offline files missing');
+   if(!navigator.serviceWorker.controller){
+    status.textContent='Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.';
+   }else if(!status.textContent){
+    status.textContent='Автономные файлы подготовлены и проверены.';
+   }
+  }catch(error){
+   status.textContent='Автономная загрузка не готова: '+error.message;
+  }
+ });
+})();
+</script></body></html>
