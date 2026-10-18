@@ -183,6 +183,41 @@
      };
      edit.append(form);article.append(edit);
     }
+    if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
+     const editInfo=document.createElement('details');
+     const title=document.createElement('summary');title.textContent='Изменить сведения о препарате';editInfo.append(title);
+     const form=document.createElement('form');
+     const keys=['name','manufacturer','contentQuantity','contentUnit','intakeQuantity','intakeUnit','details'];
+     const captions=['Название','Производитель','Количественное содержание','Единица содержания','Количество приёма','Единица приёма','Детали'];
+     keys.forEach((key,index)=>{
+      const label=document.createElement('label');label.textContent=captions[index];
+      const input=document.createElement('input');input.name=key;input.value=String(med[key]??'');
+      if(key==='name')input.required=true;
+      if(key==='contentQuantity'||key==='intakeQuantity'){input.type='number';input.min='0';input.step='any';}
+      label.append(input);form.append(label);
+     });
+     const save=document.createElement('button');save.textContent='Сохранить сведения';form.append(save);
+     form.onsubmit=async event=>{
+      event.preventDefault();
+      const data=new FormData(form),next={};
+      for(const key of keys)next[key]=String(data.get(key)||'').trim();
+      if(!next.name){notice('Название обязательно.');return;}
+      save.disabled=true;
+      try{
+       await pages.changeCourse(med.id,course=>{
+        if(course.active===false||course.cancelled||course.archivedCompleted)throw Error('Курс завершён');
+        const previous={};let changed=false;
+        for(const key of keys){previous[key]=course[key]??'';if(String(previous[key])!==next[key])changed=true;}
+        if(!changed)return;
+        Object.assign(course,next);
+        course.rowHistory=course.rowHistory||[];
+        course.rowHistory.push({action:'details_changed',at:new Date().toISOString(),previous,next:{...next}});
+       });
+       notice('Сведения зашифрованы и сохранены.');render();
+      }catch(error){save.disabled=false;notice('Ошибка сохранения: '+error.message);}
+     };
+     editInfo.append(form);article.append(editInfo);
+    }
     const history=document.createElement('details');
     const summaryTitle=document.createElement('summary');
     summaryTitle.textContent='История курса и изменения';
