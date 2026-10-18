@@ -18,7 +18,7 @@
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
   if(section==='input'){
    const form=document.createElement('form');
-   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <input name="first" type="time" required></label><label>Время 2 <input name="second" type="time" required></label><button>Сохранить курс</button>';
+   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" title="Введите время в 24-часовом формате ЧЧ:ММ" required></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" title="Введите время в 24-часовом формате ЧЧ:ММ" required></label><button>Сохранить курс</button>';
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
     const first=data.get('first'),second=data.get('second');
