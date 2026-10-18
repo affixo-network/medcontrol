@@ -121,6 +121,33 @@
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
    const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+(med.startDate||'')+' — '+(med.endDate||med.startDate||'');article.append(summary);
    if(section==='input'){
+    if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
+     const edit=document.createElement('details');
+     const caption=document.createElement('summary');caption.textContent='Изменить будущие времена приёма';edit.append(caption);
+     const form=document.createElement('form');
+     const label=document.createElement('label');label.textContent='Времена (ЧЧ:ММ через запятую) ';
+     const field=document.createElement('input');field.required=true;field.value=(med.times||[]).join(', ');label.append(field);
+     const save=document.createElement('button');save.type='submit';save.textContent='Сохранить изменения';
+     form.append(label,save);
+     form.onsubmit=async event=>{
+      event.preventDefault();
+      const times=field.value.split(',').map(x=>x.trim()).filter(Boolean);
+      if(!times.length||times.some(x=>!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(x))||new Set(times).size!==times.length){notice('Укажите различные времена в формате ЧЧ:ММ.');return;}
+      if(!window.confirm('Изменить времена только для будущих приёмов? Прошлая история сохранится.'))return;
+      save.disabled=true;
+      try{
+       const changedAt=new Date().toISOString();
+       await pages.changeCourse(med.id,course=>{
+        if(course.active===false||course.cancelled||course.archivedCompleted)throw Error('Курс завершён');
+        course.rowHistory=course.rowHistory||[];
+        course.rowHistory.push({action:'times_changed',at:changedAt,previousTimes:[...(course.times||[])],newTimes:[...times]});
+        course.times=[...times].sort();
+       });
+       notice('Новые времена зашифрованы и сохранены.');render();
+      }catch(error){save.disabled=false;notice('Не удалось изменить времена: '+error.message);}
+     };
+     edit.append(form);article.append(edit);
+    }
     const history=document.createElement('details');
     const summaryTitle=document.createElement('summary');
     summaryTitle.textContent='История курса и изменения';
