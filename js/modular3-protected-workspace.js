@@ -218,6 +218,45 @@
      };
      editInfo.append(form);article.append(editInfo);
     }
+    if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
+     const scheduleEdit=document.createElement('details');
+     const caption=document.createElement('summary');caption.textContent='Изменить будущее расписание курса';scheduleEdit.append(caption);
+     const form=document.createElement('form');
+     const rule=document.createElement('select');rule.name='scheduleType';
+     for(const [value,label] of [['daily','Каждый день'],['weekdays','Дни недели'],['explicit_dates','Конкретные даты']])rule.add(new Option(label,value));
+     rule.value=med.scheduleType||'daily';
+     const label=document.createElement('label');label.textContent='Расписание';label.append(rule);form.append(label);
+     const weekdays=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent='Дни недели';weekdays.append(legend);
+     for(const [value,text] of [['Mon','Пн'],['Tue','Вт'],['Wed','Ср'],['Thu','Чт'],['Fri','Пт'],['Sat','Сб'],['Sun','Вс']]){
+      const dayLabel=document.createElement('label');const input=document.createElement('input');input.type='checkbox';input.name='weekday';input.value=value;input.checked=(med.weekdays||[]).includes(value);
+      dayLabel.append(input,document.createTextNode(text));weekdays.append(dayLabel);
+     }
+     form.append(weekdays);
+     const datesLabel=document.createElement('label');datesLabel.textContent='Конкретные даты (через запятую)';
+     const dates=document.createElement('input');dates.name='explicitDates';dates.value=(med.explicitDates||[]).join(', ');datesLabel.append(dates);form.append(datesLabel);
+     const sync=()=>{weekdays.hidden=rule.value!=='weekdays';datesLabel.hidden=rule.value!=='explicit_dates';};rule.onchange=sync;sync();
+     const save=document.createElement('button');save.textContent='Сохранить расписание';form.append(save);
+     form.onsubmit=async event=>{
+      event.preventDefault();
+      const data=new FormData(form);
+      const next={scheduleType:String(data.get('scheduleType')),weekdays:data.getAll('weekday').map(String),explicitDates:String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort()};
+      if(next.scheduleType==='weekdays'&&!next.weekdays.length){notice('Выберите дни недели.');return;}
+      if(next.scheduleType==='explicit_dates'&&(!next.explicitDates.length||next.explicitDates.some(x=>!/^\\d{4}-\\d{2}-\\d{2}$/.test(x)))){notice('Проверьте конкретные даты.');return;}
+      if(!window.confirm('Изменить будущее расписание? История прошлых приёмов останется без изменений.'))return;
+      save.disabled=true;
+      try{
+       await pages.changeCourse(med.id,course=>{
+        if(course.active===false||course.cancelled||course.archivedCompleted)throw Error('Курс завершён');
+        const previous={scheduleType:course.scheduleType||'daily',weekdays:[...(course.weekdays||[])],explicitDates:[...(course.explicitDates||[])]};
+        course.rowHistory=course.rowHistory||[];
+        course.rowHistory.push({action:'schedule_changed',at:new Date().toISOString(),previous,next:{...next}});
+        Object.assign(course,next);
+       });
+       notice('Расписание зашифровано и сохранено.');render();
+      }catch(error){save.disabled=false;notice('Не удалось сохранить расписание: '+error.message);}
+     };
+     scheduleEdit.append(form);article.append(scheduleEdit);
+    }
     const history=document.createElement('details');
     const summaryTitle=document.createElement('summary');
     summaryTitle.textContent='История курса и изменения';
