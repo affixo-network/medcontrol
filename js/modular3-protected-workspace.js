@@ -294,7 +294,22 @@
     history.append(summaryTitle);
     for(const entry of med.rowHistory||[]){
      const line=document.createElement('p');
-     line.textContent=(entry.at?new Date(entry.at).toLocaleString()+' — ':'')+(entry.action||'Событие');
+     const labels={created:'Создано',completed:'Завершён',cancelled:'Отменён',times_changed:'Изменены времена приёма',schedule_changed:'Изменено расписание',details_changed:'Изменены сведения'};
+     const action=labels[entry.action]||entry.action||'Событие';
+     line.textContent=(entry.at?new Date(entry.at).toLocaleString()+' — ':'')+action;
+     if(entry.action==='times_changed'){
+      line.textContent+=': '+(entry.previousTimes||[]).join(', ')+' → '+(entry.newTimes||[]).join(', ');
+     }else if(entry.action==='schedule_changed'){
+      const describe=rule=>rule.scheduleType==='weekdays'?'Дни недели: '+(rule.weekdays||[]).join(', '):rule.scheduleType==='explicit_dates'?'Даты: '+(rule.explicitDates||[]).join(', '):'Каждый день';
+      if(entry.previous&&entry.next)line.textContent+=': '+describe(entry.previous)+' → '+describe(entry.next);
+     }else if(entry.action==='details_changed'&&entry.previous&&entry.next){
+      const keys=Object.keys(entry.next).filter(key=>String(entry.previous[key]??'')!==String(entry.next[key]??''));
+      const details=document.createElement('ul');
+      for(const key of keys){
+       const item=document.createElement('li');item.textContent=key+': '+String(entry.previous[key]??'')+' → '+String(entry.next[key]??'');details.append(item);
+      }
+      line.append(details);
+     }
      history.append(line);
     }
     article.append(history);
