@@ -12,17 +12,33 @@
  function requireOpen(){if(!secret||!state||!CREDENTIAL.isUnlocked())throw Error('Protected session locked');}
  const api={
   async initialize(initial,password){
-   if(localStorage.getItem(DATA_KEY)||CREDENTIAL.isEnrolled())throw Error('Protected session already exists');
-   if(localStorage.getItem('affixo_medcontrol_standard_v3')!==null)throw Error('Legacy data present: migration approval required');
-   const sealed=await VAULT.seal(initial,password);
-   localStorage.setItem(DATA_KEY,JSON.stringify(sealed));
-   try{await CREDENTIAL.enroll(password);}catch(error){localStorage.removeItem(DATA_KEY);throw error;}
-   const saved=localStorage.getItem(DATA_KEY);
-   if(!saved)throw Error('Initial encrypted checkpoint missing');
-   const restored=await VAULT.open(JSON.parse(saved),password);
-   if(JSON.stringify(restored)!==JSON.stringify(initial))throw Error('Initial encrypted checkpoint mismatch');
-   secret=password;state=restored;checkpoint=saved;
-   return true;
+   // Lock the entire create/verify sequence, not just credential enrollment.
+   if(!navigator.locks?.request)throw Error('Cross-tab storage locking unavailable');
+   return navigator.locks.request('medcontrol-modular3-initialize',{mode:'exclusive'},async()=>{
+    if(localStorage.getItem(DATA_KEY)!==null||CREDENTIAL.isEnrolled())throw Error('Protected session already exists');
+    if(localStorage.getItem('affixo_medcontrol_standard_v3')!==null)throw Error('Legacy data present: migration approval required');
+    const sealed=await VAULT.seal(initial,password);
+    if(localStorage.getItem(DATA_KEY)!==null||CREDENTIAL.isEnrolled())throw Error('Protected session already exists');
+    const encoded=JSON.stringify(sealed);
+    localStorage.setItem(DATA_KEY,encoded);
+    try{
+     if(localStorage.getItem(DATA_KEY)!==encoded||CREDENTIAL.isEnrolled())throw Error('Initialization state changed');
+     await CREDENTIAL.enroll(password);
+     const saved=localStorage.getItem(DATA_KEY);
+     if(saved!==encoded)throw Error('Initial encrypted checkpoint changed');
+     if(!await CREDENTIAL.unlock(password))throw Error('Initial credential verification failed');
+     const restored=await VAULT.open(JSON.parse(saved),password);
+     if(JSON.stringify(restored)!==JSON.stringify(initial))throw Error('Initial encrypted checkpoint mismatch');
+     secret=password;state=restored;checkpoint=saved;
+     return true;
+    }catch(error){
+     // Never delete a vault when a credential exists: the pair can be usable,
+     // including if Storage throws *after* persisting a credential.
+     if(localStorage.getItem(DATA_KEY)===encoded&&!CREDENTIAL.isEnrolled())
+      localStorage.removeItem(DATA_KEY);
+     throw error;
+    }
+   });
   },
   async unlock(password){
    secret=null;state=null;checkpoint=null;
