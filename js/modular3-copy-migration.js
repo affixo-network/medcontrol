@@ -53,6 +53,8 @@
   if(localStorage.getItem(SOURCE)!==source||localStorage.getItem(DEST)!==destination||localStorage.getItem(CREDENTIAL)!==null)throw Error('Migration state changed');
   await CRED.enroll(password);
   if(localStorage.getItem(SOURCE)!==source||localStorage.getItem(DEST)!==destination)throw Error('Migration state changed after enrollment');
+  if(!await CRED.unlock(password))throw Error('Credential verification failed');
+  if(!equal(await VAULT.open(JSON.parse(localStorage.getItem(DEST)),password),original))throw Error('Post-enrollment vault mismatch');
   return Object.freeze({medications:restored.medications.length,intakeLogs:restored.intakeLogs.length,sourcePreserved:true,recovered:true});
  }
  async function commit(password){
@@ -68,6 +70,8 @@
    if(localStorage.getItem(SOURCE)!==check.source)throw Error('Legacy source changed');
    await CRED.enroll(password);
    if(localStorage.getItem(SOURCE)!==check.source)throw Error('Legacy source changed after enrollment');
+   if(!await CRED.unlock(password))throw Error('Credential verification failed');
+   if(!equal(await VAULT.open(JSON.parse(localStorage.getItem(DEST)),password),JSON.parse(check.source)))throw Error('Post-enrollment vault mismatch');
    return Object.freeze({medications:restored.medications.length,intakeLogs:restored.intakeLogs.length,sourcePreserved:true});
   }catch(error){
    if(localStorage.getItem(CREDENTIAL)===null&&localStorage.getItem(DEST)===serialized)localStorage.removeItem(DEST);
