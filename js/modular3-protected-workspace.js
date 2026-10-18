@@ -18,15 +18,34 @@
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
   if(section==='input'){
    const form=document.createElement('form');
-   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <select name="firstHour" aria-label="Часы первого приёма" required></select> : <select name="firstMinute" aria-label="Минуты первого приёма" required></select></label><label>Время 2 <select name="secondHour" aria-label="Часы второго приёма" required></select> : <select name="secondMinute" aria-label="Минуты второго приёма" required></select></label><button>Сохранить курс</button>';
-   for(const [name,max,placeholder] of [['firstHour',23,'ЧЧ'],['firstMinute',59,'ММ'],['secondHour',23,'ЧЧ'],['secondMinute',59,'ММ']]){
-    const select=form.elements.namedItem(name);
-    const empty=new Option(placeholder,'');empty.selected=true;empty.disabled=true;select.add(empty);
-    for(let value=0;value<=max;value++){const padded=String(value).padStart(2,'0');select.add(new Option(padded,padded));}
+   form.innerHTML='<label>Название <input name="name" required></label><label>Дата <input name="date" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';
+   for(const name of ['first','second']){
+    const field=form.elements.namedItem(name);
+    field.addEventListener('input',()=>{
+     const digits=field.value.replace(/\\D/g,'').slice(0,4);
+     if(/^\\d{2}:\\d{2}$/.test(field.value))return;
+     if(digits.length>=3)field.value=digits.slice(0,2)+':'+digits.slice(2);
+    });
+    const button=form.querySelector('[data-picker="'+name+'"]');
+    button.onclick=()=>{
+     const existing=button.nextElementSibling;
+     if(existing&&existing.dataset.timePicker===name){existing.remove();return;}
+     const picker=document.createElement('span');picker.dataset.timePicker=name;
+     const hour=document.createElement('select'),minute=document.createElement('select');
+     hour.setAttribute('aria-label','Часы');minute.setAttribute('aria-label','Минуты');
+     const current=/^(\\d{2}):(\\d{2})$/.exec(field.value);
+     for(let i=0;i<24;i++){const v=String(i).padStart(2,'0');hour.add(new Option(v,v));}
+     for(let i=0;i<60;i++){const v=String(i).padStart(2,'0');minute.add(new Option(v,v));}
+     if(current){hour.value=current[1];minute.value=current[2];}
+     const apply=()=>{field.value=hour.value+':'+minute.value;field.dispatchEvent(new Event('change',{bubbles:true}));};
+     hour.onchange=apply;minute.onchange=apply;
+     picker.append(hour,document.createTextNode(' : '),minute);
+     button.after(picker);apply();
+    };
    }
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
-    const first=data.get('firstHour')+':'+data.get('firstMinute'),second=data.get('secondHour')+':'+data.get('secondMinute');
+    const first=String(data.get('first')),second=String(data.get('second'));
     if(first===second){notice('Расчётные времена должны различаться.');return;}
     try{
      await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),scheduleType:'daily',startDate:String(data.get('date')),endDate:String(data.get('date')),times:[first,second].sort(),active:true,rowHistory:[{action:'created',at:new Date().toISOString()}]});
