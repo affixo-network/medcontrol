@@ -300,9 +300,10 @@
     history.append(summaryTitle);
     for(const entry of med.rowHistory||[]){
      const line=document.createElement('p');
-     const labels={created:'Создано',completed:'Завершён',cancelled:'Отменён',times_changed:'Изменены времена приёма',schedule_changed:'Изменено расписание',details_changed:'Изменены сведения'};
+     const labels={created:'Создано',completed:'Завершён',cancelled:'Отменён',times_changed:'Изменены времена приёма',schedule_changed:'Изменено расписание',details_changed:'Изменены сведения',edited:'Изменён режим препарата'};
      const action=labels[entry.action]||entry.action||'Событие';
      line.textContent=(entry.at?new Date(entry.at).toLocaleString()+' — ':'')+action;
+     if(entry.action==='edited'&&entry.details)line.textContent+=': '+entry.details;
      if(entry.action==='times_changed'){
       line.textContent+=': '+(entry.previousTimes||[]).join(', ')+' → '+(entry.newTimes||[]).join(', ');
      }else if(entry.action==='schedule_changed'){
