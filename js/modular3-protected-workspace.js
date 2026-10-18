@@ -364,6 +364,18 @@
      const p=document.createElement('p');
      p.textContent=(taken?'Принято':'Не принято')+': расчётное '+new Date(plannedAt).toLocaleString()+(taken?'; фактическое '+new Date(taken.actualAt).toLocaleString():'');
      article.append(p);
+     if(section==='archive'&&events.length){
+      const timeline=document.createElement('details');
+      const caption=document.createElement('summary');caption.textContent='История событий ('+events.length+')';timeline.append(caption);
+      for(const entry of events){
+       const line=document.createElement('p');
+       const kind=entry.action==='taken'?'Принято':['cancelled','cancel_taken','undo_taken'].includes(entry.action)?'Отмена «Принято»':String(entry.action||'Событие');
+       const at=entry.actualAt||entry.createdAt;
+       line.textContent=kind+(at?' — '+new Date(at).toLocaleString():'');
+       timeline.append(line);
+      }
+      article.append(timeline);
+     }
     }
    }
    screen.append(article);
