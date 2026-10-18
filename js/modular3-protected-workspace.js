@@ -60,7 +60,7 @@
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
     const first=String(data.get('first')),second=String(data.get('second'));
-    if(second&&first===second){notice('Расчётные времена должны различаться.');return;}if(String(data.get('endDate'))<String(data.get('date'))){notice('Дата окончания раньше даты начала.');return;}
+    if(second&&first===second){notice('Расчётные времена должны различаться.');return;}if(String(data.get('scheduleType')||'daily')!=='explicit_dates'&&String(data.get('endDate'))<String(data.get('date'))){notice('Дата окончания раньше даты начала.');return;}
     const scheduleType=String(data.get('scheduleType')||'daily');
     const weekdays=data.getAll('weekday').map(String);
     const explicitDates=String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort();
