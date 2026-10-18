@@ -8,6 +8,17 @@
  const CRED=root.MedControlModular3OfflineCredential;
  if(!VAULT||!CRED)throw Error('Protected migration dependencies unavailable');
  const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ function validateLegacy(parsed){
+  if(!parsed||typeof parsed!=='object'||!Array.isArray(parsed.medications)||!Array.isArray(parsed.intakeLogs))throw Error('legacy_invalid_shape');
+  const counts={medications:parsed.medications.length,intakeLogs:parsed.intakeLogs.length};
+  for(const key of ['intakeCorrections','archiveHistory','archivedCourses','timeHistory']){
+   if(Object.prototype.hasOwnProperty.call(parsed,key)){
+    if(!Array.isArray(parsed[key]))throw Error('legacy_invalid_'+key);
+    counts[key]=parsed[key].length;
+   }
+  }
+  return counts;
+ }
  function inspect(){
   const source=localStorage.getItem(SOURCE);
   const destinationPresent=localStorage.getItem(DEST)!==null;
@@ -15,15 +26,8 @@
   if(source===null)return Object.freeze({ready:false,reason:'legacy_missing',destinationPresent,credentialPresent});
   let parsed;
   try{parsed=JSON.parse(source);}catch(_){return Object.freeze({ready:false,reason:'legacy_invalid_json',destinationPresent,credentialPresent});}
-  if(!parsed||typeof parsed!=='object'||!Array.isArray(parsed.medications)||!Array.isArray(parsed.intakeLogs))
-   return Object.freeze({ready:false,reason:'legacy_invalid_shape',destinationPresent,credentialPresent});
-  const counts={medications:parsed.medications.length,intakeLogs:parsed.intakeLogs.length};
-  for(const key of ['intakeCorrections','archiveHistory','archivedCourses','timeHistory']){
-   if(Object.prototype.hasOwnProperty.call(parsed,key)){
-    if(!Array.isArray(parsed[key]))return Object.freeze({ready:false,reason:'legacy_invalid_'+key,destinationPresent,credentialPresent});
-    counts[key]=parsed[key].length;
-   }
-  }
+  let counts;
+  try{counts=validateLegacy(parsed);}catch(error){return Object.freeze({ready:false,reason:error.message,destinationPresent,credentialPresent});}
   return Object.freeze({ready:!destinationPresent&&!credentialPresent,reason:destinationPresent||credentialPresent?'protected_account_exists':'ready',destinationPresent,credentialPresent,counts:Object.freeze(counts)});
  }
  async function preview(password){
@@ -31,7 +35,7 @@
   const original=localStorage.getItem(SOURCE);
   if(!original)throw Error('Legacy data not found');
   const parsed=JSON.parse(original);
-  if(!parsed||!Array.isArray(parsed.medications)||!Array.isArray(parsed.intakeLogs))throw Error('Invalid legacy data');
+  validateLegacy(parsed);
   const encrypted=await VAULT.seal(parsed,password);
   const restored=await VAULT.open(encrypted,password);
   if(!equal(parsed,restored))throw Error('Round-trip mismatch');
@@ -43,7 +47,7 @@
   const destination=localStorage.getItem(DEST);
   if(!source||!destination||localStorage.getItem(CREDENTIAL)!==null)throw Error('No recoverable migration checkpoint');
   const original=JSON.parse(source);
-  if(!original||!Array.isArray(original.medications)||!Array.isArray(original.intakeLogs))throw Error('Invalid legacy data');
+  validateLegacy(original);
   const restored=await VAULT.open(JSON.parse(destination),password);
   if(!equal(restored,original))throw Error('Checkpoint does not match original');
   if(localStorage.getItem(SOURCE)!==source||localStorage.getItem(DEST)!==destination||localStorage.getItem(CREDENTIAL)!==null)throw Error('Migration state changed');
