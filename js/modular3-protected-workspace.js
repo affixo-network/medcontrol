@@ -449,6 +449,38 @@
    show();
   }catch(error){notice('Перенос не завершён: '+error.message+'. Исходная история не удалялась.');}
  };
+ document.getElementById('recover').onclick=async()=>{
+  const key='medcontrol_modular3_protected_state_v1';
+  const credential='medcontrol_modular3_local_credential_v1';
+  const source='affixo_medcontrol_standard_v3';
+  const button=document.getElementById('recover');
+  const entered=password.value;
+  if(!entered){notice('Введите пароль, использованный при создании защищённой копии.');return;}
+  if(localStorage.getItem(credential)!==null){
+   notice('Локальный пароль уже зарегистрирован. Для открытия данных нажмите «Войти».');return;
+  }
+  if(localStorage.getItem(key)===null){
+   notice('Незавершённая зашифрованная копия не найдена. Ничего не изменено.');return;
+  }
+  if(!window.confirm('Завершить восстановление защищённого хранилища? Существующая зашифрованная копия и исходные данные не будут удалены.'))return;
+  button.disabled=true;
+  try{
+   const before=localStorage.getItem(key);
+   if(localStorage.getItem(source)!==null){
+    await window.MedControlModular3CopyMigration.resume(entered);
+   }else{
+    // Recover interrupted initialize(): enroll() verifies the password by decrypting the saved vault.
+    await window.MedControlModular3OfflineCredential.enroll(entered);
+   }
+   if(localStorage.getItem(key)!==before)throw Error('Зашифрованная копия неожиданно изменилась');
+   if(!await session.unlock(entered))throw Error('Не удалось открыть восстановленное хранилище');
+   password.value='';
+   notice('Доступ восстановлен. Зашифрованные данные проверены и открыты.');
+   show();
+  }catch(error){
+   notice('Восстановление не завершено: '+error.message+'. Сохранённые данные не удалялись.');
+  }finally{button.disabled=false;}
+ };
  document.getElementById('unlock').onclick=async()=>{try{if(await session.unlock(password.value)){password.value='';notice('Автономный вход выполнен.');show();}else notice('Неверный пароль.');}catch(error){notice('Ошибка входа: '+error.message);}};
  document.getElementById('enroll').onclick=async()=>{try{await session.initialize({settings:{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},medications:[],intakeLogs:[]},password.value);password.value='';notice('Защищённое хранилище создано.');show();}catch(error){notice('Не удалось создать хранилище: '+error.message);}};
  document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{section=button.dataset.tab;render();});
