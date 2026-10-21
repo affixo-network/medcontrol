@@ -87,29 +87,10 @@
         }
 
         if(!med.archivedCompleted){
-          const completedCreatedAt=createdAtOf(med);
-          const newerCourse=(state.medications||[]).find(candidate=>{
-            if(candidate.id===med.id||candidate.cancelled||candidate.courseCompleted)return false;
-            if(!sameMedicationTemplate(med,candidate))return false;
-            const candidateCreatedAt=createdAtOf(candidate);
-            if(!candidateCreatedAt||!completedCreatedAt)return false;
-            if(new Date(candidateCreatedAt)<=new Date(completedCreatedAt))return false;
-            const oldEnd=medicationLastDate(med);
-            const newStart=candidate.startDate||((candidate.explicitDates||[]).filter(Boolean).slice().sort()[0]||'');
-            return Boolean(!oldEnd||!newStart||newStart>oldEnd);
-          });
-          if(newerCourse){
-            med.archivedCompleted=true;
-            med.archivedAt=createdAtOf(newerCourse)||nowISO();
-            changed=true;
-          }else{
-            const autoArchiveAt=sevenDaysAfterISO(completedAt);
-            if(autoArchiveAt&&new Date(nowISO())>=new Date(autoArchiveAt)){
-              med.archivedCompleted=true;
-              med.archivedAt=autoArchiveAt;
-              changed=true;
-            }
-          }
+          // Completion and archival are one transition; keep all rows and intake history.
+          med.archivedCompleted=true;
+          med.archivedAt=completedAt;
+          changed=true;
         }
       }
       if(!shouldBeCompleted&&med.courseCompleted){
@@ -148,7 +129,32 @@
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
-      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedHelp=document.createElement('p');completedHelp.className='muted';completedHelp.textContent='Завершённый курс можно повторить или отправить в архив. Если в течение 7 дней после завершения курс не будет повторён, он автоматически перейдёт в Архив.';completedSection.appendChild(completedHelp);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
+      // Warn while the course can still be edited, never postpone archival after completion.
+      const today=currentLocalDate();
+      const soon=dateISOPlusDays(today,3);
+      const nearing=current.filter(med=>{
+        const end=medicationLastDate(med);
+        return !med.courseCompleted&&Boolean(end)&&end>=today&&end<=soon;
+      });
+      if(nearing.length){
+        const reminder=document.createElement('section');
+        reminder.className='card';
+        const heading=document.createElement('h2');
+        heading.textContent='Скорое завершение курса';
+        reminder.appendChild(heading);
+        const help=document.createElement('p');
+        help.className='muted';
+        help.textContent='Если требуется продолжение, измените дату окончания заранее или создайте новый курс. После завершения курс автоматически перейдёт в Архив без ожидания.';
+        reminder.appendChild(help);
+        const list=document.createElement('ul');
+        nearing.forEach(med=>{
+          const item=document.createElement('li');
+          item.textContent=(med.name||'Препарат')+' — дата окончания: '+medicationLastDate(med);
+          list.appendChild(item);
+        });
+        reminder.appendChild(list);
+        anchor.before(reminder);
+      }
     };
   }
   window.repeatCompletedCourse=function(id){
