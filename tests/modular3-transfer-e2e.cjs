@@ -122,6 +122,29 @@ async function run(){
   console.log('PASS 6: source courses untouched');
   assert.deepEqual(errors,[],'Unexpected page script errors');
   console.log('PASS 7: no uncaught browser script errors');
+
+  // Regression: a currently active course with an intake log must not appear in Archive.
+  await page.evaluate(async()=>{
+   await window.MedControlModular3ProtectedSession.transact(state=>{
+    state.medications.push({
+     id:'ongoing-regression',name:'ONGOING_REGRESSION_COURSE',
+     active:true,cancelled:false,archivedCompleted:false,
+     times:['12:30'],startDate:'2026-10-05',endDate:'2030-10-12'
+    });
+    state.intakeLogs.push({
+     id:'ongoing-log',medicationId:'ongoing-regression',
+     action:'taken',plannedAt:'2026-10-12T12:30:00+04:00',
+     actualAt:'2026-10-12T12:31:00+04:00'
+    });
+   });
+  });
+  await page.locator('[data-tab="archive"]').click();
+  assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('ONGOING_REGRESSION_COURSE')),false,
+   'An ongoing medication with prior intake must not appear in Archive');
+  assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('SYNTHETIC_COURSE_1')),true,
+   'An archived medication must remain visible');
+  console.log('PASS 8: Archive excludes ongoing courses even when they have intake history');
+
  }finally{
   if(browser)await browser.close();
   if(legacy)await new Promise(r=>legacy.close(r));
