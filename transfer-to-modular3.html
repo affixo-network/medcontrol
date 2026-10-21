@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedControl — защищённый перенос в Modular-3</title>
+<style>body{max-width:760px;margin:32px auto;padding:16px;font:16px/1.5 Arial,sans-serif;color:#172033}section{border:1px solid #d6dce5;border-radius:12px;padding:22px}label{display:block;margin:12px 0}input{display:block;padding:11px;width:min(100%,460px);box-sizing:border-box}button{padding:12px 17px;cursor:pointer}#status{white-space:pre-wrap}</style></head><body>
+<section><h1>Зашифрованный перенос в Modular-3</h1><p>Создаётся только зашифрованный файл для переноса. Текущие препараты, история и архив остаются без изменений.</p>
+<p id="count">Проверка локальных данных…</p>
+<label>Пароль для Modular-3 (не менее 12 символов)<input type="password" id="secret" minlength="12" autocomplete="new-password"></label>
+<button id="save" type="button" disabled>Создать зашифрованную копию</button><p id="status" role="status"></p></section>
+<script src="/js/modular3-encrypted-vault.js"></script><script>
+(()=>{'use strict';
+const sourceKey='affixo_medcontrol_standard_v3',status=document.getElementById('status'),count=document.getElementById('count'),button=document.getElementById('save');
+let captured='';
+function load(){
+ try{captured=localStorage.getItem(sourceKey)||'';
+  if(!captured)throw Error('Локальные данные на этом адресе не найдены. Ничего не изменено.');
+  const state=JSON.parse(captured);
+  if(!state||!Array.isArray(state.medications)||!Array.isArray(state.intakeLogs))throw Error('Неверная структура исходного хранилища');
+  for(const field of ['intakeCorrections','archiveHistory','archivedCourses','timeHistory'])
+   if(Object.prototype.hasOwnProperty.call(state,field)&&!Array.isArray(state[field]))throw Error('Повреждено поле '+field);
+  count.textContent='Найдено курсов: '+state.medications.length+'; событий приёма: '+state.intakeLogs.length+'.';
+  button.disabled=false;
+ }catch(error){status.textContent=error.message;}
+}
+button.onclick=async()=>{
+ const secret=document.getElementById('secret').value;
+ if(secret.length<12){status.textContent='Введите пароль длиной не менее 12 символов.';return;}
+ button.disabled=true;
+ try{
+  const current=localStorage.getItem(sourceKey);
+  if(!current||current!==captured)throw Error('Данные изменились. Обновите страницу и повторите проверку.');
+  const state=JSON.parse(current),vault=window.MedControlModular3EncryptedVault;
+  const encrypted=await vault.seal(state,secret);
+  const verified=await vault.open(encrypted,secret);
+  if(JSON.stringify(verified)!==current)throw Error('Зашифрованная копия не совпадает с исходником');
+  if(localStorage.getItem(sourceKey)!==current)throw Error('Данные изменились во время экспорта');
+  const packed=JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted});
+  const objectUrl=URL.createObjectURL(new Blob([packed],{type:'application/json'}));
+  const link=document.createElement('a');link.href=objectUrl;link.download='medcontrol-encrypted-transfer.json';
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+  status.textContent='Зашифрованный файл подготовлен. Исходные данные не изменены. Используйте тот же пароль в Modular-3.';
+ }catch(error){status.textContent='Экспорт не завершён: '+error.message;}
+ finally{button.disabled=false;}
+};
+load();
+})();
+</script></body></html>
