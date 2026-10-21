@@ -61,6 +61,18 @@ async function run(){
   console.log('PASS 1: encrypted export without plaintext names');
   const protectedUrl='http://127.0.0.1:'+ports.protected+'/modular3-protected.html';
   await page.goto(protectedUrl,{waitUntil:'load'});
+  // Reject plaintext files before a vault is created: no partial protected storage.
+  await page.locator('#legacy-backup').setInputFiles({
+   name:'plaintext-medical-history.json',mimeType:'application/json',
+   buffer:Buffer.from(JSON.stringify(original))
+  });
+  await page.locator('#password').fill(TEST_PASSWORD);
+  page.once('dialog',dialog=>dialog.accept());
+  await page.locator('#import-backup').click();
+  await page.waitForFunction(()=>document.getElementById('message').textContent.includes('Encrypted MedControl transfer file required'));
+  assert.equal(await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),null);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_local_credential_v1')),null);
+  console.log('PASS 1a: plaintext import refused without creating vault or credentials');
   await page.locator('#legacy-backup').setInputFiles({name:'medcontrol-encrypted-transfer.json',mimeType:'application/json',buffer:Buffer.from(bytes)});
   await page.locator('#password').fill('Wrong-passphrase-123');
   page.once('dialog',dialog=>dialog.accept());
@@ -99,7 +111,7 @@ async function run(){
   // Fail explicitly if the service worker cannot control the app before disconnecting.
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
   const offlineFiles=await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v7');
+   const cache=await caches.open('medcontrol-static-modular3-v8');
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
     '/js/modular3-offline-credential.js','/js/modular3-protected-session.js',
     '/js/modular3-write-boundary.js','/js/modular3-protected-pages.js',

@@ -1,6 +1,6 @@
 /* Modular-3 offline application shell. Medical data and credentials are never cached. */
 'use strict';
-const VERSION='medcontrol-static-modular3-v7';
+const VERSION='medcontrol-static-modular3-v8';
 const PAGES=['/input.html','/action.html','/dashboard.html','/archive.html','/modular3-protected.html'];
 const CORE=['/js/auth-guard.js','/js/modular3-script-loader.js','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-course-lifecycle-browser.js','/js/modular3-protected-pages.js','/js/modular3-write-boundary.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
 const allowed=path=>PAGES.includes(path)||/^\/js\/[a-zA-Z0-9._/-]+\.js$/.test(path)||path==='/core.js';
