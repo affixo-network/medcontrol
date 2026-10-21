@@ -449,6 +449,26 @@
    show();
   }catch(error){notice('Перенос не завершён: '+error.message+'. Исходная история не удалялась.');}
  };
+ document.getElementById('import-backup').onclick=async()=>{
+  const selected=document.getElementById('legacy-backup').files?.[0];
+  const button=document.getElementById('import-backup');
+  if(!selected){notice('Выберите резервную копию MedControl в формате JSON.');return;}
+  if(selected.size>20*1024*1024){notice('Файл превышает допустимый размер 20 МБ.');return;}
+  if(!password.value||password.value.length<12){notice('Введите новый локальный пароль длиной не менее 12 символов.');return;}
+  if(!window.confirm('Зашифровать выбранную резервную копию? Существующие данные не будут перезаписаны.'))return;
+  button.disabled=true;
+  const entered=password.value;
+  try{
+   const raw=await selected.text();
+   const result=await window.MedControlModular3CopyMigration.importBackup(raw,entered);
+   if(!await session.unlock(entered))throw Error('Не удалось открыть зашифрованную копию');
+   password.value='';
+   document.getElementById('legacy-backup').value='';
+   notice('Резервная копия зашифрована и проверена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
+   show();
+  }catch(error){notice('Импорт не завершён: '+error.message+'. Исходный файл не изменён.');}
+  finally{button.disabled=false;}
+ };
  document.getElementById('recover').onclick=async()=>{
   const key='medcontrol_modular3_protected_state_v1';
   const credential='medcontrol_modular3_local_credential_v1';
