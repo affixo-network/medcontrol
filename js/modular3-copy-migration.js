@@ -86,10 +86,13 @@
    if(localStorage.getItem(DEST)!==null||localStorage.getItem(CREDENTIAL)!==null)throw Error('Protected account already exists');
    let documentState;
    try{documentState=JSON.parse(raw);}catch(_){throw Error('Backup is not valid JSON');}
-   const candidate=documentState&&typeof documentState==='object'&&documentState.state&&typeof documentState.state==='object'?documentState.state:documentState;
+   const encryptedTransfer=documentState?.format==='medcontrol-encrypted-transfer-v1';
+   const candidate=encryptedTransfer
+    ?await VAULT.open(documentState.encrypted,password)
+    :(documentState&&typeof documentState==='object'&&documentState.state&&typeof documentState.state==='object'?documentState.state:documentState);
    validateLegacy(candidate);
    const source=JSON.stringify(candidate);
-   const encrypted=await VAULT.seal(candidate,password);
+   const encrypted=encryptedTransfer?documentState.encrypted:await VAULT.seal(candidate,password);
    if(!equal(await VAULT.open(encrypted,password),candidate))throw Error('Backup encryption verification failed');
    if(localStorage.getItem(DEST)!==null||localStorage.getItem(CREDENTIAL)!==null)throw Error('Protected account already exists');
    const checkpoint=JSON.stringify(encrypted);
