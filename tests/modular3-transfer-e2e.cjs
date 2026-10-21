@@ -87,6 +87,19 @@ async function run(){
   const restored=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.deepEqual(restored,original);
   console.log('PASS 3: seven courses, intake, history and corrections restored exactly');
+
+  // UI parity: all seven archived courses and old events must be accessible.
+  await page.locator('[data-tab="archive"]').click();
+  assert.equal(await page.locator('#screen article').count(),7,'All seven archived courses must appear in Archive');
+  await page.getByRole('button',{name:'Принято',exact:true}).click();
+  await page.getByLabel('Период истории').selectOption('all');
+  const archiveOne=page.locator('#screen article').filter({hasText:'SYNTHETIC_COURSE_1'});
+  await archiveOne.getByText('История событий (1)').waitFor({state:'visible'});
+  assert.match(await archiveOne.innerText(),/Принято.*расчётное/);
+  await page.getByRole('button',{name:'Свернуть'}).click();
+  await page.locator('[data-tab="input"]').click();
+  console.log('PASS 3b: seven archived courses visible, historical events selectable for entire period');
+
   const persistedEntries=await page.evaluate(()=>Object.fromEntries(
    Array.from({length:localStorage.length},(_,i)=>localStorage.key(i))
     .map(key=>[key,localStorage.getItem(key)])
