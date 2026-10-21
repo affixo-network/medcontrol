@@ -99,7 +99,7 @@ async function run(){
   // Fail explicitly if the service worker cannot control the app before disconnecting.
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
   const offlineFiles=await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v6');
+   const cache=await caches.open('medcontrol-static-modular3-v7');
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
     '/js/modular3-offline-credential.js','/js/modular3-protected-session.js',
     '/js/modular3-write-boundary.js','/js/modular3-protected-pages.js',

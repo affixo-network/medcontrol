@@ -406,6 +406,19 @@
      const p=document.createElement('p');
      p.textContent=(taken?'Принято':'Не принято')+': расчётное '+new Date(plannedAt).toLocaleString()+(taken?'; фактическое '+new Date(taken.actualAt).toLocaleString():'');
      article.append(p);
+     if(section==='archive'&&taken){
+      const undo=document.createElement('button');undo.type='button';
+      undo.textContent='Отменить «Принято» (случайность)';
+      undo.onclick=async()=>{
+       if(!window.confirm('Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.'))return;
+       undo.disabled=true;
+       try{
+        await pages.cancelIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString()});
+        notice('Отмена зашифрована и сохранена.');render();
+       }catch(error){undo.disabled=false;notice('Ошибка отмены: '+error.message);}
+      };
+      article.append(undo);
+     }
      if(section==='archive'&&events.length){
       const timeline=document.createElement('details');
       const caption=document.createElement('summary');caption.textContent='История событий ('+events.length+')';timeline.append(caption);

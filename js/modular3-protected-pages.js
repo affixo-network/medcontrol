@@ -6,7 +6,8 @@
  'use strict';
  const session=root.MedControlModular3ProtectedSession;
  const boundary=root.MedControlModular3WriteBoundary;
- if(!session||!boundary)throw Error('Protected write boundary unavailable');
+ const lifecycle=root.MedControlModular3CourseLifecycle;
+ if(!session||!boundary||!lifecycle)throw Error('Protected write boundary or lifecycle unavailable');
  const PAGES=Object.freeze(['input','action','dashboard','archive']);
  const adapter={
   pages:PAGES,
@@ -34,7 +35,7 @@
     const events=state.intakeLogs.filter(x=>x.medicationId===event.medicationId&&x.plannedAt===event.plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
     const active=events.reduce((taken,x)=>x.action==='taken'?true:(['cancelled','cancel_taken','undo_taken'].includes(x.action)?false:taken),false);
     if(active)throw Error('Intake already recorded');
-    state.intakeLogs.push(structuredClone(event));
+    lifecycle.take(state,event);
    });
   },
   async cancelIntake(event){
@@ -45,7 +46,7 @@
     const active=events.reduce((taken,x)=>x.action==='taken'?true:(['cancelled','cancel_taken','undo_taken'].includes(x.action)?false:taken),false);
     if(!active)throw Error('No active intake to cancel');
     if(state.intakeLogs.some(x=>x.id===event.id))throw Error('Duplicate cancellation');
-    state.intakeLogs.push({...structuredClone(event),action:'cancel_taken'});
+    lifecycle.cancel(state,event);
    });
   },
   async changeCourse(id,mutator){
