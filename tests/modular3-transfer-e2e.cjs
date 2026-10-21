@@ -82,7 +82,17 @@ async function run(){
   await page.locator('#workspace').waitFor({state:'visible'});
   assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read()),original);
   console.log('PASS 4: protected re-login retains all records');
-  await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,{timeout:30000}).catch(()=>{});
+  // Fail explicitly if the service worker cannot control the app before disconnecting.
+  await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
+  const offlineFiles=await page.evaluate(async()=>{
+   const cache=await caches.open('medcontrol-static-modular3-v6');
+   const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
+    '/js/modular3-offline-credential.js','/js/modular3-protected-session.js',
+    '/js/modular3-write-boundary.js','/js/modular3-protected-pages.js',
+    '/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
+   return Promise.all(paths.map(async path=>({path,present:!!(await cache.match(path))})));
+  });
+  assert.deepEqual(offlineFiles.filter(file=>!file.present),[],'Offline shell incomplete before disconnect');
   await context.setOffline(true);
   await page.locator('#lock').click();
   await page.reload({waitUntil:'domcontentloaded',timeout:15000});
