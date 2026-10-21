@@ -78,5 +78,37 @@
    throw error;
   }
  }
- root.MedControlModular3CopyMigration=Object.freeze({inspect,preview,commit,resume});
+ async function importBackup(raw,password){
+  // Import a user-selected local backup without ever persisting its plaintext.
+  if(typeof raw!=='string'||!raw.length||raw.length>20*1024*1024)throw Error('Invalid backup file size');
+  if(!navigator.locks?.request)throw Error('Cross-tab storage locking unavailable');
+  return navigator.locks.request('medcontrol-modular3-initialize',{mode:'exclusive'},async()=>{
+   if(localStorage.getItem(DEST)!==null||localStorage.getItem(CREDENTIAL)!==null)throw Error('Protected account already exists');
+   let documentState;
+   try{documentState=JSON.parse(raw);}catch(_){throw Error('Backup is not valid JSON');}
+   const candidate=documentState&&typeof documentState==='object'&&documentState.state&&typeof documentState.state==='object'?documentState.state:documentState;
+   validateLegacy(candidate);
+   const source=JSON.stringify(candidate);
+   const encrypted=await VAULT.seal(candidate,password);
+   if(!equal(await VAULT.open(encrypted,password),candidate))throw Error('Backup encryption verification failed');
+   if(localStorage.getItem(DEST)!==null||localStorage.getItem(CREDENTIAL)!==null)throw Error('Protected account already exists');
+   const checkpoint=JSON.stringify(encrypted);
+   localStorage.setItem(DEST,checkpoint);
+   try{
+    if(localStorage.getItem(DEST)!==checkpoint)throw Error('Encrypted backup not persisted');
+    if(!equal(await VAULT.open(JSON.parse(checkpoint),password),candidate))throw Error('Encrypted backup content mismatch');
+    await CRED.enroll(password);
+    if(!await CRED.unlock(password))throw Error('Credential verification failed');
+    if(localStorage.getItem(DEST)!==checkpoint)throw Error('Encrypted backup changed');
+    if(!equal(await VAULT.open(JSON.parse(localStorage.getItem(DEST)),password),JSON.parse(source)))throw Error('Imported backup mismatch');
+    return Object.freeze({medications:candidate.medications.length,intakeLogs:candidate.intakeLogs.length,sourcePreserved:true});
+   }catch(error){
+    // Never delete a checkpoint after credentials were created: the pair may be accessible.
+    if(localStorage.getItem(CREDENTIAL)===null&&localStorage.getItem(DEST)===checkpoint)
+     localStorage.removeItem(DEST);
+    throw error;
+   }
+  });
+ }
+ root.MedControlModular3CopyMigration=Object.freeze({inspect,preview,commit,resume,importBackup});
 })(typeof window!=='undefined'?window:globalThis);
