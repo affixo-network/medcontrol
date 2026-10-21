@@ -75,6 +75,20 @@ async function run(){
   const restored=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.deepEqual(restored,original);
   console.log('PASS 3: seven courses, intake, history and corrections restored exactly');
+  const persistedEntries=await page.evaluate(()=>Object.fromEntries(
+   Array.from({length:localStorage.length},(_,i)=>localStorage.key(i))
+    .map(key=>[key,localStorage.getItem(key)])
+  ));
+  for(const [key,value] of Object.entries(persistedEntries)){
+   assert.equal(value.includes('SYNTHETIC_COURSE_1'),false,
+    'Unencrypted medical course leaked into protected localStorage key '+key);
+   assert.equal(value.includes('correction-1'),false,
+    'Unencrypted correction history leaked into protected localStorage key '+key);
+  }
+  assert.ok(persistedEntries.medcontrol_modular3_protected_state_v1,
+   'Encrypted vault is missing after import');
+  console.log('PASS 3a: no plaintext medication or correction in protected localStorage');
+
   await page.locator('#lock').click();
   await page.reload();
   await page.locator('#password').fill(TEST_PASSWORD);
