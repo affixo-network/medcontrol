@@ -2,7 +2,12 @@
 (function(root){
  'use strict';
  const encoder=new TextEncoder(),decoder=new TextDecoder();
- const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+ const b64=b=>{
+  const bytes=new Uint8Array(b),parts=[];
+  for(let offset=0;offset<bytes.length;offset+=0x8000)
+   parts.push(String.fromCharCode(...bytes.subarray(offset,offset+0x8000)));
+  return btoa(parts.join(''));
+ };
  const un64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
  const ITERATIONS=310000;
  async function derive(secret,salt){
