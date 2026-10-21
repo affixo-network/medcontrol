@@ -164,7 +164,7 @@
    return;
   }
   for(const med of state.medications){
-   if(section==='archive'&&!(med.cancelled||med.archivedCompleted||med.active===false)&&!(state.intakeLogs||[]).some(log=>log.medicationId===med.id))continue;
+   if(section==='archive'&&!(med.cancelled||med.archivedCompleted))continue;
    if(section==='action'&&(med.cancelled||med.archivedCompleted||med.active===false))continue;
    const article=document.createElement('article');
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
