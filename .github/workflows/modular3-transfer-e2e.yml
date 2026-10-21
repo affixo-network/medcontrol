@@ -1,0 +1,53 @@
+name: Modular-3 Encrypted Transfer E2E
+on:
+  push:
+    branches:
+      - modular-3.000
+    paths:
+      - 'tests/modular3-transfer-e2e.cjs'
+      - 'js/modular3-*.js'
+      - 'modular3-protected.html'
+      - 'modular3-static-cache-sw.js'
+      - '.github/workflows/modular3-transfer-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  encrypted-transfer-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout reviewed Modular-3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Stage isolated static test sites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p legacy/js protected/js
+          git show origin/modular-2.000:transfer-to-modular3.html > legacy/transfer-to-modular3.html
+          git show origin/modular-2.000:js/modular3-encrypted-vault.js > legacy/js/modular3-encrypted-vault.js
+          cp modular3-protected.html modular3-static-cache-sw.js protected/
+          cp js/modular3-*.js protected/js/
+          cp input.html action.html dashboard.html archive.html protected/
+          cp js/auth-guard.js js/modular3-script-loader.js protected/js/
+          test -s legacy/transfer-to-modular3.html
+          test -s protected/modular3-protected.html
+
+      - name: Install pinned Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.57.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser E2E (synthetic records only)
+        run: node tests/modular3-transfer-e2e.cjs
