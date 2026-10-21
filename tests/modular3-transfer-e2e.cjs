@@ -118,7 +118,7 @@ async function run(){
   await context.setOffline(false);
   const noSource=await context.newPage();
   await noSource.goto('http://127.0.0.1:'+ports.legacy+'/transfer-to-modular3.html');
-  assert.equal(await noSource.evaluate(()=>JSON.parse(localStorage.getItem('affixo_medcontrol_standard_v3')).medications.length),7);
+  assert.deepEqual(await noSource.evaluate(()=>JSON.parse(localStorage.getItem('affixo_medcontrol_standard_v3'))),original,'Complete original history must remain unchanged');
   console.log('PASS 6: source courses untouched');
   assert.deepEqual(errors,[],'Unexpected page script errors');
   console.log('PASS 7: no uncaught browser script errors');
@@ -144,6 +144,66 @@ async function run(){
   assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('SYNTHETIC_COURSE_1')),true,
    'An archived medication must remain visible');
   console.log('PASS 8: Archive excludes ongoing courses even when they have intake history');
+
+  // New lifecycle regression: final intake, encrypted persistence, Archive undo.
+  const finalIntake=await page.evaluate(async()=>{
+   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Asia/Yerevan',year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+   }).formatToParts(new Date()).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+   const day=parts.year+'-'+parts.month+'-'+parts.day;
+   const time=parts.hour+':'+parts.minute;
+   const id='final-intake-regression';
+   const plannedAt=new Date().toISOString();
+   await window.MedControlModular3ProtectedPages.createCourse({
+    id,name:'FINAL_INTAKE_REGRESSION',startDate:day,endDate:day,
+    times:[time],scheduleType:'daily',active:true,rowHistory:[]
+   });
+   await window.MedControlModular3ProtectedPages.recordIntake({
+    id:'final-intake-event',medicationId:id,plannedAt,
+    actualAt:new Date().toISOString(),action:'taken'
+   });
+   const state=window.MedControlModular3ProtectedSession.read();
+   return {
+    archived:state.medications.find(x=>x.id===id).archivedCompleted,
+    count:state.intakeLogs.filter(x=>x.medicationId===id).length
+   };
+  });
+  assert.equal(finalIntake.archived,true,'Final intake must archive course in same encrypted write');
+  assert.equal(finalIntake.count,1,'Intake must remain in history');
+  console.log('PASS 9: final intake archives within protected transaction');
+  await page.reload();
+  await page.locator('#password').fill(TEST_PASSWORD);
+  await page.locator('#unlock').click();
+  await page.locator('#workspace').waitFor({state:'visible'});
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='final-intake-regression').archivedCompleted),true);
+  console.log('PASS 10: automatic Archive persists across restart');
+  await page.evaluate(()=>{window.__medcontrolProtectedArchiveOutcome='taken';});
+  await page.locator('[data-tab="archive"]').click();
+  const archivedRow=page.locator('article').filter({hasText:'FINAL_INTAKE_REGRESSION'});
+  await archivedRow.waitFor({state:'visible'});
+  page.once('dialog',dialog=>dialog.accept());
+  await archivedRow.getByRole('button',{name:'Отменить «Принято» (случайность)'}).click();
+  await page.waitForFunction(()=>{
+   const state=window.MedControlModular3ProtectedSession.read();
+   return state.medications.find(x=>x.id==='final-intake-regression').archivedCompleted===false;
+  });
+  const undone=await page.evaluate(()=>{
+   const state=window.MedControlModular3ProtectedSession.read();
+   return {
+    course:state.medications.find(x=>x.id==='final-intake-regression'),
+    logs:state.intakeLogs.filter(x=>x.medicationId==='final-intake-regression')
+   };
+  });
+  assert.equal(undone.course.active,true);
+  assert.deepEqual(undone.logs.map(x=>x.action),['taken','cancel_taken']);
+  await page.reload();
+  await page.locator('#password').fill(TEST_PASSWORD);
+  await page.locator('#unlock').click();
+  await page.locator('#workspace').waitFor({state:'visible'});
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='final-intake-regression').active),true);
+  console.log('PASS 11: archived accidental intake undo restores active course and history across restart');
+
 
  }finally{
   if(browser)await browser.close();
