@@ -11,15 +11,15 @@
   function windowOpen(medicationId,plannedAt){const base=primary(medicationId,plannedAt);if(!base||base.action!=='taken'||!current(medicationId,plannedAt))return false;if(localDateFromISO(plannedAt)!==currentLocalDate())return false;const d=deadline(medicationId,plannedAt);return Number.isFinite(d)&&Date.now()<d}
 
   const inheritedMarkTaken=window.markTaken;
-  window.markTaken=function(medicationId,plannedAt){
+  window.markTaken=async function(medicationId,plannedAt){
     const base=primary(medicationId,plannedAt),all=list(medicationId,plannedAt),last=all[all.length-1];
     if(base&&last?.after?.action==='reset'&&new Date(last.correctedAt||0)>new Date(base.actualAt||base.at||0)){
       const s=state(),actualAt=nowISO();
       if(!Array.isArray(s.intakeLogs))s.intakeLogs=[];
       s.intakeLogs.push({id:uid(),medicationId,plannedAt,actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')});
-      saveState(s);mount('action');return;
+      (await saveStateAsync(s));(await mount('action'));return;
     }
-    return inheritedMarkTaken(medicationId,plannedAt);
+    return (await inheritedMarkTaken(medicationId,plannedAt));
   };
 
   window.openCorrection=function(medicationId,plannedAt){
@@ -31,7 +31,7 @@
   };
   window.syncCorrectionMode=function(){const reason=document.getElementById('correction_reason')?.value||'',wrap=document.getElementById('correction_time_wrap'),hint=document.getElementById('correction_hint');if(!wrap||!hint)return;if(reason==='accident'){wrap.style.display='none';hint.textContent='Случайность: ошибочная фиксация «Принято» будет снята. Фактическое время очистится, а строка вернётся в текущее временное состояние «Ожидается» или «Не выполнен».'}else if(reason==='error'){wrap.style.display='block';hint.textContent='Ошибка: исправляется фактическое время приёма. Статус «Принято» сохранится, а Табло пересчитает временное отклонение.'}else{wrap.style.display='block';hint.textContent='Выберите причину исправления.'}}
 
-  window.applyCorrection=function(medicationId,plannedAt){
+  window.applyCorrection=async function(medicationId,plannedAt){
     if(!windowOpen(medicationId,plannedAt)){alert('Окно исправления уже закрыто.');return}
     const reason=document.getElementById('correction_reason')?.value||'';if(!reason){alert('Выберите «Случайность» или «Ошибка».');return}
     const s=state(),before=current(medicationId,plannedAt)||primary(medicationId,plannedAt),all=list(medicationId,plannedAt),ordinal=all.length+1;
@@ -44,7 +44,7 @@
       if(!confirm(`Исправление №${ordinal}.\n\nПричина: Ошибка.\nБыло: ${formatDateTime(before.actualAt)}\nСтанет: ${formatDateTime(actualAt)}\n\nПодтвердить?`))return;
       s.intakeCorrections.push({id:uid(),medicationId,plannedAt,primaryLogId:primary(medicationId,plannedAt)?.id||null,ordinal,reason,correctedAt:nowISO(),before:{actualAt:before.actualAt,action:'taken',status:before.status},after});
     }
-    saveState(s);document.getElementById('correctionDialog')?.close();mount('action');
+    (await saveStateAsync(s));document.getElementById('correctionDialog')?.close();(await mount('action'));
   };
 
   function statusText(x){if(!x)return '—';if(x.status==='waiting')return 'Ожидается';if(x.status==='overdue')return 'Просрочено';if(x.status==='missed')return 'Не выполнен';if(x.status==='taken'){if(x.actualAt&&x.plannedMs){const diff=new Date(x.actualAt).getTime()-x.plannedMs;if(diff>1000)return 'С опозданием';if(diff<-1000)return 'Принято раньше';}return 'Принято';}if(x.status==='cancelled')return 'Отменен';return x.status||'—'}

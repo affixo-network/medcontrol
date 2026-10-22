@@ -1,8 +1,8 @@
-(function(){
+window.medcontrolScriptReady = (async function(){
   const LABELS={today:'Только сегодня',future:'Только на последующие дни расписания',today_future:'Сегодня и на последующие дни расписания'};
   function cloneTemporal(source){const out={};['scheduleType','weekdays','explicitDates','startDate','endDate','times'].forEach(k=>{const v=source?.[k];out[k]=Array.isArray(v)?[...v]:(v??'');});return out;}
   function timeDelta(a,b){const before=new Set(a?.times||[]),after=b?.times||[];return after.filter(t=>!before.has(t));}
-  function repair(){
+  async function repair(){
     if(typeof getState!=='function'||typeof saveState!=='function')return;
     const state=getState();let dirty=false;
     (state.medications||[]).forEach(med=>{
@@ -31,8 +31,8 @@
         if(changed.length&&JSON.stringify(entry.changes.times)!==JSON.stringify(changed)){entry.changes.times=[...changed];dirty=true;}
       }
     });
-    if(dirty)saveState(state);
+    if(dirty)(await saveStateAsync(state));
   }
-  repair();
+  (await repair());
   window.repairScopeHistory=repair;
 })();

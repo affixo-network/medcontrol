@@ -58,12 +58,12 @@
 
   const originalSaveMedicationEdit=window.saveMedicationEdit;
   if(typeof originalSaveMedicationEdit==='function'){
-    window.saveMedicationEdit=function(id){
+    window.saveMedicationEdit=async function(id){
       const hidden=document.getElementById('edit_times');
       if(hidden?.dataset.pendingTime==='1'){
         window.addStructuredTime('edit_');
       }
-      return originalSaveMedicationEdit.apply(this,arguments);
+      return (await originalSaveMedicationEdit.apply(this,arguments));
     };
   }
 })();

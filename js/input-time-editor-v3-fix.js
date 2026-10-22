@@ -23,7 +23,7 @@
 
   window.toggleDeleteInputTimeV3=function(){const c=window.__timeEditV3,h=document.getElementById('timeEditHour'),m=document.getElementById('timeEditMinute'),btn=document.getElementById('timeEditDeleteBtn');if(!c||!h||!m||!btn)return;c.deleteCurrent=!c.deleteCurrent;h.disabled=c.deleteCurrent;m.disabled=c.deleteCurrent;btn.textContent=c.deleteCurrent?'Не удалять время':'Удалить время';};
 
-  window.saveInputTimeEditV4=function(){
+  window.saveInputTimeEditV4=async function(){
     const c=window.__timeEditV3,state=getState(),med=(state.medications||[]).find(x=>x.id===c?.id);if(!c||!med)return;
     const oldTime=c.originalTime,newTime=selectedTime(),active=document.getElementById('timeEditStatus')?.value==='active',scope=document.getElementById('timeEditScope')?.value||'daily';
     if(!c.deleteCurrent&&!newTime){alert('Укажите корректное время.');return;}
@@ -46,6 +46,6 @@
 
     med.rowHistory=Array.isArray(med.rowHistory)?med.rowHistory:[];
     med.rowHistory.push({at,action:'edited',scheduleScope:scope==='daily'?null:scope,scheduleScopeLabel:scope==='today'?'Только сегодня':scope==='future'?'Только на последующие дни расписания':scope==='today_future'?'Сегодня и на последующие дни расписания':'',changes:{times:afterTimes,timeStatus:{time:c.deleteCurrent?oldTime:newTime,oldTime,newTime,deleted:c.deleteCurrent,active,scope,date}},payload:c.deleteCurrent?`Время ${oldTime} удалено.`:(newTime!==oldTime?`Время изменено: ${oldTime} → ${newTime}.`:'Изменены данные времени.'),scopeTodayTemporal:scope==='today'?after:(scope==='future'?before:scope==='today_future'?after:null),scopeFutureTemporal:scope==='today'?before:(scope==='future'||scope==='today_future'?after:null)});
-    saveState(state);document.getElementById('timeStatusEditDialog')?.close();mount('input');
+    (await saveStateAsync(state));document.getElementById('timeStatusEditDialog')?.close();(await mount('input'));
   };
 })();

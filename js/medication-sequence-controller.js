@@ -166,8 +166,8 @@
 
   const originalMount = window.mount;
 
-  window.mount = function (...args) {
-    const result = originalMount.apply(this, args);
+  window.mount = async function (...args) {
+    const result = (await originalMount.apply(this, args));
 
     if (args[0] === 'input') {
       window.setTimeout(initializeController, 0);

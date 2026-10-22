@@ -18,16 +18,26 @@ function ensureArchiveNavigation(activePage) {
 function ensureLogoutNavigation() {
   const nav = document.querySelector('.nav'); if (!nav || nav.querySelector('[data-medcontrol-logout]')) return;
   const button = document.createElement('button'); button.type = 'button'; button.dataset.medcontrolLogout = '1'; button.textContent = 'Выйти';
-  button.onclick = () => window.location.assign('/auth-login.html?logout=1'); nav.appendChild(button);
+  button.onclick = async () => {
+    if(window.MedControlModular3ProtectedSession?.isUnlocked()){
+      try{await window.medControlInputDraft?.flush();}
+      catch(error){window.alert('Последние изменения черновика не сохранены. Данные будут заблокированы. '+error.message);}
+      await window.MedControlModular3ProtectedSession.lock();
+      window.location.replace('/input.html');
+      return;
+    }
+    window.location.assign('/auth-login.html?logout=1');
+  }; nav.appendChild(button);
 }
-window.mount = function(page) {
+window.mount = async function(page) {
+  if(window.medcontrolProtectedInterface&&window.reconcileMedControlCompletedCourses)await window.reconcileMedControlCompletedCourses(getState());
   const state = getState();
   if (!TRANSLATIONS[state.settings.interfaceLanguage]) {
     state.settings.interfaceLanguage = 'en';
-    if (!saveState(state)) return false;
+    if (!(await saveStateAsync(state))) return false;
   }
   let result;
-  if (page === 'input') result = renderInputPage();
+  if (page === 'input') result = (await renderInputPage());
   else if (page === 'dashboard') result = renderDashboardPage();
   else if (page === 'action') result = renderActionPage();
   else if (page === 'settings') result = renderSettingsPage();

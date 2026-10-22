@@ -7,9 +7,13 @@
     'active','times','weekdays','explicitDates','startDate','endDate'
   ];
 
+  function protectedExists(){return localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null||localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null;}
+
   function element(id){return document.getElementById(PREFIX+id);}
 
   function readDraft(){
+    if(window.MedControlModular3ProtectedSession?.isUnlocked())return window.MedControlModular3ProtectedSession.read().inputDraft||null;
+    if(protectedExists())return null;
     try{
       const raw=localStorage.getItem(DRAFT_KEY);
       if(!raw)return null;
@@ -34,8 +38,27 @@
     return {version:1,updatedAt:new Date().toISOString(),fields,meaningful};
   }
 
-  function persistDraft(){
+  let latestDraft=null,draftWriting=null;
+  async function persistDraft(){
     const draft=collectDraft();
+    if(window.MedControlModular3ProtectedSession?.isUnlocked()){
+      latestDraft=draft;
+      if(!draftWriting){
+        draftWriting=(async()=>{
+          try{
+            while(latestDraft){
+              const captured=latestDraft;latestDraft=null;
+              await window.MedControlModular3ProtectedSession.transact(state=>{
+                if(captured.meaningful)state.inputDraft=captured;else delete state.inputDraft;
+              });
+            }
+            return true;
+          }finally{draftWriting=null;}
+        })();
+      }
+      return draftWriting;
+    }
+    if(protectedExists())throw Error('Черновик заблокирован. Войдите с локальным паролем.');
     try{
       if(!draft.meaningful){
         localStorage.removeItem(DRAFT_KEY);
@@ -49,7 +72,11 @@
     }
   }
 
-  function clearDraft(){
+  async function clearDraft(){
+    if(window.MedControlModular3ProtectedSession?.isUnlocked()){
+      await window.MedControlModular3ProtectedSession.transact(state=>{delete state.inputDraft;});return;
+    }
+    if(protectedExists())throw Error('Черновик заблокирован. Войдите с локальным паролем.');
     try{localStorage.removeItem(DRAFT_KEY);}catch(error){console.warn('MedControl: failed to clear input draft.',error);}
   }
 
@@ -81,7 +108,7 @@
     const handler=event=>{
       const target=event.target;
       if(!target?.id?.startsWith(PREFIX))return;
-      persistDraft();
+      persistDraft().catch(error=>console.error('Черновик не сохранён.',error));
     };
     root.addEventListener('input',handler,true);
     root.addEventListener('change',handler,true);
@@ -96,8 +123,8 @@
 
   const originalMount=window.mount;
   if(typeof originalMount==='function'){
-    window.mount=function(page){
-      const result=originalMount(page);
+    window.mount=async function(page){
+      const result=(await originalMount(page));
       if(page==='input'){
         setTimeout(()=>{
           applyDraft();
@@ -110,20 +137,29 @@
 
   const originalConfirm=window.confirmMedicationCreate;
   if(typeof originalConfirm==='function'){
-    window.confirmMedicationCreate=function(){
-      const beforeIds=new Set((getState().medications||[]).map(m=>m.id));
-      persistDraft();
-      const result=originalConfirm.apply(this,arguments);
-      const after=(getState().medications||[]);
-      const created=after.some(m=>!beforeIds.has(m.id));
-      if(created)clearDraft();
-      return result;
+    window.confirmMedicationCreate=async function(){
+      try{
+        const beforeIds=new Set((getState().medications||[]).map(m=>m.id));
+        if(!await persistDraft())throw Error('Не удалось сохранить черновик.');
+        const result=await originalConfirm.apply(this,arguments);
+        const created=getState().medications.some(m=>!beforeIds.has(m.id));
+        if(created){
+          // Protected course creation clears its draft in the same encrypted transaction.
+          if(!window.MedControlModular3ProtectedSession?.isUnlocked())await clearDraft();
+          await window.mount('input');
+        }
+        return result;
+      }catch(error){
+        window.alert('Не удалось сохранить препарат. Изменения не подтверждены. '+error.message);
+        return false;
+      }
     };
   }
 
   window.medControlInputDraft={
     key:DRAFT_KEY,
     save:persistDraft,
+    flush:()=>draftWriting||Promise.resolve(true),
     restore:applyDraft,
     clear:clearDraft,
     read:readDraft

@@ -27,7 +27,7 @@ function harness(session) {
     querySelector(){return null}
   };
   const ctx=vm.createContext({
-    window:{location:{pathname:'/input.html',href:'https://medcontrol.test/input.html',replace:url=>redirects.push(url)},history:{pushState(){}},medcontrolCloudSnapshot:{queue(){}},__testImport:async()=>({createClient:()=>({auth:{getSession:async()=>{state.authCalls++;return {data:{session},error:null};}}})})},
+    window:{location:{pathname:'/input.html',href:'https://medcontrol.test/input.html',replace:url=>redirects.push(url)},history:{pushState(){}},medcontrolCloudSnapshot:{queue(){},validState:()=>true,meaningfulState:()=>false,latest:async()=>({ok:true,snapshot:null})},__testImport:async()=>({createClient:()=>({auth:{getSession:async()=>{state.authCalls++;return {data:{session},error:null};}}})})},
     document:doc,localStorage:{getItem:key=>storage[key]||null},URL,URLSearchParams,Date,Promise,Set,Map,console,setTimeout,queueMicrotask
   });
   return {ctx,scripts,redirects,state};

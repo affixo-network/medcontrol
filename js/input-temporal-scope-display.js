@@ -13,6 +13,6 @@
   }
   function updateInputScopeDisplay(){const state=typeof getState==='function'?getState():null;if(!state||!Array.isArray(state.medications))return;state.medications.forEach(med=>{if(!scopeFor(med))return;renderScopeCell(med,findRowForMedication(med));});}
   let scheduled=false;function scheduleRefresh(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;updateInputScopeDisplay();});}
-  const originalMount=window.mount;if(typeof originalMount==='function'){window.mount=function(page){const result=originalMount(page);if(page==='input'){setTimeout(updateInputScopeDisplay,0);setTimeout(updateInputScopeDisplay,100);}return result;};}
+  const originalMount=window.mount;if(typeof originalMount==='function'){window.mount=async function(page){const result=(await originalMount(page));if(page==='input'){setTimeout(updateInputScopeDisplay,0);setTimeout(updateInputScopeDisplay,100);}return result;};}
   const observer=new MutationObserver(()=>scheduleRefresh());observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('load',()=>setTimeout(updateInputScopeDisplay,0));window.addEventListener('focus',()=>setTimeout(updateInputScopeDisplay,0));window.updateInputScopeDisplay=updateInputScopeDisplay;
 })();

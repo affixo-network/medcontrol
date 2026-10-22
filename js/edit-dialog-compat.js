@@ -9,8 +9,8 @@
   ensureEditDialog();
   const originalRenderInputPage=window.renderInputPage;
   if(typeof originalRenderInputPage==='function'){
-    window.renderInputPage=function(){
-      originalRenderInputPage();
+    window.renderInputPage=async function(){
+      (await originalRenderInputPage());
       ensureEditDialog();
     };
   }

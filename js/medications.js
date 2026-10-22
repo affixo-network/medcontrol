@@ -781,9 +781,9 @@ async function persistMedicationChange(id, change) {
       const med = state.medications.find(item => item.id === id);
       if (!med || med.cancelled) return false;
       change(med, state);
-      if (!saveState(state)) throw new Error('Не удалось сохранить изменение.');
+      if (!(await saveStateAsync(state))) throw new Error('Не удалось сохранить изменение.');
     }
-    mount('input');
+    (await mount('input'));
     return true;
   } catch (error) {
     showMedicationHint(error.message || 'Не удалось сохранить изменение.');
@@ -792,15 +792,15 @@ async function persistMedicationChange(id, change) {
     medicationWritesPending.delete(id);
   }
 }
-window.toggleMedicationMode = function(id) {
-  return persistMedicationChange(id, med => {
+window.toggleMedicationMode = async function(id) {
+  return (await persistMedicationChange(id, med => {
     med.active = !Boolean(med.active);
     recordRowHistory(med, 'edited', med.active
       ? 'Статус препарата изменён на «Активно».'
       : 'Статус препарата изменён на «Пассивно».');
-  });
+  }));
 };
-window.startMedicationCancellation = function(id) {
+window.startMedicationCancellation = async function(id) {
   const state = getState();
   const med = state.medications.find(item => item.id === id);
 
@@ -855,14 +855,14 @@ window.startMedicationCancellation = function(id) {
 
   if (!thirdConfirm) return;
 
-  window.cancelMedication(id);
+  (await window.cancelMedication(id));
 };
-window.cancelMedication = function(id) {
-  return persistMedicationChange(id, med => {
+window.cancelMedication = async function(id) {
+  return (await persistMedicationChange(id, med => {
     med.cancelled = true;
     med.active = false;
     recordRowHistory(med, 'cancelled', 'Приём препарата отменён.');
-  });
+  }));
 };
 window.openEditMedication = function(id) {
   window.__editingMedicationId = id;
@@ -1056,10 +1056,10 @@ window.saveMedicationEdit = async function(id) {
       const med = state.medications.find(item => item.id === id);
       if (!med) return false;
       change(med);
-      if (!saveState(state)) throw new Error('Не удалось сохранить изменение.');
+      if (!(await saveStateAsync(state))) throw new Error('Не удалось сохранить изменение.');
     }
     document.getElementById('editDialog').close();
-    mount('input');
+    (await mount('input'));
     return true;
   } catch (error) {
     showMedicationHint(error.message || 'Не удалось сохранить изменение.');
@@ -1212,11 +1212,11 @@ window.confirmMedicationCreate = async function() {
         throw new Error('Защищённое хранилище заблокировано. Войдите с локальным паролем.');
       }
       state.medications.push(course);
-      if (!saveState(state)) throw new Error('Не удалось сохранить препарат.');
+      if (!(await saveStateAsync(state))) throw new Error('Не удалось сохранить препарат.');
     }
     pendingMedicationCreate = null;
     dialog?.close();
-    mount('input');
+    (await mount('input'));
     return true;
   } catch (error) {
     showMedicationHint(error.message || 'Не удалось сохранить препарат.');
@@ -1226,7 +1226,7 @@ window.confirmMedicationCreate = async function() {
     buttons.forEach(button => { button.disabled = false; });
   }
 };
-window.startMedControlReset = function() {
+window.startMedControlReset = async function() {
   const state = getState();
 
   const activeMedications =
@@ -1253,17 +1253,17 @@ window.startMedControlReset = function() {
 
   if (!confirmed) return;
 
-  resetMedControlData();
+  (await resetMedControlData());
 };
 
-function resetMedControlData() {
+async function resetMedControlData() {
   if (localStorage.getItem('medcontrol_modular3_protected_state_v1') !== null ||
       localStorage.getItem('medcontrol_modular3_local_credential_v1') !== null) {
     showMedicationHint('Сброс защищённых медицинских данных отключён. История сохранена.');
     return false;
   }
   const freshState = makeDefaultState();
-  if (!saveState(freshState)) return false;
-  mount('input');
+  if (!(await saveStateAsync(freshState))) return false;
+  (await mount('input'));
   return true;
 }

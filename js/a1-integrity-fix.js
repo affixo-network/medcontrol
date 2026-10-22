@@ -264,7 +264,7 @@
     };
   }
 
-  window.saveTemporalCancellation = function() {
+  window.saveTemporalCancellation = async function() {
     const pending = window.__pendingTemporalCancellation;
     if (!pending) return;
 
@@ -280,7 +280,7 @@
     med.temporalPending[pending.kind] = true;
     med.temporalPendingAt = nowISO();
 
-    saveState(state);
+    (await saveStateAsync(state));
     document.getElementById('temporalCancellationDialog')?.close();
     window.__pendingTemporalCancellation = null;
 
@@ -290,7 +290,7 @@
         : 'Разрешение на изменение времени открыто. Само время ещё не изменено. Перейдите во «Ввод» и сохраните новое время.'
     );
 
-    mount('action');
+    (await mount('action'));
   };
 
   function correctionCount(medicationId, plannedAt) {
@@ -394,8 +394,8 @@
 
   const originalRenderInputPage = window.renderInputPage;
   if (typeof originalRenderInputPage === 'function') {
-    window.renderInputPage = function() {
-      originalRenderInputPage();
+    window.renderInputPage = async function() {
+      (await originalRenderInputPage());
 
       [...document.querySelectorAll('section')].forEach(section => {
         const heading = section.querySelector('h2');

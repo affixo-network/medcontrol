@@ -64,7 +64,7 @@
     date.setUTCDate(date.getUTCDate()+7);
     return date.toISOString();
   }
-  function reconcileCompletedCourses(state){
+  function reconcileCompletedCourseState(state){
     let changed=false;
     (state.medications||[]).forEach(med=>{
       if(med.cancelled)return;
@@ -124,8 +124,15 @@
         }
       }
     });
-    if(changed)saveState(state);
+    return changed;
   }
+  async function reconcileCompletedCourses(state){
+    const session=window.MedControlModular3ProtectedSession;
+    if(session?.isUnlocked()){
+      await session.transact(reconcileCompletedCourseState,{skipUnchanged:true});
+    }else if(reconcileCompletedCourseState(state))await saveStateAsync(state);
+  }
+  window.reconcileMedControlCompletedCourses=reconcileCompletedCourses;
   window.isCompletedMedicationCourse=function(med){return Boolean(med&&!med.cancelled&&shouldCompleteCourse(med,getState()));};
 
   const originalCreateMedication=window.createMedication;
@@ -136,8 +143,8 @@
 
   const originalRenderInputPage=window.renderInputPage;
   if(typeof originalRenderInputPage==='function'){
-    window.renderInputPage=function(){
-      const stateBefore=getState();reconcileCompletedCourses(stateBefore);originalRenderInputPage();
+    window.renderInputPage=async function(){
+      const stateBefore=getState();(await reconcileCompletedCourses(stateBefore));(await originalRenderInputPage());
       const active=document.getElementById('create_active');if(active){active.checked=true;active.disabled=true;}
       const state=getState();const current=(state.medications||[]).filter(med=>!med.cancelled&&!med.archivedCompleted);const activeMeds=current.filter(med=>med.active&&!med.courseCompleted);const passiveMeds=current.filter(med=>!med.active&&!med.courseCompleted);const completedMeds=current.filter(med=>med.courseCompleted);
       document.querySelectorAll('button[onclick^="toggleMedicationMode("]').forEach(button=>{const match=button.getAttribute('onclick')?.match(/toggleMedicationMode\('([^']+)'\)/);const id=match?.[1];const med=id?current.find(item=>item.id===id):null;if(med)button.textContent=med.active?'Сделать пассивным':'Активировать';});
@@ -219,24 +226,24 @@
     },0);
   };
 
-  window.archiveCompletedCourse=function(id){
+  window.archiveCompletedCourse=async function(id){
     const state=getState();
     const med=(state.medications||[]).find(item=>item.id===id);
     if(!med||!med.courseCompleted||med.archivedCompleted)return;
     if(!confirm(`Отправить завершённый курс «${med.name||''}» в Архив?`))return;
     med.archivedCompleted=true;
     med.archivedAt=nowISO();
-    if(!saveState(state))return;
+    if(!(await saveStateAsync(state)))return;
     if(window.__repeatCompletedCourseSourceId===id)window.__repeatCompletedCourseSourceId=null;
-    mount('input');
+    (await mount('input'));
   };
 
   const originalConfirmMedicationCreate=window.confirmMedicationCreate;
   if(typeof originalConfirmMedicationCreate==='function'){
-    window.confirmMedicationCreate=function(){
+    window.confirmMedicationCreate=async function(){
       const sourceId=window.__repeatCompletedCourseSourceId||null;
       const beforeCount=(getState().medications||[]).length;
-      const result=originalConfirmMedicationCreate();
+      const result=(await originalConfirmMedicationCreate());
       const afterState=getState();
       const createdSuccessfully=(afterState.medications||[]).length>beforeCount;
       if(sourceId&&createdSuccessfully){
@@ -244,14 +251,14 @@
         if(source&&source.courseCompleted&&!source.archivedCompleted){
           source.archivedCompleted=true;
           source.archivedAt=nowISO();
-          saveState(afterState);
+          (await saveStateAsync(afterState));
           window.__repeatCompletedCourseSourceId=null;
-          mount('input');
+          (await mount('input'));
         }
       }
       return result;
     };
   }
 
-  const originalToggleMedicationMode=window.toggleMedicationMode;if(typeof originalToggleMedicationMode==='function'){window.toggleMedicationMode=function(id){const med=(getState().medications||[]).find(item=>item.id===id);if(med&&med.courseCompleted)return;return originalToggleMedicationMode(id);};}
+  const originalToggleMedicationMode=window.toggleMedicationMode;if(typeof originalToggleMedicationMode==='function'){window.toggleMedicationMode=async function(id){const med=(getState().medications||[]).find(item=>item.id===id);if(med&&med.courseCompleted)return;return (await originalToggleMedicationMode(id));};}
 })();

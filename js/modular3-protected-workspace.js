@@ -62,7 +62,17 @@
   return new Date(stamp).toISOString();
  }
  function notice(text){message.textContent=text;}
- function show(){login.hidden=true;workspace.hidden=false;render();}
+ function show(){
+  if(new URLSearchParams(window.location.search).get('rehearsal')==='1'){
+   login.hidden=true;workspace.hidden=false;render();return;
+  }
+  // Continue into the completed four-section program in the same unlocked document.
+  document.head.querySelectorAll('style').forEach(style=>style.remove());
+  document.body.innerHTML='<div id="app">MedControl</div>';
+  window.history.replaceState({medcontrolPage:'input'},'','/input.html');
+  const script=document.createElement('script');script.src='/js/auth-guard.js';script.dataset.page='input';
+  document.head.appendChild(script);
+ }
  function render(){
   if(!session.isUnlocked()){workspace.hidden=true;login.hidden=false;screen.replaceChildren();return;}
   const state=pages.read(section);

@@ -31,6 +31,7 @@
    if(!Array.isArray(state.medications))throw Error('Invalid protected medications');
    if(state.medications.some(m=>m.id===course.id))throw Error('Duplicate course');
    state.medications.push(structuredClone(course));
+   delete state.inputDraft;
   });
  }
  const api=Object.freeze({pages:PAGES,enabled:protectedMode,read,write,createInputCourse,storageKey:KEY});

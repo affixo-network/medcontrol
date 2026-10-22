@@ -15,7 +15,12 @@ on:
       - 'action.html'
       - 'dashboard.html'
       - 'archive.html'
-      - 'js/modular3-*.js'
+      - 'js/*.js'
+      - 'tests/modular3-complete-interface.cjs'
+      - 'tests/modular3-boundary-checks.spec.js'
+      - 'tests/modular3-copy-migration.spec.js'
+      - 'tests/modular3-production-*.spec.js'
+      - 'playwright.modular3-transfer.config.cjs'
       - 'modular3-protected.html'
       - 'modular3-static-cache-sw.js'
       - '.github/workflows/modular3-transfer-e2e.yml'
@@ -53,14 +58,21 @@ jobs:
           cp modular3-protected.html modular3-static-cache-sw.js protected/
           cp js/modular3-*.js protected/js/
           cp input.html action.html dashboard.html archive.html protected/
-          cp js/auth-guard.js js/modular3-script-loader.js protected/js/
+          cp js/*.js protected/js/
+          cp core.js protected/
           test -s legacy/transfer-to-modular3.html
           test -s protected/modular3-protected.html
 
       - name: Install pinned Playwright and Chromium
         run: |
-          npm install --no-save --no-package-lock playwright@1.57.0
+          npm install --no-save --no-package-lock @playwright/test@1.57.0
           npx playwright install --with-deps chromium
 
       - name: Browser E2E (synthetic records only)
-        run: node tests/modular3-transfer-e2e.cjs
+        run: |
+          node --test tests/modular3-script-loader.test.js tests/modular3-auth-guard.integration.test.js
+          python3 tests/static_temporal_guard_test.py
+          node tests/temporal_guard_test.js
+          npx playwright test --config=playwright.modular3-transfer.config.cjs --reporter=line
+          node tests/modular3-transfer-e2e.cjs
+          node tests/modular3-complete-interface.cjs

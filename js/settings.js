@@ -24,17 +24,17 @@ function renderSettingsPage() {
   document.body.innerHTML = appShell(tr('title_settings'), 'settings', body);
   scheduleClock();
 }
-window.changeInterfaceLanguage = function(language) {
+window.changeInterfaceLanguage = async function(language) {
   const state = getState();
   state.settings.interfaceLanguage = TRANSLATIONS[language] ? language : 'en';
-  if (!saveState(state)) { mount('settings'); return false; }
+  if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
   window.location.reload();
   return true;
 };
-window.changeCountry = function(country) {
+window.changeCountry = async function(country) {
   const state = getState();
   state.settings.country = country;
-  if (!saveState(state)) { mount('settings'); return false; }
-  mount('settings');
+  if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
+  (await mount('settings'));
   return true;
 };

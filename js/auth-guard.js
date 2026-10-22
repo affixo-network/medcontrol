@@ -4,10 +4,10 @@
   const SUPABASE_URL='https://lewdbjjaohqxbirzhrbm.supabase.co';
   const SUPABASE_ANON_KEY='sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ';
   const SUPABASE_STORAGE_KEY='sb-lewdbjjaohqxbirzhrbm-auth-token';
-  const protectedModules=['js/modular3-encrypted-vault.js','js/modular3-offline-credential.js','js/modular3-protected-session.js','js/modular3-protected-pages.js','js/modular3-write-boundary.js'];
+  const protectedModules=['js/modular3-encrypted-vault.js','js/modular3-offline-credential.js','js/modular3-protected-session.js','js/modular3-write-boundary.js','js/modular3-course-lifecycle-browser.js','js/modular3-protected-pages.js'];
   const common=['js/translations.js','js/storage.js?v=force-majeure-20260918-2','js/cloud-snapshot.js?v=force-majeure-20260918-2'];
   const reset='js/archive-reset-policy.js?v=manual-reset-recovery-1';
-  const loadedScriptPaths=new Set();
+  const loadedScriptPaths=new Set(Array.from(document.scripts||[]).filter(script=>script.src&&script!==currentScript).map(script=>new URL(script.src,window.location.href).pathname));
   const prefetchedScriptPaths=new Set();
   const scriptsByPage={
     input:[...common,'js/utils.js','js/temporal-change-guard.js','js/language.js','js/medications.js?v=force-majeure-20260918-3','js/temporal-change-hotfix.js','js/medication-edit-noop-guard.js','js/schedule-change-scope.js','js/schedule.js','js/intake.js?v=force-majeure-20260918-3','js/intake-history-slot-scope.js','js/history.js?v=archive-time-events-only-5','js/render.js?v=428014d','js/clock.js','core.js','js/settings.js?v=force-majeure-20260918-2','js/navigation.js?v=force-majeure-20260918-2','js/medication-sequence-controller.js','js/intake-cancellation-policy.js','js/input-qa-fixes.js?v=cd10202b-course-completion','js/edit-times-reliability.js','js/a1-integrity-fix.js','js/completed-archive-history-fallback.js','js/scope-history-repair.js','js/today-scope-resolver.js','js/input-temporal-scope-display.js','js/unified-history-ui.js?v=58cd006','js/time-status-controller.js?v=bf2bfd3','js/edit-dialog-compat.js?v=c75a1d3','js/input-architecture-fix.js?v=c0a1361','js/archive-course-history.js?v=input-completed-course-history-1','js/input-time-history-fix.js?v=e949059','js/input-time-editor-v2.js?v=adf40cb',reset,'js/input-time-editor-v3-fix.js?v=hour-minute-select-1','js/input-time-history-scope-fix.js?v=scope-column-1','js/input-draft-recovery.js?v=draft-recovery-1'],
@@ -54,7 +54,7 @@
       const s=document.createElement('script');
       s.src=src;
       s.async=false;
-      s.onload=()=>{loadedScriptPaths.add(key);prefetchedScriptPaths.delete(key);resolve();};
+      s.onload=async()=>{try{await window.medcontrolScriptReady;window.medcontrolScriptReady=null;loadedScriptPaths.add(key);prefetchedScriptPaths.delete(key);resolve();}catch(error){reject(error);}};
       s.onerror=()=>reject(new Error('Не удалось загрузить '+src));
       document.head.appendChild(s);
     });
@@ -74,8 +74,9 @@
     await loader.ensureScripts(protectedModules);
     await loader.ensureScripts(list);
   }
-  function renderPage(targetPage){
+  async function renderPage(targetPage){
     if(targetPage==='archive'){
+      if(window.medcontrolProtectedInterface&&window.reconcileMedControlCompletedCourses)await window.reconcileMedControlCompletedCourses(getState());
       if(typeof window.renderArchivePage!=='function')throw new Error('renderArchivePage() не загружен');
       window.renderArchivePage();
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
@@ -83,7 +84,7 @@
       return;
     }
     if(typeof mount!=='function')throw new Error('mount() не загружен');
-    mount(targetPage);
+    (await mount(targetPage));
   }
   function currentDeploymentId(){
     return document.querySelector('script[data-deployment-id]')?.dataset?.deploymentId||'';
@@ -99,20 +100,24 @@
   window.medcontrolNavigateTo=async function(targetPage,options={}){
     if(!scriptsByPage[targetPage])return false;
     // Input uses layered render wrappers; a fresh page guarantees they initialize in order.
-    if(targetPage==='input' && window.location.pathname!=='/input.html'){
+    if(!window.medcontrolProtectedInterface && targetPage==='input' && window.location.pathname!=='/input.html'){
       window.location.assign('/input.html');
       return true;
     }
+    if(window.medcontrolProtectedInterface){
+      try{await window.medControlInputDraft?.flush();}
+      catch(error){window.alert('Не удалось сохранить черновик. Форма остаётся открытой. '+error.message);return false;}
+    }
     const target='/'+targetPage+'.html';
     const activeDeployment=currentDeploymentId();
-    const latestDeployment=await latestDeploymentId(targetPage);
+    const latestDeployment=window.medcontrolProtectedInterface?'':await latestDeploymentId(targetPage);
     if(activeDeployment&&latestDeployment&&activeDeployment!==latestDeployment){
       window.location.assign(target);
       return true;
     }
     window.medcontrolShellNavigationLoading=true;
     try{await ensurePageScripts(targetPage);}finally{window.medcontrolShellNavigationLoading=false;}
-    renderPage(targetPage);
+    (await renderPage(targetPage));
     if(options.history!==false){
       if(window.location.pathname!==target)window.history.pushState({medcontrolPage:targetPage},'',target);
     }
@@ -128,7 +133,7 @@
       return;
     }
     if(typeof mount!=='function')throw new Error('mount() не загружен');
-    mount(page);
+    (await mount(page));
   }
   async function registerStaticOfflineCache(){
     if(typeof navigator==='undefined'||!('serviceWorker' in navigator)||!window.isSecureContext)return false;
@@ -149,6 +154,24 @@
         worker.postMessage({type:'MEDCONTROL_CACHE_SHELL',paths},[channel.port2]);
       });
     }catch(error){console.warn('Static offline cache unavailable.',error);return false;}
+  }
+  async function unlockLocalWorkspace(){
+    document.getElementById('app').innerHTML='<form id="localLogin" style="max-width:420px;margin:60px auto;font-family:Arial"><h1>MedControl</h1><label for="password">Локальный пароль</label><input id="password" type="password" autocomplete="current-password" required><button id="unlock" type="submit">Войти</button><p id="loginMessage" role="status"></p><a href="/modular3-protected.html">Восстановить доступ</a></form>';
+    await new Promise(resolve=>{
+      const form=document.getElementById('localLogin');
+      form.onsubmit=async event=>{
+        event.preventDefault();
+        const button=document.getElementById('unlock');button.disabled=true;
+        const field=document.getElementById('password');
+        try{
+          const ok=await window.MedControlModular3ProtectedSession.unlock(field.value);
+          field.value='';
+          if(ok){form.remove();resolve();return;}
+          document.getElementById('loginMessage').textContent='Неверный пароль.';
+        }catch(error){document.getElementById('loginMessage').textContent='Не удалось открыть хранилище: '+error.message;}
+        finally{button.disabled=false;}
+      };
+    });
   }
   function readStoredSession(){
     try{
@@ -202,13 +225,19 @@
   try{
     const list=pageScripts();
     preloadPageScripts(list);
-    // A protected account must use the encrypted, asynchronous workspace.
-    // The legacy four-page UI uses synchronous saveState and cannot safely
-    // acknowledge writes after encrypted persistence. Never open it in
-    // protected mode or silently fall back to plaintext.
     if(localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null ||
        localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null){
-      window.location.replace('/modular3-protected.html');
+      const loader=await ensureModular3Loader();
+      if(window.MedControlModular3ProtectedSession?.isUnlocked()&&window.MedControlModular3ProtectedPages)protectedModules.forEach(src=>loadedScriptPaths.add(scriptKey(src)));
+      await loader.ensureScripts(protectedModules);
+      if(!window.MedControlModular3ProtectedSession.isUnlocked())await unlockLocalWorkspace();
+      window.medcontrolProtectedInterface=true;
+      document.head.querySelectorAll('style').forEach(style=>{style.textContent=style.textContent.replaceAll('VERSION 2 · modular-2.000','VERSION 3 · modular-3.000');});
+      // Load the complete Input wrappers first so completion/archive rules are shared.
+      await loader.ensureScripts(scriptsByPage.input);
+      await ensurePageScripts(page);
+      await renderPage(page);
+      window.medcontrolOfflineShellReady=await registerStaticOfflineCache();
       return;
     }
     const verified=await createVerifiedSupabase();

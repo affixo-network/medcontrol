@@ -193,11 +193,11 @@
     return changed;
   }
 
-  function repairAndSave(){
-    try { const state = getState(); if (repairCurrentScopeHistory(state)) saveState(state); } catch (_) {}
+  async function repairAndSave(){
+    try { const state = getState(); if (repairCurrentScopeHistory(state)) (await saveStateAsync(state)); } catch (_) {}
   }
 
-  window.saveMedicationEdit = function(id){
+  window.saveMedicationEdit = async function(id){
     try {
       const state = getState();
       const med = state.medications.find(item => item.id === id);
@@ -209,7 +209,7 @@
       updatedMedication.active = currentActive;
       validateTemporalEditAuthorization(med, updatedMedication);
 
-      const persist = scope => {
+      const persist = async scope => {
         const changedAt = nowISO();
         const today = currentLocalDate();
         applyNonTemporal(med, updatedMedication);
@@ -236,14 +236,14 @@
         completeTemporalEdit(med, previousSnapshot, updatedMedication);
         recordRowHistory(med, 'edited', medicationRuleSummary(updatedMedication), previousSnapshot);
         annotateLatestHistory(med, scope, beforeTemporal, updatedMedication, effectiveTodayTemporal);
-        saveState(state);
+        (await saveStateAsync(state));
         document.getElementById('editDialog')?.close();
-        mount('input');
+        (await mount('input'));
       };
 
-      persist(null);
+      (await persist(null));
     } catch (error) { showMedicationHint(error.message); }
   };
 
-  setTimeout(repairAndSave, 0);
+  window.medcontrolScriptReady=repairAndSave();
 })();

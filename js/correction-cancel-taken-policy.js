@@ -94,10 +94,10 @@
       }else{
         const state=ensureState();
         append(state);
-        if(!saveState(state))throw new Error('Не удалось сохранить отмену.');
+        if(!(await saveStateAsync(state)))throw new Error('Не удалось сохранить отмену.');
       }
       document.getElementById('correctionDialog')?.close();
-      mount('action');
+      (await mount('action'));
       return true;
     }catch(error){
       alert('Отмена не сохранена: '+error.message);

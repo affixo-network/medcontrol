@@ -41,7 +41,7 @@
   }
   window.canCorrectIntakeNow=canCorrectNow;
 
-  window.markTaken=function(medicationId,plannedAt){
+  window.markTaken=async function(medicationId,plannedAt){
     const state=ensureCorrectionState(getState());
     if(primaryLog(medicationId,plannedAt)){
       alert('Приём уже зафиксирован. Для изменения используйте отдельную кнопку «Исправить».');
@@ -49,8 +49,8 @@
     }
     const actualAt=nowISO();
     state.intakeLogs.push({id:uid(),medicationId,plannedAt,actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')});
-    saveState(state);
-    mount('action');
+    (await saveStateAsync(state));
+    (await mount('action'));
   };
 
   function fmtDeadline(ms){return formatDateTime(new Date(ms).toISOString())}
@@ -77,7 +77,7 @@
     dialog.showModal();
   };
 
-  window.applyCorrection=function(medicationId,plannedAt){
+  window.applyCorrection=async function(medicationId,plannedAt){
     if(!canCorrectNow(medicationId,plannedAt)){alert('Окно исправления уже закрыто.');return;}
     const reason=document.getElementById('correction_reason')?.value||'';
     const localValue=document.getElementById('correction_time')?.value||'';
@@ -93,9 +93,9 @@
     const message=`Запись уже исправлялась ${list.length} раз(а).\n\nПричина: ${label}\nБыло: ${formatDateTime(before.actualAt)}\nСтанет: ${formatDateTime(actualAt)}\n\nПодтвердить?`;
     if(!window.confirm(message)) return;
     state.intakeCorrections.push({id:uid(),medicationId,plannedAt,primaryLogId:primaryLog(medicationId,plannedAt)?.id||null,ordinal:list.length+1,reason,correctedAt:nowISO(),before:{actualAt:before.actualAt,action:'taken',status:before.status},after});
-    saveState(state);
+    (await saveStateAsync(state));
     document.getElementById('correctionDialog')?.close();
-    mount('action');
+    (await mount('action'));
   };
 
   function approvedStatus(log){

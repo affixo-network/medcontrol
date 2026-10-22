@@ -14,6 +14,6 @@
     document.querySelectorAll('input[placeholder],textarea[placeholder]').forEach(el=>{const p=el.getAttribute('placeholder');if(placeholders.has(p))el.setAttribute('placeholder',placeholders.get(p));});
   }
   const original=window.renderInputPage;
-  if(typeof original==='function'){window.renderInputPage=function(){const result=original.apply(this,arguments);translateInputDom();return result;};}
+  if(typeof original==='function'){window.renderInputPage=async function(){const result=(await original.apply(this,arguments));translateInputDom();return result;};}
   window.translateInputDom=translateInputDom;
 })();

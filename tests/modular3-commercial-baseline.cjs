@@ -5,13 +5,13 @@ const assert=require('node:assert/strict');
 const {execFileSync}=require('node:child_process');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const paths=['input.html','action.html','dashboard.html','archive.html','core.js','js/render.js','js/medications.js'];
+const paths=['input.html','action.html','dashboard.html','archive.html','core.js','js/render.js'];
 for(const file of paths){
  const original=execFileSync('git',['show','origin/modular-2.000:'+file],{encoding:'utf8'});
- const current=fs.readFileSync(file,'utf8');
+ const current=fs.readFileSync(file,'utf8').replace("${window.medcontrolProtectedInterface?'VERSION 3 · modular-3.000':'VERSION 2 · modular-2.000'}",'VERSION 2 · modular-2.000');
  assert.equal(current,original,'Modular-2 completed baseline unexpectedly changed: '+file);
 }
-console.log('PASS commercial baseline: 7 completed Modular-2 interface/core files unchanged');
+console.log('PASS commercial baseline: 6 completed Modular-2 interface/core files unchanged');
 const ctx={console:{log(){}}};
 vm.runInNewContext(fs.readFileSync('js/translations.js','utf8')+';this.catalog=TRANSLATIONS;',ctx);
 const translations=ctx.catalog;

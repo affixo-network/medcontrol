@@ -24,7 +24,7 @@
     explicitDates: Array.isArray(med.explicitDates) ? [...med.explicitDates].sort() : []
   });
 
-  window.saveMedicationEdit = function(id) {
+  window.saveMedicationEdit = async function(id) {
     try {
       const state = getState();
       const med = state.medications.find(item => item.id === id);
@@ -42,9 +42,9 @@
         return;
       }
     } catch (error) {
-      return originalSaveMedicationEdit(id);
+      return (await originalSaveMedicationEdit(id));
     }
 
-    return originalSaveMedicationEdit(id);
+    return (await originalSaveMedicationEdit(id));
   };
 })();

@@ -1,4 +1,4 @@
-(function(){
+window.medcontrolScriptReady = (async function(){
   function normalizeTimeStatuses(med){
     if(!med)return false;
     const times=(med.times||[]).filter(Boolean);
@@ -9,7 +9,7 @@
     Object.keys(med.timeStatuses).forEach(time=>{if(!times.includes(time)){delete med.timeStatuses[time];changed=true;}});
     return changed;
   }
-  function normalizeAll(){const state=getState();let changed=false;(state.medications||[]).forEach(med=>{if(normalizeTimeStatuses(med))changed=true;});if(changed)saveState(state);}
+  async function normalizeAll(){const state=getState();let changed=false;(state.medications||[]).forEach(med=>{if(normalizeTimeStatuses(med))changed=true;});if(changed)(await saveStateAsync(state));}
   function currentTimeStatus(med,time){normalizeTimeStatuses(med);return med.timeStatuses?.[time]!==false;}
   function timeStatusAt(med,time,plannedMs){const history=(med?.timeStatusHistory||[]).filter(item=>item&&item.time===time).map(item=>({item,ms:new Date(item.at||0).getTime()})).filter(x=>Number.isFinite(x.ms)&&x.ms<=plannedMs).sort((a,b)=>a.ms-b.ms);let active=true;history.forEach(x=>{if(typeof x.item.active==='boolean')active=x.item.active;});return active;}
   function normalizedScheduleType(med){return med?.scheduleType||((med?.explicitDates||[]).length?'explicit_dates':(med?.weekdays||[]).length?'weekdays':'daily');}
@@ -48,7 +48,7 @@
   window.isMedicationTimeActive=function(med,time){return currentTimeStatus(med,time);};
   window.isMedicationTimeActiveAt=function(med,time,plannedMs){return timeStatusAt(med,time,plannedMs);};
   window.editMedicationTimeStatus=function(medicationId,time){const state=getState(),med=(state.medications||[]).find(item=>item.id===medicationId);if(!med)return;normalizeTimeStatuses(med);const dialog=document.getElementById('timeStatusEditDialog');if(!dialog)return;window.__timeStatusEdit={medicationId,time};dialog.querySelector('h2').textContent=`Изменить время ${time}`;dialog.querySelector('#timeStatusEditSelect').value=currentTimeStatus(med,time)?'active':'passive';dialog.showModal();};
-  window.saveMedicationTimeStatus=function(){const pending=window.__timeStatusEdit,select=document.getElementById('timeStatusEditSelect');if(!pending||!select)return;if(select.value==='temporal'){document.getElementById('timeStatusEditDialog')?.close();window.__timeStatusEdit=null;openEditMedication(pending.medicationId);return;}const state=getState(),med=(state.medications||[]).find(item=>item.id===pending.medicationId);if(!med)return;normalizeTimeStatuses(med);const next=select.value==='active',current=currentTimeStatus(med,pending.time);if(next!==current){const at=nowISO();med.timeStatuses[pending.time]=next;med.timeStatusHistory.push({time:pending.time,active:next,at,action:next?'time_activated':'time_deactivated'});if(!Array.isArray(med.rowHistory))med.rowHistory=[];med.rowHistory.push({at,action:'edited',payload:`Время ${pending.time}: статус изменён на «${next?'Активно':'Пассивно'}».`,changes:{timeStatus:{time:pending.time,active:next}}});saveState(state);}document.getElementById('timeStatusEditDialog')?.close();window.__timeStatusEdit=null;mount('input');};
+  window.saveMedicationTimeStatus=async function(){const pending=window.__timeStatusEdit,select=document.getElementById('timeStatusEditSelect');if(!pending||!select)return;if(select.value==='temporal'){document.getElementById('timeStatusEditDialog')?.close();window.__timeStatusEdit=null;openEditMedication(pending.medicationId);return;}const state=getState(),med=(state.medications||[]).find(item=>item.id===pending.medicationId);if(!med)return;normalizeTimeStatuses(med);const next=select.value==='active',current=currentTimeStatus(med,pending.time);if(next!==current){const at=nowISO();med.timeStatuses[pending.time]=next;med.timeStatusHistory.push({time:pending.time,active:next,at,action:next?'time_activated':'time_deactivated'});if(!Array.isArray(med.rowHistory))med.rowHistory=[];med.rowHistory.push({at,action:'edited',payload:`Время ${pending.time}: статус изменён на «${next?'Активно':'Пассивно'}».`,changes:{timeStatus:{time:pending.time,active:next}}});(await saveStateAsync(state));}document.getElementById('timeStatusEditDialog')?.close();window.__timeStatusEdit=null;(await mount('input'));};
   window.editTemporalTimeRow=function(medicationId){openEditMedication(medicationId);};
   window.refreshInputTimeHistory=function(){const ctx=window.__inputTimeHistory;if(!ctx)return;const med=(getState().medications||[]).find(x=>x.id===ctx.medicationId),host=document.getElementById('rowHistoryContent');if(!med||!host)return;const period=document.getElementById('inputTimeHistoryPeriodSelect')?.value||ctx.period||'all';ctx.period=period;const raw=typeof window.intakeHistoryRows==='function'?window.intakeHistoryRows(ctx.medicationId,'all',ctx.plannedAt):'<p class="muted">История времени недоступна.</p>';host.innerHTML=timeHistoryPeriodSelector()+filterHistoryTable(stripTimeHistoryMedicationData(raw),period);const select=document.getElementById('inputTimeHistoryPeriodSelect');if(select)select.value=period;};
   window.showInputTimeHistory=function(medicationId,plannedAt){const med=(getState().medications||[]).find(x=>x.id===medicationId),dialog=document.getElementById('rowHistoryDialog'),title=dialog?.querySelector('h2');if(!med||!dialog)return;const clock=formatDateTime(plannedAt).split(', ')[1]||'—';if(title)title.textContent=`История времени ${clock} препарата «${med.name}»`;window.__inputTimeHistory={medicationId,plannedAt,period:'all'};refreshInputTimeHistory();dialog.showModal();};
@@ -140,6 +140,6 @@
     }
     ensureTimeDialog();
   }
-  const originalRenderInputPage=window.renderInputPage;if(typeof originalRenderInputPage==='function')window.renderInputPage=function(){originalRenderInputPage();restructureInputTable();};
-  normalizeAll();
+  const originalRenderInputPage=window.renderInputPage;if(typeof originalRenderInputPage==='function')window.renderInputPage=async function(){(await originalRenderInputPage());restructureInputTable();};
+  (await normalizeAll());
 })();

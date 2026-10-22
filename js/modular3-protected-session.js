@@ -51,7 +51,7 @@
    }catch(error){CREDENTIAL.lock();throw error;}
   },
   read(){requireOpen();return clone(state);},
-  transact(mutator){
+  transact(mutator,options={}){
    if(typeof mutator!=='function')return Promise.reject(Error('Mutation callback required'));
    const task=chain.then(async()=>{
     requireOpen();
@@ -60,6 +60,7 @@
     await mutator(next);
     requireOpen();
     if(localStorage.getItem(DATA_KEY)!==checkpoint){secret=null;state=null;checkpoint=null;CREDENTIAL.lock();throw Error('Encrypted data changed during edit; unlock again');}
+    if(options.skipUnchanged===true&&JSON.stringify(next)===JSON.stringify(state))return clone(state);
     const sealed=await VAULT.seal(next,secret);
     const encoded=JSON.stringify(sealed);
     const previous=localStorage.getItem(DATA_KEY);

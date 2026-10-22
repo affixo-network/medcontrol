@@ -45,7 +45,7 @@ async function run(){
  try{
   legacy=await server(legacyRoot,ports.legacy);
   protectedServer=await server(protectedRoot,ports.protected);
-  browser=await chromium.launch({headless:true});
+  browser=await chromium.launch({headless:true,...(process.env.MEDCONTROL_CHROMIUM?{executablePath:process.env.MEDCONTROL_CHROMIUM,args:['--no-sandbox']}:{} )});
   const context=await browser.newContext({acceptDownloads:true,serviceWorkers:'allow',timezoneId:'UTC'});
   const page=await context.newPage();
   const errors=[];
@@ -59,7 +59,7 @@ async function run(){
   assert.equal(bytes.includes('SYNTHETIC_COURSE_1'),false,'Medical names must not appear in transfer file');
   assert.equal(JSON.parse(bytes).format,'medcontrol-encrypted-transfer-v1');
   console.log('PASS 1: encrypted export without plaintext names');
-  const protectedUrl='http://127.0.0.1:'+ports.protected+'/modular3-protected.html';
+  const protectedUrl='http://127.0.0.1:'+ports.protected+'/modular3-protected.html?rehearsal=1';
   await page.goto(protectedUrl,{waitUntil:'load'});
   // Reject plaintext files before a vault is created: no partial protected storage.
   await page.locator('#legacy-backup').setInputFiles({
@@ -90,17 +90,18 @@ async function run(){
   // A protected account must never silently fall back to the legacy, synchronous UI.
   const cipherBefore=await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
   await page.goto('http://127.0.0.1:'+ports.protected+'/input.html',{waitUntil:'load'});
-  await page.waitForURL(/modular3-protected\.html/);
+  await page.locator('#password').waitFor({state:'visible'});
+  assert.equal(new URL(page.url()).pathname,'/input.html');
   assert.equal(await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),cipherBefore,
-   'Legacy navigation must not rewrite encrypted data');
+   'Locked navigation must not rewrite encrypted data');
   assert.equal(await page.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3')),null,
-   'Legacy navigation must not create unencrypted medical storage');
+   'Locked navigation must not create unencrypted medical storage');
+  await page.goto(protectedUrl,{waitUntil:'load'});
   await page.locator('#password').fill(TEST_PASSWORD);
   await page.locator('#unlock').click();
   await page.locator('#workspace').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.length),7);
-  console.log('PASS 3k: protected navigation prevents legacy plaintext writes and preserves seven courses');
-
+  console.log('PASS 3k: protected navigation requires local unlock without plaintext writes');
 
   // UI parity: all seven archived courses and old events must be accessible.
   await page.locator('[data-tab="archive"]').click();
@@ -142,16 +143,16 @@ async function run(){
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
   // Regression: a partially missing current-version cache must recover online.
   await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v8');
+   const cache=await caches.open('medcontrol-static-modular3-v9');
    await cache.delete('/js/modular3-copy-migration.js');
   });
   await page.reload({waitUntil:'load'});
   await page.waitForFunction(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v8');
+   const cache=await caches.open('medcontrol-static-modular3-v9');
    return !!(await cache.match('/js/modular3-copy-migration.js'));
   },null,{timeout:30000});
   assert.equal(await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v8');
+   const cache=await caches.open('medcontrol-static-modular3-v9');
    return !!(await cache.match('/js/modular3-copy-migration.js'));
   }),true,'Missing offline asset must be restored on reload');
   console.log('PASS 4a: missing offline cache asset restored without clearing medical vault');
@@ -160,7 +161,7 @@ async function run(){
   await page.locator('#workspace').waitFor({state:'visible'});
   assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read()),original);
   const offlineFiles=await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v8');
+   const cache=await caches.open('medcontrol-static-modular3-v9');
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
     '/js/modular3-offline-credential.js','/js/modular3-protected-session.js',
     '/js/modular3-write-boundary.js','/js/modular3-protected-pages.js',

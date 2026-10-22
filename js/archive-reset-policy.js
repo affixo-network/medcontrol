@@ -1,4 +1,4 @@
-(function(){
+window.medcontrolScriptReady = (async function(){
   const PREVIEW_INPUT='https://htmlpreview.github.io/?https://github.com/affixo-network/medcontrol/blob/modular-2.000/input.html';
   const CYCLE_RESET_BACKUP_KEY='affixo_medcontrol_standard_v3_pre_reset_backup';
   const RECOVERED_AUTORESET_KEY='affixo_medcontrol_standard_v3_autoreset_recovered';
@@ -52,7 +52,8 @@
     }
   }
 
-  function restoreAccidentalAutomaticReset(){
+  async function restoreAccidentalAutomaticReset(){
+    if(window.MedControlModular3ProtectedSession?.isUnlocked())return false;
     let state;
     try{state=getState();}catch(_){return false;}
     if((state.medications||[]).length)return false;
@@ -65,7 +66,7 @@
       if(!raw)return false;
       const backup=JSON.parse(raw);
       if(backup?.reason!=='automatic_cycle_reset'||!backup.state||!Array.isArray(backup.state.medications)||!backup.state.medications.length)return false;
-      if(!saveState(backup.state,{skipCloudSnapshot:true}))return false;
+      if(!(await saveStateAsync(backup.state,{skipCloudSnapshot:true})))return false;
       localStorage.setItem(RECOVERED_AUTORESET_KEY,new Date().toISOString());
       return true;
     }catch(error){
@@ -81,7 +82,24 @@
     const protectedExists=localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null||
       localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null;
     if(protectedExists){
-      window.alert('Защищённые медицинские данные нельзя сбросить через прежний механизм. История сохранена; операция остановлена.');
+      const session=window.MedControlModular3ProtectedSession;
+      if(!session?.isUnlocked())throw Error('Войдите с локальным паролем.');
+      const {meds,current}=medicationState();
+      if(!meds.length||current.length)return;
+      if(!window.confirm('Начать заново? Текущий цикл сохранится в защищённой резервной копии.'))return;
+      resetInProgress=true;
+      try{
+        await session.transact(state=>{
+          if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
+          const previous=structuredClone(state);delete previous.cycleBackups;
+          state.cycleBackups=state.cycleBackups||[];
+          state.cycleBackups.push({createdAt:new Date().toISOString(),reason:'manual_cycle_reset',state:previous});
+          state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];
+          delete state.inputDraft;
+        });
+        await window.medcontrolNavigateTo('input');
+      }catch(error){window.alert('Не удалось начать новый цикл: '+error.message);}
+      finally{resetInProgress=false;}
       return;
     }
     const {meds,current}=medicationState();
@@ -105,7 +123,7 @@
       }
     }
     try{localStorage.setItem(MANUAL_RESET_MARKER_KEY,new Date().toISOString());}catch(_){}
-    const ok=saveState({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]},{skipCloudSnapshot:true});
+    const ok=(await saveStateAsync({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]},{skipCloudSnapshot:true}));
     if(!ok){resetInProgress=false;return;}
     window.location.replace(window.location.hostname==='htmlpreview.github.io'?PREVIEW_INPUT:'input.html');
   }
@@ -134,7 +152,7 @@
     clearLastMedicationHint();
   }
 
-  const restored=restoreAccidentalAutomaticReset();
+  const restored=(await restoreAccidentalAutomaticReset());
   if(restored){
     setTimeout(()=>window.location.reload(),0);
     return;
@@ -144,7 +162,7 @@
   window.areAllMedControlMedicationsArchival=function(){const {meds,current}=medicationState();return meds.length>0&&current.length===0;};
   window.patchMedControlResetUi=evaluateCycle;
   const inheritedMount=window.mount;
-  if(typeof inheritedMount==='function')window.mount=function(page){const result=inheritedMount(page);setTimeout(evaluateCycle,0);return result;};
+  if(typeof inheritedMount==='function')window.mount=async function(page){const result=(await inheritedMount(page));setTimeout(evaluateCycle,0);return result;};
   function scheduleNextDayCheck(){
     if(window.__medcontrolCycleDayTimer)clearTimeout(window.__medcontrolCycleDayTimer);
     const now=new Date();

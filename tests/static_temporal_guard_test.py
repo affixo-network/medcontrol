@@ -10,5 +10,7 @@ for text in ['validateTemporalEditAuthorization','completeTemporalEdit','tempora
 assert 'DEFAULT_GRACE_MINUTES * 60 * 1000' not in intake
 assert "computePendingSlotStatus(plannedMs, now)" in intake
 for page in ['input.html','action.html']:
-    assert 'js/temporal-change-guard.js' in (root/page).read_text(encoding='utf-8')
+    assert 'js/auth-guard.js' in (root/page).read_text(encoding='utf-8')
+    dependencies = (root/'js/auth-guard.js').read_text(encoding='utf-8').split(page.removesuffix('.html')+':[', 1)[1].split('],', 1)[0]
+    assert 'js/temporal-change-guard.js' in dependencies
 print('static_temporal_guard_test: PASS')

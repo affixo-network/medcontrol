@@ -19,12 +19,12 @@
 
   const inheritedApplyCorrection=window.applyCorrection;
   if(typeof inheritedApplyCorrection==='function'){
-    window.applyCorrection=function(medicationId,plannedAt){
+    window.applyCorrection=async function(medicationId,plannedAt){
       if(!window.canCorrectIntakeNow(medicationId,plannedAt)){
         alert('Исправление доступно только до 23:59 дня приёма.');
         return;
       }
-      return inheritedApplyCorrection.apply(this,arguments);
+      return (await inheritedApplyCorrection.apply(this,arguments));
     };
   }
 })();

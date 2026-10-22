@@ -64,8 +64,8 @@
 
   const originalRenderInputPage = window.renderInputPage;
   if (typeof originalRenderInputPage === 'function') {
-    window.renderInputPage = function() {
-      const result = originalRenderInputPage.apply(this, arguments);
+    window.renderInputPage = async function() {
+      const result = (await originalRenderInputPage.apply(this, arguments));
       clearLegacyTemporalUi();
       removeStandaloneMedicationCancellation();
       return result;
@@ -85,9 +85,9 @@
         cancelButton.type = 'button';
         cancelButton.dataset.medicationCancel = 'true';
         cancelButton.textContent = 'Отменить препарат';
-        cancelButton.onclick = function() {
+        cancelButton.onclick = async function() {
           document.getElementById('editDialog')?.close();
-          startMedicationCancellation(id);
+          (await startMedicationCancellation(id));
         };
         actions.prepend(cancelButton);
       }

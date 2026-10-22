@@ -177,6 +177,12 @@ test('missing encrypted vault with enrolled local password never falls back to p
  await context.close();
 });
 
+async function unlockRealPage(page){
+ await page.locator('#password').fill(PASSWORD);await page.locator('#unlock').click();
+ await expect(page.locator('.nav')).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>window.medcontrolOfflineShellReady)).toBe(true);
+}
+
 test('protected real page starts after local password without cloud session',async({browser})=>{
  const context=await browser.newContext();
  const page=await context.newPage();
@@ -184,6 +190,7 @@ test('protected real page starts after local password without cloud session',asy
  await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
  await page.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
  await page.goto('http://127.0.0.1:8765/action.html');
+ await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
  const result=await page.evaluate(()=>({
   protectedCount:getState().medications.length,
@@ -213,6 +220,7 @@ test('four real pages reopen same protected history after restart with cloud una
  });
  for(const section of ['input','action','dashboard','archive']){
   await page.goto('http://127.0.0.1:8765/'+section+'.html');
+  await unlockRealPage(page);
   await expect.poll(async()=>page.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
   const state=await page.evaluate(()=>getState());
   expect(state.medications.map(m=>m.id)).toContain('fake1');
@@ -230,9 +238,10 @@ test('fully offline browser restart unlocks all four protected pages',async({bro
  await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
  await page.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
  await page.goto('http://127.0.0.1:8765/action.html');
+ await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
  await expect.poll(async()=>page.evaluate(async()=>{
-  const cache=await caches.open('medcontrol-static-modular3-v2');
+  const cache=await caches.open('medcontrol-static-modular3-v9');
   return Boolean(await cache.match('/archive.html'))&&Boolean(await cache.match('/js/archive-page.js'));
  })).toBe(true);
  await page.close();
@@ -241,6 +250,7 @@ test('fully offline browser restart unlocks all four protected pages',async({bro
  await reopened.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
  for(const section of ['input','action','dashboard','archive']){
   await reopened.goto('http://127.0.0.1:8765/'+section+'.html');
+  await unlockRealPage(reopened);
   await expect.poll(async()=>reopened.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
   const state=await reopened.evaluate(()=>getState());
   expect(state.medications.map(m=>m.id)).toContain('fake1');
@@ -256,9 +266,10 @@ test('offline intake write survives page restart and remains encrypted',async({b
  await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
  await page.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
  await page.goto('http://127.0.0.1:8765/action.html');
+ await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
  await expect.poll(async()=>page.evaluate(async()=>{
-  const cache=await caches.open('medcontrol-static-modular3-v2');
+  const cache=await caches.open('medcontrol-static-modular3-v9');
   return Boolean(await cache.match('/action.html'))&&Boolean(await cache.match('/js/modular3-write-boundary.js'));
  })).toBe(true);
  await context.setOffline(true);
@@ -277,6 +288,7 @@ test('offline intake write survives page restart and remains encrypted',async({b
  const reopened=await context.newPage();
  await reopened.addInitScript(()=>{window.prompt=()=> 'Synthetic-Only-Password-2026';});
  await reopened.goto('http://127.0.0.1:8765/archive.html');
+ await unlockRealPage(reopened);
  await expect.poll(async()=>reopened.evaluate(()=>Boolean(window.MedControlModular3ProtectedSession?.isUnlocked()))).toBe(true);
  const history=await reopened.evaluate(()=>getState().intakeLogs.map(x=>x.id));
  expect(history).toContain('event1');

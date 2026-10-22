@@ -30,13 +30,13 @@ async function addOrReplaceLog(medicationId, plannedAt, action, actualAt) {
   state.intakeLogs = state.intakeLogs.filter(existing =>
     !(existing.medicationId === medicationId && existing.plannedAt === plannedAt));
   state.intakeLogs.push(log);
-  return saveState(state);
+  return (await saveStateAsync(state));
 }
 async function confirmIntake(medicationId, plannedAt, action) {
   try {
     const saved = await addOrReplaceLog(medicationId, plannedAt, action, nowISO());
     if (!saved) return false;
-    mount('action');
+    (await mount('action'));
     return true;
   } catch (error) {
     if (typeof window.showMedicationHint === 'function') window.showMedicationHint(error.message);
@@ -44,8 +44,8 @@ async function confirmIntake(medicationId, plannedAt, action) {
     return false;
   }
 }
-window.markTaken = (medicationId, plannedAt) => confirmIntake(medicationId, plannedAt, 'taken');
-window.markCancelled = (medicationId, plannedAt) => confirmIntake(medicationId, plannedAt, 'cancelled');
+window.markTaken = async (medicationId, plannedAt) => (await confirmIntake(medicationId, plannedAt, 'taken'));
+window.markCancelled = async (medicationId, plannedAt) => (await confirmIntake(medicationId, plannedAt, 'cancelled'));
 window.openCorrection = function(medicationId, plannedAt) {
   const existing = getLogForSchedule(medicationId, plannedAt);
   const dialog = document.getElementById('correctionDialog');
@@ -65,7 +65,7 @@ window.applyCorrection = async function(medicationId, plannedAt) {
   try {
     if (!await addOrReplaceLog(medicationId, plannedAt, action, new Date(localValue).toISOString())) return false;
     document.getElementById('correctionDialog').close();
-    mount('action');
+    (await mount('action'));
     return true;
   } catch (error) {
     window.alert('Не удалось сохранить изменение приёма: ' + error.message);

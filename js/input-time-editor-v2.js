@@ -29,7 +29,7 @@
   function recordTimeHistory(med,rec){if(!Array.isArray(med.timeStatusHistory))med.timeStatusHistory=[];med.timeStatusHistory.push(rec);}
   function recordRowHistory(med,at,scope,changes,before,after){if(!Array.isArray(med.rowHistory))med.rowHistory=[];med.rowHistory.push({at,action:'edited',scheduleScope:scope==='daily'?null:scope,scheduleScopeLabel:scope==='daily'?'':SCOPE_LABELS[scope],changes,payload:'Изменены данные времени.',scopeTodayTemporal:scope==='today'?after:(scope==='future'?before:scope==='today_future'?after:null),scopeFutureTemporal:scope==='today'?before:(scope==='future'||scope==='today_future'?after:null)});}
 
-  window.saveInputTimeEditV3=function(){
+  window.saveInputTimeEditV3=async function(){
     const ctx=window.__timeEditV2,state=getState(),med=(state.medications||[]).find(x=>x.id===ctx?.id);if(!ctx||!med)return;
     const oldTime=ctx.originalTime,newTime=document.getElementById('timeEditValue')?.value||oldTime,active=document.getElementById('timeEditStatus')?.value==='active',scope=document.getElementById('timeEditScope')?.value||'daily',added=[...new Set(ctx.added||[])].filter(Boolean),before=cloneTemporal(med),today=currentLocalDate(),at=nowISO();
     const oldActive=currentActive(med,oldTime),oldScope=currentScope(med,oldTime),baseTimes=[...(med.times||[])];
@@ -60,6 +60,6 @@
     added.forEach(t=>{med.timeStatuses[t]=true;recordTimeHistory(med,{time:t,newTime:t,active:true,scope,date:today,at,action:'time_added'});});
 
     recordRowHistory(med,at,scope,{times:changedTimes,timeStatus:{time:ctx.deleteCurrent?oldTime:newTime,oldTime,newTime,deleted:ctx.deleteCurrent,active,scope,date:today,addedTimes:added}},before,after);
-    saveState(state);document.getElementById('timeStatusEditDialog')?.close();mount('input');
+    (await saveStateAsync(state));document.getElementById('timeStatusEditDialog')?.close();(await mount('input'));
   };
 })();

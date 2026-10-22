@@ -137,7 +137,7 @@ window.beginTemporalCancellation = function(medicationId, kind) {
   dialog?.showModal();
 };
 
-window.saveTemporalCancellation = function() {
+window.saveTemporalCancellation = async function() {
   const pending = window.__pendingTemporalCancellation;
   if (!pending) return;
   const state = getState();
@@ -159,11 +159,11 @@ window.saveTemporalCancellation = function() {
       previousSnapshot
     );
   }
-  saveState(state);
+  (await saveStateAsync(state));
   document.getElementById('temporalCancellationDialog')?.close();
   window.__pendingTemporalCancellation = null;
   window.alert(temporalSavedMessage(pending.kind));
-  mount('action');
+  (await mount('action'));
 };
 
 window.cancelTemporalCancellationDraft = function() {
