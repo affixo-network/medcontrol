@@ -99,6 +99,16 @@ async function run(){
   await page.getByRole('button',{name:'Свернуть'}).click();
   await page.locator('[data-tab="input"]').click();
   console.log('PASS 3b: seven archived courses visible, historical events selectable for entire period');
+  await page.locator('[data-tab="input"]').click();
+  const inputForm=page.locator('#screen form').first();
+  await inputForm.locator('[name="name"]').fill('INVALID_DATE_COURSE');
+  await inputForm.locator('[name="first"]').fill('09:00');
+  await inputForm.locator('[name="scheduleType"]').selectOption('explicit_dates');
+  await inputForm.locator('[name="explicitDates"]').fill('2026-02-31');
+  await inputForm.locator('button:not([type])').last().click();
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='INVALID_DATE_COURSE')),false);
+  console.log('PASS 3c: nonexistent explicit calendar day rejected');
+
 
   const persistedEntries=await page.evaluate(()=>Object.fromEntries(
    Array.from({length:localStorage.length},(_,i)=>localStorage.key(i))

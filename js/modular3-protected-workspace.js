@@ -36,6 +36,11 @@
   if(type==='explicit_dates')return (rule.explicitDates||[]).includes(day);
   return day===med.startDate;
  }
+ function validCalendarDay(day){
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(day))return false;
+  const parsed=new Date(day+'T12:00:00Z');
+  return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===day;
+ }
  function notice(text){message.textContent=text;}
  function show(){login.hidden=true;workspace.hidden=false;render();}
  function render(){
@@ -115,7 +120,7 @@
     const weekdays=data.getAll('weekday').map(String);
     const explicitDates=String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort();
     if(scheduleType==='weekdays'&&!weekdays.length){notice('Выберите дни недели.');return;}
-    if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
+    if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!validCalendarDay(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
     try{
      await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentValue:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),contentUnitOther:String(data.get('contentUnitOther')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),intakeUnitOther:String(data.get('intakeUnitOther')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:data.get('active')==='on',rowHistory:[{action:'created',at:new Date().toISOString()}]});
      notice('Курс зашифрован и сохранён.');render();
@@ -260,7 +265,7 @@
       const data=new FormData(form);
       const next={scheduleType:String(data.get('scheduleType')),weekdays:data.getAll('weekday').map(String),explicitDates:String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort()};
       if(next.scheduleType==='weekdays'&&!next.weekdays.length){notice('Выберите дни недели.');return;}
-      if(next.scheduleType==='explicit_dates'&&(!next.explicitDates.length||next.explicitDates.some(x=>!/^\d{4}-\d{2}-\d{2}$/.test(x)))){notice('Проверьте конкретные даты.');return;}
+      if(next.scheduleType==='explicit_dates'&&(!next.explicitDates.length||next.explicitDates.some(x=>!validCalendarDay(x)))){notice('Проверьте конкретные даты.');return;}
       if(!window.confirm('Изменить будущее расписание? История прошлых приёмов останется без изменений.'))return;
       save.disabled=true;
       try{
