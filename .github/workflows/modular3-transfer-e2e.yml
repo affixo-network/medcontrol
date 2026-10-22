@@ -5,6 +5,16 @@ on:
       - modular-3.000
     paths:
       - 'tests/modular3-transfer-e2e.cjs'
+      - 'tests/modular3-commercial-baseline.cjs'
+      - 'js/translations.js'
+      - 'js/language.js'
+      - 'core.js'
+      - 'js/render.js'
+      - 'js/medications.js'
+      - 'input.html'
+      - 'action.html'
+      - 'dashboard.html'
+      - 'archive.html'
       - 'js/modular3-*.js'
       - 'modular3-protected.html'
       - 'modular3-static-cache-sw.js'
@@ -29,6 +39,9 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
+
+      - name: Verify completed Modular-2 baseline and actual language coverage
+        run: node tests/modular3-commercial-baseline.cjs
 
       - name: Stage isolated static test sites
         shell: bash
