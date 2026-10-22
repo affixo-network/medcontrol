@@ -402,25 +402,28 @@
    if(section==='archive'||section==='dashboard'){
     const period=section==='archive'?(window.__medcontrolProtectedArchivePeriod||'7'):'all';
     const now=Date.now();
-    const since=period==='all'?0:period==='today'?new Date().setHours(0,0,0,0):now-Number(period)*86400000;
+    const zone=state.settings?.timezone||'Asia/Yerevan';
+    const since=period==='all'?0:period==='today'?Date.parse(zonedSlot(zoneDay(new Date(now),zone),'00:00',zone)):now-Number(period)*86400000;
     const slots=new Map();
     for(const log of (state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&new Date(x.plannedAt).getTime()>=since)){
      if(!slots.has(log.plannedAt))slots.set(log.plannedAt,[]);
      slots.get(log.plannedAt).push(log);
     }
     if(section==='archive'){
-     const lower=Math.max(since,new Date(med.startDate+'T00:00:00').getTime());
-     const upper=Math.min(now,new Date((med.endDate||med.startDate)+'T23:59:59').getTime());
+     const lower=Math.max(since,Date.parse(zonedSlot(med.startDate,'00:00',zone)));
+     const endDay=med.endDate||med.startDate;
+     const upper=Math.min(now,Date.parse(zonedSlot(endDay,'23:59',zone))+59999);
      if(Number.isFinite(lower)&&Number.isFinite(upper)&&lower<=upper){
-      const day=new Date(lower);day.setHours(0,0,0,0);
+      const day=new Date(med.startDate+'T12:00:00Z');
       const maxDays=period==='all'?3660:32;
-      for(let count=0;day.getTime()<=upper&&count<maxDays;count++,day.setDate(day.getDate()+1)){
-       const dayString=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
+      for(let count=0;count<maxDays;count++,day.setUTCDate(day.getUTCDate()+1)){
+       const dayString=day.toISOString().slice(0,10);
+       if(dayString>endDay)break;
        for(const time of plannedTimes(med,dayString)){
         if(!scheduledOn(med,dayString,time))continue;
-        const slotDate=new Date(dayString+'T'+time+':00');
-        if(slotDate.getTime()>now||slotDate.getTime()<lower)continue;
-        const plannedAt=slotDate.toISOString();
+        const timestamp=Date.parse(zonedSlot(dayString,time,zone));
+        if(timestamp>upper||timestamp<lower)continue;
+        const plannedAt=new Date(timestamp).toISOString();
         if(!slots.has(plannedAt))slots.set(plannedAt,[]);
        }
       }

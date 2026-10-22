@@ -172,6 +172,33 @@ async function run(){
   assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('SYNTHETIC_COURSE_1')),true,
    'An archived medication must remain visible');
   console.log('PASS 8: Archive excludes ongoing courses even when they have intake history');
+  // Midnight boundary: UTC browser with a Yerevan course at 00:15 and 00:45.
+  await page.evaluate(async()=>{
+   await window.MedControlModular3ProtectedSession.transact(st=>{
+    st.medications.push({
+     id:'midnight-archive',name:'MIDNIGHT_ARCHIVE_REGRESSION',
+     active:false,archivedCompleted:true,cancelled:false,
+     startDate:'2026-10-21',endDate:'2026-10-21',scheduleType:'daily',
+     times:['00:15','00:45'],rowHistory:[]
+    });
+    st.intakeLogs.push({
+     id:'midnight-taken',medicationId:'midnight-archive',action:'taken',
+     plannedAt:'2026-10-20T20:15:00.000Z',actualAt:'2026-10-20T20:16:00.000Z'
+    });
+   });
+  });
+  await page.locator('[data-tab="archive"]').click();
+  await page.getByRole('button',{name:'Не принято',exact:true}).click();
+  await page.getByLabel('Период истории').selectOption('all');
+  const midnight=page.locator('#screen article').filter({hasText:'MIDNIGHT_ARCHIVE_REGRESSION'});
+  await midnight.waitFor({state:'visible'});
+  assert.match(await midnight.innerText(),/20:45/,'Unconfirmed 00:45 Yerevan slot must map to 20:45 UTC on prior day');
+  console.log('PASS 8a: Archive missed midnight slot respects MedControl timezone');
+  await page.getByRole('button',{name:'Принято',exact:true}).click();
+  await page.getByLabel('Период истории').selectOption('all');
+  assert.match(await midnight.innerText(),/20:15/,'Taken 00:15 Yerevan slot must map to 20:15 UTC on prior day');
+  console.log('PASS 8b: Archive taken midnight slot respects MedControl timezone');
+
   await page.locator('[data-tab="input"]').click();
   const inputForm=page.locator('#screen form').first();
   await inputForm.locator('[name="date"]').fill('2026-02-28');
