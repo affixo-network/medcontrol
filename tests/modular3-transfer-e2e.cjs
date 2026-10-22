@@ -240,13 +240,13 @@ async function run(){
   assert.equal(await contentUnit.evaluate(el=>el.tagName),'SELECT');
   assert.equal(await intakeUnit.evaluate(el=>el.tagName),'SELECT');
   await contentUnit.selectOption('Другая');
-  assert.equal(await page.locator('#screen [name="contentUnitOther"]').isVisible(),true);
+  assert.equal(await inputForm.locator('[name="contentUnitOther"]').isVisible(),true);
   await contentUnit.selectOption('мг');
-  assert.equal(await page.locator('#screen [name="contentUnitOther"]').isVisible(),false);
+  assert.equal(await inputForm.locator('[name="contentUnitOther"]').isVisible(),false);
   await intakeUnit.selectOption('Другая');
-  assert.equal(await page.locator('#screen [name="intakeUnitOther"]').isVisible(),true);
+  assert.equal(await inputForm.locator('[name="intakeUnitOther"]').isVisible(),true);
   await intakeUnit.selectOption('капсула');
-  assert.equal(await page.locator('#screen [name="intakeUnitOther"]').isVisible(),false);
+  assert.equal(await inputForm.locator('[name="intakeUnitOther"]').isVisible(),false);
   console.log('PASS 3h: dosage unit selectors toggle optional custom units');
 
 
