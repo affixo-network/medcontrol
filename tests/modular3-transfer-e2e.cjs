@@ -87,6 +87,20 @@ async function run(){
   const restored=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.deepEqual(restored,original);
   console.log('PASS 3: seven courses, intake, history and corrections restored exactly');
+  // A protected account must never silently fall back to the legacy, synchronous UI.
+  const cipherBefore=await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
+  await page.goto('http://127.0.0.1:'+ports.protected+'/input.html',{waitUntil:'load'});
+  await page.waitForURL(/modular3-protected\.html/);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),cipherBefore,
+   'Legacy navigation must not rewrite encrypted data');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3')),null,
+   'Legacy navigation must not create unencrypted medical storage');
+  await page.locator('#password').fill(TEST_PASSWORD);
+  await page.locator('#unlock').click();
+  await page.locator('#workspace').waitFor({state:'visible'});
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.length),7);
+  console.log('PASS 3k: protected navigation prevents legacy plaintext writes and preserves seven courses');
+
 
   // UI parity: all seven archived courses and old events must be accessible.
   await page.locator('[data-tab="archive"]').click();
