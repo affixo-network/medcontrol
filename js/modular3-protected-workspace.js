@@ -132,6 +132,25 @@
      button.after(picker);apply();
     };
    }
+   // Match original Input unit controls without changing encrypted data keys.
+   for(const [name,otherName,options] of [
+    ['contentUnit','contentUnitOther',['мг','г','мкг','мл','МЕ','%','Другая']],
+    ['intakeUnit','intakeUnitOther',['таблетка','капсула','мл','капля','доза','шт.','Другая']]
+   ]){
+    const oldInput=form.elements.namedItem(name);
+    const dropdown=document.createElement('select');dropdown.name=name;dropdown.required=true;
+    dropdown.add(new Option('Выберите',''));
+    for(const value of options)dropdown.add(new Option(value,value));
+    const other=form.elements.namedItem(otherName);
+    const otherLabel=other.closest('label');otherLabel.hidden=true;
+    other.placeholder='Укажите другую единицу';other.required=false;
+    dropdown.onchange=()=>{
+     otherLabel.hidden=dropdown.value!=='Другая';
+     other.required=dropdown.value==='Другая';
+     if(!other.required)other.value='';
+    };
+    oldInput.replaceWith(dropdown);
+   }
    // Familiar presentation for Input; existing encrypted handlers remain intact.
    form.classList.add('protected-input-form');
    const panel=document.createElement('div');panel.className='protected-input-layout';

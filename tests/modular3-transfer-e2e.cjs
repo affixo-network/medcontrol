@@ -235,6 +235,20 @@ async function run(){
    assert.equal(await page.locator('#screen .protected-input-editor [name="'+name+'"]').count(),1);
   }
   console.log('PASS 3g: familiar Input columns preserve protected form fields');
+  const contentUnit=page.locator('#screen .protected-input-editor [name="contentUnit"]');
+  const intakeUnit=page.locator('#screen .protected-input-editor [name="intakeUnit"]');
+  assert.equal(await contentUnit.evaluate(el=>el.tagName),'SELECT');
+  assert.equal(await intakeUnit.evaluate(el=>el.tagName),'SELECT');
+  await contentUnit.selectOption('Другая');
+  assert.equal(await page.locator('#screen [name="contentUnitOther"]').isVisible(),true);
+  await contentUnit.selectOption('мг');
+  assert.equal(await page.locator('#screen [name="contentUnitOther"]').isVisible(),false);
+  await intakeUnit.selectOption('Другая');
+  assert.equal(await page.locator('#screen [name="intakeUnitOther"]').isVisible(),true);
+  await intakeUnit.selectOption('капсула');
+  assert.equal(await page.locator('#screen [name="intakeUnitOther"]').isVisible(),false);
+  console.log('PASS 3h: dosage unit selectors toggle optional custom units');
+
 
   await inputForm.locator('[name="name"]').fill('VALID_CALENDAR_DATE_COURSE');
   await inputForm.locator('[name="explicitDates"]').fill('2026-02-28');
