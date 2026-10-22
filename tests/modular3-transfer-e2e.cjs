@@ -276,6 +276,11 @@ async function run(){
   await page.locator('#workspace').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='final-intake-regression').archivedCompleted),true);
   console.log('PASS 10: automatic Archive persists across restart');
+  await page.locator('[data-tab="dashboard"]').click();
+  assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('FINAL_INTAKE_REGRESSION')),true,
+   'Final taken intake must remain visible on today dashboard after auto Archive');
+  console.log('PASS 10a: auto-archived final intake remains on today dashboard');
+
   await page.evaluate(()=>{window.__medcontrolProtectedArchiveOutcome='taken';});
   await page.locator('[data-tab="archive"]').click();
   const archivedRow=page.locator('article').filter({hasText:'FINAL_INTAKE_REGRESSION'});
