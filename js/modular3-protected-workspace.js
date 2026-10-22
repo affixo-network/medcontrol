@@ -653,9 +653,24 @@
    notice('Восстановление не завершено: '+error.message+'. Сохранённые данные не удалялись.');
   }finally{button.disabled=false;}
  };
- document.getElementById('unlock').onclick=async()=>{try{if(await session.unlock(password.value)){password.value='';notice('Автономный вход выполнен.');show();}else notice('Неверный пароль.');}catch(error){notice('Ошибка входа: '+error.message);}};
+ document.getElementById('unlock').onclick=async()=>{
+  const button=document.getElementById('unlock');
+  try{
+  if(!password.value){notice('Введите локальный пароль.');return;}
+  const vault=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+  const credential=localStorage.getItem('medcontrol_modular3_local_credential_v1');
+  if(vault===null&&credential===null){notice('На этом адресе защищённое хранилище не найдено. Для существующих записей требуется перенос защищённой копии.');return;}
+  if(vault!==null&&credential===null){notice('Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.');return;}
+  if(vault===null){notice('Защищённая копия данных на этом адресе не найдена. Ничего не изменено.');return;}
+  button.disabled=true;
+   if(await session.unlock(password.value)){password.value='';notice('Автономный вход выполнен.');show();}
+   else notice('Неверный пароль.');
+  }catch(error){notice('Ошибка входа: '+error.message);}
+  finally{button.disabled=false;}
+ };
  document.getElementById('enroll').onclick=async()=>{try{await session.initialize({settings:{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},medications:[],intakeLogs:[]},password.value);password.value='';notice('Защищённое хранилище создано.');show();}catch(error){notice('Не удалось создать хранилище: '+error.message);}};
  document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{section=button.dataset.tab;render();});
  document.getElementById('lock').onclick=async()=>{await session.lock();notice('Данные заблокированы.');render();};
  render();
+ window.medcontrolProtectedWorkspaceReady=true;
 })();

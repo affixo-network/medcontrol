@@ -68,22 +68,61 @@ label button{vertical-align:middle}
 @media(max-width:760px){#screen .protected-input-layout,#screen .protected-input-fields,#screen .protected-schedule-fields{grid-template-columns:minmax(0,1fr)}}
 </style></head>
 <body><h1>MedControl — защищённый режим</h1><p>Отдельное хранилище. Действующие записи не изменяются.</p>
-<div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock">Войти</button><button id="recover" type="button">Восстановить доступ</button><button id="enroll">Создать хранилище</button><button id="inspect-migration" type="button">Проверить готовность переноса</button><button id="commit-migration" type="button">Перенести защищённую копию</button><label>Резервная копия MedControl (.json) <input id="legacy-backup" type="file" accept=".json,application/json"></label><button id="import-backup" type="button">Импортировать защищённую копию</button></div>
-<div id="workspace" hidden><nav class="nav"><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p>
+<div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock" disabled>Войти</button><button id="recover" type="button" disabled>Восстановить доступ</button><button id="enroll" disabled>Создать хранилище</button><button id="inspect-migration" type="button" disabled>Проверить готовность переноса</button><button id="commit-migration" type="button" disabled>Перенести защищённую копию</button><label>Резервная копия MedControl (.json) <input id="legacy-backup" type="file" accept=".json,application/json"></label><button id="import-backup" type="button" disabled>Импортировать защищённую копию</button></div>
+<div id="workspace" hidden><nav class="nav"><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
 <script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
 (function(){
  'use strict';
  const status=document.getElementById('message');
+ const controls=[...document.querySelectorAll('#login button')];
+ const retry=document.getElementById('retry-entry');
+ retry.onclick=()=>window.location.reload();
+ const modules=[
+  ['/js/modular3-encrypted-vault.js',()=>window.MedControlModular3EncryptedVault],
+  ['/js/modular3-offline-credential.js',()=>window.MedControlModular3OfflineCredential],
+  ['/js/modular3-protected-session.js',()=>window.MedControlModular3ProtectedSession],
+  ['/js/modular3-write-boundary.js',()=>window.MedControlModular3WriteBoundary],
+  ['/js/modular3-course-lifecycle-browser.js',()=>window.MedControlModular3CourseLifecycle],
+  ['/js/modular3-protected-pages.js',()=>window.MedControlModular3ProtectedPages],
+  ['/js/modular3-copy-migration.js',()=>window.MedControlModular3CopyMigration],
+  ['/js/modular3-protected-workspace.js',()=>window.medcontrolProtectedWorkspaceReady===true]
+ ];
+ // A populated static cache does not prove that entry scripts actually executed.
+ // Repair missing modules in dependency order without recreating an existing session.
+ window.medcontrolProtectedEntryReady=(async()=>{
+  try{
+   for(const [path,ready]of modules){
+    if(ready())continue;
+    await new Promise((resolve,reject)=>{
+     const script=document.createElement('script');script.src=path+'?entry_retry=1';script.async=false;
+     const timer=setTimeout(()=>reject(Error('Entry script timed out: '+path)),15000);
+     script.onload=()=>{clearTimeout(timer);ready()?resolve():reject(Error('Entry module unavailable: '+path));};
+     script.onerror=()=>{clearTimeout(timer);reject(Error('Entry script failed: '+path));};
+     document.head.appendChild(script);
+    });
+   }
+   if(typeof document.getElementById('unlock').onclick!=='function')throw Error('Local unlock handler unavailable');
+   controls.forEach(button=>{button.disabled=false;});
+   return true;
+  }catch(error){
+   console.error('MedControl protected entry failed.',error);
+   controls.forEach(button=>{button.disabled=true;});
+   status.textContent='Не удалось подготовить вход. Проверьте соединение и нажмите «Повторить загрузку». Данные не изменены.';
+   retry.hidden=false;
+   return false;
+  }
+ })();
  if(!('serviceWorker' in navigator)||!('caches' in window)){
   status.textContent='Этот браузер не поддерживает автономную загрузку.';
   return;
  }
  window.addEventListener('load',async function(){
+  if(!await window.medcontrolProtectedEntryReady)return;
   try{
    const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
    await navigator.serviceWorker.ready;
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-course-lifecycle-browser.js','/js/modular3-protected-pages.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
-   const cache=await caches.open('medcontrol-static-modular3-v9');
+   const cache=await caches.open('medcontrol-static-modular3-v10');
    let cached=await Promise.all(paths.map(path=>cache.match(path)));
    if(cached.some(item=>!item)){
     if(!navigator.onLine)throw Error('Не все автономные файлы доступны в кэше');
@@ -111,10 +150,8 @@ label button{vertical-align:middle}
    }
    const missing=paths.filter((path,index)=>!cached[index]);
    if(missing.length)throw Error('Offline files missing: '+missing.join(', '));
-   if(!navigator.serviceWorker.controller){
-    status.textContent='Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.';
-   }else if(!status.textContent){
-    status.textContent='Автономные файлы подготовлены и проверены.';
+   if(!status.textContent){
+    status.textContent=navigator.serviceWorker.controller?'Автономные файлы подготовлены и проверены.':'Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.';
    }
   }catch(error){
    status.textContent='Автономная загрузка не готова: '+error.message;

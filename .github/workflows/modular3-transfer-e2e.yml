@@ -17,6 +17,7 @@ on:
       - 'archive.html'
       - 'js/*.js'
       - 'tests/modular3-complete-interface.cjs'
+      - 'tests/modular3-entry-startup.cjs'
       - 'tests/modular3-boundary-checks.spec.js'
       - 'tests/modular3-copy-migration.spec.js'
       - 'tests/modular3-production-*.spec.js'
@@ -76,3 +77,4 @@ jobs:
           npx playwright test --config=playwright.modular3-transfer.config.cjs --reporter=line
           node tests/modular3-transfer-e2e.cjs
           node tests/modular3-complete-interface.cjs
+          node tests/modular3-entry-startup.cjs
