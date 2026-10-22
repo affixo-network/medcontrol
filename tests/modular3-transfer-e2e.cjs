@@ -108,6 +108,14 @@ async function run(){
   await inputForm.locator('button:not([type])').last().click();
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='INVALID_DATE_COURSE')),false);
   console.log('PASS 3c: nonexistent explicit calendar day rejected');
+  await inputForm.locator('[name="name"]').fill('VALID_CALENDAR_DATE_COURSE');
+  await inputForm.locator('[name="explicitDates"]').fill('2026-02-28');
+  await inputForm.locator('button:not([type])').last().click();
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
+  const validCourse=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
+  assert.deepEqual(validCourse.explicitDates,['2026-02-28']);
+  console.log('PASS 3d: real explicit calendar day accepted and encrypted');
+
 
 
   const persistedEntries=await page.evaluate(()=>Object.fromEntries(
