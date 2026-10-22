@@ -257,6 +257,24 @@ async function run(){
   const validCourse=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
   assert.deepEqual(validCourse.explicitDates,['2026-02-28']);
   console.log('PASS 3d: real explicit calendar day accepted and encrypted');
+  const multiForm=page.locator('#screen .protected-input-form');
+  await multiForm.locator('[name="name"]').fill('MULTI_TIME_REGRESSION');
+  await multiForm.locator('[name="date"]').fill('2026-10-21');
+  await multiForm.locator('[name="endDate"]').fill('2026-10-21');
+  await multiForm.locator('[name="scheduleType"]').selectOption('daily');
+  await multiForm.locator('[name="contentUnit"]').selectOption('мг');
+  await multiForm.locator('[name="intakeUnit"]').selectOption('капсула');
+  for(const [h,m] of [['08','30'],['12','45'],['21','00']]){
+   await multiForm.getByLabel('Часы приёма').selectOption(h);
+   await multiForm.getByLabel('Минуты приёма').selectOption(m);
+   await multiForm.getByRole('button',{name:'Добавить время'}).click();
+  }
+  assert.equal(await multiForm.locator('.protected-time-chip').count(),3);
+  await multiForm.getByRole('button',{name:'Добавить',exact:true}).click();
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='MULTI_TIME_REGRESSION'));
+  assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.name==='MULTI_TIME_REGRESSION').times),['08:30','12:45','21:00']);
+  console.log('PASS 3i: three scheduled times stored in protected course');
+
 
   // Editing an existing course: reject invalid day without changing its encrypted history.
   const editBefore=await page.evaluate(()=>{

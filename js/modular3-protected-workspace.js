@@ -169,10 +169,34 @@
    const scheduleTitle=document.createElement('h4');scheduleTitle.textContent='Расписание';editor.append(scheduleTitle);
    const scheduleFields=document.createElement('div');scheduleFields.className='protected-schedule-fields';
    scheduleFields.append(schedule,mode);
-   for(const name of ['first','second','date','endDate']){
-    const input=form.elements.namedItem(name);
-    scheduleFields.append(input.closest('label'));
-   }
+   const firstInput=form.elements.namedItem('first'),secondInput=form.elements.namedItem('second');
+   const times=new Set();
+   const timeBox=document.createElement('fieldset');timeBox.className='protected-time-editor';
+   const legend=document.createElement('legend');legend.textContent='Время приёма';timeBox.append(legend);
+   const controls=document.createElement('div');controls.className='protected-time-controls';
+   const hour=document.createElement('select'),minute=document.createElement('select');
+   hour.setAttribute('aria-label','Часы приёма');minute.setAttribute('aria-label','Минуты приёма');
+   for(let i=0;i<24;i++){const n=String(i).padStart(2,'0');hour.add(new Option(n,n));}
+   for(let i=0;i<60;i++){const n=String(i).padStart(2,'0');minute.add(new Option(n,n));}
+   const add=document.createElement('button');add.type='button';add.textContent='Добавить время';
+   const list=document.createElement('div');list.className='protected-time-list';
+   const sync=()=>{
+    const values=[...times].sort();
+    firstInput.value=values[0]||'';secondInput.value=values[1]||'';
+    list.replaceChildren();
+    for(const time of values){
+     const chip=document.createElement('span');chip.className='protected-time-chip';
+     const value=document.createElement('span');value.textContent=time;
+     const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label','Удалить время '+time);
+     remove.onclick=()=>{times.delete(time);sync();};chip.append(value,remove);list.append(chip);
+    }
+   };
+   add.onclick=()=>{const time=hour.value+':'+minute.value;if(times.has(time)){notice('Это время уже добавлено.');return;}times.add(time);sync();};
+   controls.append(hour,minute,add);timeBox.append(controls,list);
+   const hiddenFields=document.createElement('div');hiddenFields.hidden=true;
+   for(const field of [firstInput,secondInput]){field.required=false;hiddenFields.append(field.closest('label'));}
+   timeBox.append(hiddenFields);scheduleFields.append(timeBox);
+   for(const name of ['date','endDate'])scheduleFields.append(form.elements.namedItem(name).closest('label'));
    editor.append(scheduleFields);
    const save=form.querySelector('button:not([type])');
    save.textContent='Добавить';save.classList.add('protected-save-course');editor.append(save);
@@ -185,15 +209,16 @@
    help.append(hints);panel.append(editor,help);form.append(panel);
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
-    const first=String(data.get('first')),second=String(data.get('second'));
-    if(second&&first===second){notice('Расчётные времена должны различаться.');return;}if(String(data.get('scheduleType')||'daily')!=='explicit_dates'&&String(data.get('endDate'))<String(data.get('date'))){notice('Дата окончания раньше даты начала.');return;}
+    for(const legacy of [String(data.get('first')||''),String(data.get('second')||'')])if(/^([01]\\d|2[0-3]):[0-5]\\d$/.test(legacy))times.add(legacy);
+    const courseTimes=[...times].sort();
+    if(!courseTimes.length){notice('Добавьте хотя бы одно время приёма.');return;}if(String(data.get('scheduleType')||'daily')!=='explicit_dates'&&String(data.get('endDate'))<String(data.get('date'))){notice('Дата окончания раньше даты начала.');return;}
     const scheduleType=String(data.get('scheduleType')||'daily');
     const weekdays=data.getAll('weekday').map(String);
     const explicitDates=String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort();
     if(scheduleType==='weekdays'&&!weekdays.length){notice('Выберите дни недели.');return;}
     if(scheduleType==='explicit_dates'&&(!explicitDates.length||explicitDates.some(x=>!validCalendarDay(x)))){notice('Укажите даты в формате ГГГГ-ММ-ДД.');return;}
     try{
-     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentValue:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),contentUnitOther:String(data.get('contentUnitOther')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),intakeUnitOther:String(data.get('intakeUnitOther')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:[first,second].filter(Boolean).sort(),active:data.get('active')==='on',rowHistory:[{action:'created',at:new Date().toISOString()}]});
+     await pages.createCourse({id:crypto.randomUUID(),name:String(data.get('name')),manufacturer:String(data.get('manufacturer')||''),contentValue:String(data.get('contentQuantity')||''),contentUnit:String(data.get('contentUnit')||''),contentUnitOther:String(data.get('contentUnitOther')||''),intakeQuantity:String(data.get('intakeQuantity')||''),intakeUnit:String(data.get('intakeUnit')||''),intakeUnitOther:String(data.get('intakeUnitOther')||''),details:String(data.get('details')||''),scheduleType,weekdays,explicitDates,startDate:scheduleType==='explicit_dates'?explicitDates[0]:String(data.get('date')),endDate:scheduleType==='explicit_dates'?explicitDates[explicitDates.length-1]:String(data.get('endDate')),times:courseTimes,active:data.get('active')==='on',rowHistory:[{action:'created',at:new Date().toISOString()}]});
      notice('Курс зашифрован и сохранён.');render();
     }catch(error){notice('Не удалось сохранить курс: '+error.message);}
    };screen.append(form);

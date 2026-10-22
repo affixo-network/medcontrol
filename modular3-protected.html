@@ -43,6 +43,14 @@ label button{vertical-align:middle}
 #workspace .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}#workspace .nav button{width:auto}#workspace .nav button[aria-current='page']{background:#111827;color:#fff}#screen .wrap{padding:12px 0 28px}#screen .card{margin-bottom:16px}#screen .grid2,#screen .grid3{display:grid}#screen .meta{display:flex;flex-wrap:wrap}
 
 #screen label[hidden]{display:none!important}
+#screen .protected-time-editor{grid-column:1/-1;border:1px solid var(--bd);padding:10px;border-radius:10px;min-width:0}
+#screen .protected-time-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#screen .protected-time-controls select{width:90px;flex:0 0 90px}
+#screen .protected-time-controls button{width:auto}
+#screen .protected-time-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#screen .protected-time-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:8px;padding:4px 8px}
+#screen .protected-time-chip button{width:auto;padding:1px 6px}
+#screen .protected-time-editor [hidden]{display:none!important}
 /* Familiar Modular-3 Input layout, no changes to protected storage. */
 #screen .protected-input-form{padding:0;border:0;background:transparent;margin:12px 0 16px}
 #screen .protected-input-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
