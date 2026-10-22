@@ -229,6 +229,13 @@ async function run(){
   await inputForm.locator('button:not([type])').last().click();
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='INVALID_DATE_COURSE')),false);
   console.log('PASS 3c: nonexistent explicit calendar day rejected');
+  assert.equal(await page.locator('#screen .protected-input-layout').count(),1);
+  assert.equal(await page.locator('#screen .protected-input-help').getByText('Варианты заполнения').count(),1);
+  for(const name of ['name','contentQuantity','intakeQuantity','first','date','endDate']){
+   assert.equal(await page.locator('#screen .protected-input-editor [name="'+name+'"]').count(),1);
+  }
+  console.log('PASS 3g: familiar Input columns preserve protected form fields');
+
   await inputForm.locator('[name="name"]').fill('VALID_CALENDAR_DATE_COURSE');
   await inputForm.locator('[name="explicitDates"]').fill('2026-02-28');
   await inputForm.locator('button:not([type])').last().click();

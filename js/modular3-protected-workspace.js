@@ -132,6 +132,38 @@
      button.after(picker);apply();
     };
    }
+   // Familiar presentation for Input; existing encrypted handlers remain intact.
+   form.classList.add('protected-input-form');
+   const panel=document.createElement('div');panel.className='protected-input-layout';
+   const editor=document.createElement('section');editor.className='protected-input-editor';
+   const editorTitle=document.createElement('h3');editorTitle.textContent='Новый препарат';editor.append(editorTitle);
+   const fields=document.createElement('div');fields.className='protected-input-fields';
+   const moveField=name=>{
+    const field=form.elements.namedItem(name);
+    const label=field?.closest('label');
+    if(!label)throw Error('Missing Input field: '+name);
+    fields.append(label);
+   };
+   for(const name of ['name','manufacturer','contentQuantity','contentUnit','contentUnitOther','intakeQuantity','intakeUnit','intakeUnitOther','details'])moveField(name);
+   fields.querySelector('label:has([name="details"])')?.classList.add('protected-full-field');
+   editor.append(fields);
+   const scheduleTitle=document.createElement('h4');scheduleTitle.textContent='Расписание';editor.append(scheduleTitle);
+   const scheduleFields=document.createElement('div');scheduleFields.className='protected-schedule-fields';
+   scheduleFields.append(schedule,mode);
+   for(const name of ['first','second','date','endDate']){
+    const input=form.elements.namedItem(name);
+    scheduleFields.append(input.closest('label'));
+   }
+   editor.append(scheduleFields);
+   const save=form.querySelector('button:not([type])');
+   save.textContent='Добавить';save.classList.add('protected-save-course');editor.append(save);
+   const help=document.createElement('aside');help.className='protected-input-help';
+   const helpTitle=document.createElement('h3');helpTitle.textContent='Варианты заполнения';help.append(helpTitle);
+   const hints=document.createElement('ul');
+   for(const hint of ['Укажите название препарата и дозировку.','Выберите расписание и время приёма.','Для второго приёма используйте «Время 2».','Проверьте даты начала и окончания.','Нажмите «Добавить» для защищённого сохранения.']){
+    const item=document.createElement('li');item.textContent=hint;hints.append(item);
+   }
+   help.append(hints);panel.append(editor,help);form.append(panel);
    form.onsubmit=async event=>{
     event.preventDefault();const data=new FormData(form);
     const first=String(data.get('first')),second=String(data.get('second'));

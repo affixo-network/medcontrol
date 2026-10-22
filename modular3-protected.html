@@ -41,6 +41,22 @@ label button{vertical-align:middle}
     @media(max-width:960px){.grid2,.grid3,.form-grid{grid-template-columns:1fr}}
   
 #workspace .nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}#workspace .nav button{width:auto}#workspace .nav button[aria-current='page']{background:#111827;color:#fff}#screen .wrap{padding:12px 0 28px}#screen .card{margin-bottom:16px}#screen .grid2,#screen .grid3{display:grid}#screen .meta{display:flex;flex-wrap:wrap}
+
+/* Familiar Modular-3 Input layout, no changes to protected storage. */
+#screen .protected-input-form{padding:0;border:0;background:transparent;margin:12px 0 16px}
+#screen .protected-input-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+#screen .protected-input-editor,#screen .protected-input-help{min-width:0;background:#fff;border:1px solid var(--bd);border-radius:12px;padding:18px}
+#screen .protected-input-fields,#screen .protected-schedule-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#screen .protected-input-editor label{margin:6px 0;font-size:13px}
+#screen .protected-input-editor input:not([type="checkbox"]),#screen .protected-input-editor select,#screen .protected-input-editor textarea{width:100%;min-width:0}
+#screen .protected-input-editor [name="active"]{width:auto;margin-left:8px}
+#screen .protected-full-field,#screen .protected-schedule-fields fieldset{grid-column:1/-1}
+#screen .protected-input-editor h4{margin:16px 0 6px;font-size:15px}
+#screen .protected-schedule-fields fieldset{padding:10px;border:1px solid var(--bd);border-radius:9px}
+#screen .protected-schedule-fields label:has([name="active"]){display:flex;align-items:center}
+#screen .protected-save-course{display:block;margin:12px 0 0 auto;background:#111827;color:white}
+#screen .protected-input-help ul{margin:12px 0 0;padding-left:22px;font-size:14px;line-height:1.7}
+@media(max-width:760px){#screen .protected-input-layout,#screen .protected-input-fields,#screen .protected-schedule-fields{grid-template-columns:minmax(0,1fr)}}
 </style></head>
 <body><h1>MedControl — защищённый режим</h1><p>Отдельное хранилище. Действующие записи не изменяются.</p>
 <div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock">Войти</button><button id="recover" type="button">Восстановить доступ</button><button id="enroll">Создать хранилище</button><button id="inspect-migration" type="button">Проверить готовность переноса</button><button id="commit-migration" type="button">Перенести защищённую копию</button><label>Резервная копия MedControl (.json) <input id="legacy-backup" type="file" accept=".json,application/json"></label><button id="import-backup" type="button">Импортировать защищённую копию</button></div>
