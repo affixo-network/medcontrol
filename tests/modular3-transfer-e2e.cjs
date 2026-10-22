@@ -184,6 +184,18 @@ async function run(){
     id,name:'FINAL_INTAKE_REGRESSION',startDate:day,endDate:day,
     times:[time],scheduleType:'daily',active:true,rowHistory:[]
    });
+   // A matching time outside the course dates must not write a medical event.
+   let refused=false;
+   try{
+    await window.MedControlModular3ProtectedPages.recordIntake({
+     id:'out-of-course-intake',medicationId:id,
+     plannedAt:new Date(Date.now()+3*86400000).toISOString(),
+     actualAt:new Date().toISOString(),action:'taken'
+    });
+   }catch(error){refused=String(error.message).includes('Intake outside course dates');}
+   if(!refused)throw Error('Out-of-course intake was not rejected');
+   if(window.MedControlModular3ProtectedSession.read().intakeLogs.some(x=>x.id==='out-of-course-intake'))
+    throw Error('Rejected out-of-course intake was persisted');
    await window.MedControlModular3ProtectedPages.recordIntake({
     id:'final-intake-event',medicationId:id,plannedAt,
     actualAt:new Date().toISOString(),action:'taken'

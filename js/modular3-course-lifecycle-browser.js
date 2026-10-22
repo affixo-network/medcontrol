@@ -45,7 +45,9 @@ function take(state,event){
  if(event.action!=='taken'||!event.id||!event.plannedAt||!event.actualAt)throw Error('Invalid intake');
  if(state.intakeLogs.some(x=>x.id===event.id)||active(forSlot(state,event)))throw Error('Intake already recorded');
  const slot=local(event.plannedAt,state.settings?.timezone||'Asia/Yerevan');
- if(!eligible(med,slot.slice(0,10),slot.slice(11)))throw Error('Unscheduled intake');
+ const day=slot.slice(0,10);
+ if(day<med.startDate||day>(med.endDate||med.startDate))throw Error('Intake outside course dates');
+ if(!eligible(med,day,slot.slice(11)))throw Error('Unscheduled intake');
  state.intakeLogs.push({...event});
  if(finalSlot(med)===slot){
   med.active=false;med.archivedCompleted=true;med.autoArchivedByIntakeId=event.id;med.archivedAt=event.actualAt;
