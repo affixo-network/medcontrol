@@ -192,11 +192,11 @@ async function run(){
   await page.getByLabel('Период истории').selectOption('all');
   const midnight=page.locator('#screen article').filter({hasText:'MIDNIGHT_ARCHIVE_REGRESSION'});
   await midnight.waitFor({state:'visible'});
-  assert.match(await midnight.innerText(),/20:45/,'Unconfirmed 00:45 Yerevan slot must map to 20:45 UTC on prior day');
+  assert.match(await midnight.innerText(),/(?:20:45|8:45:00 PM)/,'Unconfirmed 00:45 Yerevan slot must map to 20:45 UTC on prior day');
   console.log('PASS 8a: Archive missed midnight slot respects MedControl timezone');
   await page.getByRole('button',{name:'Принято',exact:true}).click();
   await page.getByLabel('Период истории').selectOption('all');
-  assert.match(await midnight.innerText(),/20:15/,'Taken 00:15 Yerevan slot must map to 20:15 UTC on prior day');
+  assert.match(await midnight.innerText(),/(?:20:15|8:15:00 PM)/,'Taken 00:15 Yerevan slot must map to 20:15 UTC on prior day');
   console.log('PASS 8b: Archive taken midnight slot respects MedControl timezone');
 
   await page.locator('[data-tab="input"]').click();
