@@ -101,6 +101,8 @@ async function run(){
   console.log('PASS 3b: seven archived courses visible, historical events selectable for entire period');
   await page.locator('[data-tab="input"]').click();
   const inputForm=page.locator('#screen form').first();
+  await inputForm.locator('[name="date"]').fill('2026-02-28');
+  await inputForm.locator('[name="endDate"]').fill('2026-02-28');
   await inputForm.locator('[name="name"]').fill('INVALID_DATE_COURSE');
   await inputForm.locator('[name="first"]').fill('09:00');
   await inputForm.locator('[name="scheduleType"]').selectOption('explicit_dates');
