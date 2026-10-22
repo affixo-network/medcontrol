@@ -316,6 +316,25 @@ async function run(){
   assert.equal(savedEdit.course.rowHistory?.at(-1).action,'schedule_changed');
   assert.deepEqual(savedEdit.course.explicitDates,['2026-10-25']);
   console.log('PASS 3f: valid schedule edit preserved historical intake and recorded schedule change');
+  const beforeTimeEdit=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().intakeLogs.find(x=>x.id==='ongoing-log'));
+  const timeCard=page.locator('#screen article').filter({hasText:'ONGOING_REGRESSION_COURSE'});
+  await timeCard.getByText('Изменить будущие времена приёма').click();
+  const timeForm=timeCard.locator('details').filter({hasText:'Изменить будущие времена приёма'}).locator('form');
+  await timeForm.locator('input').fill('13:30');
+  page.once('dialog',dialog=>dialog.accept());
+  await timeForm.getByRole('button',{name:'Сохранить изменения'}).click();
+  await page.waitForFunction(()=>{
+   const med=window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='ongoing-regression');
+   return med.times.length===1&&med.times[0]==='13:30';
+  });
+  const historyPanel=page.locator('#screen .protected-time-history');
+  assert.match(await historyPanel.innerText(),/ONGOING_REGRESSION_COURSE/);
+  assert.match(await historyPanel.innerText(),/Удалено\/заменено 12:30/);
+  assert.match(await historyPanel.innerText(),/добавлено 13:30/);
+  const afterTimeEdit=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().intakeLogs.find(x=>x.id==='ongoing-log'));
+  assert.deepEqual(afterTimeEdit,beforeTimeEdit,'Changing future time must preserve historical intake');
+  console.log('PASS 3j: removed/replaced times displayed and historical intake unchanged');
+
 
 
   // New lifecycle regression: final intake, encrypted persistence, Archive undo.

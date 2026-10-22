@@ -542,6 +542,28 @@
    }
    screen.append(article);
   }
+  if(section==='input'){
+   const panel=document.createElement('section');panel.className='card protected-time-history';
+   const heading=document.createElement('h3');heading.textContent='Удалённые и заменённые времена';panel.append(heading);
+   let shown=0;
+   for(const med of state.medications||[]){
+    for(const entry of med.rowHistory||[]){
+     if(entry.action!=='times_changed'||!Array.isArray(entry.previousTimes)||!Array.isArray(entry.newTimes))continue;
+     const removed=entry.previousTimes.filter(v=>!entry.newTimes.includes(v));
+     const added=entry.newTimes.filter(v=>!entry.previousTimes.includes(v));
+     if(!removed.length&&!added.length)continue;
+     shown++;
+     const line=document.createElement('p');
+     const date=entry.at?new Date(entry.at):null;
+     const zone=state.settings?.timezone||'Asia/Yerevan';
+     const when=date&&Number.isFinite(date.getTime())?date.toLocaleString('ru-RU',{timeZone:zone}):'Дата не указана';
+     line.textContent=med.name+' · '+when+': '+(removed.length?'Удалено/заменено '+removed.join(', '):'')+(added.length?' → добавлено '+added.join(', '):'');
+     panel.append(line);
+    }
+   }
+   if(!shown){const p=document.createElement('p');p.className='muted';p.textContent='Нет удалённых или заменённых времён.';panel.append(p);}
+   screen.append(panel);
+  }
  }
  document.getElementById('inspect-migration').onclick=()=>{
   try{
