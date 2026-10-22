@@ -73,7 +73,19 @@ label button{vertical-align:middle}
     await result;
     cached=await Promise.all(paths.map(path=>cache.match(path)));
    }
-   if(cached.some(item=>!item))throw Error('Offline files missing');
+   // A previous active service worker may acknowledge caching into an older cache.
+   // Repair only absent static assets in the current cache; never touch medical data.
+   if(cached.some(item=>!item)&&navigator.onLine){
+    for(const [index,path] of paths.entries()){
+     if(cached[index])continue;
+     const response=await fetch(path,{cache:'reload',credentials:'same-origin'});
+     if(!response.ok||response.type!=='basic')throw Error('Offline asset unavailable: '+path);
+     await cache.put(path,response.clone());
+    }
+    cached=await Promise.all(paths.map(path=>cache.match(path)));
+   }
+   const missing=paths.filter((path,index)=>!cached[index]);
+   if(missing.length)throw Error('Offline files missing: '+missing.join(', '));
    if(!navigator.serviceWorker.controller){
     status.textContent='Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.';
    }else if(!status.textContent){
