@@ -223,7 +223,9 @@ async function run(){
   await inputForm.locator('[name="date"]').fill('2026-02-28');
   await inputForm.locator('[name="endDate"]').fill('2026-02-28');
   await inputForm.locator('[name="name"]').fill('INVALID_DATE_COURSE');
-  await inputForm.locator('[name="first"]').fill('09:00');
+  await inputForm.getByLabel('Часы приёма').selectOption('09');
+  await inputForm.getByLabel('Минуты приёма').selectOption('00');
+  await inputForm.getByRole('button',{name:'Добавить время'}).click();
   await inputForm.locator('[name="scheduleType"]').selectOption('explicit_dates');
   await inputForm.locator('[name="explicitDates"]').fill('2026-02-31');
   await inputForm.locator('button:not([type])').last().click();
