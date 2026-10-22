@@ -46,7 +46,7 @@ async function run(){
   legacy=await server(legacyRoot,ports.legacy);
   protectedServer=await server(protectedRoot,ports.protected);
   browser=await chromium.launch({headless:true});
-  const context=await browser.newContext({acceptDownloads:true,serviceWorkers:'allow'});
+  const context=await browser.newContext({acceptDownloads:true,serviceWorkers:'allow',timezoneId:'UTC'});
   const page=await context.newPage();
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
@@ -285,6 +285,16 @@ async function run(){
   assert.equal(dashboardText.includes('FINAL_INTAKE_REGRESSION'),true,
    'Final intake missing on Dashboard: '+JSON.stringify({dashboardText,dashboardDiagnostics}));
   console.log('PASS 10a: auto-archived final intake remains on today dashboard');
+  const tzValidation=await page.evaluate(()=>{
+   const st=window.MedControlModular3ProtectedSession.read();
+   const event=st.intakeLogs.find(x=>x.id==='final-intake-event');
+   const seen=new Intl.DateTimeFormat('en-GB',{timeZone:st.settings.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(event.plannedAt));
+   return {zone:st.settings.timezone,courseTime:st.medications.find(x=>x.id==='final-intake-regression').times[0],seen,browserZone:Intl.DateTimeFormat().resolvedOptions().timeZone};
+  });
+  assert.equal(tzValidation.browserZone,'UTC');
+  assert.equal(tzValidation.seen,tzValidation.courseTime);
+  console.log('PASS 10b: Dashboard honors Asia/Yerevan when browser timezone is UTC');
+
 
   await page.evaluate(()=>{window.__medcontrolProtectedArchiveOutcome='taken';});
   await page.locator('[data-tab="archive"]').click();

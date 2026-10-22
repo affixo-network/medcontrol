@@ -41,6 +41,26 @@
   const parsed=new Date(day+'T12:00:00Z');
   return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===day;
  }
+ function zoneParts(instant,zone){
+  return Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(instant).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+ }
+ function zoneDay(instant,zone){const p=zoneParts(instant,zone);return p.year+'-'+p.month+'-'+p.day;}
+ function zonedSlot(day,time,zone){
+  const [year,month,date]=day.split('-').map(Number),[hour,minute]=time.split(':').map(Number);
+  const target=Date.UTC(year,month-1,date,hour,minute);
+  if(!Number.isFinite(target))throw Error('Invalid scheduled time');
+  let stamp=target;
+  for(let n=0;n<3;n++){
+   const p=zoneParts(new Date(stamp),zone);
+   const wall=Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day),Number(p.hour),Number(p.minute));
+   const adjustment=target-wall;
+   if(!adjustment)break;
+   stamp+=adjustment;
+  }
+  const p=zoneParts(new Date(stamp),zone);
+  if(p.year+'-'+p.month+'-'+p.day!==day||p.hour+':'+p.minute!==time)throw Error('Nonexistent time in configured timezone');
+  return new Date(stamp).toISOString();
+ }
  function notice(text){message.textContent=text;}
  function show(){login.hidden=true;workspace.hidden=false;render();}
  function render(){
@@ -129,14 +149,15 @@
   }
   if(section==='dashboard'){
    const now=new Date();
-   const date=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+   const zone=state.settings?.timezone||'Asia/Yerevan';
+   const date=zoneDay(now,zone);
    const today=[];
    for(const med of state.medications||[]){
-    const completedToday=med.archivedCompleted&&med.autoArchivedByIntakeId&&med.archivedAt&&new Date(med.archivedAt).toDateString()===now.toDateString();
+    const completedToday=med.archivedCompleted&&med.autoArchivedByIntakeId&&med.archivedAt&&zoneDay(new Date(med.archivedAt),zone)===date;
      if(med.cancelled||(!completedToday&&(med.archivedCompleted||med.active===false))||date<med.startDate||date>(med.endDate||med.startDate))continue;
     for(const time of plannedTimes(med,date)){
      if(!scheduledOn(med,date,time))continue;
-     const plannedAt=new Date(date+'T'+time+':00').toISOString();
+     const plannedAt=zonedSlot(date,time,zone);
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const taken=events.reduce((active,event)=>event.action==='taken'?event:(['cancelled','cancel_taken','undo_taken'].includes(event.action)?null:active),null);
      today.push({med,time,plannedAt,taken});
@@ -349,11 +370,12 @@
    }
    if(section==='action'){
     const today=new Date();
-    const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
+    const zone=state.settings?.timezone||'Asia/Yerevan';
+    const date=zoneDay(today,zone);
     for(const time of plannedTimes(med,date)){
      if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
      if(!scheduledOn(med,date,time))continue;
-     const plannedAt=new Date(date+'T'+time+':00').toISOString();
+     const plannedAt=zonedSlot(date,time,zone);
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const log=events.reduce((active,event)=>event.action==='taken'?event:(event.action==='cancelled'||event.action==='cancel_taken'||event.action==='undo_taken'?null:active),null);
      const button=document.createElement('button');button.textContent=log?'Принято: '+new Date(log.actualAt).toLocaleString():'Принято '+time;button.disabled=!!log;
