@@ -277,8 +277,13 @@ async function run(){
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='final-intake-regression').archivedCompleted),true);
   console.log('PASS 10: automatic Archive persists across restart');
   await page.locator('[data-tab="dashboard"]').click();
-  assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('FINAL_INTAKE_REGRESSION')),true,
-   'Final taken intake must remain visible on today dashboard after auto Archive');
+  const dashboardText=await page.locator('#screen').innerText();
+  const dashboardDiagnostics=await page.evaluate(()=>{
+   const st=window.MedControlModular3ProtectedSession.read();
+   return {course:st.medications.find(x=>x.id==='final-intake-regression'),settings:st.settings,localNow:new Date().toString(),timezoneNow:new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Yerevan',dateStyle:'full',timeStyle:'long'}).format(new Date())};
+  });
+  assert.equal(dashboardText.includes('FINAL_INTAKE_REGRESSION'),true,
+   'Final intake missing on Dashboard: '+JSON.stringify({dashboardText,dashboardDiagnostics}));
   console.log('PASS 10a: auto-archived final intake remains on today dashboard');
 
   await page.evaluate(()=>{window.__medcontrolProtectedArchiveOutcome='taken';});
