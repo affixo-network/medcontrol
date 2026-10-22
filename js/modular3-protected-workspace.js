@@ -132,7 +132,8 @@
    const date=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
    const today=[];
    for(const med of state.medications||[]){
-    if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
+    const completedToday=med.archivedCompleted&&med.autoArchivedByIntakeId&&med.archivedAt&&new Date(med.archivedAt).toDateString()===now.toDateString();
+     if(med.cancelled||(!completedToday&&(med.archivedCompleted||med.active===false))||date<med.startDate||date>(med.endDate||med.startDate))continue;
     for(const time of plannedTimes(med,date)){
      if(!scheduledOn(med,date,time))continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
@@ -350,8 +351,7 @@
     const today=new Date();
     const date=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
     for(const time of plannedTimes(med,date)){
-     const completedToday=med.archivedCompleted&&med.autoArchivedByIntakeId&&med.archivedAt&&new Date(med.archivedAt).toDateString()===now.toDateString();
-     if(med.cancelled||(!completedToday&&(med.archivedCompleted||med.active===false))||date<med.startDate||date>(med.endDate||med.startDate))continue;
+     if(med.cancelled||med.archivedCompleted||med.active===false||date<med.startDate||date>(med.endDate||med.startDate))continue;
      if(!scheduledOn(med,date,time))continue;
      const plannedAt=new Date(date+'T'+time+':00').toISOString();
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
