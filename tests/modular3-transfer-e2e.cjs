@@ -99,24 +99,7 @@ async function run(){
   await page.getByRole('button',{name:'Свернуть'}).click();
   await page.locator('[data-tab="input"]').click();
   console.log('PASS 3b: seven archived courses visible, historical events selectable for entire period');
-  await page.locator('[data-tab="input"]').click();
-  const inputForm=page.locator('#screen form').first();
-  await inputForm.locator('[name="date"]').fill('2026-02-28');
-  await inputForm.locator('[name="endDate"]').fill('2026-02-28');
-  await inputForm.locator('[name="name"]').fill('INVALID_DATE_COURSE');
-  await inputForm.locator('[name="first"]').fill('09:00');
-  await inputForm.locator('[name="scheduleType"]').selectOption('explicit_dates');
-  await inputForm.locator('[name="explicitDates"]').fill('2026-02-31');
-  await inputForm.locator('button:not([type])').last().click();
-  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='INVALID_DATE_COURSE')),false);
-  console.log('PASS 3c: nonexistent explicit calendar day rejected');
-  await inputForm.locator('[name="name"]').fill('VALID_CALENDAR_DATE_COURSE');
-  await inputForm.locator('[name="explicitDates"]').fill('2026-02-28');
-  await inputForm.locator('button:not([type])').last().click();
-  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
-  const validCourse=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
-  assert.deepEqual(validCourse.explicitDates,['2026-02-28']);
-  console.log('PASS 3d: real explicit calendar day accepted and encrypted');
+
 
 
 
@@ -189,6 +172,24 @@ async function run(){
   assert.equal(await page.locator('#screen').innerText().then(x=>x.includes('SYNTHETIC_COURSE_1')),true,
    'An archived medication must remain visible');
   console.log('PASS 8: Archive excludes ongoing courses even when they have intake history');
+  await page.locator('[data-tab="input"]').click();
+  const inputForm=page.locator('#screen form').first();
+  await inputForm.locator('[name="date"]').fill('2026-02-28');
+  await inputForm.locator('[name="endDate"]').fill('2026-02-28');
+  await inputForm.locator('[name="name"]').fill('INVALID_DATE_COURSE');
+  await inputForm.locator('[name="first"]').fill('09:00');
+  await inputForm.locator('[name="scheduleType"]').selectOption('explicit_dates');
+  await inputForm.locator('[name="explicitDates"]').fill('2026-02-31');
+  await inputForm.locator('button:not([type])').last().click();
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='INVALID_DATE_COURSE')),false);
+  console.log('PASS 3c: nonexistent explicit calendar day rejected');
+  await inputForm.locator('[name="name"]').fill('VALID_CALENDAR_DATE_COURSE');
+  await inputForm.locator('[name="explicitDates"]').fill('2026-02-28');
+  await inputForm.locator('button:not([type])').last().click();
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().medications.some(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
+  const validCourse=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.name==='VALID_CALENDAR_DATE_COURSE'));
+  assert.deepEqual(validCourse.explicitDates,['2026-02-28']);
+  console.log('PASS 3d: real explicit calendar day accepted and encrypted');
 
   // New lifecycle regression: final intake, encrypted persistence, Archive undo.
   const finalIntake=await page.evaluate(async()=>{
