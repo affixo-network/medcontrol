@@ -191,6 +191,46 @@ async function run(){
   assert.deepEqual(validCourse.explicitDates,['2026-02-28']);
   console.log('PASS 3d: real explicit calendar day accepted and encrypted');
 
+  // Editing an existing course: reject invalid day without changing its encrypted history.
+  const editBefore=await page.evaluate(()=>{
+   const state=window.MedControlModular3ProtectedSession.read();
+   return {
+    course:state.medications.find(x=>x.id==='ongoing-regression'),
+    intake:state.intakeLogs.find(x=>x.id==='ongoing-log')
+   };
+  });
+  const ongoing=page.locator('#screen article').filter({hasText:'ONGOING_REGRESSION_COURSE'});
+  await ongoing.getByText('Изменить будущее расписание курса').click();
+  const scheduleEdit=ongoing.locator('details').filter({hasText:'Изменить будущее расписание курса'}).locator('form');
+  await scheduleEdit.locator('[name="scheduleType"]').selectOption('explicit_dates');
+  await scheduleEdit.locator('[name="explicitDates"]').fill('2026-02-31');
+  await scheduleEdit.getByRole('button',{name:'Сохранить расписание'}).click();
+  const rejectedEdit=await page.evaluate(()=>{
+   const state=window.MedControlModular3ProtectedSession.read();
+   return {
+    course:state.medications.find(x=>x.id==='ongoing-regression'),
+    intake:state.intakeLogs.find(x=>x.id==='ongoing-log')
+   };
+  });
+  assert.deepEqual(rejectedEdit,editBefore,'Invalid schedule edit must preserve course and intake history');
+  console.log('PASS 3e: invalid date edit preserves complete existing course and intake');
+  await scheduleEdit.locator('[name="explicitDates"]').fill('2026-10-25');
+  page.once('dialog',dialog=>dialog.accept());
+  await scheduleEdit.getByRole('button',{name:'Сохранить расписание'}).click();
+  await page.waitForFunction(()=>{
+   const c=window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='ongoing-regression');
+   return c.scheduleType==='explicit_dates'&&c.explicitDates?.includes('2026-10-25');
+  });
+  const savedEdit=await page.evaluate(()=>{
+   const state=window.MedControlModular3ProtectedSession.read();
+   return {course:state.medications.find(x=>x.id==='ongoing-regression'),intake:state.intakeLogs.find(x=>x.id==='ongoing-log')};
+  });
+  assert.deepEqual(savedEdit.intake,editBefore.intake,'Historical intake must not be overwritten by schedule edit');
+  assert.equal(savedEdit.course.rowHistory?.at(-1).action,'schedule_changed');
+  assert.deepEqual(savedEdit.course.explicitDates,['2026-10-25']);
+  console.log('PASS 3f: valid schedule edit preserved historical intake and recorded schedule change');
+
+
   // New lifecycle regression: final intake, encrypted persistence, Archive undo.
   const finalIntake=await page.evaluate(async()=>{
    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
