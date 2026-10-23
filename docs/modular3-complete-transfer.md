@@ -12,7 +12,7 @@ The protected entry now opens the existing Modular-2 Input, Intake, Dashboard an
 - Automatic startup repairs run in order. Course reconciliation uses the session transaction queue and skips unchanged snapshots.
 - Draft autosave coalesces rapid input and flushes before confirmation/navigation/logout. Creating a course clears its draft in the same encrypted transaction.
 - A failed draft flush preserves Input; Logout still locks the vault. A new cycle retains the complete previous cycle in an encrypted backup.
-- Static cache revision: `medcontrol-static-modular3-v11`. No medical records or credentials are stored in Cache Storage.
+- Static cache revision: `medcontrol-static-modular3-v12`. No medical records or credentials are stored in Cache Storage.
 
 ## Verification
 
@@ -22,7 +22,7 @@ All browser checks use isolated browser contexts and synthetic records. No live 
 | --- | ---: |
 | `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, course repeat, seven-day archive, reset and logout | 18 |
 | `tests/modular3-transfer-e2e.cjs` — encrypted handoff and prior migration regressions | 28 |
-| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 37 |
+| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 44 |
 | Loader and auth integration Node tests | 9 |
 | `tests/modular3-entry-startup.cjs` — interrupted dependency loading, persistent failure, visible login feedback | 12 |
 
@@ -59,9 +59,31 @@ imported again with the password that originally protected it; restoration also
 preserves the state it replaces. These copies are retained if activation fails.
 They consume additional local storage; insufficient space aborts activation.
 
-The 15 new browser scenarios include a synthetic 7-course/35-event transfer,
+The 22 existing-install browser scenarios include a synthetic 7-course/35-event transfer,
 preservation and restoration of the prior vault, separate passwords, cancellation,
 write faults, stale previews, repeat import, untouched plaintext source, malformed
 input, and full-interface offline reopening. They do not establish that the user's
 actual local records have been imported. Actual source/target verification is
 still required before declaring the user's migration complete or starting languages.
+
+## Verify a source file against an already populated vault
+
+The Input page alone cannot establish that courses are absent: archived courses
+are displayed separately. The user's confirmation showed eight local courses and
+36 events versus seven courses and 35 events in the export. Do not infer a missing
+transfer or activate an older file from those counts alone.
+
+With a selected encrypted file and both passwords entered, `Проверить готовность
+переноса` now performs a read-only comparison. Every source field is checked;
+arrays preserve the source sequence, allowing additional local entries
+and preserving duplicate cardinality. JSON object property order is irrelevant;
+history order, including equal-timestamp status changes, must be retained. The
+report lists matched source course/event counts, additional local counts, and the
+number of top-level source fields whose contents differ. It makes no storage
+writes, requests no activation confirmation, and locks the preview session afterward.
+
+If every source field is already included, even the import action skips activation
+and backup creation, reports the actual larger local counts, and retains all extras.
+Equal counts with altered actual times or missing history/metadata do not pass.
+The user must run this comparison locally: CI uses synthetic records and cannot
+read the user's browser storage or their downloaded transfer file.

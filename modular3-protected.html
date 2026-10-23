@@ -69,7 +69,7 @@ label button{vertical-align:middle}
 </style></head>
 <body><h1>MedControl — защищённый режим</h1><p>Отдельное хранилище. Действующие записи не изменяются.</p>
 <div id="login"><label>Локальный пароль <input id="password" type="password" minlength="12"></label><button id="unlock" disabled>Войти</button><button id="recover" type="button" disabled>Восстановить доступ</button><button id="enroll" disabled>Создать хранилище</button><button id="inspect-migration" type="button" disabled>Проверить готовность переноса</button><button id="commit-migration" type="button" disabled>Перенести защищённую копию</button><label>Резервная копия MedControl (.json) <input id="legacy-backup" type="file" accept=".json,application/json"></label><button id="import-backup" type="button" disabled>Импортировать защищённую копию</button></div>
-<div id="existing-import" hidden><p>Хранилище уже существует. В поле «Локальный пароль» введите прежний пароль входа. Новый пароль, заданный при создании файла, введите ниже. До переноса прежнее хранилище будет сохранено отдельной зашифрованной копией.</p><label>Пароль файла переноса <input id="transfer-password" type="password" minlength="12" autocomplete="off"></label></div>
+<div id="existing-import" hidden><p>Хранилище уже существует. В поле «Локальный пароль» введите прежний пароль входа. Новый пароль, заданный при создании файла, введите ниже. Для сверки выбранного файла без изменений нажмите «Проверить готовность переноса». До переноса прежнее хранилище будет сохранено отдельной зашифрованной копией.</p><label>Пароль файла переноса <input id="transfer-password" type="password" minlength="12" autocomplete="off"></label></div>
 <div id="preserved-backups" hidden><label>Сохранённые хранилища до переноса <select id="preserved-backup"></select></label><button id="download-preserved-backup" type="button">Скачать сохранённую защищённую копию</button><p>Эти копии открываются паролем, действовавшим до соответствующего переноса.</p></div>
 <button id="open-imported" type="button" hidden>Открыть MedControl</button>
 <div id="workspace" hidden><nav class="nav"><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
@@ -125,7 +125,7 @@ label button{vertical-align:middle}
    const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
    await navigator.serviceWorker.ready;
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-course-lifecycle-browser.js','/js/modular3-protected-pages.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
-   const cache=await caches.open('medcontrol-static-modular3-v11');
+   const cache=await caches.open('medcontrol-static-modular3-v12');
    let cached=await Promise.all(paths.map(path=>cache.match(path)));
    if(cached.some(item=>!item)){
     if(!navigator.onLine)throw Error('Не все автономные файлы доступны в кэше');

@@ -575,14 +575,33 @@
    screen.append(panel);
   }
  }
- document.getElementById('inspect-migration').onclick=()=>{
+ function comparisonNotice(plan){
+  const check=plan.comparison;
+  return 'Сверка завершена. Курсов из файла найдено: '+check.medications.matched+' из '+check.medications.total+'; событий приёма: '+check.intakeLogs.matched+' из '+check.intakeLogs.total+'. Различий в полях файла: '+check.differentFields.length+'. Дополнительно в хранилище: '+check.medications.additional+' курсов; '+check.intakeLogs.additional+' событий. '+(check.allIncluded?'Все данные выбранного файла уже присутствуют. Повторный импорт не требуется.':'Полное соответствие файлу не подтверждено.')+' Сверка данные не изменяет.';
+ }
+ document.getElementById('inspect-migration').onclick=async()=>{
+  const controls=[...document.querySelectorAll('#login button')];
+  let compared=false;
   try{
+   const selected=document.getElementById('legacy-backup').files?.[0];
+   if(selected&&localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null){
+    compared=true;controls.forEach(button=>{button.disabled=true;});
+    document.getElementById('open-imported').hidden=true;
+    if(selected.size>20*1024*1024)throw Error('Файл превышает допустимый размер 20 МБ');
+    if(!password.value)throw Error('Введите прежний локальный пароль');
+    const filePassword=document.getElementById('transfer-password').value;
+    if(filePassword.length<12)throw Error('Введите пароль файла переноса в отдельное поле');
+    if(!await session.unlock(password.value))throw Error('Неверный пароль существующего хранилища');
+    const plan=await window.MedControlModular3CopyMigration.previewExistingImport(await selected.text(),filePassword);
+    notice(comparisonNotice(plan));return;
+   }
    const result=window.MedControlModular3CopyMigration.inspect();
    if(result.reason==='legacy_missing'){notice('Исходные данные на этом устройстве не найдены. Перенос не запускался.');return;}
    if(!result.ready){notice('Перенос пока недоступен: '+result.reason+'. Данные не изменены.');return;}
    const counts=result.counts;
    notice('Проверка без изменений завершена. Препаратов: '+counts.medications+'; приёмов: '+counts.intakeLogs+'; отмен: '+(counts.intakeCorrections||0)+'; архивных событий: '+(counts.archiveHistory||0)+'. Перенос не запускался.');
   }catch(error){notice('Проверка не выполнена: '+error.message);}
+  finally{if(compared)await session.lock();controls.forEach(button=>{button.disabled=false;});}
  };
  document.getElementById('commit-migration').onclick=async()=>{
   const migration=window.MedControlModular3CopyMigration;
@@ -647,12 +666,12 @@
     const raw=await selected.text();
     const migration=window.MedControlModular3CopyMigration;
     const plan=await migration.previewExistingImport(raw,filePassword);
-    const confirmed=window.confirm('Перенести из файла '+plan.incoming.medications+' курсов и '+plan.incoming.intakeLogs+' событий приёма в рабочее хранилище?\nТекущее хранилище ('+plan.existing.medications+' курсов; '+plan.existing.intakeLogs+' событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.');
+    const confirmed=plan.comparison.allIncluded||window.confirm('Перенести из файла '+plan.incoming.medications+' курсов и '+plan.incoming.intakeLogs+' событий приёма в рабочее хранилище?\nТекущее хранилище ('+plan.existing.medications+' курсов; '+plan.existing.intakeLogs+' событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.');
     if(!confirmed){notice('Импорт отменён. Хранилище не изменено.');return;}
     const result=await migration.commitExistingImport(plan);
     password.value='';document.getElementById('transfer-password').value='';document.getElementById('legacy-backup').value='';
     refreshImportControls();
-    notice((result.alreadyImported?'Такая копия уже перенесена.':'Копия перенесена и проверена. Прежнее хранилище сохранено отдельно.')+' Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'. Пароль входа остался прежним.');
+    notice((result.alreadyImported?comparisonNotice(plan):'Копия перенесена и проверена. Прежнее хранилище сохранено отдельно.')+' Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'. Пароль входа остался прежним.');
     document.getElementById('open-imported').hidden=false;
     activated=true;
     return;

@@ -121,6 +121,48 @@
   if(!localStorage.getItem(DEST)||!localStorage.getItem(CREDENTIAL))throw Error('Incomplete existing protected account');
   return session;
  }
+ // Inclusion, not counts: every source value must be present, while additional
+ // local records/fields are retained. Array order matters, especially for
+ // equal-timestamp history entries whose final status depends on sequence.
+ function included(source,current){
+  if(source===current)return true;
+  if(source===null||current===null||typeof source!=='object'||typeof current!=='object')return false;
+  if(Array.isArray(source)){
+   if(!Array.isArray(current))return false;
+   let position=0;
+   for(const entry of source){
+    while(position<current.length&&!included(entry,current[position]))position++;
+    if(position===current.length)return false;
+    position++;
+   }
+   return true;
+  }
+  if(Array.isArray(current))return false;
+  return Object.keys(source).every(key=>Object.prototype.hasOwnProperty.call(current,key)&&included(source[key],current[key]));
+ }
+ function matchedEntries(source,current){
+  const identity=value=>value&&typeof value==='object'&&!Array.isArray(value)&&['string','number'].includes(typeof value.id)?typeof value.id+':'+value.id:null;
+  const byId=new Map();
+  current.forEach((value,index)=>{const key=identity(value);if(key!==null){if(!byId.has(key))byId.set(key,[]);byId.get(key).push(index);}});
+  const all=current.map((_,index)=>index),assigned=new Map();
+  function match(index,visited){
+   const key=identity(source[index]),candidates=key===null?all:(byId.get(key)||[]);
+   for(const target of candidates){
+    if(visited.has(target)||!included(source[index],current[target]))continue;
+    visited.add(target);
+    if(!assigned.has(target)||match(assigned.get(target),visited)){assigned.set(target,index);return true;}
+   }
+   return false;
+  }
+  let count=0;
+  source.forEach((_,index)=>{if(match(index,new Set()))count++;});
+  return count;
+ }
+ function compareSource(candidate,current){
+  const differentFields=Object.keys(candidate).filter(key=>!Object.prototype.hasOwnProperty.call(current,key)||!included(candidate[key],current[key]));
+  const group=key=>Object.freeze({matched:matchedEntries(candidate[key],current[key]),total:candidate[key].length,additional:Math.max(0,current[key].length-candidate[key].length)});
+  return Object.freeze({allIncluded:differentFields.length===0,medications:group('medications'),intakeLogs:group('intakeLogs'),differentFields:Object.freeze(differentFields)});
+ }
  async function previewExistingImport(raw,filePassword){
   const session=requireExistingSession();
   if(typeof raw!=='string'||!raw.length||raw.length>20*1024*1024)throw Error('Invalid backup file size');
@@ -132,9 +174,10 @@
   const incoming=validateLegacy(candidate),existing=validateLegacy(JSON.parse(state));
   requireExistingSession();
   if(localStorage.getItem(DEST)!==before||localStorage.getItem(CREDENTIAL)!==credential||JSON.stringify(session.read())!==state)throw Error('Protected account changed during import preview');
-  const plan=Object.freeze({incoming:Object.freeze(incoming),existing:Object.freeze(existing)});
+  const comparison=compareSource(candidate,JSON.parse(state));
+  const plan=Object.freeze({incoming:Object.freeze(incoming),existing:Object.freeze(existing),comparison});
   // Only the exact preview object can authorize activation; no decrypted state in storage.
-  importPlans.set(plan,{before,credential,state,candidate});
+  importPlans.set(plan,{before,credential,state,candidate,comparison});
   return plan;
  }
  async function commitExistingImport(plan){
@@ -142,9 +185,9 @@
   if(!record)throw Error('Import preview required');
   importPlans.delete(plan);
   const session=requireExistingSession();
-  const same=JSON.stringify(record.candidate)===record.state;
+  const same=record.comparison.allIncluded;
   let backupKey=null;
-  await session.transact(next=>{
+  const activated=await session.transact(next=>{
    if(localStorage.getItem(DEST)!==record.before||localStorage.getItem(CREDENTIAL)!==record.credential||JSON.stringify(next)!==record.state)throw Error('Protected account changed after import preview');
    if(same)return;
    backupKey=PRESERVED+crypto.randomUUID();
@@ -157,7 +200,7 @@
    for(const key of Object.keys(next))delete next[key];
    Object.defineProperties(next,Object.getOwnPropertyDescriptors(structuredClone(record.candidate)));
   },{skipUnchanged:true});
-  return Object.freeze({medications:record.candidate.medications.length,intakeLogs:record.candidate.intakeLogs.length,sourcePreserved:true,previousVaultPreserved:!same,alreadyImported:same,backupKey});
+  return Object.freeze({medications:activated.medications.length,intakeLogs:activated.intakeLogs.length,sourcePreserved:true,previousVaultPreserved:!same,alreadyImported:same,backupKey});
  }
  function readPreservedBackup(key){
   if(typeof key!=='string'||!key.startsWith(PRESERVED))throw Error('Invalid preserved backup key');

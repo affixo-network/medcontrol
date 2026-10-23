@@ -145,11 +145,97 @@ test('cancelling a second UI import locks the preview session and hides the prio
  await fillImport(page);page.once('dialog',d=>d.accept());await page.locator('#import-backup').click();
  await expect(page.locator('#open-imported')).toBeVisible();
  const before=await snapshot(page);await fillImport(page);
+ const previousFile=await page.evaluate(async({OLD,FILE_PASS})=>JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:await MedControlModular3EncryptedVault.seal(OLD,FILE_PASS)}),{OLD,FILE_PASS});
+ await page.locator('#legacy-backup').setInputFiles({name:'previous.json',mimeType:'application/json',buffer:Buffer.from(previousFile)});
  page.once('dialog',d=>d.dismiss());await page.locator('#import-backup').click();
  await expect(page.locator('#message')).toContainText('отменён');
  await expect(page.locator('#import-backup')).toBeEnabled();
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(false);
  await expect(page.locator('#open-imported')).toBeHidden();expect(await snapshot(page)).toEqual(before);
+});
+async function installSuperset(page){
+ await page.evaluate(async({OLD_PASS,INCOMING})=>{
+  await MedControlModular3ProtectedSession.unlock(OLD_PASS);
+  await MedControlModular3ProtectedSession.transact(state=>{
+   for(const key of Object.keys(state))delete state[key];Object.assign(state,INCOMING);
+   state.medications.push({id:'extra-test',name:'SYNTHETIC EXTRA',times:['20:00']});
+   state.intakeLogs.push({id:'extra-log',medicationId:'extra-test',action:'taken'});
+  });
+  await MedControlModular3ProtectedSession.lock();
+ },{OLD_PASS,INCOMING});
+}
+test('full source is recognized inside eight courses and 36 events without replacing extras',async({page})=>{
+ await installSuperset(page);const before=await snapshot(page);const plan=await preview(page);
+ expect(plan.comparison).toMatchObject({allIncluded:true,medications:{matched:7,total:7,additional:1},intakeLogs:{matched:35,total:35,additional:1},differentFields:[]});
+ const result=await page.evaluate(async()=>MedControlModular3CopyMigration.commitExistingImport(window.importPlan));
+ expect(result).toMatchObject({alreadyImported:true,medications:8,intakeLogs:36});expect(await snapshot(page)).toEqual(before);
+});
+test('matching counts alone do not hide changed facts or missing historical fields',async({page})=>{
+ await installSuperset(page);
+ await page.evaluate(async OLD_PASS=>{
+  await MedControlModular3ProtectedSession.unlock(OLD_PASS);
+  await MedControlModular3ProtectedSession.transact(state=>{state.intakeLogs[0].actualAt='2099-10-01T05:00:02Z';delete state.unknownSourceMetadata;});
+ },OLD_PASS);
+ const before=await snapshot(page);const plan=await preview(page);
+ expect(plan.comparison.allIncluded).toBe(false);expect(plan.comparison.intakeLogs.matched).toBe(34);
+ expect(plan.comparison.differentFields).toContain('intakeLogs');expect(plan.comparison.differentFields).toContain('unknownSourceMetadata');
+ expect(await snapshot(page)).toEqual(before);
+});
+test('comparison consumes duplicate historical entries separately',async({page})=>{
+ await installSuperset(page);
+ const result=await page.evaluate(async({OLD_PASS,FILE_PASS,INCOMING})=>{
+  await MedControlModular3ProtectedSession.unlock(OLD_PASS);
+  await MedControlModular3ProtectedSession.transact(state=>{state.audit=[{at:'same',detail:'same'}];});
+  const source=structuredClone(INCOMING);source.audit=[{at:'same',detail:'same'},{at:'same',detail:'same'}];
+  const raw=JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:await MedControlModular3EncryptedVault.seal(source,FILE_PASS)});
+  return (await MedControlModular3CopyMigration.previewExistingImport(raw,FILE_PASS)).comparison;
+ },{OLD_PASS,FILE_PASS,INCOMING});
+ expect(result.allIncluded).toBe(false);expect(result.differentFields).toContain('audit');
+});
+test('object property order does not change inclusion',async({page})=>{
+ await installSuperset(page);
+ const result=await page.evaluate(async({OLD_PASS,FILE_PASS,INCOMING})=>{
+  await MedControlModular3ProtectedSession.unlock(OLD_PASS);
+  await MedControlModular3ProtectedSession.transact(state=>{
+   state.audit=[{a:1},{a:1,b:2}];
+  });
+  const source=structuredClone(INCOMING);source.audit=[{a:1},{b:2,a:1}];
+  const raw=JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:await MedControlModular3EncryptedVault.seal(source,FILE_PASS)});
+  return (await MedControlModular3CopyMigration.previewExistingImport(raw,FILE_PASS)).comparison;
+ },{OLD_PASS,FILE_PASS,INCOMING});
+ expect(result.allIncluded).toBe(true);
+});
+test('reversed equal-timestamp status history cannot be reported as preserved',async({page})=>{
+ const result=await page.evaluate(async({OLD_PASS,FILE_PASS,INCOMING})=>{
+  await MedControlModular3ProtectedSession.unlock(OLD_PASS);
+  const source=structuredClone(INCOMING);
+  source.medications[0].timeStatusHistory=[{at:'2099-10-01T05:00:00Z',time:'09:00',active:false},{at:'2099-10-01T05:00:00Z',time:'09:00',active:true}];
+  const target=structuredClone(source);target.medications[0].timeStatusHistory.reverse();
+  await MedControlModular3ProtectedSession.transact(state=>{for(const key of Object.keys(state))delete state[key];Object.assign(state,target);});
+  const raw=JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:await MedControlModular3EncryptedVault.seal(source,FILE_PASS)});
+  return (await MedControlModular3CopyMigration.previewExistingImport(raw,FILE_PASS)).comparison;
+ },{OLD_PASS,FILE_PASS,INCOMING});
+ expect(result.allIncluded).toBe(false);expect(result.differentFields).toContain('medications');
+});
+test('read-only UI check reports full source inclusion and retains the extra course and event',async({page})=>{
+ await installSuperset(page);const before=await snapshot(page);await fillImport(page);
+ let dialogs=0;page.on('dialog',async d=>{dialogs++;await d.dismiss();});
+ await page.locator('#inspect-migration').click();
+ await expect(page.locator('#message')).toContainText('Курсов из файла найдено: 7 из 7');
+ await expect(page.locator('#message')).toContainText('событий приёма: 35 из 35');
+ await expect(page.locator('#message')).toContainText('Различий в полях файла: 0');
+ await expect(page.locator('#message')).toContainText('Повторный импорт не требуется');
+ await expect(page.locator('#inspect-migration')).toBeEnabled();
+ expect(dialogs).toBe(0);expect(await snapshot(page)).toEqual(before);
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(false);
+});
+test('import UI recognizes an already preserved source without asking to replace the larger current state',async({page})=>{
+ await installSuperset(page);const before=await snapshot(page);await fillImport(page);
+ let dialogs=0;page.on('dialog',async d=>{dialogs++;await d.dismiss();});
+ await page.locator('#import-backup').click();
+ await expect(page.locator('#message')).toContainText('Все данные выбранного файла уже присутствуют');
+ await expect(page.locator('#message')).toContainText('Препаратов: 8; приёмов: 36');
+ expect(dialogs).toBe(0);expect(await snapshot(page)).toEqual(before);
 });
 test('plaintext, malformed histories and invalid JSON are refused without writes',async({page})=>{
  const before=await snapshot(page);

@@ -28,3 +28,11 @@ The user explicitly instructed execution without further experiments or question
 
 Actual user data remain unverified until the user imports their file and the
 reported seven courses, 35 intake events, history and archive are checked.
+
+Follow-up evidence: the existing vault actually reports 8 courses/36 events and
+shows seven archived source courses. Input-only visibility was insufficient to
+infer missing records. Add read-only full-source inclusion comparison to the
+existing readiness action, checking all source fields and duplicate cardinality;
+skip activation if source records are already included, retaining local extras.
+Verify exact matches, changed facts, missing metadata, object key order, duplicate
+history and equal-timestamp chronology, read-only UI behavior and no-op import before publishing.
