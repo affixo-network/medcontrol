@@ -16,7 +16,7 @@
   function weekdayCode(dateISO) { const [y,m,d]=dateISO.split('-').map(Number); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(Date.UTC(y,m-1,d,12)).getUTCDay()]; }
   function medicationLastDate(med) { if (med.scheduleType === 'explicit_dates') { const dates=(med.explicitDates||[]).filter(Boolean).slice().sort(); return dates.length?dates[dates.length-1]:''; } return med.endDate||''; }
   function scheduleAppliesIgnoringMode(med,dateISO){ if(!med||med.cancelled)return false;if(med.scheduleType==='explicit_dates')return(med.explicitDates||[]).includes(dateISO);if(med.startDate&&dateISO<med.startDate)return false;if(med.endDate&&dateISO>med.endDate)return false;if(med.scheduleType==='weekdays')return(med.weekdays||[]).includes(weekdayCode(dateISO));return med.scheduleType==='daily'||!med.scheduleType; }
-  function shouldCompleteCourse(med,state){if(!med||med.cancelled)return false;const lastDate=medicationLastDate(med);if(!lastDate)return false;const today=currentLocalDate();if(lastDate<today)return true;if(lastDate>today)return false;if(!scheduleAppliesIgnoringMode(med,lastDate))return false;const times=[...(med.times||[])].filter(Boolean).sort();if(!times.length)return false;const lastPlannedAt=getScheduledDateTime(lastDate,times[times.length-1]);return Boolean(effectiveTakenAt(state,med.id,lastPlannedAt));}
+  function shouldCompleteCourse(med,state){if(!med||med.cancelled)return false;if(window.medcontrolProtectedInterface&&window.MedControlModular3FinalIntake){const final=window.MedControlModular3FinalIntake.finalPlannedAt(med);if(!final)return false;const date=localDateFromISO(final),today=currentLocalDate();return date<today||(date===today&&Boolean(effectiveTakenAt(state,med.id,final)));}const lastDate=medicationLastDate(med);if(!lastDate)return false;const today=currentLocalDate();if(lastDate<today)return true;if(lastDate>today)return false;if(!scheduleAppliesIgnoringMode(med,lastDate))return false;const times=[...(med.times||[])].filter(Boolean).sort();if(!times.length)return false;const lastPlannedAt=getScheduledDateTime(lastDate,times[times.length-1]);return Boolean(effectiveTakenAt(state,med.id,lastPlannedAt));}
   function effectiveTakenAt(state,medicationId,plannedAt){
     const logs=(state.intakeLogs||[]).filter(x=>x.medicationId===medicationId&&x.plannedAt===plannedAt).sort((a,b)=>new Date(b.actualAt||b.at||0)-new Date(a.actualAt||a.at||0));
     const primary=logs[0]||null;
@@ -30,6 +30,8 @@
     return primary.action==='taken'?(primary.actualAt||primary.at||''):'';
   }
   function courseCompletionAt(state,med){
+    const protectedFinal=window.medcontrolProtectedInterface&&window.MedControlModular3FinalIntake?.finalPlannedAt(med);
+    if(protectedFinal){const taken=effectiveTakenAt(state,med.id,protectedFinal);if(taken)return taken;return new Date(new Date(getScheduledDateTime(localDateFromISO(protectedFinal),'23:59')).getTime()+59000).toISOString();}
     const lastDate=medicationLastDate(med);
     if(!lastDate)return nowISO();
     const times=[...(med.times||[])].filter(Boolean).sort();
@@ -86,6 +88,7 @@
           }
         }
 
+        if(window.medcontrolProtectedInterface&&!med.archivedCompleted){med.archivedCompleted=true;med.archivedAt=completedAt;changed=true;}
         if(!med.archivedCompleted){
           const completedCreatedAt=createdAtOf(med);
           const newerCourse=(state.medications||[]).find(candidate=>{
@@ -155,12 +158,12 @@
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
-      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedHelp=document.createElement('p');completedHelp.className='muted';completedHelp.textContent='Завершённый курс можно повторить или отправить в архив. Если в течение 7 дней после завершения курс не будет повторён, он автоматически перейдёт в Архив.';completedSection.appendChild(completedHelp);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
+      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedHelp=document.createElement('p');completedHelp.className='muted';completedHelp.textContent=window.medcontrolProtectedInterface?'Завершённый курс автоматически переходит в Архив. Повторить его с новыми датами можно из Архива.':'Завершённый курс можно повторить или отправить в архив. Если в течение 7 дней после завершения курс не будет повторён, он автоматически перейдёт в Архив.';completedSection.appendChild(completedHelp);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
     };
   }
   window.repeatCompletedCourse=function(id){
     const med=(getState().medications||[]).find(item=>item.id===id);
-    if(!med||!med.courseCompleted||med.archivedCompleted)return;
+    if(!med||!med.courseCompleted||(med.archivedCompleted&&!window.medcontrolProtectedInterface))return;
     window.__repeatCompletedCourseSourceId=id;
 
     const set=(key,value)=>{const el=document.getElementById('create_'+key);if(el)el.value=value==null?'':String(value);};
@@ -199,6 +202,7 @@
     if(typeof window.syncCreateScheduleFields==='function')window.syncCreateScheduleFields();
     if(typeof window.renderStructuredTimes==='function')window.renderStructuredTimes('create_');
     if(typeof window.renderStructuredDates==='function')window.renderStructuredDates('create_');
+    if(window.medcontrolProtectedInterface){set('startDate','');set('endDate','');}
 
     const formCard=document.getElementById('create_name')?.closest('.card');
     if(formCard){
@@ -221,7 +225,8 @@
     }
     const scheduleType=document.getElementById('create_scheduleType')?.value||'daily';
     window.setTimeout(()=>{
-      if(scheduleType==='explicit_dates')document.getElementById('create_datePicker')?.focus();
+      if(window.medcontrolProtectedInterface)document.getElementById('create_name')?.focus();
+      else if(scheduleType==='explicit_dates')document.getElementById('create_datePicker')?.focus();
       else document.getElementById('create_startDate')?.focus();
     },0);
   };

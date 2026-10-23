@@ -202,6 +202,7 @@
   function historyEventLabel(entry){
     if(entry?.action==='created')return 'Создано';
     if(entry?.action==='course_completed')return 'Курс завершён';
+    if(entry?.action==='course_completion_reversed')return 'Завершение курса отменено';
     if(entry?.action==='cancelled')return 'Отменено';
     if(entry?.action==='activated'||entry?.action==='active')return 'Препарат активирован';
     if(entry?.action==='deactivated'||entry?.action==='passive')return 'Препарат деактивирован';

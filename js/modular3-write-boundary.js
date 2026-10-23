@@ -15,7 +15,12 @@
   const operation=queue.then(async()=>{
    if(!protectedMode())throw Error('Protected session locked');
    const before=localStorage.getItem(KEY);
-   const result=await SESSION.transact(mutator);
+   const result=await SESSION.transact(async state=>{
+    const policy=root.medcontrolProtectedInterface&&root.MedControlModular3FinalIntake;
+    const before=policy?policy.capture(state):null;
+    await mutator(state);
+    if(before)policy.afterChange(state,before);
+   });
    const persisted=localStorage.getItem(KEY);
    if(!persisted||persisted===before)throw Error('Encrypted checkpoint missing or unchanged');
    const record=JSON.parse(persisted);

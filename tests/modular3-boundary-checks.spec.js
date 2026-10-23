@@ -241,7 +241,7 @@ test('fully offline browser restart unlocks all four protected pages',async({bro
  await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
  await expect.poll(async()=>page.evaluate(async()=>{
-  const cache=await caches.open('medcontrol-static-modular3-v12');
+  const cache=await caches.open('medcontrol-static-modular3-v13');
   return Boolean(await cache.match('/archive.html'))&&Boolean(await cache.match('/js/archive-page.js'));
  })).toBe(true);
  await page.close();
@@ -269,7 +269,7 @@ test('offline intake write survives page restart and remains encrypted',async({b
  await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
  await expect.poll(async()=>page.evaluate(async()=>{
-  const cache=await caches.open('medcontrol-static-modular3-v12');
+  const cache=await caches.open('medcontrol-static-modular3-v13');
   return Boolean(await cache.match('/action.html'))&&Boolean(await cache.match('/js/modular3-write-boundary.js'));
  })).toBe(true);
  await context.setOffline(true);

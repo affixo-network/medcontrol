@@ -28,7 +28,7 @@ async function run(){
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
   await context.close();
-  const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','copy-migration','protected-workspace'];
+  const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','final-intake','copy-migration','protected-workspace'];
   for(const module of modules){
    context=await browser.newContext();page=await context.newPage();
    await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);

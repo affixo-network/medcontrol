@@ -23,7 +23,7 @@ function eligible(med,day,time) {
  if(rule.scheduleType==='explicit_dates')return (rule.explicitDates||[]).includes(day);
  return false;
 }
-function finalSlot(med){
+function finalSlot(med,accept=()=>true){
  const start=med.startDate,end=med.endDate||start;
  if(!dayRe.test(start)||!dayRe.test(end)||start>end)throw Error('Invalid course dates');
  const candidates=[...new Set([...(med.times||[]),...(med.rowHistory||[]).flatMap(x=>x.action==='times_changed'?[...(x.previousTimes||[]),...(x.newTimes||[])]:[])])].filter(validTime).sort().reverse();
@@ -33,7 +33,7 @@ function finalSlot(med){
   const day=new Date(last);day.setDate(last.getDate()-n);
   if(day<first)break;
   const label=[day.getFullYear(),String(day.getMonth()+1).padStart(2,'0'),String(day.getDate()).padStart(2,'0')].join('-');
-  for(const time of candidates)if(eligible(med,label,time))return label+'T'+time;
+  for(const time of candidates)if(eligible(med,label,time)&&accept(label,time))return label+'T'+time;
  }
  return null;
 }

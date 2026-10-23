@@ -160,11 +160,13 @@ async function run(){
   await full.waitForFunction(()=>document.getElementById('create_name')?.value==='Synthetic Protected Draft');
   assert.equal(await full.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3_input_draft')),null);
   console.log('PASS encrypted draft survives restart');
-  // Completion and seven-day archive are the original Modular-2 rules, with a controlled clock.
+  // Protected Modular-3 archives completed courses immediately; repeat reuses the original form.
   await full.clock.setFixedTime(new Date('2026-10-25T08:00:00Z'));
   await full.evaluate(async()=>{await window.mount('input');});
   assert.equal(await full.evaluate(()=>getState().medications[0].courseCompleted),true);
-  await full.evaluate(()=>window.repeatCompletedCourse(getState().medications[0].id));
+  assert.equal(await full.evaluate(()=>getState().medications[0].archivedCompleted),true);
+  await full.locator('.nav a[href="archive.html"]').click();
+  await full.locator('[data-repeat-archived]').first().click();
   assert.equal(await full.locator('#create_name').inputValue(),'Synthetic Edited Course');
   await full.evaluate(()=>{document.getElementById('create_startDate').value='2026-10-25';document.getElementById('create_endDate').value='2026-10-26';});
   await full.locator('#createMedicationButton').click();
@@ -173,12 +175,12 @@ async function run(){
   await full.waitForFunction(()=>getState().medications.length===2&&getState().medications[0].archivedCompleted);
   assert.equal(await full.evaluate(()=>getState().intakeLogs[0].actualAt),intake.actualAt);
   console.log('PASS original repeat creates new course and archives prior course without losing history');
-  await full.clock.setFixedTime(new Date('2026-11-03T08:00:00Z'));
+  await full.clock.setFixedTime(new Date('2026-10-27T08:00:00Z'));
   await full.evaluate(async()=>{await window.mount('input');});
   assert.equal(await full.evaluate(()=>getState().medications[1].archivedCompleted),true);
   await full.evaluate(async()=>{await window.medcontrolNavigateTo('archive');});
   assert.ok((await full.locator('body').innerText()).includes('Synthetic Edited Course'));
-  console.log('PASS seven-day auto-archive and original Archive display');
+  console.log('PASS immediate auto-archive and original Archive display');
   const beforeReset=await full.evaluate(()=>getState());
   await full.evaluate(async()=>{await window.manualMedControlCycleReset();});
   const afterReset=await full.evaluate(()=>getState());

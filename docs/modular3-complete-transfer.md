@@ -12,7 +12,7 @@ The protected entry now opens the existing Modular-2 Input, Intake, Dashboard an
 - Automatic startup repairs run in order. Course reconciliation uses the session transaction queue and skips unchanged snapshots.
 - Draft autosave coalesces rapid input and flushes before confirmation/navigation/logout. Creating a course clears its draft in the same encrypted transaction.
 - A failed draft flush preserves Input; Logout still locks the vault. A new cycle retains the complete previous cycle in an encrypted backup.
-- Static cache revision: `medcontrol-static-modular3-v12`. No medical records or credentials are stored in Cache Storage.
+- Static cache revision: `medcontrol-static-modular3-v13`. No medical records or credentials are stored in Cache Storage.
 
 ## Verification
 
@@ -20,11 +20,11 @@ All browser checks use isolated browser contexts and synthetic records. No live 
 
 | Suite | Passed |
 | --- | ---: |
-| `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, course repeat, seven-day archive, reset and logout | 18 |
+| `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, course repeat, immediate archive, reset and logout | 18 |
 | `tests/modular3-transfer-e2e.cjs` — encrypted handoff and prior migration regressions | 28 |
-| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 45 |
+| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 56 |
 | Loader and auth integration Node tests | 9 |
-| `tests/modular3-entry-startup.cjs` — interrupted dependency loading, persistent failure, visible login feedback | 12 |
+| `tests/modular3-entry-startup.cjs` — interrupted dependency loading, persistent failure, visible login feedback | 13 |
 
 Both temporal-guard checks and the Modular-2 interface/localization baseline also pass. The layout baseline allows only the protected version label to change; asynchronous medication handler changes are covered by the original-interface browser suite.
 
@@ -59,12 +59,12 @@ imported again with the password that originally protected it; restoration also
 preserves the state it replaces. These copies are retained if activation fails.
 They consume additional local storage; insufficient space aborts activation.
 
-The 23 existing-install browser scenarios include a synthetic 7-course/35-event transfer,
+The existing-install browser scenarios include a synthetic 7-course/35-event transfer,
 preservation and restoration of the prior vault, separate passwords, cancellation,
 write faults, stale previews, repeat import, untouched plaintext source, malformed
-input, and full-interface offline reopening. They do not establish that the user's
-actual local records have been imported. Actual source/target verification is
-still required before declaring the user's migration complete or starting languages.
+input, and full-interface offline reopening. These synthetic checks cannot establish
+that the user's actual local records were imported. The user subsequently supplied
+the local comparison and offline confirmation recorded below.
 
 ## Verify a source file against an already populated vault
 
@@ -92,3 +92,32 @@ On an existing installation, checking without a selected transfer file now gives
 an explicit file-selection instruction and focuses the file input. It does not
 fall through to legacy initialization inspection (`protected_account_exists`).
 The instruction explains that a page refresh clears the browser's file selection.
+
+
+## Confirmed transfer and first approved behavior change
+
+The user reported that read-only comparison matched all 7 source courses and all
+35 source intake events, with zero differing file fields and one additional local
+course/event. They also confirmed unlocking the existing vault and opening all
+four sections, including Archive, without internet. This confirmation comes from
+the user's browser; automated tests remain isolated and synthetic.
+
+The first requested functional change after that transfer removes the seven-day
+archive delay in protected Modular-3. Before the final scheduled Taken event is
+recorded, a dialog explains how to repeat the medication by changing course dates.
+Cancel/Escape writes nothing; Change dates opens the original editor under its
+existing direct-edit policy. Confirmation uses the original Taken handler. The
+same encrypted transaction saves the factual event, completion, archive status
+and course history. A failed write leaves the dialog open for retry.
+
+Archive exposes the original repeat form with empty new dates. The previous
+course and intake history remain intact. A final intake archived by this policy
+also exposes the original correction dialog during the existing correction
+window. An accidental reset restores the active course and appends reversal
+history without deleting its original Taken event.
+
+`tests/modular3-final-intake.spec.js` adds 11 browser checks covering cancellation,
+Escape, duplicate confirmation, actual date saving, delayed encryption, rollback
+and retry, archive repeat, correction/retake, weekday and explicit-date schedules,
+disabled times, offline confirmation and encrypted restart. The original Modular-2
+branch, six baseline interface/core files and cloud services are unchanged.

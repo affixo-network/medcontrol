@@ -23,6 +23,8 @@ async function saveStateAsync(next, options = {}) {
     .filter(key => JSON.stringify(before[key]) !== JSON.stringify(captured[key]));
   try {
     await session.transact(current => {
+      const policy=window.medcontrolProtectedInterface&&window.MedControlModular3FinalIntake;
+      const courseBefore=policy&&(keys.includes('intakeLogs')||keys.includes('intakeCorrections'))?policy.capture(current):null;
       for (const key of keys) {
         if (JSON.stringify(current[key]) !== JSON.stringify(before[key]))
           throw new Error('Данные изменились. Откройте раздел снова и повторите действие.');
@@ -31,6 +33,7 @@ async function saveStateAsync(next, options = {}) {
         if (Object.prototype.hasOwnProperty.call(captured, key)) current[key] = captured[key];
         else delete current[key];
       }
+      if(courseBefore)policy.afterChange(current,courseBefore);
     });
     protectedStateBases.set(next, structuredClone(captured));
     return true;

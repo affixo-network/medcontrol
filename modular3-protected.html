@@ -73,7 +73,7 @@ label button{vertical-align:middle}
 <div id="preserved-backups" hidden><label>Сохранённые хранилища до переноса <select id="preserved-backup"></select></label><button id="download-preserved-backup" type="button">Скачать сохранённую защищённую копию</button><p>Эти копии открываются паролем, действовавшим до соответствующего переноса.</p></div>
 <button id="open-imported" type="button" hidden>Открыть MedControl</button>
 <div id="workspace" hidden><nav class="nav"><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
-<script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
+<script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-final-intake.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
 (function(){
  'use strict';
  const status=document.getElementById('message');
@@ -87,6 +87,7 @@ label button{vertical-align:middle}
   ['/js/modular3-write-boundary.js',()=>window.MedControlModular3WriteBoundary],
   ['/js/modular3-course-lifecycle-browser.js',()=>window.MedControlModular3CourseLifecycle],
   ['/js/modular3-protected-pages.js',()=>window.MedControlModular3ProtectedPages],
+  ['/js/modular3-final-intake.js',()=>window.MedControlModular3FinalIntake],
   ['/js/modular3-copy-migration.js',()=>window.MedControlModular3CopyMigration],
   ['/js/modular3-protected-workspace.js',()=>window.medcontrolProtectedWorkspaceReady===true]
  ];
@@ -124,8 +125,8 @@ label button{vertical-align:middle}
   try{
    const registration=await navigator.serviceWorker.register('/modular3-static-cache-sw.js',{scope:'/'});
    await navigator.serviceWorker.ready;
-   const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-course-lifecycle-browser.js','/js/modular3-protected-pages.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
-   const cache=await caches.open('medcontrol-static-modular3-v12');
+   const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js','/js/modular3-offline-credential.js','/js/modular3-protected-session.js','/js/modular3-write-boundary.js','/js/modular3-course-lifecycle-browser.js','/js/modular3-protected-pages.js','/js/modular3-final-intake.js','/js/modular3-copy-migration.js','/js/modular3-protected-workspace.js'];
+   const cache=await caches.open('medcontrol-static-modular3-v13');
    let cached=await Promise.all(paths.map(path=>cache.match(path)));
    if(cached.some(item=>!item)){
     if(!navigator.onLine)throw Error('Не все автономные файлы доступны в кэше');

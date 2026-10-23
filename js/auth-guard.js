@@ -4,7 +4,7 @@
   const SUPABASE_URL='https://lewdbjjaohqxbirzhrbm.supabase.co';
   const SUPABASE_ANON_KEY='sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ';
   const SUPABASE_STORAGE_KEY='sb-lewdbjjaohqxbirzhrbm-auth-token';
-  const protectedModules=['js/modular3-encrypted-vault.js','js/modular3-offline-credential.js','js/modular3-protected-session.js','js/modular3-write-boundary.js','js/modular3-course-lifecycle-browser.js','js/modular3-protected-pages.js'];
+  const protectedModules=['js/modular3-encrypted-vault.js','js/modular3-offline-credential.js','js/modular3-protected-session.js','js/modular3-write-boundary.js','js/modular3-course-lifecycle-browser.js','js/modular3-protected-pages.js','js/modular3-final-intake.js'];
   const common=['js/translations.js','js/storage.js?v=force-majeure-20260918-2','js/cloud-snapshot.js?v=force-majeure-20260918-2'];
   const reset='js/archive-reset-policy.js?v=manual-reset-recovery-1';
   const loadedScriptPaths=new Set(Array.from(document.scripts||[]).filter(script=>script.src&&script!==currentScript).map(script=>new URL(script.src,window.location.href).pathname));
@@ -73,6 +73,7 @@
     const loader=await ensureModular3Loader();
     await loader.ensureScripts(protectedModules);
     await loader.ensureScripts(list);
+    if(window.medcontrolProtectedInterface)window.MedControlModular3FinalIntake?.install();
   }
   async function renderPage(targetPage){
     if(targetPage==='archive'){
