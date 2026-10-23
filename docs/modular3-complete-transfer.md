@@ -22,7 +22,7 @@ All browser checks use isolated browser contexts and synthetic records. No live 
 | --- | ---: |
 | `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, course repeat, seven-day archive, reset and logout | 18 |
 | `tests/modular3-transfer-e2e.cjs` — encrypted handoff and prior migration regressions | 28 |
-| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 44 |
+| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 45 |
 | Loader and auth integration Node tests | 9 |
 | `tests/modular3-entry-startup.cjs` — interrupted dependency loading, persistent failure, visible login feedback | 12 |
 
@@ -59,7 +59,7 @@ imported again with the password that originally protected it; restoration also
 preserves the state it replaces. These copies are retained if activation fails.
 They consume additional local storage; insufficient space aborts activation.
 
-The 22 existing-install browser scenarios include a synthetic 7-course/35-event transfer,
+The 23 existing-install browser scenarios include a synthetic 7-course/35-event transfer,
 preservation and restoration of the prior vault, separate passwords, cancellation,
 write faults, stale previews, repeat import, untouched plaintext source, malformed
 input, and full-interface offline reopening. They do not establish that the user's
@@ -87,3 +87,8 @@ and backup creation, reports the actual larger local counts, and retains all ext
 Equal counts with altered actual times or missing history/metadata do not pass.
 The user must run this comparison locally: CI uses synthetic records and cannot
 read the user's browser storage or their downloaded transfer file.
+
+On an existing installation, checking without a selected transfer file now gives
+an explicit file-selection instruction and focuses the file input. It does not
+fall through to legacy initialization inspection (`protected_account_exists`).
+The instruction explains that a page refresh clears the browser's file selection.

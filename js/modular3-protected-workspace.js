@@ -584,7 +584,12 @@
   let compared=false;
   try{
    const selected=document.getElementById('legacy-backup').files?.[0];
-   if(selected&&localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null){
+   const existingVault=localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null;
+   if(existingVault&&!selected){
+    notice('Для сверки выберите файл medcontrol-encrypted-transfer.json в блоке «Резервная копия MedControl (.json)». После обновления страницы файл нужно выбрать заново. Сверка не запускалась; данные не изменены.');
+    document.getElementById('legacy-backup').focus();return;
+   }
+   if(selected&&existingVault){
     compared=true;controls.forEach(button=>{button.disabled=true;});
     document.getElementById('open-imported').hidden=true;
     if(selected.size>20*1024*1024)throw Error('Файл превышает допустимый размер 20 МБ');

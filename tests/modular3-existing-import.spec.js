@@ -229,6 +229,17 @@ test('read-only UI check reports full source inclusion and retains the extra cou
  expect(dialogs).toBe(0);expect(await snapshot(page)).toEqual(before);
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(false);
 });
+test('existing-vault readiness without a selected file gives the missing-file instruction and does not inspect legacy data',async({page})=>{
+ await page.evaluate(INCOMING=>localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(INCOMING)),INCOMING);
+ const before=await snapshot(page);
+ await page.locator('#password').fill(OLD_PASS);await page.locator('#transfer-password').fill(FILE_PASS);
+ await page.locator('#inspect-migration').click();
+ await expect(page.locator('#message')).toContainText('Для сверки выберите файл');
+ await expect(page.locator('#message')).toContainText('После обновления страницы файл нужно выбрать заново');
+ await expect(page.locator('#message')).not.toContainText('protected_account_exists');
+ expect(await snapshot(page)).toEqual(before);
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(false);
+});
 test('import UI recognizes an already preserved source without asking to replace the larger current state',async({page})=>{
  await installSuperset(page);const before=await snapshot(page);await fillImport(page);
  let dialogs=0;page.on('dialog',async d=>{dialogs++;await d.dismiss();});
