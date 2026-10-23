@@ -12,7 +12,7 @@ The protected entry now opens the existing Modular-2 Input, Intake, Dashboard an
 - Automatic startup repairs run in order. Course reconciliation uses the session transaction queue and skips unchanged snapshots.
 - Draft autosave coalesces rapid input and flushes before confirmation/navigation/logout. Creating a course clears its draft in the same encrypted transaction.
 - A failed draft flush preserves Input; Logout still locks the vault. A new cycle retains the complete previous cycle in an encrypted backup.
-- Static cache revision: `medcontrol-static-modular3-v13`. No medical records or credentials are stored in Cache Storage.
+- Static cache revision: `medcontrol-static-modular3-v14`. No medical records or credentials are stored in Cache Storage.
 
 ## Verification
 
@@ -20,7 +20,7 @@ All browser checks use isolated browser contexts and synthetic records. No live 
 
 | Suite | Passed |
 | --- | ---: |
-| `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, course repeat, immediate archive, reset and logout | 18 |
+| `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, archived-course repeat refusal, immediate archive, reset and logout | 18 |
 | `tests/modular3-transfer-e2e.cjs` — encrypted handoff and prior migration regressions | 28 |
 | `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 56 |
 | Loader and auth integration Node tests | 9 |
@@ -110,14 +110,14 @@ existing direct-edit policy. Confirmation uses the original Taken handler. The
 same encrypted transaction saves the factual event, completion, archive status
 and course history. A failed write leaves the dialog open for retry.
 
-Archive exposes the original repeat form with empty new dates. The previous
-course and intake history remain intact. A final intake archived by this policy
-also exposes the original correction dialog during the existing correction
-window. An accidental reset restores the active course and appends reversal
-history without deleting its original Taken event.
+Archive permits viewing history and the existing explicit cycle reset only.
+There are no repeat, date-edit or intake-correction actions in Archive. Changing
+course dates remains available before the final Taken confirmation. The repeat
+handler also refuses already archived courses. Previous course records and factual
+intake history are retained.
 
 `tests/modular3-final-intake.spec.js` adds 11 browser checks covering cancellation,
 Escape, duplicate confirmation, actual date saving, delayed encryption, rollback
-and retry, archive repeat, correction/retake, weekday and explicit-date schedules,
+and retry, read-only Archive, archived-course repeat refusal, weekday and explicit-date schedules,
 disabled times, offline confirmation and encrypted restart. The original Modular-2
 branch, six baseline interface/core files and cloud services are unchanged.

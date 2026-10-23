@@ -1,10 +1,10 @@
 /* Approved Modular-3 policy: pre-intake hint and atomic completion/archive.
- * Reuses the completed program's intake handlers, date editor and repeat form.
+ * Reuses the completed program's intake handlers and date editor.
  */
 (function(root){
  'use strict';
  const pending=new Set();
- let wrappedTake=null,wrappedArchive=null;
+ let wrappedTake=null;
  const enabled=()=>Boolean(root.medcontrolProtectedInterface&&root.MedControlModular3ProtectedSession?.isUnlocked());
  function finalPlannedAt(med){
   if(!med||med.cancelled)return null;
@@ -114,29 +114,7 @@
    };
    root.markTaken=wrappedTake;
   }
-  if(typeof root.renderArchivePage==='function'&&root.renderArchivePage!==wrappedArchive){
-   const inherited=root.renderArchivePage;
-   wrappedArchive=function(){
-    const result=inherited();
-    for(const med of root.getState().medications.filter(x=>!x.cancelled&&x.archivedCompleted)){
-     const button=[...document.querySelectorAll('button[onclick^="showArchiveMedicationHistory("]')].find(node=>node.getAttribute('onclick')===`showArchiveMedicationHistory('${med.id}')`);
-     if(!button)continue;
-     const repeat=document.createElement('button');repeat.type='button';repeat.dataset.repeatArchived=med.id;
-     repeat.textContent=root.getState().settings?.interfaceLanguage==='en'?'Repeat course':'Повторить курс';
-     repeat.onclick=async()=>{await root.medcontrolNavigateTo('input');await new Promise(resolve=>setTimeout(resolve,0));root.repeatCompletedCourse(med.id);};
-     button.after(repeat);
-     const fact=(root.getState().intakeLogs||[]).find(x=>x.id===med.autoArchivedByIntakeId);
-     if(fact&&effectiveTaken(root.getState(),med.id,fact.plannedAt)&&root.localDateFromISO(fact.plannedAt)===root.currentLocalDate()&&Date.now()<new Date(root.getScheduledDateTime(root.currentLocalDate(),'23:59')).getTime()+59000){
-      const correct=document.createElement('button');correct.type='button';correct.dataset.correctArchived=med.id;
-      correct.textContent=root.getState().settings?.interfaceLanguage==='en'?'Correct Taken':'Исправить «Принято»';
-      correct.onclick=async()=>{await root.medcontrolNavigateTo('action');root.openCorrection(med.id,fact.plannedAt);};
-      repeat.after(correct);
-     }
-    }
-    return result;
-   };
-   root.renderArchivePage=wrappedArchive;
-  }
+
  }
  root.MedControlModular3FinalIntake=Object.freeze({finalPlannedAt,capture,afterChange,install});
 })(typeof window!=='undefined'?window:globalThis);

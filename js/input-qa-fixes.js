@@ -158,12 +158,12 @@
       renderRows(sourceTable,activeMeds,'active');
       const anchor=sourceTable.closest('section');
       const passiveSection=document.createElement('section');passiveSection.className='card';const passiveHeading=document.createElement('h2');passiveHeading.textContent='Пассивные препараты';passiveSection.appendChild(passiveHeading);const passiveTable=sourceTable.cloneNode(true);renderRows(passiveTable,passiveMeds,'passive');passiveSection.appendChild(passiveTable);anchor.after(passiveSection);
-      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedHelp=document.createElement('p');completedHelp.className='muted';completedHelp.textContent=window.medcontrolProtectedInterface?'Завершённый курс автоматически переходит в Архив. Повторить его с новыми датами можно из Архива.':'Завершённый курс можно повторить или отправить в архив. Если в течение 7 дней после завершения курс не будет повторён, он автоматически перейдёт в Архив.';completedSection.appendChild(completedHelp);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
+      if(completedMeds.length){const completedSection=document.createElement('section');completedSection.className='card';const completedHeading=document.createElement('h2');completedHeading.textContent='Повторить завершённый курс';completedSection.appendChild(completedHeading);const completedHelp=document.createElement('p');completedHelp.className='muted';completedHelp.textContent=window.medcontrolProtectedInterface?'Завершённый курс автоматически переходит в Архив. Изменить даты курса можно до последнего «Принято».':'Завершённый курс можно повторить или отправить в архив. Если в течение 7 дней после завершения курс не будет повторён, он автоматически перейдёт в Архив.';completedSection.appendChild(completedHelp);const completedTable=sourceTable.cloneNode(true);renderRows(completedTable,completedMeds,'completed');completedSection.appendChild(completedTable);passiveSection.after(completedSection);}
     };
   }
   window.repeatCompletedCourse=function(id){
     const med=(getState().medications||[]).find(item=>item.id===id);
-    if(!med||!med.courseCompleted||(med.archivedCompleted&&!window.medcontrolProtectedInterface))return;
+    if(!med||!med.courseCompleted||med.archivedCompleted)return;
     window.__repeatCompletedCourseSourceId=id;
 
     const set=(key,value)=>{const el=document.getElementById('create_'+key);if(el)el.value=value==null?'':String(value);};

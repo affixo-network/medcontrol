@@ -143,16 +143,16 @@ async function run(){
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
   // Regression: a partially missing current-version cache must recover online.
   await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v13');
+   const cache=await caches.open('medcontrol-static-modular3-v14');
    await cache.delete('/js/modular3-copy-migration.js');
   });
   await page.reload({waitUntil:'load'});
   await page.waitForFunction(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v13');
+   const cache=await caches.open('medcontrol-static-modular3-v14');
    return !!(await cache.match('/js/modular3-copy-migration.js'));
   },null,{timeout:30000});
   assert.equal(await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v13');
+   const cache=await caches.open('medcontrol-static-modular3-v14');
    return !!(await cache.match('/js/modular3-copy-migration.js'));
   }),true,'Missing offline asset must be restored on reload');
   console.log('PASS 4a: missing offline cache asset restored without clearing medical vault');
@@ -161,7 +161,7 @@ async function run(){
   await page.locator('#workspace').waitFor({state:'visible'});
   assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read()),original);
   const offlineFiles=await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v13');
+   const cache=await caches.open('medcontrol-static-modular3-v14');
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
     '/js/modular3-offline-credential.js','/js/modular3-protected-session.js',
     '/js/modular3-write-boundary.js','/js/modular3-protected-pages.js',

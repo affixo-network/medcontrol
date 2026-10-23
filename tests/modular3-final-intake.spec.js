@@ -80,28 +80,23 @@ test('nonfinal intake has no completion prompt and leaves the course active',asy
  await page.locator('button[onclick^="markTaken(\'offline-final\'"]').first().click();await page.waitForFunction(()=>getState().intakeLogs.length===2);
  await expect(page.locator('#finalIntakeDialog')).toHaveCount(0);expect((await current(page)).medications.find(x=>x.id===med.id).archivedCompleted).not.toBe(true);
 });
-test('an archived course repeats through the original form with new dates and preserves the old course',async({page})=>{
+test('Archive allows history and reset only, with no repeat or correction actions',async({page})=>{
  await open(page);await clickFinal(page);await page.locator('#finalIntakeConfirm').click();await page.waitForFunction(()=>getState().medications.find(x=>x.id==='offline-final').archivedCompleted===true);
- await page.locator('.nav a[href="archive.html"]').click();const old=await current(page);
- await page.locator('[data-repeat-archived="offline-final"]').click();await expect(page.locator('#create_name')).toHaveValue(med.name);
- await expect(page.locator('#create_startDate')).toHaveValue('');await expect(page.locator('#create_endDate')).toHaveValue('');
- await page.locator('#create_startDate').fill('2026-10-25');await page.locator('#create_endDate').fill('2026-10-26');
- await page.locator('#createMedicationButton').click();await page.locator('#medicationConfirmDialog button[onclick="proceedMedicationCreateConfirmation()"] ').click();await page.locator('#medicationSaveDialog button[onclick="confirmMedicationCreate()"] ').click();
- await page.waitForFunction(()=>getState().medications.length===3);const next=await current(page);
- expect(next.medications.find(x=>x.id===med.id)).toEqual(old.medications.find(x=>x.id===med.id));expect(next.intakeLogs).toEqual(old.intakeLogs);
- expect(next.medications.at(-1)).toMatchObject({name:med.name,startDate:'2026-10-25',endDate:'2026-10-26',active:true});
+ await page.locator('.nav a[href="archive.html"]').click();const before=await current(page),raw=await page.evaluate(KEY=>localStorage.getItem(KEY),KEY);
+ await expect(page.locator('[data-repeat-archived], [data-correct-archived]')).toHaveCount(0);
+ const actions=await page.locator('section.card button').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('onclick')||''));
+ expect(actions.every(action=>/^(showArchive|setArchiveIntake|collapseArchiveIntakeHistory|manualMedControlCycleReset)/.test(action))).toBe(true);
+ await page.locator('button[onclick="showArchiveMedicationHistory(\'offline-final\')"]').click();
+ await expect(page.locator('#archiveHistoryContent')).toContainText('Курс завершён');
+ expect(await current(page)).toEqual(before);expect(await page.evaluate(KEY=>localStorage.getItem(KEY),KEY)).toBe(raw);
 });
-test('accidental undo restores the active course and retake archives again without losing the first fact',async({page})=>{
+test('an archived course cannot populate the repeat form through its handler',async({page})=>{
  await open(page);await clickFinal(page);await page.locator('#finalIntakeConfirm').click();await page.waitForFunction(()=>getState().medications.find(x=>x.id==='offline-final').archivedCompleted===true);
- const first=(await current(page)).intakeLogs.find(x=>x.medicationId===med.id);
- await page.clock.setFixedTime(new Date('2026-10-24T08:59:00Z'));
- await page.locator('.nav a[href="archive.html"]').click();
- await page.locator('[data-correct-archived="offline-final"]').click();await page.locator('#correction_reason').selectOption('accident');await page.locator('#correction_apply').click();
- await page.waitForFunction(()=>getState().medications.find(x=>x.id==='offline-final').active===true);
- expect((await current(page)).intakeLogs).toContainEqual(first);
- await page.clock.setFixedTime(new Date('2026-10-24T09:00:00Z'));await clickFinal(page);await page.locator('#finalIntakeConfirm').click();
- await page.waitForFunction(()=>getState().medications.find(x=>x.id==='offline-final').archivedCompleted===true);
- const after=await current(page);expect(after.intakeLogs).toContainEqual(first);expect(after.intakeLogs.filter(x=>x.medicationId===med.id)).toHaveLength(2);expect(after.intakeCorrections).toHaveLength(1);
+ await page.locator('.nav a[href="input.html"]').click();
+ const before=await current(page),name=await page.locator('#create_name').inputValue();
+ await page.evaluate(()=>repeatCompletedCourse('offline-final'));
+ expect(await current(page)).toEqual(before);await expect(page.locator('#create_name')).toHaveValue(name);
+ expect(await page.evaluate(()=>window.__repeatCompletedCourseSourceId||null)).toBeNull();
 });
 test('weekday course archives after its actual last scheduled weekday even if end date is Sunday',async({page})=>{
  await open(page,{scheduleType:'weekdays',weekdays:['Sat'],endDate:'2026-10-25'});await clickFinal(page);await page.locator('#finalIntakeConfirm').click();
