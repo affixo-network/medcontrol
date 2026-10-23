@@ -601,16 +601,63 @@
    show();
   }catch(error){notice('Перенос не завершён: '+error.message+'. Исходная история не удалялась.');}
  };
+ function refreshImportControls(){
+  try{
+   document.getElementById('existing-import').hidden=localStorage.getItem('medcontrol_modular3_protected_state_v1')===null&&localStorage.getItem('medcontrol_modular3_local_credential_v1')===null;
+   const backups=window.MedControlModular3CopyMigration.listPreservedBackups();
+   const list=document.getElementById('preserved-backup');list.replaceChildren();
+   for(const backup of backups)list.add(new Option(new Date(backup.createdAt).toLocaleString(),backup.key));
+   document.getElementById('preserved-backups').hidden=backups.length===0;
+  }catch(_){/* A storage error is reported by the requested login/import operation. */}
+ }
+ document.getElementById('download-preserved-backup').onclick=()=>{
+  try{
+   const key=document.getElementById('preserved-backup').value;
+   const raw=window.MedControlModular3CopyMigration.exportPreservedBackup(key);
+   const url=URL.createObjectURL(new Blob([raw],{type:'application/json'}));
+   const link=document.createElement('a');link.href=url;link.download='medcontrol-preserved-before-import.json';link.click();
+   setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(error){notice('Не удалось скачать сохранённую копию: '+error.message);}
+ };
+ document.getElementById('open-imported').onclick=()=>{if(session.isUnlocked())show();};
+ refreshImportControls();
  document.getElementById('import-backup').onclick=async()=>{
   const selected=document.getElementById('legacy-backup').files?.[0];
   const button=document.getElementById('import-backup');
   if(!selected){notice('Выберите зашифрованную копию MedControl в формате JSON.');return;}
   if(selected.size>20*1024*1024){notice('Файл превышает допустимый размер 20 МБ.');return;}
-  if(!password.value||password.value.length<12){notice('Введите новый локальный пароль длиной не менее 12 символов.');return;}
-  if(!window.confirm('Импортировать зашифрованную копию? Существующие данные не будут перезаписаны.'))return;
+  if(!password.value||password.value.length<12){notice('Введите локальный пароль длиной не менее 12 символов.');return;}
   button.disabled=true;
+  const entryButtons=[...document.querySelectorAll('#login button')];
+  entryButtons.forEach(control=>{control.disabled=true;});
+  document.getElementById('open-imported').hidden=true;
   const entered=password.value;
+  let existing=false;
+  let activated=false;
   try{
+   const data=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+   const credential=localStorage.getItem('medcontrol_modular3_local_credential_v1');
+   existing=data!==null||credential!==null;
+   if(existing){
+    if(data===null||credential===null)throw Error('Хранилище создано не полностью. Сначала используйте «Восстановить доступ».');
+    document.getElementById('existing-import').hidden=false;
+    const filePassword=document.getElementById('transfer-password').value;
+    if(filePassword.length<12)throw Error('Введите пароль файла переноса в отдельное поле (не менее 12 символов)');
+    if(!await session.unlock(entered))throw Error('Неверный пароль существующего хранилища');
+    const raw=await selected.text();
+    const migration=window.MedControlModular3CopyMigration;
+    const plan=await migration.previewExistingImport(raw,filePassword);
+    const confirmed=window.confirm('Перенести из файла '+plan.incoming.medications+' курсов и '+plan.incoming.intakeLogs+' событий приёма в рабочее хранилище?\nТекущее хранилище ('+plan.existing.medications+' курсов; '+plan.existing.intakeLogs+' событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.');
+    if(!confirmed){notice('Импорт отменён. Хранилище не изменено.');return;}
+    const result=await migration.commitExistingImport(plan);
+    password.value='';document.getElementById('transfer-password').value='';document.getElementById('legacy-backup').value='';
+    refreshImportControls();
+    notice((result.alreadyImported?'Такая копия уже перенесена.':'Копия перенесена и проверена. Прежнее хранилище сохранено отдельно.')+' Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'. Пароль входа остался прежним.');
+    document.getElementById('open-imported').hidden=false;
+    activated=true;
+    return;
+   }
+   if(!window.confirm('Импортировать зашифрованную копию? Существующие данные не будут перезаписаны.'))return;
    const raw=await selected.text();
    const result=await window.MedControlModular3CopyMigration.importBackup(raw,entered);
    if(!await session.unlock(entered))throw Error('Не удалось открыть зашифрованную копию');
@@ -618,8 +665,12 @@
    document.getElementById('legacy-backup').value='';
    notice('Зашифрованная копия импортирована и проверена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
    show();
-  }catch(error){notice('Импорт не завершён: '+error.message+'. Исходный файл не изменён.');}
-  finally{button.disabled=false;}
+  }catch(error){notice('Импорт не завершён: '+error.message+'. Исходный файл не изменён.');refreshImportControls();}
+  finally{
+   // A preview unlock is not authorization to leave medical data open after cancellation/failure.
+   if(existing&&!activated)await session.lock();
+   entryButtons.forEach(control=>{control.disabled=false;});
+  }
  };
  document.getElementById('recover').onclick=async()=>{
   const key='medcontrol_modular3_protected_state_v1';

@@ -20,6 +20,7 @@ on:
       - 'tests/modular3-entry-startup.cjs'
       - 'tests/modular3-boundary-checks.spec.js'
       - 'tests/modular3-copy-migration.spec.js'
+      - 'tests/modular3-existing-import.spec.js'
       - 'tests/modular3-production-*.spec.js'
       - 'playwright.modular3-transfer.config.cjs'
       - 'modular3-protected.html'

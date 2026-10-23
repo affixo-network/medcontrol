@@ -12,7 +12,7 @@ The protected entry now opens the existing Modular-2 Input, Intake, Dashboard an
 - Automatic startup repairs run in order. Course reconciliation uses the session transaction queue and skips unchanged snapshots.
 - Draft autosave coalesces rapid input and flushes before confirmation/navigation/logout. Creating a course clears its draft in the same encrypted transaction.
 - A failed draft flush preserves Input; Logout still locks the vault. A new cycle retains the complete previous cycle in an encrypted backup.
-- Static cache revision: `medcontrol-static-modular3-v10`. No medical records or credentials are stored in Cache Storage.
+- Static cache revision: `medcontrol-static-modular3-v11`. No medical records or credentials are stored in Cache Storage.
 
 ## Verification
 
@@ -22,7 +22,7 @@ All browser checks use isolated browser contexts and synthetic records. No live 
 | --- | ---: |
 | `tests/modular3-complete-interface.cjs` — original UI, delayed encryption, write faults, offline restart, draft recovery, course repeat, seven-day archive, reset and logout | 18 |
 | `tests/modular3-transfer-e2e.cjs` — encrypted handoff and prior migration regressions | 28 |
-| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives and static caching | 22 |
+| `playwright.modular3-transfer.config.cjs` — boundaries, migration, cryptographic primitives, static caching and existing-install import | 37 |
 | Loader and auth integration Node tests | 9 |
 | `tests/modular3-entry-startup.cjs` — interrupted dependency loading, persistent failure, visible login feedback | 12 |
 
@@ -37,3 +37,31 @@ The language catalogs remain RU and EN. The 95-language work follows transfer ve
 ## Entry startup recovery
 
 The entry page enables login controls only after all protected modules and their handlers have initialized. Missing modules are retried in dependency order without recreating an existing protected session. A persistent failure displays a retry button instead of reporting successful startup based only on Cache Storage. Login also distinguishes an empty password and a vault absent from the current origin; neither case creates or deletes data.
+
+## Transfer when a protected test vault already exists
+
+The original first-install importer still refuses an existing vault. The entry
+form now offers a separate, explicit path for that situation. `Локальный пароль`
+verifies the current vault; `Пароль файла переноса` decrypts the selected file.
+The confirmation reports both sets of counts. Cancellation writes nothing and
+locks the preview session, including after a previous successful import.
+
+After confirmation, the complete previous encrypted vault and credential are
+saved and read back under a unique `medcontrol_modular3_preserved_before_import_v1/`
+key before the existing verified session transaction activates the imported state.
+The local credential is unchanged. Unknown metadata and all source history arrays
+are preserved. Storage failure or a stale preview cannot silently replace the
+current data. An identical repeat import performs no writes.
+
+The preserved copies are available as encrypted JSON downloads from the entry
+page, without exposing medical contents. A downloaded previous copy can be
+imported again with the password that originally protected it; restoration also
+preserves the state it replaces. These copies are retained if activation fails.
+They consume additional local storage; insufficient space aborts activation.
+
+The 15 new browser scenarios include a synthetic 7-course/35-event transfer,
+preservation and restoration of the prior vault, separate passwords, cancellation,
+write faults, stale previews, repeat import, untouched plaintext source, malformed
+input, and full-interface offline reopening. They do not establish that the user's
+actual local records have been imported. Actual source/target verification is
+still required before declaring the user's migration complete or starting languages.

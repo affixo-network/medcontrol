@@ -1,9 +1,12 @@
-/* Opt-in copy-only migration. Original state and backups are never overwritten. */
+/* Opt-in migration. Legacy state is untouched; existing protected state is
+ * preserved in an immutable encrypted backup before confirmed activation. */
 (function(root){
  'use strict';
  const SOURCE='affixo_medcontrol_standard_v3';
  const DEST='medcontrol_modular3_protected_state_v1';
  const CREDENTIAL='medcontrol_modular3_local_credential_v1';
+ const PRESERVED='medcontrol_modular3_preserved_before_import_v1/';
+ const importPlans=new WeakMap();
  const VAULT=root.MedControlModular3EncryptedVault;
  const CRED=root.MedControlModular3OfflineCredential;
  if(!VAULT||!CRED)throw Error('Protected migration dependencies unavailable');
@@ -112,5 +115,65 @@
    }
   });
  }
- root.MedControlModular3CopyMigration=Object.freeze({inspect,preview,commit,resume,importBackup});
+ function requireExistingSession(){
+  const session=root.MedControlModular3ProtectedSession;
+  if(!session?.isUnlocked())throw Error('Protected session locked');
+  if(!localStorage.getItem(DEST)||!localStorage.getItem(CREDENTIAL))throw Error('Incomplete existing protected account');
+  return session;
+ }
+ async function previewExistingImport(raw,filePassword){
+  const session=requireExistingSession();
+  if(typeof raw!=='string'||!raw.length||raw.length>20*1024*1024)throw Error('Invalid backup file size');
+  const before=localStorage.getItem(DEST),credential=localStorage.getItem(CREDENTIAL);
+  const state=JSON.stringify(session.read());
+  const transfer=JSON.parse(raw);
+  if(transfer?.format!=='medcontrol-encrypted-transfer-v1'||!transfer.encrypted)throw Error('Encrypted MedControl transfer file required');
+  const candidate=await VAULT.open(transfer.encrypted,filePassword);
+  const incoming=validateLegacy(candidate),existing=validateLegacy(JSON.parse(state));
+  requireExistingSession();
+  if(localStorage.getItem(DEST)!==before||localStorage.getItem(CREDENTIAL)!==credential||JSON.stringify(session.read())!==state)throw Error('Protected account changed during import preview');
+  const plan=Object.freeze({incoming:Object.freeze(incoming),existing:Object.freeze(existing)});
+  // Only the exact preview object can authorize activation; no decrypted state in storage.
+  importPlans.set(plan,{before,credential,state,candidate});
+  return plan;
+ }
+ async function commitExistingImport(plan){
+  const record=importPlans.get(plan);
+  if(!record)throw Error('Import preview required');
+  importPlans.delete(plan);
+  const session=requireExistingSession();
+  const same=JSON.stringify(record.candidate)===record.state;
+  let backupKey=null;
+  await session.transact(next=>{
+   if(localStorage.getItem(DEST)!==record.before||localStorage.getItem(CREDENTIAL)!==record.credential||JSON.stringify(next)!==record.state)throw Error('Protected account changed after import preview');
+   if(same)return;
+   backupKey=PRESERVED+crypto.randomUUID();
+   if(localStorage.getItem(backupKey)!==null)throw Error('Preserved backup already exists');
+   const backup=JSON.stringify({format:'medcontrol-protected-preserved-v1',createdAt:new Date().toISOString(),encrypted:JSON.parse(record.before),credential:JSON.parse(record.credential)});
+   // Persist and read back the entire old encrypted vault BEFORE touching active data.
+   // Failed activation may leave this additional safe copy; it is never removed.
+   localStorage.setItem(backupKey,backup);
+   if(localStorage.getItem(backupKey)!==backup)throw Error('Preserved backup verification failed');
+   for(const key of Object.keys(next))delete next[key];
+   Object.defineProperties(next,Object.getOwnPropertyDescriptors(structuredClone(record.candidate)));
+  },{skipUnchanged:true});
+  return Object.freeze({medications:record.candidate.medications.length,intakeLogs:record.candidate.intakeLogs.length,sourcePreserved:true,previousVaultPreserved:!same,alreadyImported:same,backupKey});
+ }
+ function readPreservedBackup(key){
+  if(typeof key!=='string'||!key.startsWith(PRESERVED))throw Error('Invalid preserved backup key');
+  const backup=JSON.parse(localStorage.getItem(key)||'null');
+  if(backup?.format!=='medcontrol-protected-preserved-v1'||!backup.encrypted||!backup.credential||typeof backup.createdAt!=='string')throw Error('Invalid preserved backup');
+  return backup;
+ }
+ function listPreservedBackups(){
+  return Object.keys(localStorage).filter(key=>key.startsWith(PRESERVED)).map(key=>{
+   const backup=readPreservedBackup(key);
+   return Object.freeze({key,createdAt:backup.createdAt});
+  }).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+ }
+ function exportPreservedBackup(key){
+  const backup=readPreservedBackup(key);
+  return JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:backup.encrypted});
+ }
+ root.MedControlModular3CopyMigration=Object.freeze({inspect,preview,commit,resume,importBackup,previewExistingImport,commitExistingImport,listPreservedBackups,exportPreservedBackup});
 })(typeof window!=='undefined'?window:globalThis);
