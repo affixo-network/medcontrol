@@ -40,3 +40,15 @@ test('every committed external catalog is complete and declared', () => {
   assert.ok(files.includes('en.json'));
   console.log('Verified committed external catalogs: ' + files.length + ' / 94 (Russian is source)');
 });
+
+test('every advertised language has an installed catalog and every installed catalog is advertised', () => {
+  const languageJs = fs.readFileSync(path.join(root, 'js/language.js'), 'utf8');
+  const match = languageJs.match(/const SUPPORTED_LANGUAGES = \[([\s\S]*?)\];/);
+  assert.ok(match, 'Supported language list missing');
+  const advertised = [...match[1].matchAll(/\['([a-z]{2,3}(?:-[a-z]{2,4})?)',/g)].map(x => x[1]);
+  const installed = fs.readdirSync(path.join(root, 'locales/catalogs'))
+    .filter(file => file.endsWith('.json')).map(file => file.slice(0, -5));
+  assert.equal(new Set(advertised).size, advertised.length, 'Duplicate advertised languages');
+  assert.deepEqual([...advertised].sort(), [...new Set(['ru', ...installed])].sort(),
+    'The interface list and available catalogs differ');
+});
