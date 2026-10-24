@@ -16,7 +16,7 @@
     for (const key of keys) {
       const item = catalog.messages[key];
       if (typeof item !== 'string' || !item.trim() || /MC\s*\d{4}/i.test(item) ||
-          /ZXQ[A-Z]+QXZ/i.test(item) || slots(item) !== slots(source[key].source)) {
+          /ZXQ[A-Z]+(?:QXZ|QX|Q)?/i.test(item) || slots(item) !== slots(source[key].source)) {
         throw new Error('Invalid translation entry: ' + key);
       }
     }
