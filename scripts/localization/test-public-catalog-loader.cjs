@@ -17,6 +17,8 @@ for (const [name, change] of [
   ['empty translation', c => { c.messages.key1 = ''; }],
   ['lost placeholder', c => { c.messages.key0 = 'Taken'; }],
   ['batch marker', c => { c.messages.key1 = 'MC0001: Test'; }],
+  ['truncated protection marker', c => { c.messages.key1 = 'Translated ZXQABQX'; }],
+  ['partial protection marker', c => { c.messages.key1 = 'Translated ZXQAB'; }],
   ['wrong language', c => { c.language = 'fr'; }]
 ]) test('rejects ' + name, () => {
   const c = catalog(); change(c);
