@@ -47,7 +47,7 @@ def translate_rows(keys,language,values,references):
         parsed=request_batch(batch,language)
         for i,(key,protected,tokens) in enumerate(batch):
             translated=parsed.get(i,'')
-            good=lambda value:bool(value) and all(len(re.findall(re.escape(t),value,re.I))==protected.count(t) for t in tokens)
+            good=lambda value:(bool(value) and not re.search(r'(?i)\bMC\s*\d{4}\s*[:：]|ZXQ[A-Z]{2,}QXZ',value.replace(' ','')) and all(len(re.findall(re.escape(t),value,re.I))==protected.count(t) for t in tokens))
             if not good(translated):translated=html.unescape(request(protected,language,source='en')).strip()
             if not good(translated):
                 # Last resort preserves every clinical label/data slot; never invent or drop one.
@@ -55,7 +55,7 @@ def translate_rows(keys,language,values,references):
                 parts=re.split(expression,protected)
                 translated=''.join(part if part in tokens or not part.strip() else html.unescape(request(part,language,source='en')).strip() for part in parts)
                 segmented+=1
-            if not good(translated):raise ValueError('Lost UI/data placeholders '+language+':'+key)
+            if not good(translated):raise ValueError('Corrupt translation or lost UI/data placeholders '+language+':'+key)
             for name,value in tokens.items():translated=re.sub(re.escape(name),lambda _:value,translated,flags=re.I)
             if sorted(re.findall(r'⟦\d+⟧',translated))!=sorted(re.findall(r'⟦\d+⟧',SOURCE[key]['source'])):raise ValueError('Invalid source placeholder '+language+':'+key)
             values[key]=translated
