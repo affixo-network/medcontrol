@@ -1,0 +1,42 @@
+name: Modular-3 Import Validated Language Drafts
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Successful Public UI Translation Drafts run ID'
+        required: true
+        default: '40075379438'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  import-catalogs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: modular-3.000
+          persist-credentials: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: language-drafts-*
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: locales/draft-import
+      - name: Validate draft inventory without touching medical data
+        run: |
+          node scripts/localization/validate-imported-drafts.cjs
+          node --test scripts/localization/test-manifest-coverage.cjs
+      - name: Commit only validated public language catalogs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add locales/catalogs
+          if git diff --cached --quiet; then
+            echo 'No new validated catalogs'
+          else
+            git commit -m 'Import structurally validated public UI translation drafts'
+            git push origin HEAD:modular-3.000
+          fi
