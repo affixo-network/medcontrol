@@ -16,6 +16,9 @@ on:
       - 'scripts/localization/test-language-registration.cjs'
       - 'scripts/localization/test-locale-activation.cjs'
       - 'scripts/localization/test-locale-bootstrap.cjs'
+      - 'locales/manifest.json'
+      - 'locales/catalogs/*.json'
+      - 'scripts/localization/test-manifest-coverage.cjs'
       - 'locales/source-ru.json'
       - 'locales/catalogs/en.json'
       - '.github/workflows/modular3-public-catalog-loader-tests.yml'
@@ -31,4 +34,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Run isolated catalog validation tests
-        run: node --test scripts/localization/test-public-catalog-loader.cjs scripts/localization/test-legacy-locale-adapter.cjs scripts/localization/test-real-legacy-catalog.cjs scripts/localization/test-locale-preparation.cjs scripts/localization/test-language-registration.cjs scripts/localization/test-locale-activation.cjs scripts/localization/test-locale-bootstrap.cjs
+        run: node --test scripts/localization/test-public-catalog-loader.cjs scripts/localization/test-legacy-locale-adapter.cjs scripts/localization/test-real-legacy-catalog.cjs scripts/localization/test-locale-preparation.cjs scripts/localization/test-language-registration.cjs scripts/localization/test-locale-activation.cjs scripts/localization/test-locale-bootstrap.cjs scripts/localization/test-manifest-coverage.cjs
