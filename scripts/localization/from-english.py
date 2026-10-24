@@ -1,7 +1,7 @@
 """Translate reviewed public English UI, preserving units and named UI controls."""
 import hashlib,html,json,pathlib,re,sys,time
 from translate import ROOT,SOURCE,MANIFEST,MARK,request
-SKIP={'ru','en','eu','ka','km','fa','th','ro'}
+SKIP={'ru','en'}
 MASTER=json.loads((ROOT/'locales/catalogs/en.json').read_text())
 MASTER_HASH=hashlib.sha256((ROOT/'locales/catalogs/en.json').read_bytes()).hexdigest()
 KEYS={row['source']:key for key,row in SOURCE.items()}
