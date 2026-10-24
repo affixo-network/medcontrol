@@ -243,7 +243,7 @@
     "57cb4188862a5ff0": "Hora de admisión programada",
     "57f069e86129ba57": "mg/g",
     "582bbbc960c7a2a1": "Cantidad de ingesta *",
-    "585d7328139b9ece": "Error: se corregirá el tiempo de admisión real en el registro. El estado \"Medicación tomada\" se mantiene y el Panel de control vuelve a calcular la desviación horaria.",
+    "585d7328139b9ece": "Error: se corregirá la hora real de toma del medicamento registrada. Se conserva el estado «Medicamento tomado» y el panel de control vuelve a calcular la diferencia horaria.",
     "59028987e38dfbe5": "Repetir curso de tratamiento",
     "594fe5b1b57584e6": "¿Continuar?",
     "595b7fc686e82ea9": "Confirmar \"Medicación tomada\"",
