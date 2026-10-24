@@ -42,6 +42,6 @@ test('production static service worker caches JavaScript and serves it during ne
   }
   return keys;
  });
- expect(cacheKeys.every(path=>(path.startsWith('/js/')&&path.endsWith('.js'))||path==='/locales/source-ru.json'||/^\\/locales\\/catalogs\\/[a-z]{2,3}(?:-[a-z]{2,4})?\\.json$/.test(path)||['/input.html','/action.html','/dashboard.html','/archive.html','/modular3-protected.html','/core.js'].includes(path))).toBe(true);
+ expect(cacheKeys.every(path=>(path.startsWith('/js/')&&path.endsWith('.js'))||path==='/locales/source-ru.json'||/^\/locales\/catalogs\/[a-z]{2,3}(?:-[a-z]{2,4})?\.json$/.test(path)||['/input.html','/action.html','/dashboard.html','/archive.html','/modular3-protected.html','/core.js'].includes(path))).toBe(true);
  await context.close();
 });
