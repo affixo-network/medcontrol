@@ -1,7 +1,7 @@
 """Prepare static machine-translation drafts from public repository UI strings.
 Never loaded by MedControl. Never accepts vaults, browser storage or passwords.
 """
-import concurrent.futures, hashlib, html, json, os, pathlib, re, sys, time, unicodedata
+import concurrent.futures, hashlib, html, json, os, pathlib, re, sys, time, unicodedata, shutil
 import urllib.parse, urllib.request
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 SOURCE=json.loads((ROOT/'locales/source-ru.json').read_text())
@@ -56,6 +56,7 @@ GLOSSARY={
  'История приёмов':'Medication intake history','Отмена «Принято»':'Taken mark cancelled',
  'Курс завершён':'Course completed','Завершённые курсы':'Completed courses',
  'Архив':'Archive','Сброс':'Reset','Ввод':'Input',
+ 'Пн':'Monday','Вт':'Tuesday','Ср':'Wednesday','Чт':'Thursday','Пт':'Friday','Сб':'Saturday','Вс':'Sunday',
 }
 def apply_glossary(values,language):
     if language=='ru':return values
@@ -95,12 +96,15 @@ def translate(language):
                     raise ValueError(f'{language}:{key}: missing translation or changed placeholders')
                 values[key]=value
             time.sleep(0.3)
-    if prior.get('glossaryVersion')!=1:values=apply_glossary(values,language)
+    if prior.get('glossaryVersion')!=2:values=apply_glossary(values,language)
     if set(values)!=set(SOURCE):raise ValueError('Catalog is incomplete')
-    result={'language':language,'glossaryVersion':1,'sourceSha256':hashlib.sha256((ROOT/'locales/source-ru.json').read_bytes()).hexdigest(),'provenance':'machine-generated draft; editorial review not established','messages':values}
+    result={'language':language,'glossaryVersion':2,'sourceSha256':hashlib.sha256((ROOT/'locales/source-ru.json').read_bytes()).hexdigest(),'provenance':'machine-generated draft; editorial review not established','messages':values}
     output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     print(f'{language}: {len(values)} actual translations',flush=True)
 if __name__=='__main__':
     partition=int(sys.argv[1]) if len(sys.argv)>1 else 0
     groups=int(sys.argv[2]) if len(sys.argv)>2 else 19
-    for record in MANIFEST[partition::groups]:translate(record['code'])
+    out=ROOT/'locales/output';out.mkdir(parents=True,exist_ok=True)
+    for record in MANIFEST[partition::groups]:
+        translate(record['code'])
+        shutil.copy2(ROOT/'locales/drafts'/(record['code']+'.json'),out/(record['code']+'.json'))
