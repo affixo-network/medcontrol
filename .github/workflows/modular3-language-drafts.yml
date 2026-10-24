@@ -8,6 +8,8 @@ on:
       - 'scripts/localization/translate.py'
       - 'scripts/localization/seed.py'
       - 'scripts/localization/refine.py'
+      - 'scripts/localization/from-english.py'
+      - 'locales/catalogs/en.json'
       - '.github/workflows/modular3-language-drafts.yml'
 permissions:
   contents: read
@@ -18,25 +20,15 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 6
       matrix:
         partition: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Reuse completed drafts from the preceding preparation
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          run-id: 40070021819
-          github-token: ${{ github.token }}
-          pattern: language-drafts-*
-          path: locales/seed
-          merge-multiple: false
-      - name: Merge public catalog artifacts deterministically
-        run: python3 scripts/localization/seed.py
       - name: Translate public static UI text only
-        run: python3 scripts/localization/refine.py ${{ matrix.partition }} 19
+        run: python3 scripts/localization/from-english.py ${{ matrix.partition }} 19
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
