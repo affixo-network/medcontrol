@@ -197,7 +197,7 @@
     "576077460ea8b800": "Hint",
     "57cb4188862a5ff0": "Scheduled intake time",
     "57f069e86129ba57": "mg/g",
-    "582bbbc960c7a2a1": "Intake quantity *",
+    "582bbbc960c7a2a1": "Quantity to take *",
     "585d7328139b9ece": "Error: the actual intake time in the record will be corrected. The \"Medication taken\" status is retained, and the Dashboard recalculates the time deviation.",
     "59028987e38dfbe5": "Repeat treatment course",
     "594fe5b1b57584e6": "Continue?",
