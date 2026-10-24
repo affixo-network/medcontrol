@@ -184,7 +184,7 @@
     "3c78aef88ea2a7a3": "Le stockage sécurisé existe déjà. Dans « Mot de passe local », saisissez votre précédent mot de passe de connexion. Ci-dessous, saisissez le nouveau mot de passe défini lors de la création du fichier de transfert. Pour comparer le fichier sélectionné sans apporter de modifications, cliquez sur \"Vérifier l'état de préparation au transfert\". Avant le transfert, le stockage précédent sera enregistré sous forme de copie cryptée distincte.",
     "3d0dc07989628ab9": "Les données sources sont introuvables sur cet appareil. Le transfert n'a pas commencé.",
     "3ed32052b5cf4cf8": "renderArchivePage() non chargé",
-    "3f35ef00a38250e2": "Il s'agit de la dernière promotion du traitement. Pour répéter le traitement, modifiez les dates du traitement. Une fois la prise finale confirmée, le cours de traitement terminé sera automatiquement transféré vers le archiver. Tout l’historique sera conservé.",
+    "3f35ef00a38250e2": "Il s’agit de la dernière prise de médicament du traitement. Pour renouveler ce traitement, modifiez les dates du traitement. Après confirmation de la dernière prise, le traitement terminé sera automatiquement transféré dans les archives. Tout l’historique sera conservé.",
     "3f53fb873461737d": "Modes",
     "3f632066ff8032ee": "Indice\n\nLa date de fin sélectionnée ne correspond pas aux jours de la semaine du planning. Dates de validité les plus proches : ⟦0⟧.",
     "405d1139c87d2417": "horaire remplacé",
