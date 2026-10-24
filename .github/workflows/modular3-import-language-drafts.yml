@@ -4,11 +4,6 @@ on:
     workflows: ['Modular-3 Public UI Translation Drafts']
     types: [completed]
     branches: [modular-3.000]
-  push:
-    branches: [modular-3.000]
-    paths:
-      - 'scripts/localization/validate-imported-drafts.cjs'
-      - '.github/workflows/modular3-import-language-drafts.yml'
   workflow_dispatch:
     inputs:
       source_run_id:
