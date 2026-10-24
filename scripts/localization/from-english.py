@@ -47,7 +47,7 @@ def translate_rows(keys,language,values,references):
         parsed=request_batch(batch,language)
         for i,(key,protected,tokens) in enumerate(batch):
             translated=parsed.get(i,'')
-            good=lambda value:(bool(value) and not re.search(r'(?i)\bMC\s*\d{4}\s*[:：]',value.replace(' ','')) and all(len(re.findall(re.escape(t),value,re.I))==protected.count(t) for t in tokens))
+            good=lambda value:(bool(value) and not re.search(r'(?i)MC\s*\d{4}',value.replace(' ','')) and all(len(re.findall(re.escape(t),value,re.I))==protected.count(t) for t in tokens))
             if not good(translated):translated=html.unescape(request(protected,language,source='en')).strip()
             if not good(translated):
                 # Last resort preserves every clinical label/data slot; never invent or drop one.
