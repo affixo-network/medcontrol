@@ -3,6 +3,7 @@ on:
   push:
     branches: [modular-3.000]
     paths:
+      - 'scripts/localization/audit-commercial-readiness.cjs'
       - 'js/modular3-public-catalog-loader.js'
       - 'js/modular3-legacy-locale-adapter.js'
       - 'js/modular3-locale-preparation.js'
@@ -38,3 +39,11 @@ jobs:
           persist-credentials: false
       - name: Run isolated catalog validation tests
         run: node --test scripts/localization/test-public-catalog-loader.cjs scripts/localization/test-legacy-locale-adapter.cjs scripts/localization/test-real-legacy-catalog.cjs scripts/localization/test-locale-preparation.cjs scripts/localization/test-language-registration.cjs scripts/localization/test-locale-activation.cjs scripts/localization/test-locale-bootstrap.cjs scripts/localization/test-manifest-coverage.cjs scripts/localization/test-protected-language-selector.cjs
+
+      - name: Audit commercial translation readiness (read-only)
+        run: node scripts/localization/audit-commercial-readiness.cjs commercial-readiness-report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: commercial-translation-readiness
+          path: commercial-readiness-report.json
+          retention-days: 7
