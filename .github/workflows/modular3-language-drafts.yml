@@ -9,6 +9,7 @@ on:
       - '.github/workflows/modular3-language-drafts.yml'
 permissions:
   contents: read
+  actions: read
 jobs:
   public-ui-drafts:
     runs-on: ubuntu-24.04
@@ -22,6 +23,14 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Reuse completed drafts from the preceding preparation
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          run-id: 40068533256
+          github-token: ${{ github.token }}
+          pattern: language-drafts-*
+          path: locales/drafts
+          merge-multiple: true
       - name: Translate public static UI text only
         run: python3 scripts/localization/translate.py ${{ matrix.partition }} 19
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
