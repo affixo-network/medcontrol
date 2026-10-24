@@ -9,7 +9,8 @@
       throw new Error('Invalid language catalog');
     }
     const keys = Object.keys(source);
-    if (keys.length !== 639 || Object.keys(catalog.messages).length !== keys.length) {
+    if (keys.length !== 639 || Object.keys(catalog.messages).length !== keys.length ||
+        Object.keys(catalog.messages).some(key => !Object.prototype.hasOwnProperty.call(source, key))) {
       throw new Error('Unexpected catalog size');
     }
     for (const key of keys) {
