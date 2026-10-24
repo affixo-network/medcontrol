@@ -39,3 +39,19 @@ function tr(key) {
   const table = TRANSLATIONS[lang] || TRANSLATIONS.en;
   return table[key] || TRANSLATIONS.en[key] || key;
 }
+
+// Register only explicitly prepared public labels; never read or write medical state.
+function registerPreparedLanguage(prepared) {
+  if (!prepared || typeof prepared.language !== 'string' ||
+      !/^[a-z]{2,3}(?:-[a-z]{2,4})?$/.test(prepared.language) ||
+      !prepared.labels || typeof prepared.labels !== 'object' || Array.isArray(prepared.labels) ||
+      !Object.isFrozen(prepared.labels) || !Object.isFrozen(prepared)) {
+    throw new Error('Unverified prepared language');
+  }
+  const code = prepared.language;
+  if (!SUPPORTED_LANGUAGES.some(([id]) => id === code)) throw new Error('Unsupported interface language');
+  if (code === 'ru' || code === 'en') throw new Error('Built-in translations cannot be overwritten');
+  if (TRANSLATIONS[code]) throw new Error('Language already registered');
+  TRANSLATIONS[code] = prepared.labels;
+  return code;
+}
