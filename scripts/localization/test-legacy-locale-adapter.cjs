@@ -4,7 +4,10 @@ const { test } = require('node:test');
 const { KEY_TO_CATALOG_ID, adaptCatalog } = require('../../js/modular3-legacy-locale-adapter.js');
 test('mapping is unique and covers known legacy scalar keys', () => {
   assert.equal(Object.keys(KEY_TO_CATALOG_ID).length, 137);
-  assert.equal(new Set(Object.values(KEY_TO_CATALOG_ID)).size, 137);
+  assert.equal(new Set(Object.values(KEY_TO_CATALOG_ID)).size, 132);
+  for (const [a, b] of [['dates', 'explicit_dates'], ['expected', 'expected_at'], ['overdue', 'overdue_at'], ['upcoming', 'upcoming_at'], ['weekdays', 'weekdays_selected']]) {
+    assert.equal(KEY_TO_CATALOG_ID[a], KEY_TO_CATALOG_ID[b]);
+  }
   assert.equal(Object.hasOwn(KEY_TO_CATALOG_ID, 'weekday_short'), false);
 });
 test('mapped translation replaces only corresponding scalar fallback', () => {
