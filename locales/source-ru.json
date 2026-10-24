@@ -1,0 +1,3980 @@
+{
+  "001f75c6b3f4631a": {
+    "source": "Другое",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "005d030ef4a96661": {
+    "source": "Статус препарата изменён на «Пассивно»",
+    "files": [
+      "js/daily-timeline-final.js"
+    ]
+  },
+  "006429f75a4c743e": {
+    "source": "Параметры расписания заменены",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "00a7ef4dfa879b3d": {
+    "source": "единица",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "00d480655205e14f": {
+    "source": "Пароль файла переноса",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "01113722a0e30bbe": {
+    "source": "Отмена не сохранена:",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "0238b8193fa5a9b8": {
+    "source": "Время отметки",
+    "files": [
+      "translations.mark_time"
+    ]
+  },
+  "0238e08bb7126652": {
+    "source": "Выберите «Случайность» или «Ошибка».",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "02571adc35617830": {
+    "source": "История времени недоступна.",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "0260939fdc61eb33": {
+    "source": "Уже существуют: ⟦0⟧",
+    "files": [
+      "js/input-time-editor-v2.js"
+    ]
+  },
+  "0263815a28b6b4d4": {
+    "source": "Часовой пояс определяется устройством автоматически. При его изменении система сразу пересчитывает состояния Ожидается / Предстоит / Просрочено.",
+    "files": [
+      "translations.settings_help_3"
+    ]
+  },
+  "03f13793152ab56d": {
+    "source": "Защищённые медицинские данные заблокированы. Войдите с локальным паролем.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "03f9eba8c55afd93": {
+    "source": "Это время уже добавлено.",
+    "files": [
+      "translations.hint_duplicate_time"
+    ]
+  },
+  "04edebc624ec9d47": {
+    "source": "Время события",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "059998d9f4224619": {
+    "source": "Приём уже зафиксирован. Для изменения используйте отдельную кнопку «Исправить».",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "05bd98146994c0a6": {
+    "source": "Табло показывает только текущий день. История и прошлые записи здесь не отображаются.",
+    "files": [
+      "translations.dashboard_intro"
+    ]
+  },
+  "064128f59185d06d": {
+    "source": "Назначенное время",
+    "files": [
+      "translations.planned_time"
+    ]
+  },
+  "066af1b4dd64ccd4": {
+    "source": "Укажите фактическое время приёма.",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "06cf4eca8aefb953": {
+    "source": "⟦0⟧ дн. ⟦1⟧ ч. ⟦2⟧ мин. ⟦3⟧ сек.",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "07414927cb57f817": {
+    "source": "Автоопределённый язык устройства",
+    "files": [
+      "translations.auto_detected_language"
+    ]
+  },
+  "07c8e7a28ba7c929": {
+    "source": "саше",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "0816ebc7b87bf566": {
+    "source": "Для отмены «Принято» допустима только причина «Случайность».",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "09632688c038a94b": {
+    "source": "мг/мл",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "0a23c2a4fe16415a": {
+    "source": "Отменить «Принято»",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "0ba36723cec086c6": {
+    "source": "Расчётное время",
+    "files": [
+      "js/archive-course-history.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js",
+      "js/action-intake-history-summary.js",
+      "js/archive-page.js"
+    ]
+  },
+  "0d07e05a8379f97c": {
+    "source": "пластыр",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "0d1209a616948e2c": {
+    "source": "Правило приёма",
+    "files": [
+      "translations.schedule_rule"
+    ]
+  },
+  "0d13dd66fc59e290": {
+    "source": "Заполните поле «Детали».",
+    "files": [
+      "translations.hint_details"
+    ]
+  },
+  "0f02b76368fc830c": {
+    "source": "Количественное содержание *",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "0f50106f9e8ed982": {
+    "source": "История для выбранной строки пока пуста.",
+    "files": [
+      "translations.no_history"
+    ]
+  },
+  "0f5b0bef4c03e181": {
+    "source": "ФИНАЛЬНОЕ ПОДТВЕРЖДЕНИЕ",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "0f94b19cd53ce9bb": {
+    "source": "MedControl не может проверить резервную копию перед запуском Version 2. Работа остановлена.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "0fe132872b85f083": {
+    "source": "MedControl — Табло",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.title_dashboard"
+    ]
+  },
+  "1076e225ebaf4ba6": {
+    "source": "Дата окончания",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/completed-archive-history-fallback.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.end_date"
+    ]
+  },
+  "110913d36234c4e3": {
+    "source": "Текущее время:",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "110dd8b65ac0f8be": {
+    "source": "Единица содержания",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "114cf1bff7c0573d": {
+    "source": "Введите название препарата.",
+    "files": [
+      "translations.hint_name"
+    ]
+  },
+  "11d2512c5715de45": {
+    "source": "Пояснения по работе системы",
+    "files": [
+      "translations.settings_title_2"
+    ]
+  },
+  "11ed92d5edd47691": {
+    "source": "Активные препараты",
+    "files": [
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js"
+    ]
+  },
+  "1257095ee44b348d": {
+    "source": "Время приёма отменено.",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "12e2261247cb0a60": {
+    "source": "Отменён",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "12e3ec99cd1db694": {
+    "source": "Время исправления",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "13186e9e76f737a7": {
+    "source": "удалены",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "131a1af1b6c122fc": {
+    "source": "Создать хранилище",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "1340d81906bfec36": {
+    "source": "Исправление №⟦0⟧.\n\nПричина: Ошибка.\nБыло: ⟦1⟧\nСтанет: ⟦2⟧\n\nПодтвердить?",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "1417b7792d57bbb7": {
+    "source": "История",
+    "files": [
+      "js/render.js",
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/action-history-direct-bind.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.history"
+    ]
+  },
+  "1419825a704fb8e4": {
+    "source": "Количество предыдущих исправлений: ⟦0⟧",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "142be59bb1e8e080": {
+    "source": "ампула",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "143fa7ca3d3f0bdb": {
+    "source": "Подтвердите прекращение действия дат приёма.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "146f0827b5389e13": {
+    "source": "Пассивные препараты",
+    "files": [
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js"
+    ]
+  },
+  "14842bb0b214f544": {
+    "source": "Отправить завершённый курс «⟦0⟧» в Архив?",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "14eaabc8eee9f90c": {
+    "source": "ед.",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "15134efaf5c4fc9b": {
+    "source": "Начать заново?\n\nТекущий цикл уже находится в Архиве. После сброса рабочие данные этого цикла будут очищены. Резервная копия будет сохранена.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "1534991188fc5309": {
+    "source": "Названия препаратов вводятся пользователем вручную. Можно использовать алфавит любого языка и смешанные записи.",
+    "files": [
+      "translations.settings_help_2"
+    ]
+  },
+  "15efcfe5319fcc99": {
+    "source": "Содержание",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "15fc037dc04b5056": {
+    "source": "Активировать",
+    "files": [
+      "js/render.js",
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js"
+    ]
+  },
+  "16dd515458635a71": {
+    "source": "Граница исправления: ⟦0⟧.",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "1728e235526af5e8": {
+    "source": "Выберите единицу приёма.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "17d0ae32e407a38b": {
+    "source": "Укажите другую единицу содержания.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "182f0696d8e396b6": {
+    "source": "таблет",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "186a9c469cc7123d": {
+    "source": "Добавить дату",
+    "files": [
+      "translations.add_date"
+    ]
+  },
+  "1928455f141a28a4": {
+    "source": "Найдена резервная копия до Version 2, но её защитный маркер восстановить не удалось. Работа остановлена; существующая резервная копия не перезаписана.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "1a792dbb784bd3aa": {
+    "source": "Параметры устройства и интерфейса",
+    "files": [
+      "translations.settings_title_1"
+    ]
+  },
+  "1a9fb1f3cf8e189a": {
+    "source": "Назад",
+    "files": [
+      "translations.save_back"
+    ]
+  },
+  "1af57a06a5c92864": {
+    "source": "Статус: Активно",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "1b70955f221ac16f": {
+    "source": "Подтвердить исправление",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "1ca07784fed758e2": {
+    "source": "Препарат не найден.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "1dab09df1799e2a0": {
+    "source": "Если обязательное значение пропущено, приложение покажет подсказку.",
+    "files": [
+      "translations.input_fill_help_4"
+    ]
+  },
+  "1e102fcf0ec9a477": {
+    "source": "Дата начала заменена",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "1ea53e050369e10a": {
+    "source": "заменена",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "1ec35e51e648ffc4": {
+    "source": "Препарат не найден или отменён.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "1ed5c8433f028cc2": {
+    "source": "Последние изменения черновика не сохранены. Данные будут заблокированы.",
+    "files": [
+      "js/navigation.js"
+    ]
+  },
+  "1ee15e9729755cc3": {
+    "source": "Страна",
+    "files": [
+      "translations.country"
+    ]
+  },
+  "1f37c12898587ed1": {
+    "source": "Приём не сохранён. Повторите действие.",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "1fb398219e26053c": {
+    "source": "Выберите единицу содержания.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "2044aaf9fecf161a": {
+    "source": "добавлены",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "20810efd32553228": {
+    "source": "капл",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "20be9bd049e2d274": {
+    "source": "Что делает автоматика",
+    "files": [
+      "translations.auto_logic"
+    ]
+  },
+  "20e2c3d63c8ca15a": {
+    "source": "Принято раньше на",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "21390aaebdca38a7": {
+    "source": "Все ранее введённые данные и история сохранятся,",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "219a6bea8b12be52": {
+    "source": "В выбранном периоде изменений времени нет.",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "2237a540b0972887": {
+    "source": "Например: Пн, Ср, Пт",
+    "files": [
+      "translations.weekdays_hint"
+    ]
+  },
+  "225077c6d4791e69": {
+    "source": "Статус",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.status"
+    ]
+  },
+  "225b089dc789aaa9": {
+    "source": "Последний препарат",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "22a74cd6c4bc3eb9": {
+    "source": "Название препарата",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.name_hint"
+    ]
+  },
+  "232a0ead182bb391": {
+    "source": "Дата",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/action-intake-history-summary.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.date_label"
+    ]
+  },
+  "233dd079098f2f97": {
+    "source": "Изменить препарат",
+    "files": [
+      "js/edit-dialog-compat.js"
+    ]
+  },
+  "23a2a9bfcf74c4a1": {
+    "source": "Отменено",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.cancelled"
+    ]
+  },
+  "24eef7f24a6f5c51": {
+    "source": "После проверки можно начать новый цикл.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "250b9c2ab0182d04": {
+    "source": "Другая единица приёма *",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "2543dc5595314d5f": {
+    "source": "Не удалось сохранить приём:",
+    "files": [
+      "js/intake.js"
+    ]
+  },
+  "254d55672b1d1269": {
+    "source": "30 дней",
+    "files": [
+      "js/render.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js"
+    ]
+  },
+  "25f31fd7435c65a5": {
+    "source": "Изменение временного назначения",
+    "files": [
+      "js/render.js",
+      "js/next-intake-slot.js",
+      "js/medcontrol-status-engine.js"
+    ]
+  },
+  "2641301ae19af731": {
+    "source": "Ввод",
+    "files": [
+      "js/archive-page.js",
+      "translations.nav_input",
+      "modular3-protected.html"
+    ]
+  },
+  "269bca4574c98818": {
+    "source": "необходимо будет создать новую карточку и новую историю.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "26a3ae77bfaa20ab": {
+    "source": "Даты",
+    "files": [
+      "js/medications.js",
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.explicit_dates",
+      "translations.dates"
+    ]
+  },
+  "26efbb22f90342db": {
+    "source": "Защищённое хранилище заблокировано. Войдите с локальным паролем.",
+    "files": [
+      "js/medications.js",
+      "js/intake.js"
+    ]
+  },
+  "26f25088631fa456": {
+    "source": "«Активно»",
+    "files": [
+      "js/history.js"
+    ]
+  },
+  "271e1e5adf5d3f4b": {
+    "source": "Препараты",
+    "files": [
+      "js/render.js",
+      "js/time-status-controller.js"
+    ]
+  },
+  "279d5827da5cd416": {
+    "source": "В рабочем режиме удаление данных не используется. Для отключения препарата применяется режим Пассивно.",
+    "files": [
+      "translations.settings_help_4"
+    ]
+  },
+  "27b20803a2cd66c3": {
+    "source": "Время ⟦0⟧ заменено на ⟦1⟧.",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "27bca309f5f89bc6": {
+    "source": "Подтвердить",
+    "files": [
+      "translations.confirm_action"
+    ]
+  },
+  "28198d711e1c5e09": {
+    "source": "Отменённые препараты",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "287d6edba375aaea": {
+    "source": "Отменен",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "28dc16116a4255db": {
+    "source": "Выбранная строка",
+    "files": [
+      "translations.selected_row"
+    ]
+  },
+  "295808176310af52": {
+    "source": "Название производителя",
+    "files": [
+      "js/render.js"
+    ]
+  },
+  "298e41327feeb685": {
+    "source": "Повторить загрузку",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "29fcf847e36e927b": {
+    "source": "Фактическое время",
+    "files": [
+      "js/archive-course-history.js",
+      "js/action-intake-history-summary.js",
+      "js/archive-page.js",
+      "translations.actual_time"
+    ]
+  },
+  "2aa328af0d4eb92d": {
+    "source": "Применить исправление",
+    "files": [
+      "translations.apply_correction"
+    ]
+  },
+  "2b289eda0bc1bf2a": {
+    "source": "Принято вовремя",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "2b5032c35a7b479a": {
+    "source": "Все препараты завершены или отменены. Данные сохранены и доступны в Архиве.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "2b58828b6759799d": {
+    "source": "Сохранённых событий расчётных приёмов для этой старой записи нет.",
+    "files": [
+      "js/completed-archive-history-fallback.js"
+    ]
+  },
+  "2b68a3d2ced4911d": {
+    "source": "Исправление доступно только до 23:59 дня приёма.",
+    "files": [
+      "js/correction-window-eod.js"
+    ]
+  },
+  "2d5e1dc18067b945": {
+    "source": "После отмены эта карточка больше не будет использоваться",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "2db0c625b694bc0f": {
+    "source": "Часовой пояс:",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "2e30ea0ab7f579de": {
+    "source": "Локальные данные текущего устройства",
+    "files": [
+      "translations.patient_data_value"
+    ]
+  },
+  "2ee468e3f68849bf": {
+    "source": "Обнаружены повреждённые данные MedControl, но резервную копию создать не удалось. Работа остановлена; основной storage не изменён.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "2fb4a06abe52b83b": {
+    "source": "В выбранном периоде изменений этого времени нет.",
+    "files": [
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js"
+    ]
+  },
+  "3009bfbf1fdbf572": {
+    "source": "Время изменено: ⟦0⟧ → ⟦1⟧.",
+    "files": [
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "311ebbde3e8158ff": {
+    "source": "Сохранённые хранилища до переноса",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "31a8ee2fb6b7b6f4": {
+    "source": "Пн",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "3312a8a343a3d63e": {
+    "source": "Не удалось сохранить препарат.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "3349728c50f9e3d6": {
+    "source": "История приёма препарата «⟦0⟧»",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/intake-history-title.js"
+    ]
+  },
+  "33825db8e2b27483": {
+    "source": "Повторить завершённый курс",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "345512024f9f6a4e": {
+    "source": "Текущий период / даты:\n⟦0⟧",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "3459ebd14c6ba648": {
+    "source": "Объект изменения",
+    "files": [
+      "js/unified-history-ui.js"
+    ]
+  },
+  "34b55810aa57b490": {
+    "source": "Здесь находятся только препараты, выведенные из рабочего цикла и подлежащие окончательному сбросу.",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "34d00192f0472ae0": {
+    "source": "Изменить время / область применения…",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "35fdea41f950b5f4": {
+    "source": "Открыть MedControl",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "3656350b928e32c7": {
+    "source": "Пассивно — временная остановка с возможностью продолжения.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "365fef38c80aea48": {
+    "source": "Сначала необходимо зафиксировать «Принято».",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "36c25d9ffcfd800a": {
+    "source": "Свернуть",
+    "files": [
+      "js/render.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/archive-page.js"
+    ]
+  },
+  "37e0153818f5a8ba": {
+    "source": "История расчётных приёмов",
+    "files": [
+      "js/completed-archive-history-fallback.js"
+    ]
+  },
+  "38719878ef364205": {
+    "source": "Остался последний препарат",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "397469698de13c37": {
+    "source": "Не удалось сохранить изменения MedControl.\n\nПредыдущие сохранённые данные не изменены. Освободите место в хранилище браузера или проверьте его доступность и повторите действие.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "39b87b2a9fbab975": {
+    "source": "Дата начала",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/completed-archive-history-fallback.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.start_date"
+    ]
+  },
+  "3af917363416a5ee": {
+    "source": "Данные изменились. Откройте раздел снова и повторите действие.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "3b1c7d9002ba1275": {
+    "source": "Расписание не может быть сохранено.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "3b9b9984f4a3d0d0": {
+    "source": "Черновик не сохранён.",
+    "files": [
+      "js/input-draft-recovery.js"
+    ]
+  },
+  "3c54b5e783ef6052": {
+    "source": "Архив",
+    "files": [
+      "js/render.js",
+      "js/navigation.js",
+      "js/archive-page.js",
+      "modular3-protected.html"
+    ]
+  },
+  "3c78aef88ea2a7a3": {
+    "source": "Хранилище уже существует. В поле «Локальный пароль» введите прежний пароль входа. Новый пароль, заданный при создании файла, введите ниже. Для сверки выбранного файла без изменений нажмите «Проверить готовность переноса». До переноса прежнее хранилище будет сохранено отдельной зашифрованной копией.",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "3f35ef00a38250e2": {
+    "source": "Это последний приём курса. Чтобы повторить препарат, измените даты курса. После подтверждения последнего приёма завершённый курс автоматически перейдёт в Архив. Вся история сохранится.",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "3f53fb873461737d": {
+    "source": "Режим",
+    "files": [
+      "js/time-status-controller.js",
+      "translations.mode"
+    ]
+  },
+  "3f632066ff8032ee": {
+    "source": "Подсказка\n\nВыбранная дата окончания не соответствует дням недели расписания. Ближайшие допустимые даты: ⟦0⟧.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "405d1139c87d2417": {
+    "source": "Расписание заменено",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "405e5794a3126d38": {
+    "source": "единиц",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "412289beebd75f58": {
+    "source": "Только сегодня",
+    "files": [
+      "js/schedule-change-scope.js",
+      "js/intake-history-slot-scope.js",
+      "js/scope-history-repair.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "41981e7a8344f2e8": {
+    "source": "Первоначальное фактическое время",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "41e6ff51c4bcf166": {
+    "source": "Отменено — окончательное завершение этой карточки препарата.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "4212693d845d9bc8": {
+    "source": "Событие",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "423ecab9a9f12af8": {
+    "source": "Окно исправления закрыто.",
+    "files": [
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "435d3d1cbd5cc878": {
+    "source": "Выберите причину.",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "43e5ab70f691a6a6": {
+    "source": "Нет",
+    "files": [
+      "translations.no"
+    ]
+  },
+  "4418c5bcda4a1fa1": {
+    "source": "Сброс невозможен, пока существуют действующие препараты.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "441b0a391023be97": {
+    "source": "Единица приёма *",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "442e7ad5479655fc": {
+    "source": "Причина",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "44e2df8d3e176ba1": {
+    "source": "Завершён",
+    "files": [
+      "js/intake-history-slot-scope.js"
+    ]
+  },
+  "4560c82c4d4b3b03": {
+    "source": "Принято раньше",
+    "files": [
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "46502ad3b532ba2f": {
+    "source": "Не удалось сохранить изменение.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "4692f1b33927544e": {
+    "source": "Предстоит",
+    "files": [
+      "translations.upcoming",
+      "translations.upcoming_at"
+    ]
+  },
+  "4736e0eec69e370d": {
+    "source": "Случайность",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/archive-course-history.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "4997a5143d9fa486": {
+    "source": "Результат",
+    "files": [
+      "translations.result"
+    ]
+  },
+  "4a082afd270cbb0a": {
+    "source": "Для изменения Расписания вначале отмените Расписание в разделе «Приём препаратов».",
+    "files": [
+      "js/temporal-change-guard.js",
+      "js/medications.js"
+    ]
+  },
+  "4c48299f63522f87": {
+    "source": "Импортировать защищённую копию",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "4c7d71bdab16c34b": {
+    "source": "Вы собираетесь отменить приём препарата «⟦0⟧».",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "4c92f05ebc4a2a3c": {
+    "source": "Статус препарата изменён на «Пассивно».",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "4ca114c23be8d968": {
+    "source": "Пт",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "4ca349921800e9b1": {
+    "source": "Приём препарата отменён.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "4cfbd69890bdd806": {
+    "source": "Количественное содержание",
+    "files": [
+      "js/medications.js",
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "4d3b9935cee18ed7": {
+    "source": "мг",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "4da3b311b70179c3": {
+    "source": "Добавить время",
+    "files": [
+      "js/input-time-editor-v2.js",
+      "translations.add_time"
+    ]
+  },
+  "4eb089ca7607864d": {
+    "source": "Время ⟦0⟧ удалено",
+    "files": [
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "4f62a12fa75dc9f4": {
+    "source": "Дата/время изменения",
+    "files": [
+      "js/render.js",
+      "js/archive-page.js"
+    ]
+  },
+  "4fae346e6c26a014": {
+    "source": "Было",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "501a40963cc2a3ed": {
+    "source": "суппозитор",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "50bbc80ab2dfc709": {
+    "source": "Сегодня и последующие дни: ⟦1⟧",
+    "files": [
+      "js/input-temporal-scope-display.js"
+    ]
+  },
+  "50d2ae5fdd2db8fd": {
+    "source": "История выбранной строки",
+    "files": [
+      "translations.history_title"
+    ]
+  },
+  "51b01016b7de4e59": {
+    "source": "Для изменения времени приёма вначале отмените время приёма в разделе «Приём препаратов».",
+    "files": [
+      "js/temporal-change-guard.js",
+      "js/medications.js"
+    ]
+  },
+  "52821dc1cc7eb639": {
+    "source": "Введите количество приёма.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "536fc47762822a7c": {
+    "source": "инъекция",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "53d9fc947fbeb8a0": {
+    "source": "Не принято",
+    "files": [
+      "js/render.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/archive-page.js"
+    ]
+  },
+  "54240ae224eb730c": {
+    "source": "Добавьте хотя бы одну дату.",
+    "files": [
+      "translations.hint_dates"
+    ]
+  },
+  "5454c269f151c122": {
+    "source": "Дата завершения",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "546a427738d10336": {
+    "source": "Заканчивается",
+    "files": [
+      "translations.ends_after"
+    ]
+  },
+  "546b513cd1f4996d": {
+    "source": "Отменённый препарат нельзя изменять.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "56502eb512ceade6": {
+    "source": "Дата начала и дата окончания ограничивают период действия расписания. До начала препарат не участвует, после окончания больше не формируется.",
+    "files": [
+      "translations.settings_help_5"
+    ]
+  },
+  "568b4865e0443dee": {
+    "source": "впрыск",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "5690c2e63b9da5a0": {
+    "source": "Выйти",
+    "files": [
+      "js/navigation.js",
+      "modular3-protected.html"
+    ]
+  },
+  "56a01b40a5b60c34": {
+    "source": "На сегодня активных позиций нет.",
+    "files": [
+      "translations.no_items"
+    ]
+  },
+  "56ef2021fe538567": {
+    "source": "После его завершения или отмены данные останутся в MedControl и Архиве до явной команды пользователя «Начать заново».",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "576077460ea8b800": {
+    "source": "Подсказка",
+    "files": [
+      "translations.hint_title"
+    ]
+  },
+  "57cb4188862a5ff0": {
+    "source": "Расчётное время приёма",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "57f069e86129ba57": {
+    "source": "мг/г",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "582bbbc960c7a2a1": {
+    "source": "Количество приёма *",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "585d7328139b9ece": {
+    "source": "Ошибка: исправляется фактическое время приёма. Статус «Принято» сохранится, а Табло пересчитает временное отклонение.",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "59028987e38dfbe5": {
+    "source": "Повторить курс",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "594fe5b1b57584e6": {
+    "source": "Продолжить?",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "595b7fc686e82ea9": {
+    "source": "Подтвердить «Принято»",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "59c0c876fa8e41a9": {
+    "source": "Препарат активирован",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "5ad8635c08f4e86b": {
+    "source": "Данные препарата перенесены. Укажите новые даты курса и сохраните новый курс.",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "5bb70c9b6420fb2e": {
+    "source": "МЕ",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "5bd236310d36b608": {
+    "source": "Вы уверены, что хотите отменить действующее Расписание для его изменения?",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "5cd7493ab397d61d": {
+    "source": "Сохранённые данные курса",
+    "files": [
+      "js/completed-archive-history-fallback.js"
+    ]
+  },
+  "5e356201885eefe2": {
+    "source": "Начинается с",
+    "files": [
+      "translations.starts_after"
+    ]
+  },
+  "5eb0fe386c52eabb": {
+    "source": "Запись не подтверждена",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "5f084638f6f971ec": {
+    "source": "Нет записей",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "5f21e1fb28e58440": {
+    "source": "Временной отсчёт",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "6129cac051b0d4b4": {
+    "source": "удалён",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "61357e2aafd5eee7": {
+    "source": "Укажите другую единицу приёма.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "61e822cc9bb074ff": {
+    "source": "Скачать сохранённую защищённую копию",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "620f30e76aacc263": {
+    "source": "Не выполнен",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/archive-course-history.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/action-intake-history-summary.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js"
+    ]
+  },
+  "62a0c2c6847442de": {
+    "source": "Табло сохраняет временную картину и предоставляет доступ к истории по каждой строке.",
+    "files": [
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "62c73af9245dcae6": {
+    "source": "Текущая картина приёма препаратов обновляется онлайн.",
+    "files": [
+      "js/medcontrol-status-engine.js"
+    ]
+  },
+  "62dbd0c7696a1cba": {
+    "source": "Данные производителя",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "63a4fbe586d62bf9": {
+    "source": "Начать заново? Текущий цикл сохранится в защищённой резервной копии.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "63d5a800dd9f55ae": {
+    "source": "Время ⟦0⟧ удалено.",
+    "files": [
+      "js/input-time-editor-v3-fix.js",
+      "js/archive-page.js"
+    ]
+  },
+  "64077fb0be757109": {
+    "source": "Время ⟦0⟧: статус изменён на «⟦1⟧».",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "646e318ec651421d": {
+    "source": "За выбранный период записей нет.",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "65adbc4f47262861": {
+    "source": "Например: 500",
+    "files": [
+      "js/render.js"
+    ]
+  },
+  "66abbd7be17444b7": {
+    "source": "для дальнейшего приёма.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "66c8d06b8241931a": {
+    "source": "Период истории",
+    "files": [
+      "translations.history_period"
+    ]
+  },
+  "67049c0c87223380": {
+    "source": "В разделе «Приём препаратов» фиксируется фактический результат. После действия система сразу сохраняет время отметки и обновляет Табло.",
+    "files": [
+      "translations.action_intro"
+    ]
+  },
+  "6711f073ab8b7dfc": {
+    "source": "Время",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.time_slots"
+    ]
+  },
+  "672a5df46558b507": {
+    "source": "Подтвердить отмену?",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "67f955e0e8892d65": {
+    "source": "Табло",
+    "files": [
+      "js/archive-page.js",
+      "translations.nav_dashboard",
+      "modular3-protected.html"
+    ]
+  },
+  "68505b6d0475073b": {
+    "source": "Активно",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.active"
+    ]
+  },
+  "685190e0416b6da0": {
+    "source": "Фактическое время определяется моментом нажатия «Принято» и не может быть изменено вручную.",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "6949e1e1eb5c4825": {
+    "source": "заменён",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "6a323db2ae5bed82": {
+    "source": "Выберите",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "6a543025d854b29c": {
+    "source": "Приём препаратов",
+    "files": [
+      "js/archive-page.js",
+      "translations.nav_action",
+      "modular3-protected.html"
+    ]
+  },
+  "6a87923bbd93eb05": {
+    "source": "Резервная копия MedControl (.json)",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "6b53aafe28bdd5aa": {
+    "source": "Действие",
+    "files": [
+      "translations.choose_action"
+    ]
+  },
+  "6bc6210fc2f693f1": {
+    "source": "Вчера",
+    "files": [
+      "js/render.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/archive-page.js"
+    ]
+  },
+  "6c3eab948b1aef9f": {
+    "source": "Управление данными",
+    "files": [
+      "js/archive-reset-policy.js",
+      "js/render.js"
+    ]
+  },
+  "6cae5b724e6f847e": {
+    "source": "Дни недели — выбираются конкретные дни недели и одно или несколько времён.",
+    "files": [
+      "translations.input_help_2"
+    ]
+  },
+  "6da140fdd4be0189": {
+    "source": "Русский",
+    "files": [
+      "js/language.js"
+    ]
+  },
+  "6eb2139ff2432b3d": {
+    "source": "После текущего момента и до окончания курса нет ни одного будущего расчётного приёма.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "6f1924c288de5508": {
+    "source": "Причина исправления",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "6f4f1154158eedd4": {
+    "source": "Выберите режим расписания.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "702f9428e0b6f189": {
+    "source": "Запланированный приём",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "706c45b1c0612c75": {
+    "source": "История приёмов",
+    "files": [
+      "js/render.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/archive-page.js"
+    ]
+  },
+  "707fbfac44c83f53": {
+    "source": "Приём",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "71038c53bbc48d3b": {
+    "source": "Добавить",
+    "files": [
+      "translations.add"
+    ]
+  },
+  "718b5d90cc67ad3a": {
+    "source": "Статус / итог",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "71ced515b9184e7b": {
+    "source": "Без изменения расписания",
+    "files": [
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "71e03f802ee7812e": {
+    "source": "Только сегодня: ⟦1⟧",
+    "files": [
+      "js/input-temporal-scope-display.js"
+    ]
+  },
+  "727721a75694fd16": {
+    "source": "Текущее время",
+    "files": [
+      "translations.current_time"
+    ]
+  },
+  "7283f2411c4bc268": {
+    "source": "Не удалось сохранить отмену.",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "73e85fb948d9715f": {
+    "source": "Создано",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "74d068feca7a6ffc": {
+    "source": "Сначала проверьте Архив.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "74f6dfd22fb99965": {
+    "source": "Изменены данные времени.",
+    "files": [
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "754ad00b958aebff": {
+    "source": "Изменение не сохранено.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "75c6218f9fdec1c4": {
+    "source": "Исправление №⟦0⟧.\n\nПричина: Случайность.\nФиксация «Принято» будет снята, фактическое время очищено.\nПервоначальная запись останется в истории.\n\nПодтвердить?",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "75f93ccd436a9a91": {
+    "source": "— последний незавершённый препарат текущего цикла.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "7672e2f532ff75c8": {
+    "source": "Опоздание",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "7697401533120c94": {
+    "source": "Расписание отменено.",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "772f56bd51ea3ac3": {
+    "source": "Завершение курса отменено",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "773190d8a02615fc": {
+    "source": "Детали",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "translations.details"
+    ]
+  },
+  "775fb4353aa67984": {
+    "source": "Исходная запись не найдена.",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "78128cc97713a3e7": {
+    "source": "Препарат: ⟦0⟧",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "7867a2095f602e2b": {
+    "source": "7 дней",
+    "files": [
+      "js/render.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js"
+    ]
+  },
+  "78aca0cace982b30": {
+    "source": "MedControl — Архив",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "78fada9788dca302": {
+    "source": "Нет записей.",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "7971972c7cbb98da": {
+    "source": "Вс",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "7a84fd53a1294734": {
+    "source": "Выберите причину исправления.",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "7b304ca533a7583d": {
+    "source": "Фиксация приёма",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "7bb32e8259615289": {
+    "source": "но эта карточка будет окончательно закрыта.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "7c47f7292ba4f2ae": {
+    "source": "Отменить",
+    "files": [
+      "js/render.js",
+      "js/intake-cancellation-policy.js",
+      "js/time-status-controller.js",
+      "translations.cancel"
+    ]
+  },
+  "7ce1859ed1548a3e": {
+    "source": "чай",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "7d8d531646af7f36": {
+    "source": "Сделать пассивным",
+    "files": [
+      "js/render.js",
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js"
+    ]
+  },
+  "7e0d88c818a431b2": {
+    "source": "Принял",
+    "files": [
+      "translations.take"
+    ]
+  },
+  "7e24c0af1282ae08": {
+    "source": "Текущее расписание: ⟦0⟧.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "7e6da98020ac2053": {
+    "source": "Часы",
+    "files": [
+      "js/input-time-editor-v3-fix.js",
+      "translations.hours"
+    ]
+  },
+  "7ec16b9e41ff461a": {
+    "source": "Ср",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "7fdc77c19551371a": {
+    "source": "«Принято» фиксирует факт приёма. «Исправить» отменяет ошибочно зафиксированное «Принято» с сохранением исходной записи в истории.",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "7ff11abe39714b09": {
+    "source": "Сброс остановлен: cloud snapshot подтвердить не удалось. Данные не изменены.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "8088a8a5bc0678eb": {
+    "source": "Если в будущем вы снова начнёте принимать этот препарат,",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "80b4089d220c4c7f": {
+    "source": "Сегодня и на последующие дни расписания",
+    "files": [
+      "js/schedule-change-scope.js",
+      "js/intake-history-slot-scope.js",
+      "js/scope-history-repair.js",
+      "js/unified-history-ui.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "8124258c61c9977c": {
+    "source": "удалено",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "812f83992a0ea92c": {
+    "source": "Единица приёма",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "81b32194a434a35d": {
+    "source": "Если препарат отменён врачом или больше не используется, переведите его в Пассивно. Он не будет отображаться в разделе «Приём препаратов» и на Табло.",
+    "files": [
+      "translations.input_help_4"
+    ]
+  },
+  "836b5bd39a769497": {
+    "source": "Добавляется уже прошедшее расчётное время текущего дня: ⟦0⟧.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "837a27ec527ef927": {
+    "source": "Рабочий режим",
+    "files": [
+      "translations.patient_data"
+    ]
+  },
+  "839b2d5c5aa3d81f": {
+    "source": "Вт",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "83d2d64095edbc64": {
+    "source": "Перейдите в раздел «Ввод», в поле «Время приёма» внесите необходимые изменения и сохраните их.",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "8549e7ed5290309a": {
+    "source": "Изменить время",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "85e323a663bbb1fb": {
+    "source": "Сегодня: ⟦1⟧",
+    "files": [
+      "js/input-temporal-scope-display.js"
+    ]
+  },
+  "8618134638c4e671": {
+    "source": "Перейдите в раздел «Ввод», в поле «Расписание» внесите необходимые изменения и сохраните их.",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "8632db7ece28fa2b": {
+    "source": "заменено",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "86f463bef6393889": {
+    "source": "Дни недели",
+    "files": [
+      "js/medications.js",
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekdays",
+      "translations.weekdays_selected"
+    ]
+  },
+  "87144f6689922544": {
+    "source": "доз",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "8730ed6a8d435643": {
+    "source": "Дата окончания заменена",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "874529d3b6a4b0f0": {
+    "source": "Нет завершённых разовых назначений.",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "87685ab7bdaa7c2d": {
+    "source": "Курс завершён",
+    "files": [
+      "js/history.js",
+      "js/input-qa-fixes.js",
+      "js/archive-course-history.js"
+    ]
+  },
+  "8797209590eda79d": {
+    "source": "Разрешение на изменение времени открыто. Само время ещё не изменено. Перейдите во «Ввод» и сохраните новое время.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "87a2b9ea146d476e": {
+    "source": "MedControl — Ввод",
+    "files": [
+      "translations.title_input"
+    ]
+  },
+  "87ab4ac9484e4e12": {
+    "source": "С опозданием",
+    "files": [
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.taken_late"
+    ]
+  },
+  "87da35472e363dfb": {
+    "source": "добавлено",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "89c4361d72299747": {
+    "source": "Случайность: отметка «Принято» будет отменена. Исходная запись и фактическое онлайн-время останутся в истории.",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "8b2ca3467bfa0f5e": {
+    "source": "Цикл завершён",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "8ba966fc49a7510e": {
+    "source": "Для отдельных дат отметьте дату в календаре и добавьте её.",
+    "files": [
+      "translations.input_fill_help_3"
+    ]
+  },
+  "8c0b8cf6f89ab240": {
+    "source": "Не удалось сохранить изменения. Предыдущие данные сохранены.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "8cef38e49fdbca8f": {
+    "source": "Изменено время ⟦0⟧.",
+    "files": [
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "8d0e3e8b84b1c547": {
+    "source": "Исправить",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "translations.correct"
+    ]
+  },
+  "8da953cc78514afb": {
+    "source": "Отметьте часы и минуты, затем нажмите «Добавить время».",
+    "files": [
+      "translations.input_fill_help_1"
+    ]
+  },
+  "8dd5ffca1f465f30": {
+    "source": "Отменить препарат",
+    "files": [
+      "js/intake-cancellation-policy.js"
+    ]
+  },
+  "8dde234eeef23df5": {
+    "source": "Последние 7 дней",
+    "files": [
+      "translations.period_7"
+    ]
+  },
+  "8df2040160ce7336": {
+    "source": "Текущая дата",
+    "files": [
+      "translations.current_date"
+    ]
+  },
+  "8ecc56f686290f63": {
+    "source": "Каждый день",
+    "files": [
+      "js/medications.js",
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.every_day"
+    ]
+  },
+  "8f800ac0cb392612": {
+    "source": "Варианты заполнения",
+    "files": [
+      "translations.input_title_3"
+    ]
+  },
+  "8fbe9b75cbdfbfa6": {
+    "source": "Отмена",
+    "files": [
+      "js/modular3-final-intake.js",
+      "js/schedule-change-scope.js"
+    ]
+  },
+  "8fc9ab2eeb38ad7a": {
+    "source": "Войти",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "8fe1c236559abd0c": {
+    "source": "Выберите причину: «Случайность» или «Ошибка».",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "9089a73112cc819e": {
+    "source": "Язык интерфейса",
+    "files": [
+      "translations.language"
+    ]
+  },
+  "91a30e499c4e6f51": {
+    "source": "Статус будет установлен: Отменено",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "91d2791808dd3d6d": {
+    "source": "История событий",
+    "files": [
+      "js/completed-archive-history-fallback.js"
+    ]
+  },
+  "924310227b1c2f41": {
+    "source": "Расписание",
+    "files": [
+      "js/temporal-change-guard.js",
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/completed-archive-history-fallback.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/archive-page.js",
+      "translations.schedule"
+    ]
+  },
+  "9253075a9451ba70": {
+    "source": "Последний приём курса",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "93050208e71dc29b": {
+    "source": "Проверьте дату окончания, дни недели / даты и время приёма.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "935ec56194d6f572": {
+    "source": "Минуты",
+    "files": [
+      "js/input-time-editor-v3-fix.js",
+      "translations.minutes"
+    ]
+  },
+  "93e6073f9005224b": {
+    "source": "Да",
+    "files": [
+      "translations.yes"
+    ]
+  },
+  "940f10593b668c6c": {
+    "source": "Не удалось сохранить черновик.",
+    "files": [
+      "js/input-draft-recovery.js"
+    ]
+  },
+  "956618723dd8bbc1": {
+    "source": "Чт",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "95916e40b8c53611": {
+    "source": "Последние 30 дней",
+    "files": [
+      "translations.period_30"
+    ]
+  },
+  "95dab017a4da8cfd": {
+    "source": "Сб",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "core.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.weekday_short"
+    ]
+  },
+  "96aa19f7485edd48": {
+    "source": "Отменить Время",
+    "files": [
+      "js/render.js",
+      "js/intake-cancellation-policy.js",
+      "js/next-intake-slot.js",
+      "js/medcontrol-status-engine.js"
+    ]
+  },
+  "96d4a07b23216c72": {
+    "source": "Журнал изменений показателей препарата «⟦0⟧»",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "96d564bf1d028578": {
+    "source": "Не удалось создать обязательную резервную копию данных перед первым запуском Version 2. Работа остановлена; основной storage не изменён.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "97e580dc072c2038": {
+    "source": "сегодня",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "985b5e0f2ccf1ba0": {
+    "source": "Настройки",
+    "files": [
+      "translations.nav_settings"
+    ]
+  },
+  "98ca3188126c23f6": {
+    "source": "Статус препарата изменён на «Активно».",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "995d2cdf7634ad10": {
+    "source": "Обнаружены повреждённые данные MedControl. Исходные данные сохранены в аварийной копии, а безопасное пустое состояние записано. Работа остановлена; перезагрузите страницу только после фиксации этого сообщения.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "9a61582949a13692": {
+    "source": "Отмена «Принято»",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "9a885083e0268f44": {
+    "source": "Начать заново",
+    "files": [
+      "js/archive-reset-policy.js",
+      "js/render.js"
+    ]
+  },
+  "9af209e95a527c3e": {
+    "source": "История курса «⟦0⟧»",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "9b0a5afd82009cd1": {
+    "source": "Вовремя",
+    "files": [
+      "translations.taken_on_time"
+    ]
+  },
+  "9b118283b00663a4": {
+    "source": "История приёма препарата «⟦0⟧» — расчётное время ⟦1⟧",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/archive-page.js"
+    ]
+  },
+  "9b857c5db3a903d3": {
+    "source": "пакет",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "9bdb010554e2ed66": {
+    "source": "Черновик заблокирован. Войдите с локальным паролем.",
+    "files": [
+      "js/input-draft-recovery.js"
+    ]
+  },
+  "9ca37c4d1431a6ad": {
+    "source": "Количество приёма",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "9cded336f61507e0": {
+    "source": "Сначала отметьте дату в календаре.",
+    "files": [
+      "translations.hint_date_pick"
+    ]
+  },
+  "9dafbbde2c96a976": {
+    "source": "Время приёма",
+    "files": [
+      "js/temporal-change-guard.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "9ddd0c9494420ad4": {
+    "source": "Отменить случайное нажатие «Принято»? Исходное фактическое время сохранится в истории.",
+    "files": [
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "9e3155cc798e53c1": {
+    "source": "Текущая дата:",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "9f0cda93578fcf5b": {
+    "source": "Изменение",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "9f47ff7e5c55a967": {
+    "source": "В разделе фиксируется фактический приём препарата.",
+    "files": [
+      "js/medcontrol-status-engine.js"
+    ]
+  },
+  "a02ec90b8ebfc464": {
+    "source": "Производитель",
+    "files": [
+      "js/medications.js",
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js"
+    ]
+  },
+  "a047a98e93cc7bb1": {
+    "source": "MedControl не может прочитать хранилище браузера. Работа остановлена, чтобы не создавать несохранённые данные.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "a05ebbde1240cda2": {
+    "source": "Статус: Пассивно",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "a09f564447026d3d": {
+    "source": "Отметьте хотя бы один день недели.",
+    "files": [
+      "translations.hint_weekdays"
+    ]
+  },
+  "a16aef0ab917f3a6": {
+    "source": "Запись уже исправлялась ⟦0⟧ раз(а).\n\nПричина: ⟦1⟧\nБыло: ⟦2⟧\nСтанет: ⟦3⟧\n\nПодтвердить?",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "a17c1edf8c9a4e28": {
+    "source": "Время пока не добавлено",
+    "files": [
+      "translations.no_time_added"
+    ]
+  },
+  "a19e63fb3add4b52": {
+    "source": "Время ⟦0⟧",
+    "files": [
+      "js/history.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "a2457baed6a71a06": {
+    "source": "Фактическое время приёма",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "a2499dc7e29d8fdd": {
+    "source": "История препарата «⟦0⟧»",
+    "files": [
+      "js/completed-archive-history-fallback.js",
+      "js/unified-history-ui.js",
+      "js/input-architecture-fix.js",
+      "js/archive-page.js"
+    ]
+  },
+  "a24ca443f3d07a45": {
+    "source": "капсул",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "a27b022661a9d260": {
+    "source": "суппозиторий",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "a3c8870e02fb32c1": {
+    "source": "Принято позже на",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "a42aee58d60a7d2a": {
+    "source": "Продолжить",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "a4566fafdebf31ba": {
+    "source": "Весь период",
+    "files": [
+      "js/render.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.period_all"
+    ]
+  },
+  "a5e49b2e7c253894": {
+    "source": "таблетка",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "a6e3e6f822476b4c": {
+    "source": "Для изменения самого времени далее доступны: «Только сегодня», «Только на последующие дни расписания», «Сегодня и на последующие дни расписания».",
+    "files": [
+      "js/time-status-controller.js"
+    ]
+  },
+  "a737d257a9bc8c28": {
+    "source": "Сохранить отмену времени приёма?",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "a7410b66727f423a": {
+    "source": "Отправить в архив",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "a7a4033657e89fc9": {
+    "source": "Закрыть",
+    "files": [
+      "js/render.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/next-intake-slot.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.close"
+    ]
+  },
+  "a90842542983969f": {
+    "source": "Другая единица содержания *",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "aa77d30adaa39163": {
+    "source": "Завершённый курс можно повторить или отправить в архив. Если в течение 7 дней после завершения курс не будет повторён, он автоматически перейдёт в Архив.",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "ab04614640074725": {
+    "source": "Дата окончания не заполнена.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "ab1f4be7e5d6fd8b": {
+    "source": "г",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "ab6394f2d588873b": {
+    "source": "инъекц",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "abc81fb82f014fbd": {
+    "source": "Изменено",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "abe1c977b5faebf8": {
+    "source": "Удалено",
+    "files": [
+      "js/history.js",
+      "js/render.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/archive-page.js"
+    ]
+  },
+  "ac6731ef32f280f6": {
+    "source": "Принятых препаратов в истории нет.",
+    "files": [
+      "js/action-intake-history-summary.js",
+      "js/archive-page.js"
+    ]
+  },
+  "ac90087ab82fd789": {
+    "source": "Укажите время исправления.",
+    "files": [
+      "js/intake.js"
+    ]
+  },
+  "adb098b59828c75a": {
+    "source": "Время ⟦0⟧ заменено",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "addea4eadecf73be": {
+    "source": "Войдите с локальным паролем.",
+    "files": [
+      "js/storage.js",
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "ade8611e305cdfdf": {
+    "source": "Последующие дни: ⟦2⟧",
+    "files": [
+      "js/input-temporal-scope-display.js"
+    ]
+  },
+  "ae04c92429d21818": {
+    "source": "Требуется завершить временное назначение.",
+    "files": [
+      "js/temporal-change-guard.js",
+      "js/intake-cancellation-policy.js"
+    ]
+  },
+  "af46329e2c295f6d": {
+    "source": "Доза",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.dose"
+    ]
+  },
+  "af50abd53142a74d": {
+    "source": "Не найден препарат или история приёмов.",
+    "files": [
+      "js/intake.js"
+    ]
+  },
+  "af60732f785fdffb": {
+    "source": "Время ⟦0⟧ ⟦1⟧",
+    "files": [
+      "js/input-architecture-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "af7df19f88fe3ef5": {
+    "source": "Дата окончания удалена",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "af86daa8cafa2597": {
+    "source": "Окно исправления уже закрыто.",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "af8d68dfb6e7e256": {
+    "source": "Случайность: ошибочная фиксация «Принято» будет снята. Фактическое время очистится, а строка вернётся в текущее временное состояние «Ожидается» или «Не выполнен».",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "b02c6e1f1f6d5190": {
+    "source": "Дата пока не добавлена",
+    "files": [
+      "translations.no_date_added"
+    ]
+  },
+  "b093f6db8a0d18f9": {
+    "source": "Нет данных для сброса.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "b0a1e2ec002f52f6": {
+    "source": "Например: 09:00, 14:30, 21:00",
+    "files": [
+      "translations.times_hint"
+    ]
+  },
+  "b10003a23e67a969": {
+    "source": "Курс приёма препарата завершён автоматически.",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "b14bed530851ff55": {
+    "source": "Например: 1",
+    "files": [
+      "js/render.js"
+    ]
+  },
+  "b1d3b7721298a91d": {
+    "source": "Окно исправления закрыто.⟦0⟧",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "b21fd1a7be0cd13f": {
+    "source": "Дата/время записи",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "b289ed7914c7bb20": {
+    "source": "Время изменено: ⟦0⟧ → ⟦1⟧",
+    "files": [
+      "js/input-time-history-fix.js"
+    ]
+  },
+  "b3ad3659095d37d1": {
+    "source": "Язык интерфейса — заранее подготовленный перевод текста разделов, кнопок и названий полей.",
+    "files": [
+      "translations.settings_help_1"
+    ]
+  },
+  "b42138d897075008": {
+    "source": "мкг",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "b4d30cae52894cf0": {
+    "source": "Сохранить",
+    "files": [
+      "js/schedule-change-scope.js",
+      "js/render.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/next-intake-slot.js",
+      "js/medcontrol-status-engine.js",
+      "translations.save"
+    ]
+  },
+  "b4e19e462ab3b77f": {
+    "source": "Исправление относится только к записи о приёме выбранной строки.",
+    "files": [
+      "translations.correction_help"
+    ]
+  },
+  "b558cb356e9a63df": {
+    "source": "Для языка устройства подготовленный интерфейс не найден. Использован английский.",
+    "files": [
+      "translations.unsupported_language"
+    ]
+  },
+  "b5a3a24d55599c92": {
+    "source": "Укажите корректное время.",
+    "files": [
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "b5b42a3850217c75": {
+    "source": "Во Вводе создаётся правило приёма: название, доза, расписание, время, дата начала, дата окончания и режим Активно / Пассивно.",
+    "files": [
+      "translations.input_intro"
+    ]
+  },
+  "b5d3c6a1c7e407ef": {
+    "source": "Исправление доступно до ⟦1⟧. Первоначальная запись сохраняется в истории.",
+    "files": [
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "b5dbc53ba1896b4d": {
+    "source": "ампул",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "b688b4c0d7836656": {
+    "source": "Сегодня",
+    "files": [
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.period_today"
+    ]
+  },
+  "b707e309e67c0f37": {
+    "source": ": ⟦1⟧. Введите изменение в разделе «Ввод» либо полностью отмените препарат в разделе «Ввод».",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "b7d71eb744db5d3c": {
+    "source": "Проверить готовность переноса",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "b868d2e22ea8094b": {
+    "source": "Текущее состояние на день",
+    "files": [
+      "translations.today_overview"
+    ]
+  },
+  "b8b151d4174391f0": {
+    "source": "Изменить",
+    "files": [
+      "js/time-status-controller.js",
+      "translations.edit"
+    ]
+  },
+  "b90f3bb2740069a5": {
+    "source": "Разрешение на изменение расписания открыто. Само расписание ещё не изменено. Перейдите во «Ввод» и сохраните новое расписание.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "ba9cb3bb66444dc3": {
+    "source": "Полный сброс доступен только когда все препараты отменены.",
+    "files": [
+      "js/render.js"
+    ]
+  },
+  "bb60dfab35c65509": {
+    "source": "core.js подключён",
+    "files": [
+      "core.js"
+    ]
+  },
+  "bb81ae64d8eb1df6": {
+    "source": "Исправления",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "bbdc91cfb5e041f4": {
+    "source": "флакон",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "bcacbff7a5638016": {
+    "source": "или",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "bdb639b5566f2479": {
+    "source": "Препарат",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/action-intake-history-summary.js",
+      "js/archive-page.js",
+      "translations.medication"
+    ]
+  },
+  "bddd2921e4da7953": {
+    "source": "Только на последующие дни расписания",
+    "files": [
+      "js/schedule-change-scope.js",
+      "js/intake-history-slot-scope.js",
+      "js/scope-history-repair.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "be681ba924cd2256": {
+    "source": "Важно: «Отменено» отличается от статуса «Пассивно».",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "be7e02d6e3b08c0e": {
+    "source": "Не удалось сохранить изменение приёма:",
+    "files": [
+      "js/intake.js"
+    ]
+  },
+  "be99b13612015a48": {
+    "source": "Удалить",
+    "files": [
+      "js/input-time-editor-v2.js",
+      "translations.remove"
+    ]
+  },
+  "beaf2ed8d6ff2e75": {
+    "source": "Непринятых препаратов в истории нет.",
+    "files": [
+      "js/action-intake-history-summary.js",
+      "js/archive-page.js"
+    ]
+  },
+  "bee717c12f51531d": {
+    "source": "Эти копии открываются паролем, действовавшим до соответствующего переноса.",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "bef4e4c0e6515c3b": {
+    "source": "заменены",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "bf22dfeeba8b8508": {
+    "source": "Ошибка",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/archive-course-history.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "bf295401d0f9fdea": {
+    "source": "Область изменения",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/unified-history-ui.js",
+      "js/input-time-history-fix.js"
+    ]
+  },
+  "bf824f9d53b5fa0a": {
+    "source": "Добавьте хотя бы одно время.",
+    "files": [
+      "translations.hint_times"
+    ]
+  },
+  "bf92ceca20f51b79": {
+    "source": "Повтор курса: ⟦0⟧",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "c08fb476eca49399": {
+    "source": "кг",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "c1a4829538c437c9": {
+    "source": "Подсказка\n\nВыбранная дата начала не соответствует дням недели расписания. Ближайшая допустимая дата начала: ⟦0⟧.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "c29b0dc1db2f95c7": {
+    "source": "чайная ложка",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "c2d42e7984b2dbf4": {
+    "source": "Просрочено",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.overdue",
+      "translations.overdue_at"
+    ]
+  },
+  "c2f1beebfc8e11d5": {
+    "source": "Фиксация результата",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "translations.action_title_1"
+    ]
+  },
+  "c2f3f6c4fc066f68": {
+    "source": "Исправлений",
+    "files": [
+      "js/archive-course-history.js",
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "c33de8784c9b541c": {
+    "source": "Пассивно",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/input-qa-fixes.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "translations.passive"
+    ]
+  },
+  "c3700de90f92310a": {
+    "source": "Дата начала не заполнена.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "c380d3fa46f0c1e4": {
+    "source": "Логика интерфейса",
+    "files": [
+      "translations.interface_logic"
+    ]
+  },
+  "c440ea3e2bacada3": {
+    "source": "доза",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "c5ac56a1bfaf04c8": {
+    "source": "В выбранном периоде событий для расчётного времени ⟦0⟧ нет.",
+    "files": [
+      "js/intake-history-slot-scope.js"
+    ]
+  },
+  "c67cd1ff4cccb5ac": {
+    "source": "добавлен",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "c68606315d9b7612": {
+    "source": "Выберите, когда применить изменения.",
+    "files": [
+      "js/schedule-change-scope.js"
+    ]
+  },
+  "c791e389c79e431b": {
+    "source": "Например: 2026-04-10, 2026-04-20",
+    "files": [
+      "translations.explicit_dates_hint"
+    ]
+  },
+  "c7ad699b74581c6e": {
+    "source": "Заменено",
+    "files": [
+      "js/render.js",
+      "js/archive-page.js"
+    ]
+  },
+  "c83c11bcb0f0abf7": {
+    "source": "Локальный пароль",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "c84769ae3d558606": {
+    "source": "деактивировано",
+    "files": [
+      "js/input-architecture-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "c9da8656550fc744": {
+    "source": "Создать новый курс",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "ca285db3dd751eb1": {
+    "source": "Состояние",
+    "files": [
+      "js/render.js",
+      "js/archive-page.js",
+      "translations.state"
+    ]
+  },
+  "ca370bcf046d1ba1": {
+    "source": "Расчётный приём",
+    "files": [
+      "js/archive-course-history.js"
+    ]
+  },
+  "cab4b405842b2c34": {
+    "source": "В разделе фиксируется фактический приём препарата. «Принято» и «Исправить» являются независимыми действиями.",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "cad123465b9eec0c": {
+    "source": "Действия",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "translations.actions"
+    ]
+  },
+  "cc1a866276db78c7": {
+    "source": "Вы уверены, что хотите отменить действующее время приёма для его изменения?",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "cc6f1608b3f7229e": {
+    "source": "Повреждённые данные сохранены в аварийной копии, но безопасное новое состояние записать не удалось. Работа остановлена.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "ccc269e2efe97017": {
+    "source": "Дополнительных времён нет.",
+    "files": [
+      "js/input-time-editor-v2.js"
+    ]
+  },
+  "cce50036e0a66d96": {
+    "source": "Завершённые курсы",
+    "files": [
+      "js/a1-integrity-fix.js",
+      "js/archive-page.js"
+    ]
+  },
+  "ce0ef3d28a822bda": {
+    "source": "Текущее фактическое время",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "ce2e24e73ac44e1c": {
+    "source": "Часовой пояс",
+    "files": [
+      "translations.timezone"
+    ]
+  },
+  "d06d15a8bb3233ac": {
+    "source": "Строка",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "translations.row"
+    ]
+  },
+  "d1098657c1eca050": {
+    "source": "История времени ⟦0⟧ препарата «⟦1⟧»",
+    "files": [
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-page.js"
+    ]
+  },
+  "d11db9ccdc698ccd": {
+    "source": "Изменить время ⟦0⟧",
+    "files": [
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "d17cf7fc54f3a1f6": {
+    "source": "Сохранение препарата",
+    "files": [
+      "translations.save_confirm_title"
+    ]
+  },
+  "d26ca7d799150a7b": {
+    "source": "Параметры расписания",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "d28d33819b4455c3": {
+    "source": "Время ⟦0⟧ сделано пассивным",
+    "files": [
+      "js/intake-history-slot-scope.js"
+    ]
+  },
+  "d2b1f5b0634384db": {
+    "source": "мкг/мл",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "d3ae3e1986933669": {
+    "source": "Стало",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "d3ed55a24196ac1f": {
+    "source": "История изменений строки",
+    "files": [
+      "translations.row_history_title"
+    ]
+  },
+  "d46e5df538ec3da8": {
+    "source": "Досрочно",
+    "files": [
+      "translations.taken_early"
+    ]
+  },
+  "d4dd32e82606ee19": {
+    "source": "«Пассивно»",
+    "files": [
+      "js/history.js"
+    ]
+  },
+  "d53fe84729d99a8e": {
+    "source": "Подтвердить и сохранить",
+    "files": [
+      "translations.confirm_save"
+    ]
+  },
+  "d6839d4bba6f57f0": {
+    "source": "Ожидается",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/archive-course-history.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "translations.expected",
+      "translations.expected_at"
+    ]
+  },
+  "d6b8f8f44922621f": {
+    "source": "Введите количественное содержание препарата.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "d6d57d6b7c3f52d8": {
+    "source": "Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.",
+    "files": [
+      "js/a1-integrity-fix.js"
+    ]
+  },
+  "d7dcf5f334f16af2": {
+    "source": "Не удалось сохранить препарат. Изменения не подтверждены.",
+    "files": [
+      "js/input-draft-recovery.js"
+    ]
+  },
+  "d823cd6983655b57": {
+    "source": "Сохранить отмену Расписания?",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "d84ca335bed37af6": {
+    "source": "Сохранить подтверждённые данные?",
+    "files": [
+      "translations.save_confirm_question"
+    ]
+  },
+  "d88ce46be27d87b2": {
+    "source": "Список препаратов",
+    "files": [
+      "translations.input_title_2"
+    ]
+  },
+  "d8ea27f3db01f3a2": {
+    "source": "Препарат деактивирован",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "d92fff560eb5495e": {
+    "source": "л",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "db269d0509dbf26d": {
+    "source": "Пассивный препарат нельзя изменять. Сначала активируйте препарат.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "db45857c055be6bf": {
+    "source": "Завершённый курс автоматически переходит в Архив. Изменить даты курса можно до последнего «Принято».",
+    "files": [
+      "js/input-qa-fixes.js"
+    ]
+  },
+  "dcffca5384190b13": {
+    "source": "Все препараты отменены. При необходимости можно полностью очистить данные MedControl и начать заново.",
+    "files": [
+      "js/render.js"
+    ]
+  },
+  "ddbad51f50b4f14d": {
+    "source": "В выбранном периоде изменений данных препарата нет.",
+    "files": [
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "de43f4f355154212": {
+    "source": "Дата окончания не может быть раньше даты начала.",
+    "files": [
+      "translations.hint_period"
+    ]
+  },
+  "de94f07b4398e689": {
+    "source": "Исправление доступно до ⟦1⟧. Первоначальная запись не удаляется.",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "debcd0719d5f9d61": {
+    "source": "MedControl — Настройки",
+    "files": [
+      "translations.title_settings"
+    ]
+  },
+  "df1b7397e1adcf64": {
+    "source": "Вернуться к редактированию",
+    "files": [
+      "translations.confirm_back"
+    ]
+  },
+  "e01318ecdfcc6ae0": {
+    "source": "Удалено время ⟦0⟧",
+    "files": [
+      "js/input-time-history-fix.js"
+    ]
+  },
+  "e08b433b859f55a2": {
+    "source": "История приёма недоступна.",
+    "files": [
+      "js/archive-page.js"
+    ]
+  },
+  "e0dede69c72d520f": {
+    "source": "Перенести защищённую копию",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "e1d7cb750468a903": {
+    "source": "Состояния текущего дня",
+    "files": [
+      "translations.dashboard_title_1"
+    ]
+  },
+  "e203a1deb472ac69": {
+    "source": "Завершение курса отменено: случайное нажатие «Принято». Исходная запись сохранена.",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "e2ce1809c4af8138": {
+    "source": "мл",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "e393b97afe71ab5f": {
+    "source": "Нет удалённых или заменённых времён.",
+    "files": [
+      "js/render.js",
+      "js/archive-page.js"
+    ]
+  },
+  "e47d1f8f7e0e2c29": {
+    "source": "Дата приёма",
+    "files": [
+      "js/next-intake-slot.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "e4fc78ef8dd67f0e": {
+    "source": "добавлена",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "e570d4b5575d7a33": {
+    "source": "Отдельное хранилище. Действующие записи не изменяются.",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "e5dd789d12dc0a56": {
+    "source": "Количество исправлений",
+    "files": [
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "e60af1caaf418a07": {
+    "source": "Время приёма отменено для последующего изменения.",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "e64440250c2793f5": {
+    "source": "Сброс защищённых медицинских данных отключён. История сохранена.",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "e67cb750f868143c": {
+    "source": "Интерфейс автоматически использует язык устройства, если перевод доступен. Язык можно изменить вручную в верхней панели приложения.",
+    "files": [
+      "translations.settings_intro"
+    ]
+  },
+  "e6dac86daf34251a": {
+    "source": "Изменить даты",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "e6feee53ccf84ec5": {
+    "source": "MedControl не смог создать исходное состояние в хранилище браузера. Работа остановлена, чтобы не создавать данные только в памяти.",
+    "files": [
+      "js/storage.js"
+    ]
+  },
+  "e725163e988cf340": {
+    "source": "Слева часы 00–23, справа минуты 00–59.",
+    "files": [
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "e76d58d28ed863e8": {
+    "source": "Проверьте заполнение формы и повторите сохранение.",
+    "files": [
+      "translations.hint_save_failed"
+    ]
+  },
+  "e7d432b368c1aec1": {
+    "source": "Новый препарат",
+    "files": [
+      "translations.input_title_1"
+    ]
+  },
+  "e833c9bf4350d22b": {
+    "source": "активировано",
+    "files": [
+      "js/input-architecture-fix.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "e83c50e2e1f432dd": {
+    "source": "Сброс остановлен: ожидающая cloud-копия не была подтверждена. Данные не изменены.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "e97ca72e2ca5bbe1": {
+    "source": "Период",
+    "files": [
+      "js/render.js",
+      "js/unified-history-ui.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js",
+      "js/input-time-history-scope-fix.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js",
+      "translations.period"
+    ]
+  },
+  "e9818ff6f2cb7f11": {
+    "source": "Для режима «Дни недели» поставьте отметки напротив нужных дней недели.",
+    "files": [
+      "translations.input_fill_help_2"
+    ]
+  },
+  "e9dd6bf76a0a10df": {
+    "source": "Сброс остановлен: не удалось создать резервную копию текущего цикла. Данные не изменены.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "ea0a7fb1d1a0efc5": {
+    "source": "Принято",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/render.js",
+      "js/archive-course-history.js",
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/correction-cancel-taken-policy.js",
+      "js/action-intake-history-summary.js",
+      "js/dashboard-target-compat.js",
+      "js/archive-page.js"
+    ]
+  },
+  "ea56577945404f78": {
+    "source": "Текущая временная картина приёма препаратов обновляется онлайн. После «Принято» онлайн-счёт останавливается и показывает зафиксированное отклонение.",
+    "files": [
+      "js/correction-guard-engine.js"
+    ]
+  },
+  "eadb412fe89291f2": {
+    "source": "Даты — задаются конкретные календарные даты. Для этого варианта даты начала и окончания не требуются.",
+    "files": [
+      "translations.input_help_3"
+    ]
+  },
+  "eb2516da8d40588d": {
+    "source": "Эта дата уже добавлена.",
+    "files": [
+      "translations.hint_duplicate_date"
+    ]
+  },
+  "ebc1b6dd5ae8517b": {
+    "source": "Курс завершён и автоматически отправлен в Архив.",
+    "files": [
+      "js/modular3-final-intake.js"
+    ]
+  },
+  "ebf21e30fa1f26d2": {
+    "source": "Время ⟦0⟧ активировано",
+    "files": [
+      "js/intake-history-slot-scope.js"
+    ]
+  },
+  "ec4bf489618ccf25": {
+    "source": "Когда применить изменения?",
+    "files": [
+      "js/schedule-change-scope.js"
+    ]
+  },
+  "edc6ec5a6596df8f": {
+    "source": "Не удалять время",
+    "files": [
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "eddcce39a9bf721b": {
+    "source": "Сегодняшний приём уже зафиксирован.",
+    "files": [
+      "js/schedule-change-scope.js"
+    ]
+  },
+  "ee5ebc1ac9c8af20": {
+    "source": "Сброс полностью удалит архив отменённых препаратов, историю изменений и журнал приёмов. Продолжить?",
+    "files": [
+      "js/medications.js"
+    ]
+  },
+  "eead37caf818d0fa": {
+    "source": "и",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "ef0b6aca57ab18f5": {
+    "source": "Время ⟦0⟧ добавлено",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "ef3d9ae58c18a0c6": {
+    "source": "капля",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "efbfd10c78f9de97": {
+    "source": "Статус препарата изменён на «Активно»",
+    "files": [
+      "js/daily-timeline-final.js"
+    ]
+  },
+  "f0078d3655994ddb": {
+    "source": "MedControl — защищённый режим",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "f1366ba0d55ac101": {
+    "source": "Не удалось начать новый цикл:",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "f1da7d70334ad273": {
+    "source": "Фактический приём препаратов",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "f2293501d2fdd021": {
+    "source": "капсула",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "f3158e3a1af4167d": {
+    "source": "Локальное время исправления",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "f37b297e01100c8c": {
+    "source": "Ежедневно",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/render.js",
+      "js/completed-archive-history-fallback.js",
+      "js/input-architecture-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "f42d9ee21f7862e0": {
+    "source": "Подтверждение препарата",
+    "files": [
+      "translations.confirm_medication_title"
+    ]
+  },
+  "f4389047d8d5ec36": {
+    "source": "Добавить препарат",
+    "files": [
+      "translations.add_medication"
+    ]
+  },
+  "f45170df6a0828f5": {
+    "source": "MedControl — Приём препаратов",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "translations.title_action"
+    ]
+  },
+  "f54ddc81c0c8a0d9": {
+    "source": "Введённые расчётные данные",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "f603ca812d65681e": {
+    "source": "Восстановить доступ",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "f65ee2b9cfbfd0e6": {
+    "source": "Дата/время",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/history.js",
+      "js/time-status-controller.js",
+      "js/input-architecture-fix.js",
+      "js/archive-course-history.js",
+      "js/input-time-history-fix.js"
+    ]
+  },
+  "f698bc440cabcde7": {
+    "source": "Например: 500 мг / 1 таблетка / Vitamin D 2000 IU",
+    "files": [
+      "translations.dose_hint"
+    ]
+  },
+  "f76a4ee68db8996e": {
+    "source": "Защищённое хранилище заблокировано.",
+    "files": [
+      "js/medications.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "f7beadf17caddda8": {
+    "source": "Цикл ещё не завершён.",
+    "files": [
+      "js/archive-reset-policy.js"
+    ]
+  },
+  "f803cbc901c615af": {
+    "source": "столовая ложка",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "f811d075b83b0531": {
+    "source": "До времени приёма осталось",
+    "files": [
+      "js/medcontrol-status-engine.js",
+      "js/correction-guard-engine.js",
+      "js/correction-reset-dashboard-history.js",
+      "js/dashboard-target-compat.js"
+    ]
+  },
+  "f846537dcc7d0eb4": {
+    "source": "удалена",
+    "files": [
+      "js/history.js",
+      "js/input-architecture-fix.js"
+    ]
+  },
+  "f878ac5d047508c7": {
+    "source": "Удалённые и заменённые времена",
+    "files": [
+      "js/render.js",
+      "js/archive-page.js"
+    ]
+  },
+  "f9274041224ea4c0": {
+    "source": "Фактическое время «Принято»",
+    "files": [
+      "js/intake-history-slot-scope.js",
+      "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "f97043d789e79243": {
+    "source": "пластырь",
+    "files": [
+      "js/medications.js",
+      "js/render.js",
+      "js/intake-unit-display.js"
+    ]
+  },
+  "fab00d4d9fbee2cf": {
+    "source": "Подготавливается история приёмов…",
+    "files": [
+      "js/action-intake-history-summary.js",
+      "js/archive-page.js"
+    ]
+  },
+  "fb3d640c7ef79c9c": {
+    "source": "Введите дозу препарата.",
+    "files": [
+      "translations.hint_dose"
+    ]
+  },
+  "fc064c0ab095fa4b": {
+    "source": "Для этой старой архивной записи журнал событий не был сохранён. Показанные выше данные — это сохранённая карточка курса, а не восстановленная история.",
+    "files": [
+      "js/completed-archive-history-fallback.js"
+    ]
+  },
+  "fc6404b112017dc6": {
+    "source": "Отменить Расписание",
+    "files": [
+      "js/render.js",
+      "js/intake-cancellation-policy.js",
+      "js/next-intake-slot.js",
+      "js/medcontrol-status-engine.js"
+    ]
+  },
+  "fc65172f221e76fa": {
+    "source": "Такое время уже выбрано.",
+    "files": [
+      "js/input-time-editor-v2.js"
+    ]
+  },
+  "fd0768fd165e8323": {
+    "source": "Удалить время",
+    "files": [
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "fd5474467c6d4477": {
+    "source": "Расписание отменено для последующего изменения.",
+    "files": [
+      "js/temporal-change-guard.js"
+    ]
+  },
+  "fd9d8534847f4100": {
+    "source": "столов",
+    "files": [
+      "js/intake-unit-display.js"
+    ]
+  },
+  "fe16f78001b27412": {
+    "source": "Такое время уже существует.",
+    "files": [
+      "js/input-time-history-fix.js",
+      "js/input-time-editor-v2.js",
+      "js/input-time-editor-v3-fix.js"
+    ]
+  },
+  "fe3366e0a3b9adde": {
+    "source": "Единица содержания *",
+    "files": [
+      "js/medications.js",
+      "js/render.js"
+    ]
+  },
+  "feedada24dcdf297": {
+    "source": "Дата начала удалена",
+    "files": [
+      "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "ffdc6cc67a30cb67": {
+    "source": "Каждый день — препарат формируется ежедневно в заданное время.",
+    "files": [
+      "translations.input_help_1"
+    ]
+  }
+}

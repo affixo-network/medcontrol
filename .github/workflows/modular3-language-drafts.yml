@@ -1,0 +1,33 @@
+name: Modular-3 Public UI Translation Drafts
+on:
+  push:
+    branches: [modular-3.000]
+    paths:
+      - 'locales/source-ru.json'
+      - 'locales/manifest.json'
+      - 'scripts/localization/translate.py'
+      - '.github/workflows/modular3-language-drafts.yml'
+permissions:
+  contents: read
+jobs:
+  public-ui-drafts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        partition: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Translate public static UI text only
+        run: python3 scripts/localization/translate.py ${{ matrix.partition }} 19
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: language-drafts-${{ matrix.partition }}
+          path: locales/drafts/*.json
+          if-no-files-found: warn
+          retention-days: 7
