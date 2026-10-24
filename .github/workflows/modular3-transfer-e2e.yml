@@ -63,6 +63,8 @@ jobs:
           cp input.html action.html dashboard.html archive.html protected/
           cp js/*.js protected/js/
           cp core.js protected/
+          mkdir -p protected/locales
+          cp -R locales/source-ru.json locales/catalogs protected/locales/
           test -s legacy/transfer-to-modular3.html
           test -s protected/modular3-protected.html
 
