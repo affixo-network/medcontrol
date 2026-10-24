@@ -1,5 +1,11 @@
 const SUPPORTED_LANGUAGES = [
   ['ru', "русский"],
+  ['eu', "euskara"],
+  ['ka', "ქართული"],
+  ['km', "ខ្មែរ"],
+  ['fa', "فارسی"],
+  ['ro', "română"],
+  ['th', "ไทย"],
   ['en', "English"],
   ['af', "Afrikaans"],
   ['sq', "shqip"],
