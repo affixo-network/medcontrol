@@ -26,7 +26,19 @@ function renderSettingsPage() {
 }
 window.changeInterfaceLanguage = async function(language) {
   const state = getState();
-  state.settings.interfaceLanguage = TRANSLATIONS[language] ? language : 'en';
+  // Prepare a catalog before changing encrypted settings; failed loads preserve the old language.
+  if (!TRANSLATIONS[language] && window.medcontrolProtectedInterface &&
+      SUPPORTED_LANGUAGES.some(([code]) => code === language)) {
+    try {
+      if (!window.MedControlLocaleBootstrap) await loadScript('js/modular3-locale-bootstrap.js');
+      await window.MedControlLocaleBootstrap.install({
+        language, fallback: TRANSLATIONS.en, fetcher: window.fetch.bind(window),
+        loadScript, register: registerPreparedLanguage
+      });
+    } catch (_) { /* Existing language remains selected. */ }
+  }
+  if (!TRANSLATIONS[language]) return false;
+  state.settings.interfaceLanguage = language;
   if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
   window.location.reload();
   return true;
