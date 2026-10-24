@@ -6,7 +6,7 @@ import urllib.parse, urllib.request
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 SOURCE=json.loads((ROOT/'locales/source-ru.json').read_text())
 MANIFEST=json.loads((ROOT/'locales/manifest.json').read_text())
-MARK=re.compile(r'MC([0-9]{4})\s*[:：]')
+MARK=re.compile(r'(?m)^(?:[^\n:：]*?)(\d{4})\s*[:：]')
 def request(text,language,source="ru"):
     query=urllib.parse.urlencode(dict(client='gtx',sl=source,tl=language,dt='t',q=text))
     req=urllib.request.Request('https://translate.googleapis.com/translate_a/single?'+query,headers={'User-Agent':'MedControl-public-interface-localization/1.0'})
@@ -73,16 +73,16 @@ def apply_glossary(values,language):
 
 def translate(language):
     output=ROOT/'locales/drafts'/f'{language}.json';output.parent.mkdir(parents=True,exist_ok=True)
+    existing={}
+    prior={}
     if output.exists():
         prior=json.loads(output.read_text())
-        if prior.get('sourceSha256')==hashlib.sha256((ROOT/'locales/source-ru.json').read_bytes()).hexdigest() and set(prior.get('messages',{}))==set(SOURCE):
-            print(language+': reusing validated draft',flush=True)
-            prior['messages']=apply_glossary(prior['messages'],language);prior['glossaryVersion']=1
-            output.write_text(json.dumps(prior,ensure_ascii=False,indent=2)+'\n');return
+        existing={key:value for key,value in prior.get('messages',{}).items() if key in SOURCE and isinstance(value,str) and value.strip() and sorted(re.findall(r'⟦\d+⟧',value))==sorted(re.findall(r'⟦\d+⟧',SOURCE[key]['source']))}
+        print(f'{language}: reusing {len(existing)} validated message IDs',flush=True)
     if language=='ru':values={k:v['source'] for k,v in SOURCE.items()}
     else:
-        values={}
-        for batch in batches(SOURCE.items()):
+        values=dict(existing)
+        for batch in batches((key,record) for key,record in SOURCE.items() if key not in values):
             payload='\n'.join(f'MC{i:04d}: {text}' for i,(_,text) in enumerate(batch))
             translated=html.unescape(request(payload,language))
             matches=list(MARK.finditer(translated))
@@ -95,7 +95,7 @@ def translate(language):
                     raise ValueError(f'{language}:{key}: missing translation or changed placeholders')
                 values[key]=value
             time.sleep(0.3)
-    values=apply_glossary(values,language)
+    if prior.get('glossaryVersion')!=1:values=apply_glossary(values,language)
     if set(values)!=set(SOURCE):raise ValueError('Catalog is incomplete')
     result={'language':language,'glossaryVersion':1,'sourceSha256':hashlib.sha256((ROOT/'locales/source-ru.json').read_bytes()).hexdigest(),'provenance':'machine-generated draft; editorial review not established','messages':values}
     output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')

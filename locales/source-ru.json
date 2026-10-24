@@ -80,6 +80,12 @@
       "translations.hint_duplicate_time"
     ]
   },
+  "0437418ea93b20f1": {
+    "source": "Файл превышает допустимый размер 20 МБ.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "04edebc624ec9d47": {
     "source": "Время события",
     "files": [
@@ -124,6 +130,12 @@
     "source": "Автоопределённый язык устройства",
     "files": [
       "translations.auto_detected_language"
+    ]
+  },
+  "078a308bff12aa09": {
+    "source": "Этот браузер не поддерживает автономную загрузку.",
+    "files": [
+      "modular3-protected.html"
     ]
   },
   "07c8e7a28ba7c929": {
@@ -252,6 +264,12 @@
     "source": "Введите название препарата.",
     "files": [
       "translations.hint_name"
+    ]
+  },
+  "117dc6700d73109a": {
+    "source": ". Исходная история не удалялась.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "11d2512c5715de45": {
@@ -399,6 +417,12 @@
       "js/medications.js"
     ]
   },
+  "17a7395278c82164": {
+    "source": "Защищённая копия данных на этом адресе не найдена. Ничего не изменено.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "17d0ae32e407a38b": {
     "source": "Укажите другую единицу содержания.",
     "files": [
@@ -446,6 +470,18 @@
     "files": [
       "js/correction-guard-engine.js",
       "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "1be85f619ea634ca": {
+    "source": "Зашифрованная копия неожиданно изменилась",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "1c7099f6938bcc15": {
+    "source": "Автономный вход выполнен.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "1ca07784fed758e2": {
@@ -503,6 +539,12 @@
       "js/medications.js"
     ]
   },
+  "20355ace72efadd3": {
+    "source": "Не удалось подготовить вход. Проверьте соединение и нажмите «Повторить загрузку». Данные не изменены.",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
   "2044aaf9fecf161a": {
     "source": "добавлены",
     "files": [
@@ -514,6 +556,12 @@
     "source": "капл",
     "files": [
       "js/intake-unit-display.js"
+    ]
+  },
+  "209cd070147df9aa": {
+    "source": "Не удалось загрузить",
+    "files": [
+      "js/auth-guard.js"
     ]
   },
   "20be9bd049e2d274": {
@@ -614,6 +662,18 @@
       "translations.cancelled"
     ]
   },
+  "23af989b7d155e61": {
+    "source": "Ошибка запуска MedControl",
+    "files": [
+      "js/auth-guard.js"
+    ]
+  },
+  "24dd5406f48c4ada": {
+    "source": "Восстановление не завершено:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "24eef7f24a6f5c51": {
     "source": "После проверки можно начать новый цикл.",
     "files": [
@@ -665,6 +725,12 @@
       "modular3-protected.html"
     ]
   },
+  "26805057e8d4fd47": {
+    "source": "Не удалось проверить локальный вход после переноса",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "269bca4574c98818": {
     "source": "необходимо будет создать новую карточку и новую историю.",
     "files": [
@@ -687,6 +753,12 @@
       "translations.dates"
     ]
   },
+  "26ac6bc4fdfa5a8f": {
+    "source": "Перенести из файла",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "26efbb22f90342db": {
     "source": "Защищённое хранилище заблокировано. Войдите с локальным паролем.",
     "files": [
@@ -700,11 +772,29 @@
       "js/history.js"
     ]
   },
+  "2713b208154f969e": {
+    "source": "Неверный пароль существующего хранилища",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "271e1e5adf5d3f4b": {
     "source": "Препараты",
     "files": [
       "js/render.js",
       "js/time-status-controller.js"
+    ]
+  },
+  "277cb3fa72f874da": {
+    "source": "Сверка завершена. Курсов из файла найдено:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "2792a547e3ece24d": {
+    "source": "Доступ восстановлен. Зашифрованные данные проверены и открыты.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "279d5827da5cd416": {
@@ -836,10 +926,28 @@
       "js/input-time-editor-v3-fix.js"
     ]
   },
+  "306dfb866cde9165": {
+    "source": "Перенос не завершён:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "31035302290c1fea": {
+    "source": "препаратов и",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "311ebbde3e8158ff": {
     "source": "Сохранённые хранилища до переноса",
     "files": [
       "modular3-protected.html"
+    ]
+  },
+  "3143ec9b87afedc1": {
+    "source": "курсов;",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "31a8ee2fb6b7b6f4": {
@@ -873,6 +981,12 @@
     "source": "Повторить завершённый курс",
     "files": [
       "js/input-qa-fixes.js"
+    ]
+  },
+  "33f52a784bb8cac6": {
+    "source": ". Дополнительно в хранилище:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "345512024f9f6a4e": {
@@ -958,6 +1072,12 @@
       "translations.start_date"
     ]
   },
+  "3a9bac806199d1b1": {
+    "source": ". Различий в полях файла:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "3af917363416a5ee": {
     "source": "Данные изменились. Откройте раздел снова и повторите действие.",
     "files": [
@@ -976,6 +1096,12 @@
       "js/input-draft-recovery.js"
     ]
   },
+  "3bf30f423ab97760": {
+    "source": "Препаратов:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "3c54b5e783ef6052": {
     "source": "Архив",
     "files": [
@@ -989,6 +1115,18 @@
     "source": "Хранилище уже существует. В поле «Локальный пароль» введите прежний пароль входа. Новый пароль, заданный при создании файла, введите ниже. Для сверки выбранного файла без изменений нажмите «Проверить готовность переноса». До переноса прежнее хранилище будет сохранено отдельной зашифрованной копией.",
     "files": [
       "modular3-protected.html"
+    ]
+  },
+  "3d0dc07989628ab9": {
+    "source": "Исходные данные на этом устройстве не найдены. Перенос не запускался.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "3ed32052b5cf4cf8": {
+    "source": "renderArchivePage() не загружен",
+    "files": [
+      "js/auth-guard.js"
     ]
   },
   "3f35ef00a38250e2": {
@@ -1042,6 +1180,12 @@
       "js/correction-guard-engine.js"
     ]
   },
+  "41d90ceaa0af64d6": {
+    "source": "На этом адресе защищённое хранилище не найдено. Для существующих записей требуется перенос защищённой копии.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "41e6ff51c4bcf166": {
     "source": "Отменено — окончательное завершение этой карточки препарата.",
     "files": [
@@ -1067,6 +1211,12 @@
     "files": [
       "js/correction-reset-dashboard-history.js",
       "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "42e88d40a9b22b52": {
+    "source": ". Исходный файл не изменён.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "435d3d1cbd5cc878": {
@@ -1150,10 +1300,22 @@
       "js/medications.js"
     ]
   },
+  "4bc0843b9b37cb93": {
+    "source": "Проверка без изменений завершена. Препаратов:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "4c48299f63522f87": {
     "source": "Импортировать защищённую копию",
     "files": [
       "modular3-protected.html"
+    ]
+  },
+  "4c5ea53225e10f03": {
+    "source": "Зашифрованная копия импортирована и проверена. Препаратов:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "4c7d71bdab16c34b": {
@@ -1220,6 +1382,12 @@
       "js/input-time-history-scope-fix.js"
     ]
   },
+  "4ef2dbf5fb843916": {
+    "source": "событий приёма в рабочее хранилище?\nТекущее хранилище (",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "4f62a12fa75dc9f4": {
     "source": "Дата/время изменения",
     "files": [
@@ -1237,6 +1405,12 @@
     "source": "суппозитор",
     "files": [
       "js/intake-unit-display.js"
+    ]
+  },
+  "501be274ce9b02e0": {
+    "source": "Импорт отменён. Хранилище не изменено.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "50bbc80ab2dfc709": {
@@ -1304,6 +1478,12 @@
       "js/medications.js"
     ]
   },
+  "54b2f4d5378ff8d0": {
+    "source": "Не удалось сохранить черновик. Форма остаётся открытой.",
+    "files": [
+      "js/auth-guard.js"
+    ]
+  },
   "56502eb512ceade6": {
     "source": "Дата начала и дата окончания ограничивают период действия расписания. До начала препарат не участвует, после окончания больше не формируется.",
     "files": [
@@ -1329,6 +1509,12 @@
     "source": "На сегодня активных позиций нет.",
     "files": [
       "translations.no_items"
+    ]
+  },
+  "56ebc44042e38125": {
+    "source": ". Перенос не запускался.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "56ef2021fe538567": {
@@ -1451,6 +1637,12 @@
       "js/dashboard-target-compat.js"
     ]
   },
+  "6029237c917799fe": {
+    "source": "Импортировать зашифрованную копию? Существующие данные не будут перезаписаны.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "6129cac051b0d4b4": {
     "source": "удалён",
     "files": [
@@ -1501,6 +1693,12 @@
     "files": [
       "js/medications.js",
       "js/render.js"
+    ]
+  },
+  "632139c98a1eb39f": {
+    "source": "Защищённая копия проверена и сохранена. Исходная история не изменена. Препаратов:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "63a4fbe586d62bf9": {
@@ -1584,6 +1782,12 @@
       "js/archive-page.js",
       "translations.nav_dashboard",
       "modular3-protected.html"
+    ]
+  },
+  "682d801e4a7a3f41": {
+    "source": "Не удалось создать хранилище:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "68505b6d0475073b": {
@@ -1779,6 +1983,12 @@
       "js/input-time-editor-v3-fix.js"
     ]
   },
+  "753d46ba118e91ef": {
+    "source": "Для переноса введите новый локальный пароль.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "754ad00b958aebff": {
     "source": "Изменение не сохранено.",
     "files": [
@@ -1911,6 +2121,12 @@
       "translations.cancel"
     ]
   },
+  "7ccdfe285a67dad9": {
+    "source": "; событий приёма:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "7ce1859ed1548a3e": {
     "source": "чай",
     "files": [
@@ -1956,6 +2172,24 @@
       "js/input-time-history-fix.js",
       "js/input-time-history-scope-fix.js",
       "translations.weekday_short"
+    ]
+  },
+  "7f4adf318ef3f841": {
+    "source": "из",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "7f58759cf76333d9": {
+    "source": "; отмен:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "7fd9d68c2deede4f": {
+    "source": "Перенос пока недоступен:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "7fdc77c19551371a": {
@@ -2010,6 +2244,12 @@
       "js/dashboard-target-compat.js"
     ]
   },
+  "8139b6819046b366": {
+    "source": "Введите локальный пароль.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "81b32194a434a35d": {
     "source": "Если препарат отменён врачом или больше не используется, переведите его в Пассивно. Он не будет отображаться в разделе «Приём препаратов» и на Табло.",
     "files": [
@@ -2048,6 +2288,18 @@
       "js/temporal-change-guard.js"
     ]
   },
+  "840869d0c9564771": {
+    "source": "Хранилище создано не полностью. Сначала используйте «Восстановить доступ».",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "8442f91497d59803": {
+    "source": "Данные заблокированы.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "8549e7ed5290309a": {
     "source": "Изменить время",
     "files": [
@@ -2071,6 +2323,18 @@
     "files": [
       "js/history.js",
       "js/input-architecture-fix.js"
+    ]
+  },
+  "867738e067f5550c": {
+    "source": "Создать зашифрованную копию",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "86ade357a5dfac51": {
+    "source": ". Данные не изменены.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "86f463bef6393889": {
@@ -2142,10 +2406,28 @@
       "js/input-architecture-fix.js"
     ]
   },
+  "88185ec473985020": {
+    "source": "Автономная загрузка не готова:",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
+  "887244dc336bda05": {
+    "source": "Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
   "89c4361d72299747": {
     "source": "Случайность: отметка «Принято» будет отменена. Исходная запись и фактическое онлайн-время останутся в истории.",
     "files": [
       "js/correction-cancel-taken-policy.js"
+    ]
+  },
+  "89d2e2de38717e36": {
+    "source": "событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "8b2ca3467bfa0f5e": {
@@ -2179,6 +2461,12 @@
       "js/correction-guard-engine.js",
       "js/correction-reset-dashboard-history.js",
       "translations.correct"
+    ]
+  },
+  "8d7398f946375ec8": {
+    "source": "Импорт не завершён:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "8da953cc78514afb": {
@@ -2236,6 +2524,7 @@
   "8fc9ab2eeb38ad7a": {
     "source": "Войти",
     "files": [
+      "js/auth-guard.js",
       "modular3-protected.html"
     ]
   },
@@ -2344,6 +2633,12 @@
       "translations.weekday_short"
     ]
   },
+  "969e5c79f8f07166": {
+    "source": "Для сверки выберите файл medcontrol-encrypted-transfer.json в блоке «Резервная копия MedControl (.json)». После обновления страницы файл нужно выбрать заново. Сверка не запускалась; данные не изменены.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "96aa19f7485edd48": {
     "source": "Отменить Время",
     "files": [
@@ -2351,6 +2646,12 @@
       "js/intake-cancellation-policy.js",
       "js/next-intake-slot.js",
       "js/medcontrol-status-engine.js"
+    ]
+  },
+  "96d07179d567e28e": {
+    "source": "Перенос недоступен:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "96d4a07b23216c72": {
@@ -2450,6 +2751,12 @@
       "js/dashboard-target-compat.js"
     ]
   },
+  "9cc49e947f1161a7": {
+    "source": "Сверка данные не изменяет.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "9cded336f61507e0": {
     "source": "Сначала отметьте дату в календаре.",
     "files": [
@@ -2465,6 +2772,12 @@
       "js/correction-reset-dashboard-history.js"
     ]
   },
+  "9dce475f7e83a565": {
+    "source": "курсов и",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "9ddd0c9494420ad4": {
     "source": "Отменить случайное нажатие «Принято»? Исходное фактическое время сохранится в истории.",
     "files": [
@@ -2475,6 +2788,12 @@
     "source": "Текущая дата:",
     "files": [
       "js/archive-page.js"
+    ]
+  },
+  "9e9a9653eb6cdbee": {
+    "source": "Все данные выбранного файла уже присутствуют. Повторный импорт не требуется.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "9f0cda93578fcf5b": {
@@ -2541,6 +2860,12 @@
       "js/input-time-history-scope-fix.js"
     ]
   },
+  "a20a3d1175115dd7": {
+    "source": "Ошибка входа:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "a2457baed6a71a06": {
     "source": "Фактическое время приёма",
     "files": [
@@ -2603,6 +2928,12 @@
       "translations.period_all"
     ]
   },
+  "a46580f7b05becc5": {
+    "source": "Выберите зашифрованную копию MedControl в формате JSON.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "a5e49b2e7c253894": {
     "source": "таблетка",
     "files": [
@@ -2648,6 +2979,12 @@
       "translations.close"
     ]
   },
+  "a85b36505f1df471": {
+    "source": "Не удалось открыть восстановленное хранилище",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "a90842542983969f": {
     "source": "Другая единица содержания *",
     "files": [
@@ -2672,6 +3009,12 @@
     "files": [
       "js/medications.js",
       "js/render.js"
+    ]
+  },
+  "ab44adc61d01adab": {
+    "source": ". Сохранённые данные не удалялись.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "ab6394f2d588873b": {
@@ -2817,6 +3160,12 @@
       "js/render.js"
     ]
   },
+  "b1b94a61032ee4aa": {
+    "source": "Введите локальный пароль длиной не менее 12 символов.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "b1d3b7721298a91d": {
     "source": "Окно исправления закрыто.⟦0⟧",
     "files": [
@@ -2835,10 +3184,22 @@
       "js/input-time-history-fix.js"
     ]
   },
+  "b2e3308ee13ae983": {
+    "source": "Введите пароль, использованный при создании защищённой копии.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "b3ad3659095d37d1": {
     "source": "Язык интерфейса — заранее подготовленный перевод текста разделов, кнопок и названий полей.",
     "files": [
       "translations.settings_help_1"
+    ]
+  },
+  "b40aacd3dc216b92": {
+    "source": "Проверка не выполнена:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "b42138d897075008": {
@@ -2944,6 +3305,12 @@
       "js/a1-integrity-fix.js"
     ]
   },
+  "b9cf769bb68d9184": {
+    "source": ". Пароль входа остался прежним.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "ba9cb3bb66444dc3": {
     "source": "Полный сброс доступен только когда все препараты отменены.",
     "files": [
@@ -2962,12 +3329,24 @@
       "js/correction-guard-engine.js"
     ]
   },
+  "bbd3a4ee73c0f0aa": {
+    "source": "Не удалось открыть зашифрованную копию",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "bbdc91cfb5e041f4": {
     "source": "флакон",
     "files": [
       "js/medications.js",
       "js/render.js",
       "js/intake-unit-display.js"
+    ]
+  },
+  "bc012ebf7ad3bd8c": {
+    "source": "Введите прежний локальный пароль",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "bcacbff7a5638016": {
@@ -3029,6 +3408,12 @@
     "files": [
       "js/action-intake-history-summary.js",
       "js/archive-page.js"
+    ]
+  },
+  "beb1f8829138105a": {
+    "source": "mount() не загружен",
+    "files": [
+      "js/auth-guard.js"
     ]
   },
   "bee717c12f51531d": {
@@ -3190,6 +3575,7 @@
   "c83c11bcb0f0abf7": {
     "source": "Локальный пароль",
     "files": [
+      "js/auth-guard.js",
       "modular3-protected.html"
     ]
   },
@@ -3198,6 +3584,18 @@
     "files": [
       "js/input-architecture-fix.js",
       "js/input-time-history-scope-fix.js"
+    ]
+  },
+  "c897808e001a4c1d": {
+    "source": "; архивных событий:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "c968dfae5f7a70f5": {
+    "source": "приёмов? Исходная история сохранится без изменений.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "c9da8656550fc744": {
@@ -3272,6 +3670,12 @@
       "translations.timezone"
     ]
   },
+  "cf8c95d9c99e24ae": {
+    "source": "Неизвестная страница Auth Guard:",
+    "files": [
+      "js/auth-guard.js"
+    ]
+  },
   "d06d15a8bb3233ac": {
     "source": "Строка",
     "files": [
@@ -3334,6 +3738,12 @@
       "js/render.js"
     ]
   },
+  "d31176ce54c2acdb": {
+    "source": "Не удалось открыть хранилище:",
+    "files": [
+      "js/auth-guard.js"
+    ]
+  },
   "d3ae3e1986933669": {
     "source": "Стало",
     "files": [
@@ -3346,6 +3756,12 @@
       "translations.row_history_title"
     ]
   },
+  "d42e5b32d067381e": {
+    "source": "Перенос отменён. Исходные данные не изменены.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "d46e5df538ec3da8": {
     "source": "Досрочно",
     "files": [
@@ -3356,6 +3772,12 @@
     "source": "«Пассивно»",
     "files": [
       "js/history.js"
+    ]
+  },
+  "d4ec57b305744575": {
+    "source": "; приёмов:",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "d53fe84729d99a8e": {
@@ -3387,6 +3809,18 @@
     "source": "Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.",
     "files": [
       "js/a1-integrity-fix.js"
+    ]
+  },
+  "d7435024e565d0f0": {
+    "source": "Не удалось запустить MedControl. Локальные данные не удалялись.",
+    "files": [
+      "js/auth-guard.js"
+    ]
+  },
+  "d761f4cb75c48ed9": {
+    "source": "Неизвестная страница MedControl:",
+    "files": [
+      "js/auth-guard.js"
     ]
   },
   "d7dcf5f334f16af2": {
@@ -3427,6 +3861,12 @@
     "files": [
       "js/medications.js",
       "js/render.js"
+    ]
+  },
+  "da9916c11a46a639": {
+    "source": "Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "db269d0509dbf26d": {
@@ -3507,6 +3947,24 @@
       "js/modular3-final-intake.js"
     ]
   },
+  "e22cb0cf72e48c06": {
+    "source": "событий.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "e22f02dad740868d": {
+    "source": "Файл превышает допустимый размер 20 МБ",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
+  "e2b4eed605c5a79e": {
+    "source": "Защищённое хранилище создано.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "e2ce1809c4af8138": {
     "source": "мл",
     "files": [
@@ -3522,6 +3980,12 @@
       "js/archive-page.js"
     ]
   },
+  "e427769373f4cf90": {
+    "source": "Локальный пароль уже зарегистрирован. Для открытия данных нажмите «Войти».",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "e47d1f8f7e0e2c29": {
     "source": "Дата приёма",
     "files": [
@@ -3529,6 +3993,13 @@
       "js/medcontrol-status-engine.js",
       "js/correction-guard-engine.js",
       "js/correction-reset-dashboard-history.js"
+    ]
+  },
+  "e4e0e9af0e525360": {
+    "source": "Неверный пароль.",
+    "files": [
+      "js/auth-guard.js",
+      "js/modular3-protected-workspace.js"
     ]
   },
   "e4fc78ef8dd67f0e": {
@@ -3641,6 +4112,12 @@
       "js/archive-reset-policy.js"
     ]
   },
+  "e9ff250348728897": {
+    "source": "Не все автономные файлы доступны в кэше",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
   "ea0a7fb1d1a0efc5": {
     "source": "Принято",
     "files": [
@@ -3660,6 +4137,12 @@
     "source": "Текущая временная картина приёма препаратов обновляется онлайн. После «Принято» онлайн-счёт останавливается и показывает зафиксированное отклонение.",
     "files": [
       "js/correction-guard-engine.js"
+    ]
+  },
+  "eaa028c00a97c202": {
+    "source": "Копия перенесена и проверена. Прежнее хранилище сохранено отдельно.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "eadb412fe89291f2": {
@@ -3686,10 +4169,22 @@
       "js/intake-history-slot-scope.js"
     ]
   },
+  "ec42eb3a0cb76d54": {
+    "source": "Введите пароль файла переноса в отдельное поле",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "ec4bf489618ccf25": {
     "source": "Когда применить изменения?",
     "files": [
       "js/schedule-change-scope.js"
+    ]
+  },
+  "ecee1e18a8dea481": {
+    "source": "Завершить восстановление защищённого хранилища? Существующая зашифрованная копия и исходные данные не будут удалены.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "edc6ec5a6596df8f": {
@@ -3717,6 +4212,12 @@
       "js/temporal-change-guard.js"
     ]
   },
+  "eef0abe9f43d061f": {
+    "source": "Незавершённая зашифрованная копия не найдена. Ничего не изменено.",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "ef0b6aca57ab18f5": {
     "source": "Время ⟦0⟧ добавлено",
     "files": [
@@ -3741,6 +4242,12 @@
     "source": "MedControl — защищённый режим",
     "files": [
       "modular3-protected.html"
+    ]
+  },
+  "f02cefbcff55367f": {
+    "source": "Полное соответствие файлу не подтверждено.",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "f1366ba0d55ac101": {
@@ -3785,6 +4292,12 @@
       "js/input-time-history-scope-fix.js"
     ]
   },
+  "f3fe9942107a89af": {
+    "source": "Автономные файлы подготовлены и проверены.",
+    "files": [
+      "modular3-protected.html"
+    ]
+  },
   "f42d9ee21f7862e0": {
     "source": "Подтверждение препарата",
     "files": [
@@ -3806,6 +4319,12 @@
       "translations.title_action"
     ]
   },
+  "f54921a0763c19b3": {
+    "source": "Не удалось скачать сохранённую копию:",
+    "files": [
+      "js/modular3-protected-workspace.js"
+    ]
+  },
   "f54ddc81c0c8a0d9": {
     "source": "Введённые расчётные данные",
     "files": [
@@ -3818,6 +4337,7 @@
   "f603ca812d65681e": {
     "source": "Восстановить доступ",
     "files": [
+      "js/auth-guard.js",
       "modular3-protected.html"
     ]
   },
@@ -3836,6 +4356,12 @@
     "source": "Например: 500 мг / 1 таблетка / Vitamin D 2000 IU",
     "files": [
       "translations.dose_hint"
+    ]
+  },
+  "f700bad1fa9bf26c": {
+    "source": "Введите пароль файла переноса в отдельное поле (не менее 12 символов)",
+    "files": [
+      "js/modular3-protected-workspace.js"
     ]
   },
   "f76a4ee68db8996e": {
