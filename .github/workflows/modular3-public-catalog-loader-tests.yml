@@ -4,7 +4,9 @@ on:
     branches: [modular-3.000]
     paths:
       - 'js/modular3-public-catalog-loader.js'
+      - 'js/modular3-legacy-locale-adapter.js'
       - 'scripts/localization/test-public-catalog-loader.cjs'
+      - 'scripts/localization/test-legacy-locale-adapter.cjs'
       - '.github/workflows/modular3-public-catalog-loader-tests.yml'
   workflow_dispatch:
 permissions:
@@ -18,4 +20,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Run isolated catalog validation tests
-        run: node --test scripts/localization/test-public-catalog-loader.cjs
+        run: node --test scripts/localization/test-public-catalog-loader.cjs scripts/localization/test-legacy-locale-adapter.cjs
