@@ -89,6 +89,21 @@
       });
     }catch(_){return false;}
   }
+  function populateProtectedLanguageSelector(){
+    // Modular-3 enhancement only: never modify the immutable Modular-2 renderer.
+    if(!window.medcontrolProtectedInterface || typeof SUPPORTED_LANGUAGES==='undefined')return;
+    const selector=document.querySelector('.topbar select[onchange*="changeInterfaceLanguage"]');
+    if(!selector)return;
+    const selected=getState()?.settings?.interfaceLanguage;
+    const known=new Set(Array.from(selector.options,option=>option.value));
+    for(const [code,label] of SUPPORTED_LANGUAGES){
+      if(!known.has(code)){
+        selector.add(new Option(label,code));
+        known.add(code);
+      }
+    }
+    if(selected&&known.has(selected))selector.value=selected;
+  }
   async function renderPage(targetPage){
     if(targetPage==='archive'){
       if(window.medcontrolProtectedInterface&&window.reconcileMedControlCompletedCourses)await window.reconcileMedControlCompletedCourses(getState());
@@ -96,10 +111,12 @@
       window.renderArchivePage();
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
+      populateProtectedLanguageSelector();
       return;
     }
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     (await mount(targetPage));
+    populateProtectedLanguageSelector();
   }
   function currentDeploymentId(){
     return document.querySelector('script[data-deployment-id]')?.dataset?.deploymentId||'';
