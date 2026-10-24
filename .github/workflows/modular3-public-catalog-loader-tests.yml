@@ -6,7 +6,10 @@ on:
       - 'js/modular3-public-catalog-loader.js'
       - 'js/modular3-legacy-locale-adapter.js'
       - 'scripts/localization/test-public-catalog-loader.cjs'
-      - 'scripts/localization/test-legacy-locale-adapter.cjs'
+      - 'scripts/localization/test-legacy-locale-adapter.cjs scripts/localization/test-real-legacy-catalog.cjs'
+      - 'scripts/localization/test-real-legacy-catalog.cjs'
+      - 'locales/source-ru.json'
+      - 'locales/catalogs/en.json'
       - '.github/workflows/modular3-public-catalog-loader-tests.yml'
   workflow_dispatch:
 permissions:
