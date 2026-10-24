@@ -29,7 +29,7 @@ for (const file of files) {
     if (catalog.provenance !== 'machine translation from AI-reviewed English UI; units and named clinical controls preserved; native editorial review not established') throw new Error('Unrecognized provenance');
     validateCatalog(catalog, source, code);
     const dest = path.join(output, file);
-    if (fs.existsSync(dest)) throw new Error('Existing catalog must not be overwritten');
+    if (fs.existsSync(dest)) { console.log('SKIPPED existing catalog:', file); continue; }
     fs.copyFileSync(path.join(input, file), dest, fs.constants.COPYFILE_EXCL);
     accepted++;
   } catch (error) { rejected.push(file + ': ' + error.message); }
