@@ -8,7 +8,7 @@ function renderSettingsPage() {
       <div class="card"><h2>${escapeHtml(tr('settings_title_1'))}</h2>
         <div class="form-grid">
           <div><label>${escapeHtml(tr('auto_detected_language'))}</label><input readonly value="${escapeHtml(detectedLabel)}"></div>
-          <div><label>${escapeHtml(tr('language'))}</label><select id="settingsInterfaceLanguage" onchange="changeInterfaceLanguage(this.value)">${SUPPORTED_LANGUAGES.filter(([id]) => !!TRANSLATIONS[id] || id === 'ru' || id === 'en').map(([id,label]) => `<option value="${id}" ${state.settings.interfaceLanguage === id ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></div>
+          <div><label>${escapeHtml(tr('language'))}</label><select id="settingsInterfaceLanguage" onchange="changeInterfaceLanguage(this.value)">${SUPPORTED_LANGUAGES.filter(([id]) => !!TRANSLATIONS[id] || (window.medcontrolProtectedInterface && id !== 'ru' && id !== 'en') || id === 'ru' || id === 'en').map(([id,label]) => `<option value="${id}" ${state.settings.interfaceLanguage === id ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></div>
           <div><label>${escapeHtml(tr('country'))}</label><select id="settingsCountry" onchange="changeCountry(this.value)">${COUNTRY_OPTIONS.map(country => `<option value="${country}" ${state.settings.country === country ? 'selected' : ''}>${escapeHtml(country)}</option>`).join('')}</select></div>
           <div><label>${escapeHtml(tr('timezone'))}</label><input readonly value="${escapeHtml(state.settings.timezone)}"></div>
           <div><label>${escapeHtml(tr('patient_data'))}</label><input readonly value="${escapeHtml(tr('patient_data_value'))}"></div>
@@ -37,7 +37,11 @@ window.changeInterfaceLanguage = async function(language) {
       });
     } catch (_) { /* Existing language remains selected. */ }
   }
-  if (!TRANSLATIONS[language]) return false;
+  if (!TRANSLATIONS[language]) {
+    const selector = document.getElementById('settingsInterfaceLanguage');
+    if (selector) selector.value = state.settings.interfaceLanguage;
+    return false;
+  }
   state.settings.interfaceLanguage = language;
   if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
   window.location.reload();
