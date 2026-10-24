@@ -2,7 +2,7 @@ name: Modular-3 Import Validated Language Drafts
 on:
   push:
     branches: [modular-3.000]
-    paths: ['.github/workflows/modular3-import-language-drafts.yml']
+    paths: ['.github/workflows/modular3-import-language-drafts.yml', 'js/language.js']
   workflow_run:
     workflows: ['Modular-3 Public UI Translation Drafts']
     types: [completed]
