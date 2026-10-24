@@ -173,6 +173,7 @@ async function run(){
   assert.equal(await full.evaluate(()=>window.__repeatCompletedCourseSourceId||null),null);
   console.log('PASS archived course rejects repeat and preserves complete state');
   assert.equal(await full.evaluate(()=>getState().intakeLogs[0].actualAt),intake.actualAt);
+  await full.waitForFunction(() => document.body.innerText.includes('Synthetic Edited Course'), null, { timeout: 10000 });
   assert.ok((await full.locator('body').innerText()).includes('Synthetic Edited Course'));
   console.log('PASS immediate auto-archive and original Archive display');
   const beforeReset=await full.evaluate(()=>getState());
