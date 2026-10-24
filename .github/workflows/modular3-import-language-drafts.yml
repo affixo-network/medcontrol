@@ -1,5 +1,8 @@
 name: Modular-3 Import Validated Language Drafts
 on:
+  push:
+    branches: [modular-3.000]
+    paths: ['.github/workflows/modular3-import-language-drafts.yml']
   workflow_run:
     workflows: ['Modular-3 Public UI Translation Drafts']
     types: [completed]
@@ -9,7 +12,7 @@ on:
       source_run_id:
         description: 'Successful Public UI Translation Drafts run ID'
         required: true
-        default: '40075379438'
+        default: '40105119741'
 permissions:
   contents: write
   actions: read
@@ -26,7 +29,7 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           pattern: language-drafts-*
-          run-id: ${{ github.event.workflow_run.id || inputs.source_run_id || '40075379438' }}
+          run-id: ${{ github.event.workflow_run.id || inputs.source_run_id || '40105119741' }}
           github-token: ${{ github.token }}
           merge-multiple: true
           path: locales/draft-import
