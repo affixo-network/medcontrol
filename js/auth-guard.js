@@ -73,7 +73,21 @@
     const loader=await ensureModular3Loader();
     await loader.ensureScripts(protectedModules);
     await loader.ensureScripts(list);
+    await ensureSelectedPublicLocale();
     if(window.medcontrolProtectedInterface)window.MedControlModular3FinalIntake?.install();
+  }
+  async function ensureSelectedPublicLocale(){
+    // Optional only: the built-in RU/EN UI remains available without network.
+    if(!window.medcontrolProtectedInterface || typeof getState!=='function')return false;
+    const language=getState()?.settings?.interfaceLanguage;
+    if(!language || language==='ru' || language==='en' || TRANSLATIONS[language])return false;
+    try{
+      await loadScript('js/modular3-locale-bootstrap.js');
+      return await window.MedControlLocaleBootstrap.install({
+        language, fallback:TRANSLATIONS.en, fetcher:window.fetch.bind(window),
+        loadScript, register:registerPreparedLanguage
+      });
+    }catch(_){return false;}
   }
   async function renderPage(targetPage){
     if(targetPage==='archive'){
@@ -128,6 +142,7 @@
   async function startPage(list){
     const loader=await ensureModular3Loader();
     await loader.ensureScripts(list);
+    await ensureSelectedPublicLocale();
     if(page==='archive'){
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
