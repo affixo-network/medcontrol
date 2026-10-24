@@ -141,7 +141,7 @@
   "yes": "93e6073f9005224b"
 });
   function adaptCatalog(catalog, fallback) {
-    if (!catalog || !catalog.messages || typeof catalog.messages !== 'object') throw new Error('Invalid catalog');
+    if (!catalog || !catalog.messages || typeof catalog.messages !== 'object' || Array.isArray(catalog.messages)) throw new Error('Invalid catalog');
     const translated = { ...fallback };
     for (const [legacyKey, catalogId] of Object.entries(KEY_TO_CATALOG_ID)) {
       const value = catalog.messages[catalogId];
