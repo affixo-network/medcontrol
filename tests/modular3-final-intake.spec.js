@@ -85,7 +85,7 @@ test('Archive allows history and reset only, with no repeat or correction action
  await page.locator('.nav a[href="archive.html"]').click();const before=await current(page),raw=await page.evaluate(KEY=>localStorage.getItem(KEY),KEY);
  await expect(page.locator('[data-repeat-archived], [data-correct-archived]')).toHaveCount(0);
  const actions=await page.locator('section.card button').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('onclick')||''));
- expect(actions.every(action=>/^(showArchive|setArchiveIntake|collapseArchiveIntakeHistory|manualMedControlCycleReset)/.test(action))).toBe(true);
+ expect(actions.filter(action=>!/^(showArchive|setArchiveIntake|collapseArchiveIntakeHistory|manualMedControlCycleReset)/.test(action)), 'Unexpected archive button handlers').toEqual([]);
  await page.locator('button[onclick="showArchiveMedicationHistory(\'offline-final\')"]').click();
  await expect(page.locator('#archiveHistoryContent')).toContainText('Курс завершён');
  expect(await current(page)).toEqual(before);expect(await page.evaluate(KEY=>localStorage.getItem(KEY),KEY)).toBe(raw);
