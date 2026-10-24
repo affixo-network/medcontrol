@@ -11,6 +11,7 @@ const criticalPattern = /medic|dose|dosage|intake|taken|not taken|missed|cancel|
 const criticalKeys = expectedKeys.filter(key => criticalPattern.test(String(en[key] || '') + ' ' + String(source[key] || '')));
 const correctionKeys = {
   accidental: '4736e0eec69e370d',
+  error: 'bf22dfeeba8b8508',
   choice: '8fe1c236559abd0c',
   errorConfirmation: '1340d81906bfec36',
   accidentalConfirmation: '75c6218f9fdec1c4'
@@ -27,14 +28,14 @@ for (const {code, englishName} of manifest) {
   const missingKeys = expectedKeys.filter(key => !Object.hasOwn(messages, key));
   const extraKeys = Object.keys(messages).filter(key => !Object.hasOwn(source, key));
   const correctionStrings = Object.fromEntries(Object.entries(correctionKeys).map(([label, key]) => [label, messages[key]]));
-  const correctionLabelIntegrity = Object.values(correctionStrings).every(value => typeof value === 'string' && value.trim().length > 0);
+  const correctionLabelIntegrity = Object.values(correctionStrings).every(value => typeof value === 'string' && value.trim().length > 0) && correctionStrings.accidental.trim().toLocaleLowerCase() !== correctionStrings.error.trim().toLocaleLowerCase();
   const criticalEnglishMatches = criticalKeys.filter(key => typeof messages[key] === 'string' && messages[key].trim() === String(en[key] || '').trim());
   rows.push({
     code, language: englishName, entries: Object.keys(messages).length,
     automated: missingKeys.length === 0 && extraKeys.length === 0 ? 'PASS' : 'FAIL',
     missingKeys, extraKeys, correctionLabelIntegrity,
     correctionStringsForReview: correctionStrings,
-    correctionSemanticReview: 'PENDING HUMAN CONTEXT REVIEW; both Accidental button press and Error are approved',
+    correctionSemanticReview: 'PENDING HUMAN CONTEXT REVIEW; both Accidental button press and Error are approved; distinct labels are structurally checked',
     criticalEnglishMatches: criticalEnglishMatches.length,
     sampleCriticalEnglishMatches: criticalEnglishMatches.slice(0, 20).map(key => ({key, english: en[key]})),
     nativeMedicalReview: 'NOT DOCUMENTED',
