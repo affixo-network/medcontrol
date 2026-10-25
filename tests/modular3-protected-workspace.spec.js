@@ -29,7 +29,7 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  expect(snapshot.cipher).not.toContain('Synthetic Course');
  expect(snapshot.legacy).toBeNull();
  await page.locator('[data-tab="dashboard"]').click();
- await expect(page.locator('#screen')).toContainText('фактическое');
+ await expect(page.locator('#screen')).toContainText('Принято ·');
  await page.locator('[data-tab="archive"]').click();
  await expect(page.locator('#screen')).toContainText('фактическое');
  await page.locator('#lock').click();
