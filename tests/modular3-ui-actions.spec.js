@@ -13,7 +13,7 @@ test('real UI: click Taken, cancel accidental press, preserve audit on reload',a
    const mocked=guard.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'synthetic-ui'},access_token:'fake',refresh_token:'fake'}},error:null})}})})");
    return route.fulfill({status:200,contentType:'application/javascript',body:mocked});
   }
-  if(url.pathname==='/js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'/* synthetic only */'});
+  if(url.pathname==='/js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&!!s.settings&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs),meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
   return route.continue();
  });
  await page.clock.install({time:new Date('2026-10-13T08:00:00.000Z')});
