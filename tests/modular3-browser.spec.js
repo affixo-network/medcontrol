@@ -8,7 +8,7 @@ const loaderSource = fs.readFileSync(path.join(ROOT,'js/modular3-script-loader.j
 const pages=['input','action','dashboard','archive'];
 
 test('unauthenticated user cannot access all four sections', async ({browser}) => {
-  const context=await browser.newContext();
+  const context=await browser.newContext({serviceWorkers:'block'});
   for(const pageName of pages){
     const page=await context.newPage();
     await page.goto('http://127.0.0.1:8765/'+pageName+'.html');
@@ -19,7 +19,7 @@ test('unauthenticated user cannot access all four sections', async ({browser}) =
 });
 
 test('isolated authorized shell renders all four sections with mock-only data', async ({browser}) => {
-  const context=await browser.newContext();
+  const context=await browser.newContext({serviceWorkers:'block'});
   const session={access_token:'mock-only-token',refresh_token:'mock-only-refresh',user:{id:'synthetic-e2e-user'},expires_at:Math.floor(Date.now()/1000)+3600};
   await context.addInitScript(({session})=>{
     localStorage.setItem('sb-lewdbjjaohqxbirzhrbm-auth-token',JSON.stringify(session));
