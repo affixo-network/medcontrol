@@ -36,7 +36,7 @@ test('four real pages consume a decrypted synthetic vault snapshot only inside i
    const mocked=guard.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'synthetic-offline-only'},access_token:'fake',refresh_token:'fake'}},error:null})}})})");
    return route.fulfill({status:200,contentType:'application/javascript',body:mocked});
   }
-  if(name==='js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'/* test only */'});
+  if(name==='js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs)&&!!s.settings,meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
   const file=path.resolve(root,name);
   if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile())return route.abort();
   const ext=path.extname(file);
