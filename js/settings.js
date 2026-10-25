@@ -30,10 +30,21 @@ window.changeInterfaceLanguage = async function(language) {
   if (!TRANSLATIONS[language] && window.medcontrolProtectedInterface &&
       SUPPORTED_LANGUAGES.some(([code]) => code === language)) {
     try {
-      if (!window.MedControlLocaleBootstrap) await loadScript('js/modular3-locale-bootstrap.js');
+      // The auth guard's loadScript is private; use a page-local loader here.
+      const loadLocaleScript = async (path) => {
+        if (Array.from(document.scripts).some(script => script.src && new URL(script.src).pathname === '/' + path)) return;
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = path;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Language module unavailable'));
+          document.head.appendChild(script);
+        });
+      };
+      if (!window.MedControlLocaleBootstrap) await loadLocaleScript('js/modular3-locale-bootstrap.js');
       await window.MedControlLocaleBootstrap.install({
         language, fallback: TRANSLATIONS.en, fetcher: window.fetch.bind(window),
-        loadScript, register: registerPreparedLanguage
+        loadScript: loadLocaleScript, register: registerPreparedLanguage
       });
     } catch (_) { /* Existing language remains selected. */ }
   }
