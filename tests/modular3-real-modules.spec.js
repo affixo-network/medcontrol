@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..');
 const guard=fs.readFileSync(path.join(root,'js/auth-guard.js'),'utf8');
 const pages=['input','action','dashboard','archive'];
 test('real MedControl modules mount with synthetic empty local state and isolated auth',async({browser})=>{
-  const context=await browser.newContext({locale:'ru-RU',timezoneId:'Asia/Yerevan'});
+  const context=await browser.newContext({locale:'ru-RU',timezoneId:'Asia/Yerevan',serviceWorkers:'block'});
   const synthetic={settings:{interfaceLanguage:'ru',country:'AM',timezone:'Asia/Yerevan',locale:'ru-RU',infoDismissed:true},medications:[],intakeLogs:[]};
   await context.addInitScript(({synthetic})=>{
     localStorage.setItem('affixo_medcontrol_standard_v3',JSON.stringify(synthetic));
