@@ -10,8 +10,11 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await expect(page.locator('#workspace')).toBeVisible();
  await page.locator('input[name="name"]').fill('Synthetic Course');
  await page.locator('input[name="date"]').fill('2026-10-14');
- await page.locator('input[name="first"]').fill('09:00');
- await page.locator('input[name="second"]').fill('14:00');
+ for(const [hour,minute] of [['09','00'],['14','00']]){
+  await page.getByLabel('Часы приёма').selectOption(hour);
+  await page.getByLabel('Минуты приёма').selectOption(minute);
+  await page.getByRole('button',{name:'Добавить время'}).click();
+ }
  await page.locator('#screen form button').click();
  await expect(page.locator('#screen')).toContainText('09:00, 14:00');
  await page.locator('[data-tab="action"]').click();
