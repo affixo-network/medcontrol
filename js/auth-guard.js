@@ -179,7 +179,17 @@
       ]);
       const worker=ready.active;
       if(!worker)return false;
-      const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src)])];
+      // Cache the active public language and its loader modules for an offline restart.
+      // Do not prefetch all 94 catalogs or access medical records for caching.
+      const selectedLanguage=window.medcontrolProtectedInterface&&typeof getState==='function'
+        ? getState()?.settings?.interfaceLanguage : null;
+      const localeAssets=selectedLanguage&&selectedLanguage!=='ru'&&selectedLanguage!=='en'&&
+        typeof SUPPORTED_LANGUAGES!=='undefined'&&SUPPORTED_LANGUAGES.some(([code])=>code===selectedLanguage)
+        ? ['/locales/source-ru.json','/locales/catalogs/'+selectedLanguage+'.json',
+           '/js/modular3-locale-bootstrap.js','/js/modular3-public-catalog-loader.js',
+           '/js/modular3-legacy-locale-adapter.js','/js/modular3-locale-preparation.js',
+           '/js/modular3-locale-activation.js'] : [];
+      const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src),...localeAssets])];
       const channel=new MessageChannel();
       return await new Promise(resolve=>{
         const timer=setTimeout(()=>resolve(false),30000);
