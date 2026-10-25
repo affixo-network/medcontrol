@@ -30,7 +30,7 @@ test('real protected four-page shell survives an offline restart without exposin
   await p.locator('#localLogin #password').fill(PASS);
   await p.locator('#localLogin #unlock').click();
   await expect(p.locator('#localLogin')).toHaveCount(0,{timeout:20000});
-  await expect(p.locator('#app')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
+  await expect(p.locator('body')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
   await expect.poll(()=>p.evaluate(()=>{try{return Boolean(window.MedControlModular3ProtectedSession?.read?.()?.medications?.some(m=>m.id==='synthetic-four'));}catch{return false;}}),{timeout:20000}).toBe(true);
   await p.close();
  }
@@ -51,7 +51,7 @@ test('real protected four-page shell survives an offline restart without exposin
   await p.locator('#localLogin #password').fill(PASS);
   await p.locator('#localLogin #unlock').click();
   await expect(p.locator('#localLogin')).toHaveCount(0,{timeout:20000});
-  await expect(p.locator('#app')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
+  await expect(p.locator('body')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
   await expect.poll(async()=>p.evaluate(()=>{try{return !!window.MedControlModular3ProtectedSession.read().medications.find(m=>m.id==='synthetic-four');}catch(e){return false;}}),{timeout:20000}).toBe(true);
   const result=await p.evaluate(({dest,source})=>({state:window.MedControlModular3ProtectedSession.read(),cipher:localStorage.getItem(dest),plaintext:localStorage.getItem(source)}),{dest:DEST,source:SOURCE});
   expect(result.state?.medications?.some(m=>m.id==='synthetic-four')).toBe(true);
