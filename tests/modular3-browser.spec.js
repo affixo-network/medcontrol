@@ -40,6 +40,7 @@ test('isolated authorized shell renders all four sections with mock-only data', 
       if(url.pathname==='/js/modular3-script-loader.js')return route.fulfill({status:200,contentType:'application/javascript',body:loaderSource});
       if(url.pathname.startsWith('/js/')||url.pathname==='/core.js'){
         const name=url.pathname.split('/').pop();
+        if(name==='cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&!!s.settings&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs),meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
         if(name==='navigation.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.mount=function(p){document.getElementById("app").textContent="E2E MOUNT "+p};window.fixPreviewNavigation=function(){};'});
         if(name==='archive-page.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.renderArchivePage=function(){document.getElementById("app").textContent="E2E ARCHIVE"};'});
         return route.fulfill({status:200,contentType:'application/javascript',body:'/* mocked app module: no production data access */'});
