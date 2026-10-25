@@ -15,7 +15,7 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
   await page.getByLabel('Минуты приёма').selectOption(minute);
   await page.getByRole('button',{name:'Добавить время'}).click();
  }
- await page.locator('#screen form button').click();
+ await page.getByRole('button',{name:'Добавить',exact:true}).click();
  await expect(page.locator('#screen')).toContainText('09:00, 14:00');
  await page.locator('[data-tab="action"]').click();
  await expect(page.locator('#screen')).toContainText('09:00');
