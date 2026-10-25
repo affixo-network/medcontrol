@@ -4,7 +4,7 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  const context=await browser.newContext({locale:'ru-RU',timezoneId:'Asia/Yerevan'});
  const page=await context.newPage();
  await page.clock.install({time:new Date('2026-10-14T05:31:00.000Z')});
- await page.goto('http://127.0.0.1:8765/modular3-protected.html');
+ await page.goto('http://127.0.0.1:8765/modular3-protected.html?rehearsal=1');
  await page.locator('#password').fill('Synthetic-Local-Password-2026');
  await page.locator('#enroll').click();
  await expect(page.locator('#workspace')).toBeVisible();
