@@ -108,7 +108,8 @@ label button{vertical-align:middle}
  ['Archivo','Tratamientos terminados y su historial. Para repetir un tratamiento, cambie la fecha en Entrada.']
  ]};
  const lang=(navigator.language||'ru').toLowerCase().split('-')[0];
- const chosen=texts[lang]||texts.ru;
+ const chosen=texts[lang];
+ if(!chosen){document.getElementById('action-semantics-help').hidden=true;return;}
  const node=document.getElementById('action-semantics-content');
  const list=document.createElement('dl');
  for(const [label,description] of chosen){
@@ -117,7 +118,7 @@ label button{vertical-align:middle}
   list.append(dt,dd);
  }
  node.append(list);
- if(!texts[lang]){const note=document.createElement('p');note.textContent='Справка пока доступна на русском языке. / Help is not yet translated into the selected language.';node.prepend(note);}
+
 })();
 </script>
 <main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
