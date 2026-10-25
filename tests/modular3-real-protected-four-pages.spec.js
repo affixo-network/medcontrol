@@ -16,7 +16,7 @@ test('real protected four-page shell survives an offline restart without exposin
   if(!localStorage.getItem('medcontrol_modular3_local_credential_v1')&&!localStorage.getItem('medcontrol_modular3_protected_state_v1'))
    localStorage.setItem(key,JSON.stringify(data));
  },{key:SOURCE,data:sample});
- await page.goto(BASE+'/modular3-protected.html');
+ await page.goto(BASE+'/modular3-protected.html?rehearsal=1');
  await page.locator('#password').fill(PASS);
  page.once('dialog',dialog=>dialog.accept());
  await page.locator('#commit-migration').click();
