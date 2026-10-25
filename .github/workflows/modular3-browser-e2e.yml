@@ -1,9 +1,16 @@
 name: Modular 3 Browser E2E
 on:
   push:
-    branches: [modular-2.000]
+    branches: [modular-3.000]
     paths:
       - 'js/auth-guard.js'
+      - 'js/settings.js'
+      - 'js/modular3-locale-bootstrap.js'
+      - 'js/modular3-public-catalog-loader.js'
+      - 'js/modular3-legacy-locale-adapter.js'
+      - 'js/modular3-locale-preparation.js'
+      - 'js/modular3-locale-activation.js'
+      - 'locales/catalogs/*.json'
       - 'js/modular3-encrypted-vault.js'
       - 'js/modular3-offline-credential.js'
       - 'js/modular3-protected-session.js'
