@@ -72,7 +72,55 @@ label button{vertical-align:middle}
 <div id="existing-import" hidden><p>Хранилище уже существует. В поле «Локальный пароль» введите прежний пароль входа. Новый пароль, заданный при создании файла, введите ниже. Для сверки выбранного файла без изменений нажмите «Проверить готовность переноса». До переноса прежнее хранилище будет сохранено отдельной зашифрованной копией.</p><label>Пароль файла переноса <input id="transfer-password" type="password" minlength="12" autocomplete="off"></label></div>
 <div id="preserved-backups" hidden><label>Сохранённые хранилища до переноса <select id="preserved-backup"></select></label><button id="download-preserved-backup" type="button">Скачать сохранённую защищённую копию</button><p>Эти копии открываются паролем, действовавшим до соответствующего переноса.</p></div>
 <button id="open-imported" type="button" hidden>Открыть MedControl</button>
-<div id="workspace" hidden><nav class="nav"><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><details id="action-semantics-help" style="margin:10px 0;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff" lang="ru"><summary style="cursor:pointer;font-weight:600">Что означают действия MedControl? (справка на русском)</summary><div style="margin-top:12px"><p><strong>Принято:</strong> отметка пользователя о состоявшемся приёме; фиксируется фактическое время нажатия.</p><p><strong>Не принято:</strong> отсутствие подтверждённой отметки, а не запрет принимать препарат.</p><p><strong>Случайное нажатие:</strong> причина отмены ошибочно поставленной отметки «Принято».</p><p><strong>Ошибка:</strong> отдельная согласованная формулировка; не означает автоматического изменения времени приёма.</p><p><strong>Количественное содержание (указанное производителем):</strong> содержание вещества в единице препарата.</p><p><strong>Количество приёма:</strong> сколько единиц препарата запланировано на один приём согласно назначению врача; это не содержание вещества.</p><p><strong>Расчётное время:</strong> время по расписанию. <strong>Фактическое время:</strong> время отметки пользователя.</p><p><strong>Архив:</strong> завершённые курсы и их история. Для повторения курса измените дату в разделе «Ввод»; отдельной команды повтора в Архиве нет.</p><p>Эта справка объясняет действия интерфейса и не заменяет назначение врача.</p></div></details><main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
+<div id="workspace" hidden><nav class="nav"><button data-tab="input">Ввод</button><button data-tab="action">Приём препаратов</button><button data-tab="dashboard">Табло</button><button data-tab="archive">Архив</button><button id="lock">Выйти</button></nav><details id="action-semantics-help" style="margin:10px 0;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff"><summary style="cursor:pointer;font-weight:600">Смысл действий / Action meanings / Significado de las acciones</summary><div style="margin-top:12px" id="action-semantics-content" aria-live="polite"></div></details>
+<script>
+(function(){
+ 'use strict';
+ const texts={
+ ru:[
+ ['Принято','Отметка о состоявшемся приёме; записывается время нажатия.'],
+ ['Не принято','Подтверждённой отметки нет; это не запрет принимать препарат.'],
+ ['Случайное нажатие','Причина отмены случайно поставленной отметки «Принято».'],
+ ['Ошибка','Отдельная причина исправления; не означает изменение фактического времени.'],
+ ['Количественное содержание (указанное производителем)','Содержание вещества в единице препарата.'],
+ ['Количество приёма','Количество единиц на один приём согласно назначению врача.'],
+ ['Расчётное / фактическое время','Время по расписанию / время отметки пользователя.'],
+ ['Архив','Завершённые курсы и история. Для повторения измените дату курса в разделе «Ввод».']
+ ],
+ en:[
+ ['Medication taken','Records that a dose was taken, with the time the user pressed the button.'],
+ ['Not taken','No confirmed intake record; this is not an instruction to skip medication.'],
+ ['Accidental button press','Reason for cancelling a mistakenly recorded intake.'],
+ ['Error','A separate correction reason; it does not change the recorded actual time.'],
+ ['Medication content (as stated by the manufacturer)','Amount of substance per unit of medication.'],
+ ['Intake quantity','Number of medication units per intake, according to the doctor’s prescription.'],
+ ['Scheduled / actual time','Time from the schedule / time of the user’s confirmation.'],
+ ['Archive','Completed courses and their history. To repeat a course, change its date in Input.']
+ ],
+ es:[
+ ['Medicamento tomado','Registra que se tomó el medicamento y la hora en que el usuario pulsó el botón.'],
+ ['No tomado','No existe una confirmación del consumo; no es una indicación de omitir el medicamento.'],
+ ['Pulsación accidental','Motivo para cancelar una toma registrada por accidente.'],
+ ['Error','Motivo distinto de corrección; no modifica la hora real registrada.'],
+ ['Contenido del medicamento (indicado por el fabricante)','Cantidad de sustancia por unidad de medicamento.'],
+ ['Cantidad por toma','Número de unidades por toma, según la prescripción médica.'],
+ ['Hora programada / real','Hora prevista en el horario / hora de confirmación del usuario.'],
+ ['Archivo','Tratamientos terminados y su historial. Para repetir un tratamiento, cambie la fecha en Entrada.']
+ ]};
+ const lang=(navigator.language||'ru').toLowerCase().split('-')[0];
+ const chosen=texts[lang]||texts.ru;
+ const node=document.getElementById('action-semantics-content');
+ const list=document.createElement('dl');
+ for(const [label,description] of chosen){
+  const dt=document.createElement('dt');dt.textContent=label;dt.style.fontWeight='600';
+  const dd=document.createElement('dd');dd.textContent=description;dd.style.margin='0 0 9px 0';
+  list.append(dt,dd);
+ }
+ node.append(list);
+ if(!texts[lang]){const note=document.createElement('p');note.textContent='Справка пока доступна на русском языке. / Help is not yet translated into the selected language.';node.prepend(note);}
+})();
+</script>
+<main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
 <script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-final-intake.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
 (function(){
  'use strict';
