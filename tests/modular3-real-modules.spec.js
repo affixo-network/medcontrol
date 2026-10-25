@@ -25,7 +25,7 @@ test('real MedControl modules mount with synthetic empty local state and isolate
         const mocked=guard.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'synthetic-only'},access_token:'fake',refresh_token:'fake'}},error:null})}})})");
         return route.fulfill({status:200,contentType:'application/javascript',body:mocked});
       }
-      if(url.pathname==='/js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'/* disabled cloud snapshots in synthetic browser tests */'});
+      if(url.pathname==='/js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs)&&!!s.settings,meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
       return route.continue();
     });
     await page.goto('http://127.0.0.1:8765/'+name+'.html');
