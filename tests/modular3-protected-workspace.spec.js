@@ -31,8 +31,8 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await page.locator('[data-tab="dashboard"]').click();
  await expect(page.locator('#screen')).toContainText('Принято ·');
  await page.locator('[data-tab="archive"]').click();
- await page.getByRole('button',{name:'Принято',exact:true}).click();
- await expect(page.locator('#screen')).toContainText('Synthetic Course');
+ await expect(page.locator('#screen')).toContainText('История приёмов');
+ await expect(page.locator('#screen')).not.toContainText('Synthetic Course');
  await page.locator('#lock').click();
  await expect(page.locator('#login')).toBeVisible();
  await page.reload();
@@ -41,7 +41,7 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
  await page.locator('[data-tab="archive"]').click();
- await expect(page.locator('#screen')).toContainText('Synthetic Course');
- await expect(page.locator('#screen')).toContainText('фактическое');
+ await expect(page.locator('#screen')).toContainText('История приёмов');
+ await expect(page.locator('#screen')).not.toContainText('Synthetic Course');
  await context.close();
 });
