@@ -27,6 +27,9 @@ test('real protected four-page shell survives an offline restart without exposin
   const p=await context.newPage();
   p.on('dialog',dialog=>dialog.accept(PASS));
   await p.goto(BASE+'/'+section+'.html');
+  await p.locator('#localLogin #password').fill(PASS);
+  await p.locator('#localLogin #unlock').click();
+  await expect(p.locator('#localLogin')).toHaveCount(0,{timeout:20000});
   await expect(p.locator('#app')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
   await expect.poll(()=>p.evaluate(()=>{try{return Boolean(window.MedControlModular3ProtectedSession?.read?.()?.medications?.some(m=>m.id==='synthetic-four'));}catch{return false;}}),{timeout:20000}).toBe(true);
   await p.close();
@@ -35,6 +38,9 @@ test('real protected four-page shell survives an offline restart without exposin
  const readiness=await context.newPage();
  readiness.on('dialog',dialog=>dialog.accept(PASS));
  await readiness.goto(BASE+'/input.html');
+ await readiness.locator('#localLogin #password').fill(PASS);
+ await readiness.locator('#localLogin #unlock').click();
+ await expect(readiness.locator('#localLogin')).toHaveCount(0,{timeout:20000});
  await expect.poll(()=>readiness.evaluate(()=>window.medcontrolOfflineShellReady),{timeout:45000}).toBe(true);
  await readiness.close();
  await context.setOffline(true);
@@ -42,6 +48,9 @@ test('real protected four-page shell survives an offline restart without exposin
   const p=await context.newPage();
   p.on('dialog',dialog=>dialog.accept(PASS));
   await p.goto(BASE+'/'+section+'.html');
+  await p.locator('#localLogin #password').fill(PASS);
+  await p.locator('#localLogin #unlock').click();
+  await expect(p.locator('#localLogin')).toHaveCount(0,{timeout:20000});
   await expect(p.locator('#app')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
   await expect.poll(async()=>p.evaluate(()=>{try{return !!window.MedControlModular3ProtectedSession.read().medications.find(m=>m.id==='synthetic-four');}catch(e){return false;}}),{timeout:20000}).toBe(true);
   const result=await p.evaluate(({dest,source})=>({state:window.MedControlModular3ProtectedSession.read(),cipher:localStorage.getItem(dest),plaintext:localStorage.getItem(source)}),{dest:DEST,source:SOURCE});
