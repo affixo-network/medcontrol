@@ -63,6 +63,29 @@ window.changeInterfaceLanguage = async function(language) {
   }
   state.settings.interfaceLanguage = language;
   if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
+  // Refresh the offline shell after the new language has been persisted.
+  // The guard's startup cache may still contain only the previous language.
+  if (window.medcontrolProtectedInterface && 'serviceWorker' in navigator) {
+    try {
+      const ready = await navigator.serviceWorker.ready;
+      const worker = ready.active;
+      if (worker && language !== 'ru' && language !== 'en') {
+        const assets = ['/locales/source-ru.json', '/locales/catalogs/' + language + '.json',
+          '/js/modular3-locale-bootstrap.js', '/js/modular3-public-catalog-loader.js',
+          '/js/modular3-legacy-locale-adapter.js', '/js/modular3-locale-preparation.js',
+          '/js/modular3-locale-activation.js'];
+        await new Promise((resolve, reject) => {
+          const channel = new MessageChannel();
+          const timeout = setTimeout(() => reject(new Error('Language offline cache timed out')), 30000);
+          channel.port1.onmessage = event => {
+            clearTimeout(timeout);
+            event.data?.ok === true ? resolve() : reject(new Error('Language offline cache failed'));
+          };
+          worker.postMessage({ type: 'MEDCONTROL_CACHE_SHELL', paths: assets }, [channel.port2]);
+        });
+      }
+    } catch (error) { console.warn('Selected language offline cache unavailable.', error); }
+  }
   window.location.reload();
   return true;
 };
