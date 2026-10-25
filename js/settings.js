@@ -32,7 +32,15 @@ window.changeInterfaceLanguage = async function(language) {
     try {
       // The auth guard's loadScript is private; use a page-local loader here.
       const loadLocaleScript = async (path) => {
-        if (Array.from(document.scripts).some(script => script.src && new URL(script.src).pathname === '/' + path)) return;
+        // Reuse a module only after its API is ready; a pending script tag is not proof of loading.
+        const moduleApi = {
+          'js/modular3-locale-bootstrap.js': 'MedControlLocaleBootstrap',
+          'js/modular3-public-catalog-loader.js': 'MedControlCatalogLoader',
+          'js/modular3-legacy-locale-adapter.js': 'MedControlLegacyLocaleAdapter',
+          'js/modular3-locale-preparation.js': 'MedControlLocalePreparation',
+          'js/modular3-locale-activation.js': 'MedControlLocaleActivation'
+        };
+        if (moduleApi[path] && window[moduleApi[path]]) return;
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = path;
