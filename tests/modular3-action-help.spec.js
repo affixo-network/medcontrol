@@ -24,3 +24,25 @@ test('all 95 action-help catalogs render in selected language without medical wr
  });
  expect(result).toEqual({languages:95,failures:[],panels:1});
 });
+
+
+test('all non-default language catalogs have complete and safe public messages',async()=>{
+ const vm=require('node:vm');
+ const host={};
+ vm.runInNewContext(source,{window:host});
+ const languages=Array.from(host.MedControlActionHelp.languages);
+ expect(languages).toHaveLength(95);
+ const catalogDir=path.join(__dirname,'../locales/catalogs');
+ const catalogFiles=fs.readdirSync(catalogDir).filter(name=>name.endsWith('.json')).sort();
+ const expected=languages.filter(language=>!['ru','en'].includes(language)).map(language=>language+'.json').sort();
+ expect(catalogFiles).toEqual(expected);
+ const russianSource=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/source-ru.json'),'utf8'));
+ const loader=require('../js/modular3-public-catalog-loader.js');
+ expect(Object.keys(russianSource)).toHaveLength(639);
+ for(const filename of catalogFiles){
+  const language=filename.slice(0,-5);
+  const catalog=JSON.parse(fs.readFileSync(path.join(catalogDir,filename),'utf8'));
+  expect(()=>loader.validateCatalog(catalog,russianSource,language),filename).not.toThrow();
+  expect(catalog.segmentedFallbackMessages,filename).toBe(0);
+ }
+});
