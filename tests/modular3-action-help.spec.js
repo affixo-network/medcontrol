@@ -34,7 +34,7 @@ test('all non-default language catalogs have complete and safe public messages',
  expect(languages).toHaveLength(95);
  const catalogDir=path.join(__dirname,'../locales/catalogs');
  const catalogFiles=fs.readdirSync(catalogDir).filter(name=>name.endsWith('.json')).sort();
- const expected=languages.filter(language=>!['ru','en'].includes(language)).map(language=>language+'.json').sort();
+ const expected=languages.filter(language=>language!=='ru').map(language=>language+'.json').sort();
  expect(catalogFiles).toEqual(expected);
  const russianSource=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/source-ru.json'),'utf8'));
  const loader=require('../js/modular3-public-catalog-loader.js');
