@@ -4,6 +4,7 @@ on:
     branches: [modular-3.000]
     paths:
       - 'js/auth-guard.js'
+      - 'js/modular3-action-help.js'
       - 'js/settings.js'
       - 'js/modular3-locale-bootstrap.js'
       - 'js/modular3-public-catalog-loader.js'
