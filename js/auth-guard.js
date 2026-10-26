@@ -74,7 +74,10 @@
     await loader.ensureScripts(protectedModules);
     await loader.ensureScripts(list);
     await ensureSelectedPublicLocale();
-    if(window.medcontrolProtectedInterface)window.MedControlModular3FinalIntake?.install();
+    if(window.medcontrolProtectedInterface){
+      await loadScript('js/modular3-action-help.js');
+      window.MedControlModular3FinalIntake?.install();
+    }
   }
   async function ensureSelectedPublicLocale(){
     // Optional only: the built-in RU/EN UI remains available without network.
@@ -112,11 +115,13 @@
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
       populateProtectedLanguageSelector();
+      window.MedControlActionHelp?.render();
       return;
     }
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     (await mount(targetPage));
     populateProtectedLanguageSelector();
+    window.MedControlActionHelp?.render();
   }
   function currentDeploymentId(){
     return document.querySelector('script[data-deployment-id]')?.dataset?.deploymentId||'';
