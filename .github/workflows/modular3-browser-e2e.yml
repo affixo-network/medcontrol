@@ -141,11 +141,10 @@ jobs:
             exit 1
           fi
           npm install --no-save --no-package-lock vercel@65.2.0
-          if ! npx vercel whoami >/dev/null; then
-            echo "Vercel authentication failed. Verify that the GitHub Actions VERCEL_TOKEN is an active Vercel access token with the correct team scope."
-            exit 1
-          fi
-          npx vercel link --yes --project medcontrol >/dev/null
+          # A project-scoped token may not support the user-level whoami endpoint.
+          # Verify authorization against the intended project instead.
+          npx vercel project inspect medcontrol --scope vahans-projects-daac8e43 >/dev/null
+          npx vercel link --yes --project medcontrol --scope vahans-projects-daac8e43 >/dev/null
           npx vercel env run -- sh -c '
             if [ -z "$VERCEL_OIDC_TOKEN" ]; then
               echo "Vercel did not issue a short-lived OIDC credential."
