@@ -132,45 +132,8 @@ jobs:
         run: |
           npm install --no-save --no-package-lock @playwright/test@1.58.2
           npx playwright install --with-deps chromium
-      - name: Obtain ephemeral Preview credential from Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo 'Configure VERCEL_TOKEN as a GitHub Actions secret for Vercel CLI authentication.'
-            exit 1
-          fi
-          node -e '
-            const https = require("node:https");
-            const url = "https://api.vercel.com/v9/projects/" +
-              process.env.VERCEL_PROJECT_ID +
-              "?teamId=" + process.env.VERCEL_ORG_ID;
-            https.get(url, {
-              headers: { Authorization: "Bearer " + process.env.VERCEL_TOKEN }
-            }, res => {
-              res.resume();
-              res.on("end", () => {
-                console.log("Vercel project API: HTTP " + res.statusCode);
-                if (res.statusCode !== 200) process.exitCode = 1;
-              });
-            }).on("error", () => {
-              console.error("Vercel API connection failed");
-              process.exitCode = 1;
-            });
-          '
-          npm install --no-save --no-package-lock vercel@65.2.0
-          # A project-scoped token may not support the user-level whoami endpoint.
-          # Verify authorization against the intended project instead.
-          npx vercel project inspect medcontrol --scope vahans-projects-daac8e43 >/dev/null
-          npx vercel link --yes --project medcontrol --scope vahans-projects-daac8e43 >/dev/null
-          npx vercel env run -- sh -c '
-            if [ -z "$VERCEL_OIDC_TOKEN" ]; then
-              echo "Vercel did not issue a short-lived OIDC credential."
-              exit 1
-            fi
-            echo "::add-mask::$VERCEL_OIDC_TOKEN"
-            exec npx playwright test tests/modular3-migration-ui-confirmation.spec.js --config=playwright.modular3.config.cjs --reporter=line
-          '
+      - name: Run local protected migration browser test
+        run: npx playwright test tests/modular3-migration-ui-confirmation.spec.js --config=playwright.modular3.config.cjs --reporter=line
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
