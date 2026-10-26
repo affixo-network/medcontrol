@@ -39,10 +39,12 @@ test('all non-default language catalogs have complete and safe public messages',
  const russianSource=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/source-ru.json'),'utf8'));
  const loader=require('../js/modular3-public-catalog-loader.js');
  expect(Object.keys(russianSource)).toHaveLength(639);
+ const flaggedFallbacks=[];
  for(const filename of catalogFiles){
   const language=filename.slice(0,-5);
   const catalog=JSON.parse(fs.readFileSync(path.join(catalogDir,filename),'utf8'));
   expect(()=>loader.validateCatalog(catalog,russianSource,language),filename).not.toThrow();
-  if(language!=='en') expect(catalog.segmentedFallbackMessages,filename).toBe(0);
+  if(language!=='en' && catalog.segmentedFallbackMessages!==0) flaggedFallbacks.push({language,count:catalog.segmentedFallbackMessages});
  }
+ expect(flaggedFallbacks, 'Catalogs still reporting segmented fallback messages').toEqual([]);
 });
