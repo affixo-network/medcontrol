@@ -52,3 +52,11 @@ test('all non-default language catalogs have complete and safe public messages',
  }
  console.log('Historical segmented translation requests:',JSON.stringify(historicalFallbacks));
 });
+
+
+test('Serbian technical filenames and module identifiers remain literal',async()=>{
+ const catalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/catalogs/sr.json'),'utf8'));
+ expect(catalog.messages['6a87923bbd93eb05']).toContain('(.json)');
+ expect(catalog.messages['bb60dfab35c65509']).toContain('core.js');
+ expect(catalog.messages['969e5c79f8f07166']).toContain('medcontrol-encrypted-transfer.json');
+});
