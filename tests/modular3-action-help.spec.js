@@ -54,9 +54,12 @@ test('all non-default language catalogs have complete and safe public messages',
 });
 
 
-test('Serbian technical filenames and module identifiers remain literal',async()=>{
- const catalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/catalogs/sr.json'),'utf8'));
- expect(catalog.messages['6a87923bbd93eb05']).toContain('(.json)');
- expect(catalog.messages['bb60dfab35c65509']).toContain('core.js');
- expect(catalog.messages['969e5c79f8f07166']).toContain('medcontrol-encrypted-transfer.json');
+test('all language catalogs preserve technical filenames and module identifiers',async()=>{
+ const catalogDir=path.join(__dirname,'../locales/catalogs');
+ for(const filename of fs.readdirSync(catalogDir).filter(name=>name.endsWith('.json'))){
+  const catalog=JSON.parse(fs.readFileSync(path.join(catalogDir,filename),'utf8'));
+  expect(catalog.messages['6a87923bbd93eb05'],filename).toContain('(.json)');
+  expect(catalog.messages['bb60dfab35c65509'],filename).toContain('core.js');
+  expect(catalog.messages['969e5c79f8f07166'],filename).toContain('medcontrol-encrypted-transfer.json');
+ }
 });
