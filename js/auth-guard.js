@@ -194,7 +194,7 @@
            '/js/modular3-locale-bootstrap.js','/js/modular3-public-catalog-loader.js',
            '/js/modular3-legacy-locale-adapter.js','/js/modular3-locale-preparation.js',
            '/js/modular3-locale-activation.js'] : [];
-      const paths=[...new Set(['/core.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src),...localeAssets])];
+      const paths=[...new Set(['/core.js','/js/modular3-action-help.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src),...localeAssets])];
       const channel=new MessageChannel();
       return await new Promise(resolve=>{
         const timer=setTimeout(()=>resolve(false),30000);
