@@ -140,6 +140,24 @@ jobs:
             echo 'Configure VERCEL_TOKEN as a GitHub Actions secret for Vercel CLI authentication.'
             exit 1
           fi
+           node -e '
+            const https = require("node:https");
+            const url = "https://api.vercel.com/v9/projects/" +
+              process.env.VERCEL_PROJECT_ID +
+              "?teamId=" + process.env.VERCEL_ORG_ID;
+            https.get(url, {
+              headers: { Authorization: "Bearer " + process.env.VERCEL_TOKEN }
+            }, res => {
+              res.resume();
+              res.on("end", () => {
+                console.log("Vercel project API: HTTP " + res.statusCode);
+                if (res.statusCode !== 200) process.exitCode = 1;
+              });
+            }).on("error", () => {
+              console.error("Vercel API connection failed");
+              process.exitCode = 1;
+            });
+          '
           npm install --no-save --no-package-lock vercel@65.2.0
           # A project-scoped token may not support the user-level whoami endpoint.
           # Verify authorization against the intended project instead.
