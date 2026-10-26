@@ -22,6 +22,7 @@ on:
       - 'js/medications.js'
       - 'js/intake.js'
       - 'js/cloud-snapshot.js'
+      - 'tests/modular3-action-help.spec.js'
       - 'tests/modular3-copy-migration.spec.js'
       - 'tests/modular3-migration-ui-confirmation.spec.js'
       - 'tests/modular3-boundary-checks.spec.js'
