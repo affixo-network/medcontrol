@@ -140,7 +140,7 @@ jobs:
             echo 'Configure VERCEL_TOKEN as a GitHub Actions secret for Vercel CLI authentication.'
             exit 1
           fi
-           node -e '
+          node -e '
             const https = require("node:https");
             const url = "https://api.vercel.com/v9/projects/" +
               process.env.VERCEL_PROJECT_ID +
