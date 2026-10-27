@@ -42,3 +42,38 @@ test('registered language becomes selectable and translates when explicitly sele
   assert.equal(sandbox.tr('nav_input'), translations.hy.nav_input);
   assert.equal(sandbox.tr('unknown'), 'unknown');
 });
+
+test('offline locale cache failure preserves the selected language and skips encrypted save', async () => {
+  const settingsSource = fs.readFileSync(path.join(__dirname, '../../js/settings.js'), 'utf8');
+  const begin = settingsSource.indexOf('window.changeInterfaceLanguage = async function(language) {');
+  const end = settingsSource.indexOf('window.changeCountry = async function(country)', begin);
+  assert.ok(begin >= 0 && end > begin, 'Language switch handler not found');
+  const state = { settings: { interfaceLanguage: 'ru' }, medications: [{ id: 7 }] };
+  let saves = 0;
+  const selector = { value: 'fr' };
+  const sandbox = {
+    window: { medcontrolProtectedInterface: true, fetch: async () => { throw Error('Network unavailable'); } },
+    document: { getElementById: () => selector },
+    navigator: { serviceWorker: { ready: Promise.resolve({ active: { postMessage(_message, ports) {
+      ports[0].postMessage({ ok: false, error: 'Offline cache unavailable' });
+    } } }) } },
+    MessageChannel: class {
+      constructor() {
+        const channel = this;
+        this.port1 = { onmessage: null };
+        this.port2 = { postMessage(message) { if (channel.port1.onmessage) channel.port1.onmessage({ data: message }); } };
+      }
+    },
+    TRANSLATIONS: { ru: {}, en: {}, fr: {} },
+    SUPPORTED_LANGUAGES: [['ru', 'Русский'], ['en', 'English'], ['fr', 'Français']],
+    getState: () => state,
+    saveStateAsync: async () => { saves++; return true; },
+    setTimeout, clearTimeout, console
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(settingsSource.slice(begin, end), sandbox);
+  assert.equal(await sandbox.window.changeInterfaceLanguage('fr'), false);
+  assert.equal(state.settings.interfaceLanguage, 'ru');
+  assert.equal(selector.value, 'ru');
+  assert.equal(saves, 0);
+});
