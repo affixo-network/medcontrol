@@ -77,3 +77,29 @@ test('offline locale cache failure preserves the selected language and skips enc
   assert.equal(selector.value, 'ru');
   assert.equal(saves, 0);
 });
+
+test('encrypted save failure restores the previously selected language', async () => {
+  const settingsSource = fs.readFileSync(path.join(__dirname, '../../js/settings.js'), 'utf8');
+  const begin = settingsSource.indexOf('window.changeInterfaceLanguage = async function(language) {');
+  const end = settingsSource.indexOf('window.changeCountry = async function(country)', begin);
+  assert.ok(begin >= 0 && end > begin);
+  const state = { settings: { interfaceLanguage: 'ru' }, medications: [{ id: 7 }] };
+  let saves = 0, mounts = 0;
+  const sandbox = {
+    window: { medcontrolProtectedInterface: false },
+    document: { getElementById: () => null },
+    navigator: {},
+    TRANSLATIONS: { ru: {}, en: {} },
+    SUPPORTED_LANGUAGES: [['ru', 'Русский'], ['en', 'English']],
+    getState: () => state,
+    saveStateAsync: async () => { saves++; return false; },
+    mount: async () => { mounts++; },
+    console
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(settingsSource.slice(begin, end), sandbox);
+  assert.equal(await sandbox.window.changeInterfaceLanguage('en'), false);
+  assert.equal(state.settings.interfaceLanguage, 'ru');
+  assert.equal(saves, 1);
+  assert.equal(mounts, 1);
+});
