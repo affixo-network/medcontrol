@@ -61,15 +61,15 @@ window.changeInterfaceLanguage = async function(language) {
     if (selector) selector.value = state.settings.interfaceLanguage;
     return false;
   }
-  state.settings.interfaceLanguage = language;
-  if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
-  // Refresh the offline shell after the new language has been persisted.
-  // The guard's startup cache may still contain only the previous language.
-  if (window.medcontrolProtectedInterface && 'serviceWorker' in navigator) {
+  // Cache the selected language before committing encrypted settings.
+  // Failure must preserve the existing language and medical state.
+  if (window.medcontrolProtectedInterface && language !== 'ru' && language !== 'en') {
+    if (!('serviceWorker' in navigator)) return false;
     try {
       const ready = await navigator.serviceWorker.ready;
       const worker = ready.active;
-      if (worker && language !== 'ru' && language !== 'en') {
+      if (!worker) throw new Error('Offline language cache worker unavailable');
+      {
         const assets = ['/locales/source-ru.json', '/locales/catalogs/' + language + '.json',
           '/js/modular3-locale-bootstrap.js', '/js/modular3-public-catalog-loader.js',
           '/js/modular3-legacy-locale-adapter.js', '/js/modular3-locale-preparation.js',
@@ -84,8 +84,16 @@ window.changeInterfaceLanguage = async function(language) {
           worker.postMessage({ type: 'MEDCONTROL_CACHE_SHELL', paths: assets }, [channel.port2]);
         });
       }
-    } catch (error) { console.warn('Selected language offline cache unavailable.', error); }
+    } catch (error) {
+      console.warn('Selected language offline cache unavailable.', error);
+      const selector = document.getElementById('settingsInterfaceLanguage');
+      if (selector) selector.value = state.settings.interfaceLanguage;
+      return false;
+    }
   }
+
+  state.settings.interfaceLanguage = language;
+  if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
   window.location.reload();
   return true;
 };
