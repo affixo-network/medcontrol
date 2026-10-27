@@ -92,8 +92,18 @@ window.changeInterfaceLanguage = async function(language) {
     }
   }
 
+  const previousLanguage = state.settings.interfaceLanguage;
   state.settings.interfaceLanguage = language;
-  if (!(await saveStateAsync(state))) { (await mount('settings')); return false; }
+  try {
+    if (!(await saveStateAsync(state))) {
+      state.settings.interfaceLanguage = previousLanguage;
+      await mount('settings');
+      return false;
+    }
+  } catch (error) {
+    state.settings.interfaceLanguage = previousLanguage;
+    throw error;
+  }
   window.location.reload();
   return true;
 };
