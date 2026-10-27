@@ -10,6 +10,7 @@ on:
       - 'js/modular3-locale-activation.js'
       - 'js/modular3-locale-bootstrap.js'
       - 'js/language.js'
+      - 'js/settings.js'
       - 'js/auth-guard.js'
       - 'scripts/localization/test-protected-language-selector.cjs'
       - 'scripts/localization/test-public-catalog-loader.cjs'
