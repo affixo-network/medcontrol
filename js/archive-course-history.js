@@ -173,7 +173,7 @@
       else if(slot.forcedCancelled)result='Отменено';
       else if(Number.isFinite(cancelMs)&&slot.plannedMs>=cancelMs)result='Отменено';
       else if(slot.plannedMs>now)result=med.cancelled?'Отменено':'Ожидается';
-      const reason=last?.reason==='accident'?'Случайность':last?.reason==='error'?'Ошибка':last?'—':'';
+      const reason=last?.reason==='accident'?'Случайное нажатие':last?.reason==='error'?'Ошибка':last?'—':'';
       return {...slot,result,actualAt,correctionCount:corrections.length,lastCorrectionAt:last?.correctedAt||null,reason};
     }).sort((a,b)=>a.plannedMs-b.plannedMs);
   }
