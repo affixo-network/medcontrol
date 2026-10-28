@@ -12,6 +12,8 @@ on:
       - 'js/modular3-locale-preparation.js'
       - 'js/modular3-locale-activation.js'
       - 'locales/catalogs/*.json'
+      - 'locales/source-ru.json'
+      - 'js/render.js'
       - 'js/modular3-encrypted-vault.js'
       - 'js/modular3-offline-credential.js'
       - 'js/modular3-protected-session.js'
