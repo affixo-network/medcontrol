@@ -149,6 +149,17 @@
         translated[legacyKey] = value;
       }
     }
+    const weekdayCatalogIds = [
+      "31a8ee2fb6b7b6f4", "839b2d5c5aa3d81f", "7ec16b9e41ff461a",
+      "956618723dd8bbc1", "4ca114c23be8d968", "95dab017a4da8cfd",
+      "7971972c7cbb98da"
+    ];
+    if (Array.isArray(fallback.weekday_short) && fallback.weekday_short.length === 7) {
+      const weekdays = weekdayCatalogIds.map(id => catalog.messages[id]);
+      if (weekdays.every(day => typeof day === 'string' && day.trim())) {
+        translated.weekday_short = weekdays.map(day => Array.from(day.trim()).slice(0, 3).join(''));
+      }
+    }
     return translated;
   }
   const api = Object.freeze({ KEY_TO_CATALOG_ID, adaptCatalog });
