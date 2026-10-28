@@ -85,7 +85,7 @@ async function run(){
   assert.equal(intake.actualAt,'2026-10-23T08:00:03.000Z');
   await page.clock.setFixedTime(new Date('2026-10-23T08:00:04Z'));
   await page.locator('button[onclick^="openCorrection("]').first().click();
-  assert.deepEqual(await page.locator('#correction_reason option').evaluateAll(options=>options.map(x=>x.value)),['','accident']);
+  assert.deepEqual(await page.locator('#correction_reason option').evaluateAll(options=>options.map(x=>x.value)),['','accident','error']);
   await page.locator('#correction_reason').selectOption('accident');
   await page.locator('#correction_apply').click();
   await page.waitForFunction(()=>getState().intakeCorrections.length===1);
