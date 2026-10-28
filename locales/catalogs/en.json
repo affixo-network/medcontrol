@@ -25,7 +25,7 @@
     "06cf4eca8aefb953": "⟦0⟧ days ⟦1⟧ h ⟦2⟧ min ⟦3⟧ sec",
     "07414927cb57f817": "Auto-detected device language",
     "07c8e7a28ba7c929": "sachet",
-    "0816ebc7b87bf566": "\"Accidental button press\" is the only permitted reason for canceling the \"Medication taken\" mark.",
+    "0816ebc7b87bf566": "To correct an incorrect \"Medication taken\" mark, select a reason: \"Accidental button press\" or \"Error\". The original record will remain in the history.",
     "09632688c038a94b": "mg/mL",
     "0a23c2a4fe16415a": "Cancel \"Medication taken\"",
     "0ba36723cec086c6": "Scheduled intake time",
