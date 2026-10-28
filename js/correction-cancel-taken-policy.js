@@ -19,7 +19,7 @@
   }
 
   function label(reason){
-    return reason==='accident'?'Случайность':reason==='error'?'Ошибка':'—';
+    return reason==='accident'?'Случайное нажатие':reason==='error'?'Ошибка':'—';
   }
 
   window.openCorrection=function(medicationId,plannedAt){
@@ -39,7 +39,7 @@
       <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Фактическое время определяется моментом нажатия «Принято» и не может быть изменено вручную.</p></div>
       <div><label>Расчётное время приёма</label><input type="text" value="${escapeHtml(formatDateTime(plannedAt))}" readonly></div>
       <div><label>Фактическое время «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
-      <div><label>Причина</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
+      <div><label>Причина</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">Случайное нажатие</option><option value="error">Ошибка</option></select></div>
       <div id="correction_hint" class="full muted">Выберите причину.</div>
       <div class="full right"><button id="correction_apply" onclick="applyCorrection('${medicationId}','${plannedAt}')" disabled>Отменить «Принято»</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
     </div>`;
@@ -52,7 +52,7 @@
     const button=document.getElementById('correction_apply');
     if(!hint||!button)return;
     if(reason==='accident'||reason==='error'){
-      hint.textContent=(reason==='accident'?'Случайность: ':'Ошибка: ')+'отметка «Принято» будет отменена. Исходная запись и фактическое время останутся в истории.';
+      hint.textContent=(reason==='accident'?'Случайное нажатие: ':'Ошибка: ')+'отметка «Принято» будет отменена. Исходная запись и фактическое время останутся в истории.';
       button.disabled=false;
       button.textContent='Отменить «Принято»';
     }else{
@@ -65,7 +65,7 @@
   window.applyCorrection=async function(medicationId,plannedAt){
     const reason=document.getElementById('correction_reason')?.value||'';
     if(reason!=='accident'&&reason!=='error'){
-      alert('Выберите причину: «Случайность» или «Ошибка».');
+      alert('Выберите причину: «Случайное нажатие» или «Ошибка».');
       return false;
     }
     const base=primary(medicationId,plannedAt);
