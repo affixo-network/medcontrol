@@ -70,7 +70,7 @@
     if(!dialog||!content) return;
     content.innerHTML=`<div class="form-grid">
       <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Исправление доступно до ${escapeHtml(fmtDeadline(deadline))}. Первоначальная запись не удаляется.</p></div>
-      <div><label>Причина исправления</label><select id="correction_reason"><option value="">Выберите</option><option value="accident">Случайность</option><option value="error">Ошибка</option></select></div>
+      <div><label>Причина исправления</label><select id="correction_reason"><option value="">Выберите</option><option value="accident">Случайное нажатие</option><option value="error">Ошибка</option></select></div>
       <div><label>Фактическое время приёма</label><input id="correction_time" type="datetime-local" value="${escapeHtml((current.actualAt||base.actualAt).slice(0,16))}"></div>
       <div class="full right"><button onclick="applyCorrection('${medicationId}','${plannedAt}')">Подтвердить исправление</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
     </div>`;
@@ -81,7 +81,7 @@
     if(!canCorrectNow(medicationId,plannedAt)){alert('Окно исправления уже закрыто.');return;}
     const reason=document.getElementById('correction_reason')?.value||'';
     const localValue=document.getElementById('correction_time')?.value||'';
-    if(!reason){alert('Выберите причину: «Случайность» или «Ошибка».');return;}
+    if(!reason){alert('Выберите причину: «Случайное нажатие» или «Ошибка».');return;}
     if(!localValue){alert('Укажите фактическое время приёма.');return;}
     const state=ensureCorrectionState(getState());
     const before=effectiveLog(medicationId,plannedAt);
@@ -89,7 +89,7 @@
     const actualAt=new Date(localValue).toISOString();
     const after={actualAt,action:'taken',status:computeStatusForLog(plannedAt,actualAt,'taken')};
     const list=corrections(medicationId,plannedAt);
-    const label=reason==='accident'?'Случайность':'Ошибка';
+    const label=reason==='accident'?'Случайное нажатие':'Ошибка';
     const message=`Запись уже исправлялась ${list.length} раз(а).\n\nПричина: ${label}\nБыло: ${formatDateTime(before.actualAt)}\nСтанет: ${formatDateTime(actualAt)}\n\nПодтвердить?`;
     if(!window.confirm(message)) return;
     state.intakeCorrections.push({id:uid(),medicationId,plannedAt,primaryLogId:primaryLog(medicationId,plannedAt)?.id||null,ordinal:list.length+1,reason,correctedAt:nowISO(),before:{actualAt:before.actualAt,action:'taken',status:before.status},after});
@@ -102,7 +102,7 @@
     if(!log) return '—';
     return log.action==='taken'?'Принято':log.action==='cancelled'?'Отменен':'—';
   }
-  function reasonLabel(reason){return reason==='accident'?'Случайность':reason==='error'?'Ошибка':reason||'—'}
+  function reasonLabel(reason){return reason==='accident'?'Случайное нажатие':reason==='error'?'Ошибка':reason||'—'}
   window.intakeHistoryRows=function(medId,period){
     const state=ensureCorrectionState(getState());
     let logs=(state.intakeLogs||[]).filter(log=>log.medicationId===medId);
