@@ -901,7 +901,7 @@ window.openEditMedication = function(id) {
 </div>
 
 <div>
-  <label>Количественное содержание *</label>
+  <label>Количественное содержание (указанное производителем) *</label>
   <input
     id="edit_contentValue"
     type="number"
