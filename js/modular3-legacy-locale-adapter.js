@@ -24,6 +24,8 @@
   "confirm_save": "d53fe84729d99a8e",
   "correct": "8d0e3e8b84b1c547",
   "correction_help": "b4e19e462ab3b77f",
+  "correction_reason_accident": "4736e0eec69e370d",
+  "correction_reason_error": "bf22dfeeba8b8508",
   "country": "1ee15e9729755cc3",
   "current_date": "8df2040160ce7336",
   "current_time": "727721a75694fd16",
