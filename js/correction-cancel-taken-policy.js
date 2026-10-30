@@ -30,8 +30,9 @@
     return fallback;
   }
   function label(reason){
-    return reason==='accident'?ui('correction_reason_accident','Случайное нажатие'):
-      reason==='error'?ui('correction_reason_error','Ошибка'):'—';
+    const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
+    return reason==='accident'?ui('correction_reason_accident',language==='en'?'Accidental button press':'Случайное нажатие'):
+      reason==='error'?ui('correction_reason_error',language==='en'?'Error':'Ошибка'):'—';
   }
 
   // Catalog-backed labels are loaded only for already activated UI languages.
@@ -47,7 +48,14 @@
     const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
     const messages=window.MedControlCorrectionCatalogs?.[language]?.messages;
     const value=messages?.[catalogIds[key]];
-    return typeof value==='string'&&value.trim()?value:fallback;
+    if(typeof value==='string'&&value.trim())return value;
+    // English uses the built-in dictionary and does not activate a public catalog.
+    // Keep correction controls understandable without a network request.
+    if(language==='en'){
+      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.'};
+      return english[key]||fallback;
+    }
+    return fallback;
   }
 
   window.openCorrection=function(medicationId,plannedAt){
