@@ -10,7 +10,8 @@
     const labels = adapter.adaptCatalog(catalog, fallback);
     return Object.freeze({
       language: catalog.language,
-      labels: Object.freeze(labels)
+      labels: Object.freeze(labels),
+      correctionMessages: catalog.messages
     });
   }
   const api = Object.freeze({ prepare });
