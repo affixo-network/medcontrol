@@ -52,7 +52,7 @@
     // English uses the built-in dictionary and does not activate a public catalog.
     // Keep correction controls understandable without a network request.
     if(language==='en'){
-      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.',invalidReason:'Select a reason: Accidental button press or Error.'};
+      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.',invalidReason:'Select a reason: Accidental button press or Error.',confirmCancel:'Cancel the Taken mark? Reason: ⟦0⟧. The original actual time will remain in history.'};
       return english[key]||fallback;
     }
     return fallback;
@@ -106,7 +106,8 @@
     }
     const base=primary(medicationId,plannedAt);
     if(!base)return false;
-    if(!window.confirm('Отменить отметку «Принято»? Причина: '+label(reason)+'. Исходное фактическое время сохранится в истории.'))return false;
+    const confirmation=localized('confirmCancel','Отменить отметку «Принято»? Причина: ⟦0⟧. Исходное фактическое время сохранится в истории.').replace('⟦0⟧',label(reason));
+    if(!window.confirm(confirmation))return false;
     const boundary=window.MedControlModular3WriteBoundary;
     const protectedExists=localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null||
       localStorage.getItem('medcontrol_modular3_local_credential_v1')!==null;
