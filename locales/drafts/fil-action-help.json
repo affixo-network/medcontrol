@@ -1,0 +1,40 @@
+{
+  "language": "fil",
+  "englishName": "Filipino",
+  "status": "draft-not-integrated",
+  "notes": "Eight public action explanations only. Not a complete 639-message commercial catalog.",
+  "items": [
+    [
+      "Naitala ang pag-inom ng gamot",
+      "Itinatala ang kumpirmadong pag-inom ng gamot at ang oras ng pagpindot sa pindutan."
+    ],
+    [
+      "Hindi nainom ang gamot",
+      "Walang kumpirmadong tala ng pag-inom; hindi ito tagubilin na laktawan ang gamot."
+    ],
+    [
+      "Hindi sinasadyang pagpindot",
+      "Dahilan sa pagkansela ng maling naitalang pag-inom ng gamot."
+    ],
+    [
+      "Pagkakamali",
+      "Hiwalay na dahilan ng pagwawasto; hindi nito binabago ang aktuwal na oras na naitala."
+    ],
+    [
+      "Dami ng sangkap (ayon sa tagagawa)",
+      "Dami ng sangkap sa bawat yunit ng gamot."
+    ],
+    [
+      "Dami sa bawat pag-inom",
+      "Bilang ng mga yunit sa bawat pag-inom, ayon sa reseta ng doktor."
+    ],
+    [
+      "Nakatakdang oras / aktuwal na oras",
+      "Oras ayon sa iskedyul / oras ng pagkumpirma ng gumagamit."
+    ],
+    [
+      "Arkibo",
+      "Mga natapos na kurso at ang kanilang kasaysayan. Upang ulitin ang kurso, baguhin ang petsa nito sa seksyong Input."
+    ]
+  ]
+}
