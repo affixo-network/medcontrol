@@ -208,6 +208,6 @@
       <td>${event.reason?escapeHtml(event.reason):'—'}</td>
     </tr>`).join('');
 
-    return `<table><thead><tr>${escapeHtml(localized('historyEventTime','Время события'))}</th><th>${escapeHtml(localized('historyEvent','Событие'))}</th><th>${escapeHtml(localized('historyPlanned','Расчётное время'))}</th><th>${escapeHtml(localized('actual','Фактическое время «Принято»'))}</th><th>${escapeHtml(localized('historyStatus','Статус'))}</th><th>${escapeHtml(localized('historyCorrectionTime','Локальное время исправления'))}</th><th>${escapeHtml(localized('historyReason','Причина исправления'))}</tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr><th>${escapeHtml(localized('historyEventTime','Время события'))}</th><th>${escapeHtml(localized('historyEvent','Событие'))}</th><th>${escapeHtml(localized('historyPlanned','Расчётное время'))}</th><th>${escapeHtml(localized('actual','Фактическое время «Принято»'))}</th><th>${escapeHtml(localized('historyStatus','Статус'))}</th><th>${escapeHtml(localized('historyCorrectionTime','Локальное время исправления'))}</th><th>${escapeHtml(localized('historyReason','Причина исправления'))}</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 })();
