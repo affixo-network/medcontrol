@@ -63,3 +63,31 @@ test('all language catalogs preserve technical filenames and module identifiers'
   expect(catalog.messages['969e5c79f8f07166'],filename).toContain('medcontrol-encrypted-transfer.json');
  }
 });
+
+
+test('95-language correction catalogs preserve cancellation placeholders and Russian reference semantics',async()=>{
+ const fs=require('node:fs');
+ const path=require('node:path');
+ const root=path.join(__dirname,'..');
+ const manifest=JSON.parse(fs.readFileSync(path.join(root,'locales/manifest.json'),'utf8'));
+ const source=JSON.parse(fs.readFileSync(path.join(root,'locales/source-ru.json'),'utf8'));
+ const languages=manifest.map(item=>item.code);
+ expect(languages).toHaveLength(95);
+ expect(new Set(languages).size).toBe(95);
+ const helpKey='585d7328139b9ece';
+ const confirmationKey='1340d81906bfec36';
+ expect(source[helpKey].source).toContain('отменена');
+ expect(source[helpKey].source).toContain('истории');
+ expect(source[helpKey].source).not.toContain('Статус «Принято» сохранится');
+ expect(source[confirmationKey].source).toContain('Отмена отметки');
+ const loader=require('../js/modular3-public-catalog-loader.js');
+ for(const language of languages.filter(code=>code!=='ru')){
+  const catalog=JSON.parse(fs.readFileSync(path.join(root,'locales/catalogs',language+'.json'),'utf8'));
+  expect(()=>loader.validateCatalog(catalog,source,language),language).not.toThrow();
+  expect(catalog.messages[helpKey].trim().length,language).toBeGreaterThan(25);
+  expect(catalog.messages[confirmationKey].match(/⟦[012]⟧/g)?.sort(),language).toEqual(['⟦0⟧','⟦1⟧','⟦2⟧']);
+ }
+ const english=JSON.parse(fs.readFileSync(path.join(root,'locales/catalogs/en.json'),'utf8'));
+ expect(english.messages[helpKey]).toContain('cancelled');
+ expect(english.messages[helpKey]).not.toContain('status is retained');
+});
