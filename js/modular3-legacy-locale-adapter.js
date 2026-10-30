@@ -147,7 +147,7 @@
     const translated = { ...fallback };
     for (const [legacyKey, catalogId] of Object.entries(KEY_TO_CATALOG_ID)) {
       const value = catalog.messages[catalogId];
-      if (typeof value === 'string' && value.trim() && typeof fallback[legacyKey] === 'string') {
+      if (typeof value === 'string' && value.trim() && (typeof fallback[legacyKey] === 'string' || legacyKey === 'correction_reason_accident' || legacyKey === 'correction_reason_error')) {
         translated[legacyKey] = value;
       }
     }
