@@ -114,3 +114,27 @@ test('correction catalog activates only after successful registration',async()=>
    else globalThis.MedControlCorrectionCatalogs=previous;
  }
 });
+
+test('all 94 translated correction dialogs have required catalog keys',async()=>{
+ const fs=require('node:fs');
+ const path=require('node:path');
+ const root=path.join(__dirname,'..');
+ const manifest=JSON.parse(fs.readFileSync(path.join(root,'locales/manifest.json'),'utf8'));
+ const source=JSON.parse(fs.readFileSync(path.join(root,'locales/source-ru.json'),'utf8'));
+ const required=[
+  '1419825a704fb8e4','685190e0416b6da0','57cb4188862a5ff0',
+  'f9274041224ea4c0','442e7ad5479655fc','6a323db2ae5bed82',
+  '435d3d1cbd5cc878','0a23c2a4fe16415a','a7a4033657e89fc9',
+  '89c4361d72299747','585d7328139b9ece',
+  '4736e0eec69e370d','bf22dfeeba8b8508'
+ ];
+ for(const item of manifest.filter(item=>item.code!=='ru')){
+  const catalog=JSON.parse(fs.readFileSync(path.join(root,'locales/catalogs',item.code+'.json'),'utf8'));
+  for(const key of required){
+   expect(source[key],item.code+' source '+key).toBeDefined();
+   expect(typeof catalog.messages[key],item.code+' '+key).toBe('string');
+   expect(catalog.messages[key].trim().length,item.code+' '+key).toBeGreaterThan(0);
+  }
+  expect(catalog.messages['1419825a704fb8e4'],item.code).toContain('⟦0⟧');
+ }
+});
