@@ -14,6 +14,8 @@ test('language manifest and action-help use exactly the same 95 locale codes',as
  expect(new Set(fromManifest).size).toBe(95);
  expect(fromHelp).toHaveLength(95);
  expect([...fromHelp].sort()).toEqual([...fromManifest].sort());
+ // Commercially required Filipino must not be silently replaced by Cebuano.
+ expect(fromManifest).toContain('fil');
 });
 
 test('all 95 action-help catalogs render in selected language without medical writes',async({page})=>{
