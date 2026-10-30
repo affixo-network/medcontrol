@@ -91,3 +91,26 @@ test('95-language correction catalogs preserve cancellation placeholders and Rus
  expect(english.messages[helpKey]).toContain('cancelled');
  expect(english.messages[helpKey]).not.toContain('status is retained');
 });
+
+test('correction catalog activates only after successful registration',async()=>{
+ const activation=require('../js/modular3-locale-activation.js');
+ const messages=Object.freeze({'4736e0eec69e370d':'Accidental button press'});
+ const prepared={language:'en',labels:{},correctionMessages:messages};
+ const options={
+   source:{},fallback:{},fetcher:async()=>{},
+   loader:{},adapter:{},prepare:{prepare:async()=>prepared},
+   register:async()=>true
+ };
+ const previous=globalThis.MedControlCorrectionCatalogs;
+ try{
+   delete globalThis.MedControlCorrectionCatalogs;
+   expect(await activation.activate('en',options)).toBe(true);
+   expect(globalThis.MedControlCorrectionCatalogs.en.messages['4736e0eec69e370d']).toBe('Accidental button press');
+   delete globalThis.MedControlCorrectionCatalogs;
+   expect(await activation.activate('en',{...options,register:async()=>false})).toBe(false);
+   expect(globalThis.MedControlCorrectionCatalogs).toBeUndefined();
+ }finally{
+   if(previous===undefined)delete globalThis.MedControlCorrectionCatalogs;
+   else globalThis.MedControlCorrectionCatalogs=previous;
+ }
+});
