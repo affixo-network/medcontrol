@@ -34,6 +34,22 @@
       reason==='error'?ui('correction_reason_error','Ошибка'):'—';
   }
 
+  // Catalog-backed labels are loaded only for already activated UI languages.
+  const catalogIds=Object.freeze({
+    count:'1419825a704fb8e4',timeRule:'685190e0416b6da0',
+    scheduled:'57cb4188862a5ff0',actual:'f9274041224ea4c0',
+    reason:'442e7ad5479655fc',choose:'6a323db2ae5bed82',
+    chooseReason:'435d3d1cbd5cc878',cancelTaken:'0a23c2a4fe16415a',
+    close:'a7a4033657e89fc9',accidentHint:'89c4361d72299747',
+    errorHint:'585d7328139b9ece'
+  });
+  function localized(key,fallback){
+    const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
+    const messages=window.MedControlCorrectionCatalogs?.[language]?.messages;
+    const value=messages?.[catalogIds[key]];
+    return typeof value==='string'&&value.trim()?value:fallback;
+  }
+
   window.openCorrection=function(medicationId,plannedAt){
     const base=primary(medicationId,plannedAt);
     if(!base){alert('Сначала необходимо зафиксировать «Принято».');return;}
@@ -48,12 +64,12 @@
     const count=corrections(medicationId,plannedAt).length;
 
     content.innerHTML=`<div class="form-grid">
-      <div class="full"><p><strong>Количество предыдущих исправлений: ${count}</strong></p><p class="muted">Фактическое время определяется моментом нажатия «Принято» и не может быть изменено вручную.</p></div>
-      <div><label>Расчётное время приёма</label><input type="text" value="${escapeHtml(formatDateTime(plannedAt))}" readonly></div>
-      <div><label>Фактическое время «Принято»</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
-      <div><label>Причина</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">Выберите</option><option value="accident">${escapeHtml(label('accident'))}</option><option value="error">${escapeHtml(label('error'))}</option></select></div>
-      <div id="correction_hint" class="full muted">Выберите причину.</div>
-      <div class="full right"><button id="correction_apply" onclick="applyCorrection('${medicationId}','${plannedAt}')" disabled>Отменить «Принято»</button> <button onclick="document.getElementById('correctionDialog').close()">Закрыть</button></div>
+      <div class="full"><p><strong>${escapeHtml(localized('count','Количество предыдущих исправлений: ⟦0⟧').replace('⟦0⟧',String(count)))}</strong></p><p class="muted">${escapeHtml(localized('timeRule','Фактическое время определяется моментом нажатия «Принято» и не может быть изменено вручную.'))}</p></div>
+      <div><label>${escapeHtml(localized('scheduled','Расчётное время приёма'))}</label><input type="text" value="${escapeHtml(formatDateTime(plannedAt))}" readonly></div>
+      <div><label>${escapeHtml(localized('actual','Фактическое время «Принято»'))}</label><input type="text" value="${escapeHtml(formatDateTime(base.actualAt))}" readonly></div>
+      <div><label>${escapeHtml(localized('reason','Причина'))}</label><select id="correction_reason" onchange="window.syncCorrectionMode()"><option value="">${escapeHtml(localized('choose','Выберите'))}</option><option value="accident">${escapeHtml(label('accident'))}</option><option value="error">${escapeHtml(label('error'))}</option></select></div>
+      <div id="correction_hint" class="full muted">${escapeHtml(localized('chooseReason','Выберите причину.'))}</div>
+      <div class="full right"><button id="correction_apply" onclick="applyCorrection('${medicationId}','${plannedAt}')" disabled>${escapeHtml(localized('cancelTaken','Отменить «Принято»'))}</button> <button onclick="document.getElementById('correctionDialog').close()">${escapeHtml(localized('close','Закрыть'))}</button></div>
     </div>`;
     dialog.showModal();
   };
@@ -64,13 +80,13 @@
     const button=document.getElementById('correction_apply');
     if(!hint||!button)return;
     if(reason==='accident'||reason==='error'){
-      hint.textContent=(reason==='accident'?'Случайное нажатие: ':'Ошибка: ')+'отметка «Принято» будет отменена. Исходная запись и фактическое время останутся в истории.';
+      hint.textContent=reason==='accident'?localized('accidentHint','Случайное нажатие: отметка «Принято» будет отменена. Исходная запись и фактическое время останутся в истории.'):localized('errorHint','Ошибка: отметка «Принято» будет отменена. Исходная запись и фактическое время останутся в истории.');
       button.disabled=false;
-      button.textContent='Отменить «Принято»';
+      button.textContent=localized('cancelTaken','Отменить «Принято»');
     }else{
-      hint.textContent='Выберите причину.';
+      hint.textContent=localized('chooseReason','Выберите причину.');
       button.disabled=true;
-      button.textContent='Отменить «Принято»';
+      button.textContent=localized('cancelTaken','Отменить «Принято»');
     }
   };
 
