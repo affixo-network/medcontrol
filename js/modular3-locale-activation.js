@@ -7,7 +7,15 @@
       throw new Error('Locale activation dependencies missing');
     }
     const prepared = await prepare.prepare(language, { source, fallback, fetcher, loader, adapter });
-    return register(prepared);
+    const registered = await register(prepared);
+    if (registered !== false && prepared.correctionMessages) {
+      const previous = root.MedControlCorrectionCatalogs || {};
+      root.MedControlCorrectionCatalogs = Object.freeze({
+        ...previous,
+        [language]: Object.freeze({ messages: prepared.correctionMessages })
+      });
+    }
+    return registered;
   }
   const api = Object.freeze({ activate });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
