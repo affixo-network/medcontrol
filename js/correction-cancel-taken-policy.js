@@ -42,7 +42,8 @@
     reason:'442e7ad5479655fc',choose:'6a323db2ae5bed82',
     chooseReason:'435d3d1cbd5cc878',cancelTaken:'0a23c2a4fe16415a',
     close:'a7a4033657e89fc9',accidentHint:'89c4361d72299747',
-    errorHint:'585d7328139b9ece',invalidReason:'8fe1c236559abd0c'
+    errorHint:'585d7328139b9ece',invalidReason:'8fe1c236559abd0c',
+    historyEventTime:'04edebc624ec9d47',historyEvent:'4212693d845d9bc8',historyPlanned:'0ba36723cec086c6',historyStatus:'225077c6d4791e69',historyCorrectionTime:'f3158e3a1af4167d',historyReason:'6f1924c288de5508',historyCancel:'9a61582949a13692',historyTaken:'ea0a7fb1d1a0efc5'
   });
   function localized(key,fallback){
     const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
@@ -52,7 +53,7 @@
     // English uses the built-in dictionary and does not activate a public catalog.
     // Keep correction controls understandable without a network request.
     if(language==='en'){
-      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.',invalidReason:'Select a reason: Accidental button press or Error.',confirmCancel:'Cancel the Taken mark? Reason: ⟦0⟧. The original actual time will remain in history.'};
+      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.',invalidReason:'Select a reason: Accidental button press or Error.',historyEventTime:'Event time',historyEvent:'Event',historyPlanned:'Scheduled time',historyStatus:'Status',historyCorrectionTime:'Local correction time',historyReason:'Correction reason',historyCancel:'Cancel Taken',historyTaken:'Taken',confirmCancel:'Cancel the Taken mark? Reason: ⟦0⟧. The original actual time will remain in history.'};
       return english[key]||fallback;
     }
     return fallback;
@@ -158,7 +159,7 @@
       .forEach(log=>{
         events.push({
           occurredAt:log.actualAt,
-          event:'Принято',
+          event:localized('historyTaken','Принято'),
           plannedAt:log.plannedAt,
           actualAt:log.actualAt,
           status:typeof statusLabel==='function'?statusLabel(log.status||(typeof computeStatusForLog==='function'?computeStatusForLog(log.plannedAt,log.actualAt,log.action):'')):(log.status||''),
@@ -177,7 +178,7 @@
         );
         events.push({
           occurredAt:c.correctedAt,
-          event:'Отмена «Принято»',
+          event:localized('historyCancel','Отмена «Принято»'),
           plannedAt:c.plannedAt,
           actualAt:c.before?.actualAt || base?.actualAt || null,
           status:null,
@@ -207,6 +208,6 @@
       <td>${event.reason?escapeHtml(event.reason):'—'}</td>
     </tr>`).join('');
 
-    return `<table><thead><tr><th>Время события</th><th>Событие</th><th>Расчётное время</th><th>Фактическое время «Принято»</th><th>Статус</th><th>Локальное время исправления</th><th>Причина исправления</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table><thead><tr>${escapeHtml(localized('historyEventTime','Время события'))}</th><th>${escapeHtml(localized('historyEvent','Событие'))}</th><th>${escapeHtml(localized('historyPlanned','Расчётное время'))}</th><th>${escapeHtml(localized('actual','Фактическое время «Принято»'))}</th><th>${escapeHtml(localized('historyStatus','Статус'))}</th><th>${escapeHtml(localized('historyCorrectionTime','Локальное время исправления'))}</th><th>${escapeHtml(localized('historyReason','Причина исправления'))}</tr></thead><tbody>${rows}</tbody></table>`;
   };
 })();
