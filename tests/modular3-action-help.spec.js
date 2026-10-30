@@ -3,6 +3,19 @@ const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
 const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../js/modular3-action-help.js'),'utf8');
+test('language manifest and action-help use exactly the same 95 locale codes',async()=>{
+ const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/manifest.json'),'utf8'));
+ const vm=require('node:vm');
+ const host={};
+ vm.runInNewContext(source,{window:host});
+ const fromManifest=manifest.map(item=>item.code);
+ const fromHelp=Array.from(host.MedControlActionHelp.languages);
+ expect(fromManifest).toHaveLength(95);
+ expect(new Set(fromManifest).size).toBe(95);
+ expect(fromHelp).toHaveLength(95);
+ expect([...fromHelp].sort()).toEqual([...fromManifest].sort());
+});
+
 test('all 95 action-help catalogs render in selected language without medical writes',async({page})=>{
  await page.goto('http://127.0.0.1:8765/input.html');
  // Prevent pending application redirects from destroying the isolated test document.
