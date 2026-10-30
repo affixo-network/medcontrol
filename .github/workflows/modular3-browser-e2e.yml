@@ -25,6 +25,7 @@ on:
       - 'js/intake.js'
       - 'js/correction-cancel-taken-policy.js'
       - 'js/cloud-snapshot.js'
+      - 'tests/modular3-correction-policy.spec.js'
       - 'tests/modular3-action-help.spec.js'
       - 'tests/modular3-copy-migration.spec.js'
       - 'tests/modular3-migration-ui-confirmation.spec.js'
