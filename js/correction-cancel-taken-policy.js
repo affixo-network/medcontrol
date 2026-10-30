@@ -111,7 +111,11 @@
     }
     const base=primary(medicationId,plannedAt);
     if(!base)return false;
-    const confirmation=localized('confirmCancel','Отменить отметку «Принято»? Причина: ⟦0⟧. Исходное фактическое время сохранится в истории.').replace('⟦0⟧',label(reason));
+    const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
+    const translatedConfirmation=window.MedControlCorrectionCatalogs?.[language]?.messages?.['9ddd0c9494420ad4'];
+    const confirmation=language!=='ru'&&language!=='en'&&typeof translatedConfirmation==='string'&&translatedConfirmation.trim()
+      ?translatedConfirmation+' ('+label(reason)+')'
+      :localized('confirmCancel','Отменить отметку «Принято»? Причина: ⟦0⟧. Исходное фактическое время сохранится в истории.').replace('⟦0⟧',label(reason));
     if(!window.confirm(confirmation))return false;
     const boundary=window.MedControlModular3WriteBoundary;
     const protectedExists=localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null||
