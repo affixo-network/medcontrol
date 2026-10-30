@@ -42,7 +42,7 @@
     reason:'442e7ad5479655fc',choose:'6a323db2ae5bed82',
     chooseReason:'435d3d1cbd5cc878',cancelTaken:'0a23c2a4fe16415a',
     close:'a7a4033657e89fc9',accidentHint:'89c4361d72299747',
-    errorHint:'585d7328139b9ece'
+    errorHint:'585d7328139b9ece',invalidReason:'8fe1c236559abd0c'
   });
   function localized(key,fallback){
     const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
@@ -52,7 +52,7 @@
     // English uses the built-in dictionary and does not activate a public catalog.
     // Keep correction controls understandable without a network request.
     if(language==='en'){
-      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.'};
+      const english={count:'Previous corrections: ⟦0⟧',timeRule:'Actual time is recorded when Taken is pressed and cannot be edited manually.',scheduled:'Scheduled intake time',actual:'Actual Taken time',reason:'Reason',choose:'Select',chooseReason:'Select a reason.',cancelTaken:'Cancel Taken',close:'Close',accidentHint:'Accidental button press: the Taken mark will be cancelled. The original entry and actual time remain in history.',errorHint:'Error: the Taken mark will be cancelled. The original entry and actual time remain in history.',invalidReason:'Select a reason: Accidental button press or Error.'};
       return english[key]||fallback;
     }
     return fallback;
@@ -101,7 +101,7 @@
   window.applyCorrection=async function(medicationId,plannedAt){
     const reason=document.getElementById('correction_reason')?.value||'';
     if(reason!=='accident'&&reason!=='error'){
-      alert('Выберите причину: «Случайное нажатие» или «Ошибка».');
+      alert(localized('invalidReason','Выберите причину: «Случайное нажатие» или «Ошибка».'));
       return false;
     }
     const base=primary(medicationId,plannedAt);
