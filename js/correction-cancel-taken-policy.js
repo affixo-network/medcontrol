@@ -93,8 +93,14 @@
         await boundary.write('action',append);
       }else{
         const state=ensureState();
-        append(state);
-        if(!(await saveStateAsync(state)))throw new Error('Не удалось сохранить отмену.');
+        const original=state.intakeCorrections.slice();
+        try{
+          append(state);
+          if(!(await saveStateAsync(state)))throw new Error('Не удалось сохранить отмену.');
+        }catch(error){
+          state.intakeCorrections=original;
+          throw error;
+        }
       }
       document.getElementById('correctionDialog')?.close();
       (await mount('action'));
