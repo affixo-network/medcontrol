@@ -31,6 +31,10 @@
   }
   function label(reason){
     const language=typeof getState==='function'?getState()?.settings?.interfaceLanguage:null;
+    const catalog=window.MedControlCorrectionCatalogs?.[language]?.messages;
+    const catalogKey=reason==='accident'?'4736e0eec69e370d':reason==='error'?'bf22dfeeba8b8508':null;
+    const translated=catalogKey&&catalog?.[catalogKey];
+    if(typeof translated==='string'&&translated.trim())return translated;
     return reason==='accident'?ui('correction_reason_accident',language==='en'?'Accidental button press':'Случайное нажатие'):
       reason==='error'?ui('correction_reason_error',language==='en'?'Error':'Ошибка'):'—';
   }
