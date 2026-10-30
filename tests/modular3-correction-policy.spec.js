@@ -32,3 +32,43 @@ for(const reason of ['accident','error']){
     expect(result.mounts).toBe(1);
   });
 }
+
+test('correction dialog displays activated translation and preserves reason codes',async({page})=>{
+ await page.goto(URL);
+ await page.addScriptTag({url:'/js/correction-cancel-taken-policy.js'});
+ const result=await page.evaluate(()=>{
+  const plannedAt='2026-10-31T10:00:00Z';
+  const state={settings:{interfaceLanguage:'en'},intakeLogs:[{id:'test-log',medicationId:'test-med',plannedAt,actualAt:'2026-10-31T10:02:00Z',status:'taken'}],intakeCorrections:[]};
+  window.getState=()=>state;
+  window.canCorrectIntakeNow=()=>true;
+  window.formatDateTime=value=>String(value);
+  window.escapeHtml=value=>String(value);
+  window.MedControlCorrectionCatalogs={en:{messages:{
+   '1419825a704fb8e4':'Previous corrections: ⟦0⟧',
+   '57cb4188862a5ff0':'Scheduled intake time',
+   '442e7ad5479655fc':'Reason',
+   '6a323db2ae5bed82':'Choose',
+   '435d3d1cbd5cc878':'Choose a reason.',
+   '0a23c2a4fe16415a':'Cancel taken',
+   'a7a4033657e89fc9':'Close',
+   '89c4361d72299747':'Accidental mark will be cancelled.',
+   '585d7328139b9ece':'Error mark will be cancelled.'
+  }}};
+  window.tr=key=>({correction_reason_accident:'Accidental button press',correction_reason_error:'Error'})[key]||key;
+  const dialog=document.createElement('dialog');dialog.id='correctionDialog';
+  const content=document.createElement('div');content.id='correctionContent';
+  dialog.appendChild(content);document.body.appendChild(dialog);
+  window.openCorrection('test-med',plannedAt);
+  const select=content.querySelector('#correction_reason');
+  const labels=Array.from(select.options).map(option=>option.textContent);
+  select.value='error';window.syncCorrectionMode();
+  return {labels,html:content.textContent,hint:content.querySelector('#correction_hint').textContent,
+   button:content.querySelector('#correction_apply').textContent,reason:select.value};
+ });
+ expect(result.labels).toEqual(['Choose','Accidental button press','Error']);
+ expect(result.html).toContain('Scheduled intake time');
+ expect(result.html).toContain('Previous corrections: 0');
+ expect(result.hint).toBe('Error mark will be cancelled.');
+ expect(result.button).toBe('Cancel taken');
+ expect(result.reason).toBe('error');
+});
