@@ -28,6 +28,7 @@ const SUPPORTED_LANGUAGES = [
   ['eo', "Esperanto"],
   ['et', "eesti"],
   ['fi', "suomi"],
+  ['fil', "Filipino"],
   ['fr', "français"],
   ['fy', "Frysk"],
   ['gl', "galego"],
