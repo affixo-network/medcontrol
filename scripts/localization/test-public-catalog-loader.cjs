@@ -62,6 +62,10 @@ test('validates every manifest language catalog against the Russian reference', 
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'locales/manifest.json'), 'utf8'));
   assert.equal(manifest.length, 96);
   assert.equal(new Set(manifest.map(item => item.code)).size, manifest.length);
+  const completionKey = 'faf8a19de622912d';
+  const obsoleteCompletionKey = '2b5032c35a7b479a';
+  assert.equal(reference[completionKey].source, 'Все курсы применения препаратов завершены или отменены. Данные сохранены и доступны в Архиве.');
+  assert.ok(!Object.hasOwn(reference, obsoleteCompletionKey));
   for (const { code } of manifest) {
     // Russian is the reference source, not a separately published catalog.
     if (code === 'ru') continue;
@@ -78,6 +82,8 @@ test('validates every manifest language catalog against the Russian reference', 
       throw new Error(`Catalog ${code}: ${error.message}; missing=${missing.join(',')}; extra=${extra.join(',')}`, { cause: error });
     }
     assert.equal(checked.language, code);
+    assert.ok(Object.hasOwn(checked.messages, completionKey), `Missing corrected course-completion key: ${code}`);
+    assert.ok(!Object.hasOwn(checked.messages, obsoleteCompletionKey), `Obsolete completion key remains: ${code}`);
     assert.equal(Object.keys(checked.messages).length, 639);
   }
 });
