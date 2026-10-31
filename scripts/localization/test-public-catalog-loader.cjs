@@ -52,3 +52,23 @@ test('loads and validates the real Filipino catalog against the Russian source',
   assert.equal(checked.messages['4736e0eec69e370d'], 'Hindi sinasadyang pagpindot');
   assert.equal(checked.messages['bf22dfeeba8b8508'], 'Pagkakamali');
 });
+
+// All published languages must load from their actual files, not synthetic fixtures.
+test('validates every manifest language catalog against the Russian reference', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.resolve(__dirname, '../..');
+  const reference = JSON.parse(fs.readFileSync(path.join(root, 'locales/source-ru.json'), 'utf8'));
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'locales/manifest.json'), 'utf8'));
+  assert.equal(manifest.length, 96);
+  assert.equal(new Set(manifest.map(item => item.code)).size, manifest.length);
+  for (const { code } of manifest) {
+    const actual = JSON.parse(fs.readFileSync(path.join(root, 'locales/catalogs', code + '.json'), 'utf8'));
+    const checked = await loadCatalog(code, reference, async url => {
+      assert.equal(url, 'locales/catalogs/' + code + '.json');
+      return { ok: true, json: async () => actual };
+    });
+    assert.equal(checked.language, code);
+    assert.equal(Object.keys(checked.messages).length, 639);
+  }
+});
