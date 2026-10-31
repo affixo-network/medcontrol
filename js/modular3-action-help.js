@@ -2,6 +2,16 @@
 (function(root){
  'use strict';
  const texts={
+ fil:[
+ ['Nainom ang gamot','Itinatala ang pag-inom ng gamot at ang oras ng pagpindot ng gumagamit.'],
+ ['Hindi nainom','Walang kumpirmadong tala ng pag-inom; hindi ito tagubiling laktawan ang gamot.'],
+ ['Hindi sinasadyang pagpindot','Dahilan sa pagkansela ng maling naitalang pag-inom ng gamot.'],
+ ['Pagkakamali','Hiwalay na dahilan ng pagwawasto; hindi nito binabago ang naitalang aktuwal na oras.'],
+ ['Nilalaman ng gamot (ayon sa tagagawa)','Dami ng sangkap sa bawat yunit ng gamot.'],
+ ['Dami sa bawat pag-inom','Bilang ng yunit sa bawat pag-inom ayon sa reseta ng doktor.'],
+ ['Nakatakda / aktuwal na oras','Oras ayon sa iskedyul / oras ng kumpirmasyon ng gumagamit.'],
+ ['Archive','Mga natapos na kurso at kasaysayan. Para ulitin, baguhin ang petsa ng kurso sa Paglalagay ng datos.']
+ ],
  ru:[
  ['Принято','Отметка о состоявшемся приёме; записывается время нажатия.'],
  ['Не принято','Подтверждённой отметки нет; это не запрет принимать препарат.'],
