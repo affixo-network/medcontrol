@@ -1,0 +1,15 @@
+{
+  "language": "fil",
+  "status": "draft-not-integrated",
+  "batch": 17,
+  "translatedCount": 7,
+  "messages": {
+    "fd0768fd165e8323": "Tanggalin ang oras",
+    "fd5474467c6d4477": "Kinansela ang iskedyul upang baguhin ito sa susunod.",
+    "fd9d8534847f4100": "mga kutsara",
+    "fe16f78001b27412": "Umiiral na ang oras na ito.",
+    "fe3366e0a3b9adde": "Yunit ng nilalaman *",
+    "feedada24dcdf297": "Tinanggal ang petsa ng simula",
+    "ffdc6cc67a30cb67": "Araw-araw — nakaiskedyul ang gamot sa itinakdang oras bawat araw."
+  }
+}
