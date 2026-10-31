@@ -144,6 +144,12 @@
     "direction": "ltr"
   },
   {
+    "code": "fil",
+    "name": "Filipino",
+    "englishName": "Filipino",
+    "direction": "ltr"
+  },
+  {
     "code": "fr",
     "name": "français",
     "englishName": "French",
