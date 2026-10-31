@@ -35,3 +35,20 @@ test('rejects unsafe locale and unavailable catalog', async () => {
   await assert.rejects(() => loadCatalog('../bad', source, async () => { throw Error('must not fetch'); }));
   await assert.rejects(() => loadCatalog('fr', source, async () => ({ ok: false })));
 });
+
+// Real Filipino catalog regression: source keys, placeholders and loader path.
+test('loads and validates the real Filipino catalog against the Russian source', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.resolve(__dirname, '../..');
+  const realSource = JSON.parse(fs.readFileSync(path.join(root, 'locales/source-ru.json'), 'utf8'));
+  const filipino = JSON.parse(fs.readFileSync(path.join(root, 'locales/catalogs/fil.json'), 'utf8'));
+  const checked = await loadCatalog('fil', realSource, async (url) => {
+    assert.equal(url, 'locales/catalogs/fil.json');
+    return { ok: true, json: async () => filipino };
+  });
+  assert.equal(checked.language, 'fil');
+  assert.equal(Object.keys(checked.messages).length, 639);
+  assert.equal(checked.messages['4736e0eec69e370d'], 'Hindi sinasadyang pagpindot');
+  assert.equal(checked.messages['bf22dfeeba8b8508'], 'Pagkakamali');
+});
