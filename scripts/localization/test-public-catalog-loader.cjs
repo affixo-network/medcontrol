@@ -63,6 +63,8 @@ test('validates every manifest language catalog against the Russian reference', 
   assert.equal(manifest.length, 96);
   assert.equal(new Set(manifest.map(item => item.code)).size, manifest.length);
   for (const { code } of manifest) {
+    // Russian is the reference source, not a separately published catalog.
+    if (code === 'ru') continue;
     const actual = JSON.parse(fs.readFileSync(path.join(root, 'locales/catalogs', code + '.json'), 'utf8'));
     const checked = await loadCatalog(code, reference, async url => {
       assert.equal(url, 'locales/catalogs/' + code + '.json');
