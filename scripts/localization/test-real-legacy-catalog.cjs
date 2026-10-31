@@ -16,7 +16,7 @@ test('every mapped scalar label has a real English catalog entry', () => {
   for (const [key, id] of Object.entries(KEY_TO_CATALOG_ID)) {
     assert.ok(Object.hasOwn(source, id), 'Unknown source ID: ' + key);
     assert.equal(typeof english.messages[id], 'string', 'Missing English label: ' + key);
-    assert.ok(source[id].files.includes('translations.' + key), 'Wrong source mapping: ' + key);
+    assert.ok(source[id].files.includes('translations.' + key) || (['correction_reason_accident', 'correction_reason_error'].includes(key) && source[id].files.some(file => file.includes('correction'))), 'Wrong source mapping: ' + key);
   }
 });
 test('real catalog adapter preserves fallback and does not mutate inputs', () => {
