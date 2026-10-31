@@ -8,7 +8,7 @@ const en = JSON.parse(fs.readFileSync(path.join(root, 'locales/catalogs/en.json'
 const source = JSON.parse(fs.readFileSync(path.join(root, 'locales/source-ru.json'), 'utf8'));
 const expectedKeys = Object.keys(source);
 const criticalPattern = /medic|dose|dosage|intake|taken|not taken|missed|cancel|accident|error|schedule|password|encrypt|restore|archive|overdue|warning|unit|tablet|capsule|time|date|препарат|доз|приём|принято|ошиб|случайн|расписан|парол|шифр|восстанов|архив|время|дат/i;
-const criticalKeys = expectedKeys.filter(key => criticalPattern.test(String(en[key] || '') + ' ' + String(source[key] || '')));
+const criticalKeys = expectedKeys.filter(key => criticalPattern.test(String(en[key] || '') + ' ' + String(source[key]?.source || '')));
 const correctionKeys = {
   accidental: '4736e0eec69e370d',
   error: 'bf22dfeeba8b8508',
