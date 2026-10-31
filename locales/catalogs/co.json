@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Tempu di ingressu attuale",
     "2aa328af0d4eb92d": "Applica a correzione",
     "2b289eda0bc1bf2a": "Medicazione presa à tempu",
-    "2b5032c35a7b479a": "Tutti i medicazione sò cumpleti o annullati. I dati sò salvati è dispunibuli in u Archive.",
     "2b58828b6759799d": "Nisun avvenimentu di ingaghjamentu pianificatu hè statu salvatu per questu record più anticu.",
     "2b68a3d2ced4911d": "E currezzione sò dispunibuli solu finu à 23:59 u ghjornu di l'ingesta di medicazione.",
     "2d5e1dc18067b945": "Dopu à l'annullamentu, stu registru di medicazione ùn serà più utilizatu",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Questa ora esiste digià.",
     "fe3366e0a3b9adde": "Unità di cuntenutu *",
     "feedada24dcdf297": "Data di iniziu eliminata",
-    "ffdc6cc67a30cb67": "Ogni ghjornu - una ingesta di medicazione pianificata hè generata ogni ghjornu à l'ora specificata."
+    "ffdc6cc67a30cb67": "Ogni ghjornu - una ingesta di medicazione pianificata hè generata ogni ghjornu à l'ora specificata.",
+    "faf8a19de622912d": "Tutti i medicazione sò cumpleti o annullati. I dati sò salvati è dispunibuli in u Archive."
   }
 }
