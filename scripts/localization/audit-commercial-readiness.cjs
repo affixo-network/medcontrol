@@ -47,7 +47,7 @@ for (const {code, englishName} of manifest) {
 const out = {
   generatedAt: new Date().toISOString(),
   purpose: 'Automated triage only; identical English strings may be legitimate.',
-  technicalInventory: {languages: rows.length, expected: 95, complete: rows.every(x => x.automated === 'PASS')},
+  technicalInventory: {languages: rows.length, expected: 96, translatedCatalogs: rows.filter(x => x.code !== 'ru').length, expectedTranslatedCatalogs: 95, complete: rows.length === 96 && rows.filter(x => x.code !== 'ru').length === 95 && rows.every(x => x.automated === 'PASS')},
   approvedCorrectionOptions: ['Accidental button press', 'Error'],
   correctionLabelIntegrity: rows.filter(x => x.code !== 'ru').every(x => x.correctionLabelIntegrity),
   criticalSourceEntries: criticalKeys.length,
@@ -58,7 +58,7 @@ const out = {
 };
 const target = process.argv[2];
 if (target) fs.writeFileSync(target, JSON.stringify(out, null, 2) + '\n');
-console.log('Language inventory:', rows.length, '/95');
+console.log('Language inventory:', rows.length, '/96 (Russian source + 95 translated catalogs)');
 console.log('Structural entries:', rows.every(x => x.automated === 'PASS') ? 'PASS' : 'FAIL');
 console.log('Commercial medical-language sign-off: NOT DOCUMENTED');
 console.log('Approved correction options preserved for human review:', out.correctionLabelIntegrity ? 'PASS' : 'FAIL');
