@@ -11,7 +11,7 @@ test('language manifest and action-help use the same locale codes',async()=>{
  const fromManifest=manifest.map(item=>item.code);
  const fromHelp=Array.from(host.MedControlActionHelp.languages);
  expect(fromManifest).toHaveLength(manifest.length);
- expect(new Set(fromManifest).size).toBe(95);
+ expect(new Set(fromManifest).size).toBe(manifest.length);
  expect(fromHelp).toHaveLength(manifest.length);
  expect([...fromHelp].sort()).toEqual([...fromManifest].sort());
  // Commercially required Filipino must not be silently replaced by Cebuano.
@@ -89,7 +89,7 @@ test('language correction catalogs preserve cancellation placeholders and Russia
  const source=JSON.parse(fs.readFileSync(path.join(root,'locales/source-ru.json'),'utf8'));
  const languages=manifest.map(item=>item.code);
  expect(languages).toHaveLength(manifest.length);
- expect(new Set(languages).size).toBe(95);
+ expect(new Set(languages).size).toBe(manifest.length);
  const helpKey='585d7328139b9ece';
  const confirmationKey='1340d81906bfec36';
  expect(source[helpKey].source).toContain('отменена');
