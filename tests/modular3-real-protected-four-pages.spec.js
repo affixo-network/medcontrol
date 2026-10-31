@@ -9,13 +9,14 @@ const sample={
  medications:[{id:'synthetic-four',name:'Synthetic Four Sections',times:['09:00'],startDate:'2026-10-14',endDate:'2026-10-16'}],
  intakeLogs:[],intakeCorrections:[],archiveHistory:[],timeHistory:[]
 };
-test('real protected four-page shell survives an offline restart without exposing plaintext',async({browser})=>{
+for (const language of ['ru', 'en', 'fil']) {
+test('[' + language + '] real protected four-page shell survives an offline restart without exposing plaintext',async({browser})=>{
  const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow'});
  const page=await context.newPage();
- await page.addInitScript(({key,data})=>{
+ await page.addInitScript(({key,data,language})=>{
   if(!localStorage.getItem('medcontrol_modular3_local_credential_v1')&&!localStorage.getItem('medcontrol_modular3_protected_state_v1'))
-   localStorage.setItem(key,JSON.stringify(data));
- },{key:SOURCE,data:sample});
+   localStorage.setItem(key,JSON.stringify({...data,settings:{...data.settings,interfaceLanguage:language}}));
+ },{key:SOURCE,data:sample,language});
  await page.goto(BASE+'/modular3-protected.html?rehearsal=1');
  await page.locator('#password').fill(PASS);
  page.once('dialog',dialog=>dialog.accept());
@@ -60,3 +61,5 @@ test('real protected four-page shell survives an offline restart without exposin
  }
  await context.close();
 });
+
+}
