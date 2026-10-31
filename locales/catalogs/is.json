@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Raunverulegur inntökutími",
     "2aa328af0d4eb92d": "Notaðu leiðréttingu",
     "2b289eda0bc1bf2a": "Lyf tekin á réttum tíma",
-    "2b5032c35a7b479a": "Öllum lyfjum er lokið eða þeim hætt. Gögnin eru vistuð og fáanleg í Skjalasafn.",
     "2b58828b6759799d": "Engir áætlaðir inntökuatburðir voru vistaðir fyrir þessa eldri skrá.",
     "2b68a3d2ced4911d": "Leiðréttingar eru aðeins í boði til 23:59 á lyfjainntökudegi.",
     "2d5e1dc18067b945": "Eftir afpöntun verður þessi lyfjaskrá ekki lengur notuð",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Þessi tími er þegar til.",
     "fe3366e0a3b9adde": "Efniseining *",
     "feedada24dcdf297": "Upphafsdagur fjarlægður",
-    "ffdc6cc67a30cb67": "Á hverjum degi — áætluð lyfjainntaka myndast daglega á tilgreindum tíma."
+    "ffdc6cc67a30cb67": "Á hverjum degi — áætluð lyfjainntaka myndast daglega á tilgreindum tíma.",
+    "faf8a19de622912d": "Öllum lyfjum er lokið eða þeim hætt. Gögnin eru vistuð og fáanleg í Skjalasafn."
   }
 }

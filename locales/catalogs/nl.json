@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Werkelijke innametijd",
     "2aa328af0d4eb92d": "Correctie toepassen",
     "2b289eda0bc1bf2a": "Medicatie ingenomen op tijd",
-    "2b5032c35a7b479a": "Alle medicijnen zijn voltooid of geannuleerd. De gegevens worden opgeslagen en zijn beschikbaar in de Archief.",
     "2b58828b6759799d": "Er zijn geen geplande intake-evenementen opgeslagen voor dit oudere record.",
     "2b68a3d2ced4911d": "Correcties zijn slechts mogelijk tot 23.59 uur op de dag van medicatie-inname.",
     "2d5e1dc18067b945": "Na annulering wordt dit medicatiedossier niet meer gebruikt",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Deze tijd bestaat al.",
     "fe3366e0a3b9adde": "Inhoudseenheid *",
     "feedada24dcdf297": "Startdatum verwijderd",
-    "ffdc6cc67a30cb67": "Elke dag — er wordt dagelijks op het opgegeven tijdstip een geplande medicatie-inname gegenereerd."
+    "ffdc6cc67a30cb67": "Elke dag — er wordt dagelijks op het opgegeven tijdstip een geplande medicatie-inname gegenereerd.",
+    "faf8a19de622912d": "Alle medicijnen zijn voltooid of geannuleerd. De gegevens worden opgeslagen en zijn beschikbaar in de Archief."
   }
 }

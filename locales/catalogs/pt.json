@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Hora efetiva da toma",
     "2aa328af0d4eb92d": "Aplicar correção",
     "2b289eda0bc1bf2a": "Medicação tomada na hora certa",
-    "2b5032c35a7b479a": "Todos os medicamentos foram concluídos ou cancelados. Os dados são salvos e disponíveis no Arquivo.",
     "2b58828b6759799d": "Nenhum evento de entrada agendado foi salvo para este registro mais antigo.",
     "2b68a3d2ced4911d": "As correções estão disponíveis somente até às 23h59 do dia da ingestão do medicamento.",
     "2d5e1dc18067b945": "Após o cancelamento, este registro de medicação não será mais utilizado",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Esse tempo já existe.",
     "fe3366e0a3b9adde": "Unidade de conteúdo *",
     "feedada24dcdf297": "Data de início removida",
-    "ffdc6cc67a30cb67": "Todos os dias — uma ingestão programada de medicamento é gerada diariamente no horário especificado."
+    "ffdc6cc67a30cb67": "Todos os dias — uma ingestão programada de medicamento é gerada diariamente no horário especificado.",
+    "faf8a19de622912d": "Todos os medicamentos foram concluídos ou cancelados. Os dados são salvos e disponíveis no Arquivo."
   }
 }

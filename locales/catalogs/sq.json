@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Koha aktuale e marrjes",
     "2aa328af0d4eb92d": "Aplikoni korrigjimin",
     "2b289eda0bc1bf2a": "Ilaçe të marra në kohë",
-    "2b5032c35a7b479a": "Të gjitha medikamentet janë përfunduar ose anuluar. Të dhënat ruhen dhe disponohen në Arkivi.",
     "2b58828b6759799d": "Asnjë ngjarje e planifikuar e marrjes nuk u ruajt për këtë regjistrim të vjetër.",
     "2b68a3d2ced4911d": "Korrigjimet janë të disponueshme vetëm deri në orën 23:59 të ditës së marrjes së ilaçeve.",
     "2d5e1dc18067b945": "Pas anulimit, ky rekord mjekimi nuk do të përdoret më",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Kjo kohë tashmë ekziston.",
     "fe3366e0a3b9adde": "Njësia e përmbajtjes *",
     "feedada24dcdf297": "Data e fillimit u hoq",
-    "ffdc6cc67a30cb67": "Çdo ditë - një marrje e planifikuar e barnave gjenerohet çdo ditë në kohën e caktuar."
+    "ffdc6cc67a30cb67": "Çdo ditë - një marrje e planifikuar e barnave gjenerohet çdo ditë në kohën e caktuar.",
+    "faf8a19de622912d": "Të gjitha medikamentet janë përfunduar ose anuluar. Të dhënat ruhen dhe disponohen në Arkivi."
   }
 }

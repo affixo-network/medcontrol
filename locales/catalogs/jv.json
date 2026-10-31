@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "wektu intake nyata",
     "2aa328af0d4eb92d": "Aplikasi koreksi",
     "2b289eda0bc1bf2a": "Obat dijupuk ing wektu",
-    "2b5032c35a7b479a": "Kabeh obat wis rampung utawa dibatalake. Data disimpen lan kasedhiya ing Arsip.",
     "2b58828b6759799d": "Ora ana acara intake sing dijadwal sing disimpen kanggo rekaman lawas iki.",
     "2b68a3d2ced4911d": "Koreksi mung kasedhiya nganti 23:59 ing dina intake obat.",
     "2d5e1dc18067b945": "Sawise dibatalake, rekaman obat iki ora bakal digunakake maneh",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Wektu iki wis ana.",
     "fe3366e0a3b9adde": "Unit konten *",
     "feedada24dcdf297": "Tanggal wiwitan dibusak",
-    "ffdc6cc67a30cb67": "Saben dina - asupan obat sing dijadwal digawe saben dina ing wektu sing ditemtokake."
+    "ffdc6cc67a30cb67": "Saben dina - asupan obat sing dijadwal digawe saben dina ing wektu sing ditemtokake.",
+    "faf8a19de622912d": "Kabeh obat wis rampung utawa dibatalake. Data disimpen lan kasedhiya ing Arsip."
   }
 }

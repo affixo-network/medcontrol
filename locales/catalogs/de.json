@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Tatsächliche Einnahmezeit",
     "2aa328af0d4eb92d": "Korrektur anwenden",
     "2b289eda0bc1bf2a": "Medikamente eingenommen pünktlich",
-    "2b5032c35a7b479a": "Alle Medikamente sind abgeschlossen oder abgebrochen. Die Daten werden gespeichert und stehen im Archiv zur Verfügung.",
     "2b58828b6759799d": "Für diesen älteren Datensatz wurden keine geplanten Aufnahmeereignisse gespeichert.",
     "2b68a3d2ced4911d": "Korrekturen sind nur bis 23:59 Uhr am Tag der Medikamenteneinnahme möglich.",
     "2d5e1dc18067b945": "Nach der Stornierung wird dieser Medikamentendatensatz nicht mehr verwendet",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Diese Zeit existiert bereits.",
     "fe3366e0a3b9adde": "Inhaltseinheit *",
     "feedada24dcdf297": "Startdatum entfernt",
-    "ffdc6cc67a30cb67": "Jeden Tag – täglich zur angegebenen Zeit wird eine geplante Medikamenteneinnahme generiert."
+    "ffdc6cc67a30cb67": "Jeden Tag – täglich zur angegebenen Zeit wird eine geplante Medikamenteneinnahme generiert.",
+    "faf8a19de622912d": "Alle Medikamente sind abgeschlossen oder abgebrochen. Die Daten werden gespeichert und stehen im Archiv zur Verfügung."
   }
 }

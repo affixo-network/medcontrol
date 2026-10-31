@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Rzeczywisty czas spożycia",
     "2aa328af0d4eb92d": "Zastosuj korektę",
     "2b289eda0bc1bf2a": "Przyjęte leki na czas",
-    "2b5032c35a7b479a": "Wszystkie leki zostały zakończone lub anulowane. Dane są zapisywane i dostępne w pliku Archiwum.",
     "2b58828b6759799d": "Dla tego starszego rekordu nie zapisano żadnych zaplanowanych zdarzeń przyjmowania.",
     "2b68a3d2ced4911d": "Korekty są dostępne tylko do godziny 23:59 w dniu przyjęcia leku.",
     "2d5e1dc18067b945": "Po anulowaniu ten zapis leku nie będzie już używany",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Ten czas już istnieje.",
     "fe3366e0a3b9adde": "Jednostka treści *",
     "feedada24dcdf297": "Usunięto datę rozpoczęcia",
-    "ffdc6cc67a30cb67": "Codziennie — codziennie o określonej godzinie generowane jest zaplanowane przyjęcie leku."
+    "ffdc6cc67a30cb67": "Codziennie — codziennie o określonej godzinie generowane jest zaplanowane przyjęcie leku.",
+    "faf8a19de622912d": "Wszystkie leki zostały zakończone lub anulowane. Dane są zapisywane i dostępne w pliku Archiwum."
   }
 }

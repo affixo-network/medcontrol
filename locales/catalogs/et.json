@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "tegelik sisselaskeaeg",
     "2aa328af0d4eb92d": "rakendage parandus",
     "2b289eda0bc1bf2a": "võetud ravimid õigeaegselt",
-    "2b5032c35a7b479a": "kõik ravimid on lõpetatud või tühistatud. Andmed salvestatakse ja on saadaval arhiiv-is.",
     "2b58828b6759799d": "selle vanema kirje jaoks ei salvestatud ühtegi plaanitud vastuvõtusündmust.",
     "2b68a3d2ced4911d": "parandused on saadaval ainult kuni kella 23:59-ni ravimi võtmise päeval.",
     "2d5e1dc18067b945": "pärast tühistamist seda ravimikirjet enam ei kasutata",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "see aeg on juba olemas.",
     "fe3366e0a3b9adde": "sisuüksus *",
     "feedada24dcdf297": "alguskuupäev on eemaldatud",
-    "ffdc6cc67a30cb67": "iga päev — iga päev genereeritakse määratud kellaajal plaaniline ravimi tarbimine."
+    "ffdc6cc67a30cb67": "iga päev — iga päev genereeritakse määratud kellaajal plaaniline ravimi tarbimine.",
+    "faf8a19de622912d": "kõik ravimid on lõpetatud või tühistatud. Andmed salvestatakse ja on saadaval arhiiv-is."
   }
 }

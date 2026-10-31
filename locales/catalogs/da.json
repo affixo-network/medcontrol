@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Faktisk indtagelsestid",
     "2aa328af0d4eb92d": "Anvend korrektion",
     "2b289eda0bc1bf2a": "Medicin taget til tiden",
-    "2b5032c35a7b479a": "Alle medicin er afsluttet eller annulleret. Dataene er gemt og tilgængelige i Arkiv.",
     "2b58828b6759799d": "Ingen planlagte indtagsbegivenheder blev gemt for denne ældre rekord.",
     "2b68a3d2ced4911d": "Rettelser er kun tilgængelige indtil kl. 23.59 på dagen for medicinindtagelse.",
     "2d5e1dc18067b945": "Efter annullering vil denne medicinjournal ikke længere blive brugt",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Denne tid eksisterer allerede.",
     "fe3366e0a3b9adde": "Indholdsenhed *",
     "feedada24dcdf297": "Startdato fjernet",
-    "ffdc6cc67a30cb67": "Hver dag — et planlagt medicinindtag genereres dagligt på det angivne tidspunkt."
+    "ffdc6cc67a30cb67": "Hver dag — et planlagt medicinindtag genereres dagligt på det angivne tidspunkt.",
+    "faf8a19de622912d": "Alle medicin er afsluttet eller annulleret. Dataene er gemt og tilgængelige i Arkiv."
   }
 }

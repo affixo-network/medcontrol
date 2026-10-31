@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Dejanski čas vnosa",
     "2aa328af0d4eb92d": "Uporabi popravek",
     "2b289eda0bc1bf2a": "Zaužito zdravilo pravočasno",
-    "2b5032c35a7b479a": "Vsa zdravila so dokončana ali preklicana. Podatki so shranjeni in na voljo v Arhiv.",
     "2b58828b6759799d": "Za ta starejši zapis ni bil shranjen noben načrtovani dogodek vnosa.",
     "2b68a3d2ced4911d": "Popravki so na voljo le do 23:59 na dan zaužitja zdravila.",
     "2d5e1dc18067b945": "Po preklicu ta zapis o zdravilih ne bo več uporabljen",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Ta čas že obstaja.",
     "fe3366e0a3b9adde": "Enota vsebine *",
     "feedada24dcdf297": "Začetni datum je odstranjen",
-    "ffdc6cc67a30cb67": "Vsak dan — načrtovani odmerek zdravila se ustvari dnevno ob določenem času."
+    "ffdc6cc67a30cb67": "Vsak dan — načrtovani odmerek zdravila se ustvari dnevno ob določenem času.",
+    "faf8a19de622912d": "Vsa zdravila so dokončana ali preklicana. Podatki so shranjeni in na voljo v Arhiv."
   }
 }

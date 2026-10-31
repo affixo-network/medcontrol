@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Faktiki qəbul vaxtı",
     "2aa328af0d4eb92d": "Düzəliş tətbiq edin",
     "2b289eda0bc1bf2a": "Dərman qəbul edildi vaxtında",
-    "2b5032c35a7b479a": "Bütün dərmanlar tamamlandı və ya ləğv edildi. Məlumat saxlanılır və Arxiv-də mövcuddur.",
     "2b58828b6759799d": "Bu köhnə qeyd üçün heç bir planlaşdırılmış qəbul hadisəsi yadda saxlanmayıb.",
     "2b68a3d2ced4911d": "Düzəlişlər yalnız dərman qəbul edildiyi gün saat 23:59-a qədər mümkündür.",
     "2d5e1dc18067b945": "Ləğv edildikdən sonra bu dərman qeydi daha istifadə olunmayacaq",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Bu vaxt artıq mövcuddur.",
     "fe3366e0a3b9adde": "Məzmun vahidi *",
     "feedada24dcdf297": "Başlama tarixi silindi",
-    "ffdc6cc67a30cb67": "Hər gün — təyin olunmuş vaxtda hər gün planlaşdırılmış dərman qəbulu yaradılır."
+    "ffdc6cc67a30cb67": "Hər gün — təyin olunmuş vaxtda hər gün planlaşdırılmış dərman qəbulu yaradılır.",
+    "faf8a19de622912d": "Bütün dərmanlar tamamlandı və ya ləğv edildi. Məlumat saxlanılır və Arxiv-də mövcuddur."
   }
 }

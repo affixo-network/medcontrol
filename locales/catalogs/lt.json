@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "faktinis įleidimo laikas",
     "2aa328af0d4eb92d": "pritaikykite pataisą",
     "2b289eda0bc1bf2a": "vartojami vaistai laiku",
-    "2b5032c35a7b479a": "visi vaistai baigti arba atšaukti. Duomenys išsaugomi ir pasiekiami archyvas.",
     "2b58828b6759799d": "Šiam senesniam įrašui nebuvo išsaugoti suplanuoti priėmimo įvykiai.",
     "2b68a3d2ced4911d": "Koreguoti galima tik iki 23:59 vaisto vartojimo dieną.",
     "2d5e1dc18067b945": "po atšaukimo šis vaistų įrašas nebebus naudojamas",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Šis laikas jau yra.",
     "fe3366e0a3b9adde": "turinio vienetas *",
     "feedada24dcdf297": "pradžios data pašalinta",
-    "ffdc6cc67a30cb67": "Kiekvieną dieną – suplanuotas vaistų suvartojimas generuojamas kasdien nurodytu laiku."
+    "ffdc6cc67a30cb67": "Kiekvieną dieną – suplanuotas vaistų suvartojimas generuojamas kasdien nurodytu laiku.",
+    "faf8a19de622912d": "visi vaistai baigti arba atšaukti. Duomenys išsaugomi ir pasiekiami archyvas."
   }
 }

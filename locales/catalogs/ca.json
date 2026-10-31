@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Temps d'admissió real",
     "2aa328af0d4eb92d": "aplicar la correcció",
     "2b289eda0bc1bf2a": "medicació presa a temps",
-    "2b5032c35a7b479a": "Tots els medicaments s'han completat o cancel·lat. Les dades es guarden i estan disponibles al Arxiu.",
     "2b58828b6759799d": "no s'ha desat cap esdeveniment d'ingrés programat per a aquest registre anterior.",
     "2b68a3d2ced4911d": "les correccions només estan disponibles fins a les 23:59 del dia de la ingesta del medicament.",
     "2d5e1dc18067b945": "després de la cancel·lació, aquest registre de medicaments ja no s'utilitzarà",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Aquest temps ja existeix.",
     "fe3366e0a3b9adde": "unitat de contingut *",
     "feedada24dcdf297": "S'ha eliminat la data d'inici",
-    "ffdc6cc67a30cb67": "Cada dia: es genera una ingesta de medicaments programada diàriament a l'hora especificada."
+    "ffdc6cc67a30cb67": "Cada dia: es genera una ingesta de medicaments programada diàriament a l'hora especificada.",
+    "faf8a19de622912d": "Tots els medicaments s'han completat o cancel·lat. Les dades es guarden i estan disponibles al Arxiu."
   }
 }

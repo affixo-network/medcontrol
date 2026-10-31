@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Tempo de admisión real",
     "2aa328af0d4eb92d": "aplicar corrección",
     "2b289eda0bc1bf2a": "Medicamento tomado a tempo",
-    "2b5032c35a7b479a": "Todos os medicamentos son completados ou cancelados. Os datos gárdanse e están dispoñibles no Arquivo.",
     "2b58828b6759799d": "Non se gardou ningún evento de admisión programado para este rexistro anterior.",
     "2b68a3d2ced4911d": "as correccións só están dispoñibles ata as 23:59 do día da toma do medicamento.",
     "2d5e1dc18067b945": "despois da cancelación, este rexistro de medicamentos xa non se utilizará",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Esta vez xa existe.",
     "fe3366e0a3b9adde": "Unidade de contido *",
     "feedada24dcdf297": "eliminouse a data de inicio",
-    "ffdc6cc67a30cb67": "Todos os días: xérase diariamente unha inxestión de medicamentos programada á hora especificada."
+    "ffdc6cc67a30cb67": "Todos os días: xérase diariamente unha inxestión de medicamentos programada á hora especificada.",
+    "faf8a19de622912d": "Todos os medicamentos son completados ou cancelados. Os datos gárdanse e están dispoñibles no Arquivo."
   }
 }

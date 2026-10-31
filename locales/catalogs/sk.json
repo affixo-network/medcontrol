@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Skutočný čas príjmu",
     "2aa328af0d4eb92d": "Použite korekciu",
     "2b289eda0bc1bf2a": "Užívané lieky načas",
-    "2b5032c35a7b479a": "Všetky lieky sú dokončené alebo zrušené. Údaje sú uložené a dostupné v Archív.",
     "2b58828b6759799d": "Pre tento starší záznam neboli uložené žiadne plánované udalosti príjmu.",
     "2b68a3d2ced4911d": "Korekcie sú dostupné len do 23:59 v deň užitia lieku.",
     "2d5e1dc18067b945": "Po zrušení sa tento záznam o liekoch už nebude používať",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Tento čas už existuje.",
     "fe3366e0a3b9adde": "Obsahová jednotka *",
     "feedada24dcdf297": "Dátum začiatku bol odstránený",
-    "ffdc6cc67a30cb67": "Každý deň – naplánovaný príjem liekov sa generuje denne v určenom čase."
+    "ffdc6cc67a30cb67": "Každý deň – naplánovaný príjem liekov sa generuje denne v určenom čase.",
+    "faf8a19de622912d": "Všetky lieky sú dokončené alebo zrušené. Údaje sú uložené a dostupné v Archív."
   }
 }

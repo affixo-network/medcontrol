@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Tényleges beviteli idő",
     "2aa328af0d4eb92d": "Korrekció alkalmazása",
     "2b289eda0bc1bf2a": "Bevett gyógyszer időben",
-    "2b5032c35a7b479a": "Minden gyógyszert befejeztek vagy töröltek. Az adatok a Archívum-ben vannak elmentve és elérhetők.",
     "2b58828b6759799d": "Ehhez a régebbi rekordhoz nem mentettek ütemezett beviteli eseményeket.",
     "2b68a3d2ced4911d": "A korrekciókra csak a gyógyszerfelvétel napján 23:59-ig van lehetőség.",
     "2d5e1dc18067b945": "A törlést követően ez a gyógyszerrekord többé nem kerül felhasználásra",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Ez az idő már létezik.",
     "fe3366e0a3b9adde": "Tartalomegység *",
     "feedada24dcdf297": "Kezdő dátum eltávolítva",
-    "ffdc6cc67a30cb67": "Minden nap – ütemezett gyógyszerbevitelt generálunk naponta a megadott időpontban."
+    "ffdc6cc67a30cb67": "Minden nap – ütemezett gyógyszerbevitelt generálunk naponta a megadott időpontban.",
+    "faf8a19de622912d": "Minden gyógyszert befejeztek vagy töröltek. Az adatok a Archívum-ben vannak elmentve és elérhetők."
   }
 }

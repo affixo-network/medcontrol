@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Stvarno vrijeme unosa",
     "2aa328af0d4eb92d": "Primijeni ispravak",
     "2b289eda0bc1bf2a": "Uzeti lijekovi na vrijeme",
-    "2b5032c35a7b479a": "Svi lijekovi su dovršeni ili otkazani. Podaci su spremljeni i dostupni u Arhiva.",
     "2b58828b6759799d": "Nijedan planirani događaj unosa nije spremljen za ovaj stariji zapis.",
     "2b68a3d2ced4911d": "Ispravci su dostupni samo do 23:59 na dan uzimanja lijeka.",
     "2d5e1dc18067b945": "Nakon otkazivanja, ovaj zapis o lijekovima više se neće koristiti",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Ovo vrijeme već postoji.",
     "fe3366e0a3b9adde": "Jedinica sadržaja *",
     "feedada24dcdf297": "Datum početka uklonjen",
-    "ffdc6cc67a30cb67": "Svaki dan — planirani unos lijeka generira se dnevno u određeno vrijeme."
+    "ffdc6cc67a30cb67": "Svaki dan — planirani unos lijeka generira se dnevno u određeno vrijeme.",
+    "faf8a19de622912d": "Svi lijekovi su dovršeni ili otkazani. Podaci su spremljeni i dostupni u Arhiva."
   }
 }

@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Werklike inname tyd",
     "2aa328af0d4eb92d": "Pas regstelling toe",
     "2b289eda0bc1bf2a": "Medikasie geneem betyds",
-    "2b5032c35a7b479a": "Alle medikasie is voltooi of gekanselleer. Die data word gestoor en beskikbaar in die Argief.",
     "2b58828b6759799d": "Geen geskeduleerde innamegebeurtenisse is vir hierdie ouer rekord gestoor nie.",
     "2b68a3d2ced4911d": "Regstellings is slegs beskikbaar tot 23:59 op die dag van medikasie-inname.",
     "2d5e1dc18067b945": "Na kansellasie sal hierdie medikasierekord nie meer gebruik word nie",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Hierdie tyd bestaan reeds.",
     "fe3366e0a3b9adde": "Inhoud-eenheid *",
     "feedada24dcdf297": "Begindatum verwyder",
-    "ffdc6cc67a30cb67": "Elke dag — 'n geskeduleerde medikasie-inname word daagliks op die gespesifiseerde tyd gegenereer."
+    "ffdc6cc67a30cb67": "Elke dag — 'n geskeduleerde medikasie-inname word daagliks op die gespesifiseerde tyd gegenereer.",
+    "faf8a19de622912d": "Alle medikasie is voltooi of gekanselleer. Die data word gestoor en beskikbaar in die Argief."
   }
 }

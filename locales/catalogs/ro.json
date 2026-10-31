@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Timpul efectiv de admisie",
     "2aa328af0d4eb92d": "Aplicați corecția",
     "2b289eda0bc1bf2a": "Medicamente luate la timp",
-    "2b5032c35a7b479a": "Toate medicamentele sunt finalizate sau anulate. Datele sunt salvate și disponibile în Arhivă.",
     "2b58828b6759799d": "Nu au fost salvate evenimente de admisie programate pentru această înregistrare mai veche.",
     "2b68a3d2ced4911d": "Corecțiile sunt disponibile numai până la ora 23:59 în ziua consumului de medicamente.",
     "2d5e1dc18067b945": "După anulare, această înregistrare a medicamentelor nu va mai fi utilizată",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Acest timp există deja.",
     "fe3366e0a3b9adde": "Unitate de conținut *",
     "feedada24dcdf297": "Data de începere a fost eliminată",
-    "ffdc6cc67a30cb67": "În fiecare zi — se generează zilnic un aport de medicamente programat, la ora specificată."
+    "ffdc6cc67a30cb67": "În fiecare zi — se generează zilnic un aport de medicamente programat, la ora specificată.",
+    "faf8a19de622912d": "Toate medicamentele sunt finalizate sau anulate. Datele sunt salvate și disponibile în Arhivă."
   }
 }

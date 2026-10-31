@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Waktu asupan aktual",
     "2aa328af0d4eb92d": "Terapkan koreksi",
     "2b289eda0bc1bf2a": "Obat diminum tepat waktu",
-    "2b5032c35a7b479a": "Semua pengobatan telah selesai atau dibatalkan. Data disimpan dan tersedia di Arsip.",
     "2b58828b6759799d": "Tidak ada acara penerimaan terjadwal yang disimpan untuk rekaman lama ini.",
     "2b68a3d2ced4911d": "Koreksi hanya tersedia hingga pukul 23:59 pada hari pengambilan obat.",
     "2d5e1dc18067b945": "Setelah pembatalan, catatan pengobatan ini tidak lagi digunakan",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Kali ini sudah ada.",
     "fe3366e0a3b9adde": "Unit konten *",
     "feedada24dcdf297": "Tanggal mulai dihapus",
-    "ffdc6cc67a30cb67": "Setiap hari — asupan obat terjadwal dibuat setiap hari pada waktu yang ditentukan."
+    "ffdc6cc67a30cb67": "Setiap hari — asupan obat terjadwal dibuat setiap hari pada waktu yang ditentukan.",
+    "faf8a19de622912d": "Semua pengobatan telah selesai atau dibatalkan. Data disimpan dan tersedia di Arsip."
   }
 }

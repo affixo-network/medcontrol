@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Masa pengambilan sebenar",
     "2aa328af0d4eb92d": "Gunakan pembetulan",
     "2b289eda0bc1bf2a": "Ubat diambil tepat pada masanya",
-    "2b5032c35a7b479a": "Semua ubat telah selesai atau dibatalkan. Data disimpan dan tersedia dalam Arkib.",
     "2b58828b6759799d": "Tiada acara pengambilan berjadual disimpan untuk rekod lama ini.",
     "2b68a3d2ced4911d": "Pembetulan hanya tersedia sehingga 23:59 pada hari pengambilan ubat.",
     "2d5e1dc18067b945": "Selepas pembatalan, rekod ubat ini tidak akan digunakan lagi",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Kali ini sudah wujud.",
     "fe3366e0a3b9adde": "Unit kandungan *",
     "feedada24dcdf297": "Tarikh mula dialih keluar",
-    "ffdc6cc67a30cb67": "Setiap hari — pengambilan ubat berjadual dijana setiap hari pada masa yang ditetapkan."
+    "ffdc6cc67a30cb67": "Setiap hari — pengambilan ubat berjadual dijana setiap hari pada masa yang ditetapkan.",
+    "faf8a19de622912d": "Semua ubat telah selesai atau dibatalkan. Data disimpan dan tersedia dalam Arkib."
   }
 }

@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Thời gian tiếp nhận thực tế",
     "2aa328af0d4eb92d": "Áp dụng hiệu chỉnh",
     "2b289eda0bc1bf2a": "Đã dùng thuốc đúng giờ",
-    "2b5032c35a7b479a": "Tất cả thuốc đã được hoàn thành hoặc hủy bỏ. Dữ liệu được lưu và có sẵn trong Lưu trữ.",
     "2b58828b6759799d": "Không có sự kiện tiếp nhận theo lịch trình nào được lưu cho bản ghi cũ hơn này.",
     "2b68a3d2ced4911d": "Việc chỉnh sửa chỉ được thực hiện cho đến 23:59 vào ngày dùng thuốc.",
     "2d5e1dc18067b945": "Sau khi hủy, hồ sơ thuốc này sẽ không được sử dụng nữa",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Thời gian này đã tồn tại.",
     "fe3366e0a3b9adde": "Đơn vị nội dung *",
     "feedada24dcdf297": "Đã xóa ngày bắt đầu",
-    "ffdc6cc67a30cb67": "Hàng ngày — lượng thuốc uống theo lịch trình được tạo ra hàng ngày vào thời gian đã chỉ định."
+    "ffdc6cc67a30cb67": "Hàng ngày — lượng thuốc uống theo lịch trình được tạo ra hàng ngày vào thời gian đã chỉ định.",
+    "faf8a19de622912d": "Tất cả thuốc đã được hoàn thành hoặc hủy bỏ. Dữ liệu được lưu và có sẵn trong Lưu trữ."
   }
 }

@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Am iontógála iarbhír",
     "2aa328af0d4eb92d": "Cuir ceartúchán i bhfeidhm",
     "2b289eda0bc1bf2a": "Glacadh cógas in am",
-    "2b5032c35a7b479a": "Tá gach cógas críochnaithe nó curtha ar ceal. Tá na sonraí sábháilte agus ar fáil sa Cartlann.",
     "2b58828b6759799d": "Níor sábháladh aon imeachtaí iontógála sceidealta don taifead níos sine seo.",
     "2b68a3d2ced4911d": "Níl ceartúcháin ar fáil ach go dtí 23:59 ar an lá a n-iontógáil cógais.",
     "2d5e1dc18067b945": "Tar éis cealú, ní úsáidfear an taifead cógais seo a thuilleadh",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Tá an uair seo ann cheana féin.",
     "fe3366e0a3b9adde": "Aonad ábhair *",
     "feedada24dcdf297": "Baineadh an dáta tosaithe",
-    "ffdc6cc67a30cb67": "Gach lá — gintear iontógáil cógas sceidealta go laethúil ag an am sonraithe."
+    "ffdc6cc67a30cb67": "Gach lá — gintear iontógáil cógas sceidealta go laethúil ag an am sonraithe.",
+    "faf8a19de622912d": "Tá gach cógas críochnaithe nó curtha ar ceal. Tá na sonraí sábháilte agus ar fáil sa Cartlann."
   }
 }

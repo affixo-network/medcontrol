@@ -131,7 +131,7 @@ window.medcontrolScriptReady = (async function(){
 
   function showCycleReady(){
     if(document.getElementById('medControlCycleReady'))return;
-    const html=`<section id="medControlCycleReady" class="card" style="border:2px solid #111827"><h2>Цикл завершён</h2><p>Все препараты завершены или отменены. Данные сохранены и доступны в Архиве.</p><p><strong>Сначала проверьте Архив.</strong> После проверки можно начать новый цикл.</p><button type="button" onclick="manualMedControlCycleReset()">Начать заново</button></section>`;
+    const html=`<section id="medControlCycleReady" class="card" style="border:2px solid #111827"><h2>Цикл завершён</h2><p>Все курсы применения препаратов завершены или отменены. Данные сохранены и доступны в Архиве.</p><p><strong>Сначала проверьте Архив.</strong> После проверки можно начать новый цикл.</p><button type="button" onclick="manualMedControlCycleReset()">Начать заново</button></section>`;
     const topbar=document.querySelector('.topbar');
     if(topbar)topbar.insertAdjacentHTML('afterend',html);
     else(document.querySelector('.wrap')||document.body).insertAdjacentHTML('afterbegin',html);

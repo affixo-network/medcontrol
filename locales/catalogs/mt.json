@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Ħin attwali tad-dħul",
     "2aa328af0d4eb92d": "Applika l-korrezzjoni",
     "2b289eda0bc1bf2a": "Medikazzjoni meħuda fil-ħin",
-    "2b5032c35a7b479a": "Il-mediċini kollha jitlestew jew jiġu kkanċellati. Id-dejta tiġi ffrankata u disponibbli fiż-Arkivju.",
     "2b58828b6759799d": "L-ebda avveniment ta' teħid skedat ma ġie salvat għal dan ir-rekord antik.",
     "2b68a3d2ced4911d": "Korrezzjonijiet huma disponibbli biss sa 23:59 fil-jum tat-teħid tal-medikazzjoni.",
     "2d5e1dc18067b945": "Wara l-kanċellazzjoni, dan ir-rekord tal-medikazzjoni mhux se jibqa' jintuża",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Din id-darba diġà teżisti.",
     "fe3366e0a3b9adde": "Unità tal-kontenut *",
     "feedada24dcdf297": "Id-data tal-bidu tneħħiet",
-    "ffdc6cc67a30cb67": "Kuljum — teħid ta' medikazzjoni skedat jiġi ġġenerat kuljum fil-ħin speċifikat."
+    "ffdc6cc67a30cb67": "Kuljum — teħid ta' medikazzjoni skedat jiġi ġġenerat kuljum fil-ħin speċifikat.",
+    "faf8a19de622912d": "Il-mediċini kollha jitlestew jew jiġu kkanċellati. Id-dejta tiġi ffrankata u disponibbli fiż-Arkivju."
   }
 }

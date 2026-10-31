@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "tempo di assunzione effettivo",
     "2aa328af0d4eb92d": "applica la correzione",
     "2b289eda0bc1bf2a": "Farmaco assunto puntuale",
-    "2b5032c35a7b479a": "Tutti i farmaci sono stati completati o annullati. I dati vengono salvati e disponibili in Archivio.",
     "2b58828b6759799d": "Nessun evento di assunzione pianificato è stato salvato per questo record precedente.",
     "2b68a3d2ced4911d": "Le correzioni sono disponibili solo fino alle 23:59 del giorno di assunzione del farmaco.",
     "2d5e1dc18067b945": "Dopo la cancellazione, questa cartella clinica non verrà più utilizzata",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Questa volta esiste già.",
     "fe3366e0a3b9adde": "Unità di contenuto *",
     "feedada24dcdf297": "data di inizio rimossa",
-    "ffdc6cc67a30cb67": "Ogni giorno: l'assunzione di farmaci programmata viene generata quotidianamente all'ora specificata."
+    "ffdc6cc67a30cb67": "Ogni giorno: l'assunzione di farmaci programmata viene generata quotidianamente all'ora specificata.",
+    "faf8a19de622912d": "Tutti i farmaci sono stati completati o annullati. I dati vengono salvati e disponibili in Archivio."
   }
 }

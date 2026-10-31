@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Amser cymeriant gwirioneddol",
     "2aa328af0d4eb92d": "Cymhwyso cywiriad",
     "2b289eda0bc1bf2a": "Meddyginiaeth a gymerwyd ar amser",
-    "2b5032c35a7b479a": "Pob meddyginiaeth yn cael ei chwblhau neu ei chanslo. Mae'r data yn cael ei gadw ac ar gael yn y Archif.",
     "2b58828b6759799d": "Ni arbedwyd unrhyw ddigwyddiadau derbyn a drefnwyd ar gyfer y cofnod hŷn hwn.",
     "2b68a3d2ced4911d": "Dim ond tan 23:59 ar y diwrnod y cymerir meddyginiaeth y mae cywiriadau ar gael.",
     "2d5e1dc18067b945": "Ar ôl canslo, ni fydd y cofnod meddyginiaeth hwn yn cael ei ddefnyddio mwyach",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Mae'r amser hwn eisoes yn bodoli.",
     "fe3366e0a3b9adde": "Uned gynnwys *",
     "feedada24dcdf297": "Dyddiad cychwyn wedi'i ddileu",
-    "ffdc6cc67a30cb67": "Bob dydd - cynhyrchir cymeriant meddyginiaeth wedi'i amserlennu bob dydd ar yr amser penodedig."
+    "ffdc6cc67a30cb67": "Bob dydd - cynhyrchir cymeriant meddyginiaeth wedi'i amserlennu bob dydd ar yr amser penodedig.",
+    "faf8a19de622912d": "Pob meddyginiaeth yn cael ei chwblhau neu ei chanslo. Mae'r data yn cael ei gadw ac ar gael yn y Archif."
   }
 }

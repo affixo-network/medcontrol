@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Todellinen imuaika",
     "2aa328af0d4eb92d": "Käytä korjausta",
     "2b289eda0bc1bf2a": "Lääkitys otettu ajoissa",
-    "2b5032c35a7b479a": "Kaikki lääkkeet on suoritettu tai peruutettu. Tiedot tallennetaan ja ne ovat saatavilla Arkisto:ssä.",
     "2b58828b6759799d": "Tälle vanhemmalle tietueelle ei tallennettu ajoitettuja vastaanottotapahtumia.",
     "2b68a3d2ced4911d": "Korjaukset ovat saatavilla vain lääkkeenottopäivänä klo 23.59 asti.",
     "2d5e1dc18067b945": "Peruutuksen jälkeen tätä lääketietuetta ei enää käytetä",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Tämä aika on jo olemassa.",
     "fe3366e0a3b9adde": "Sisältöyksikkö *",
     "feedada24dcdf297": "Aloituspäivämäärä poistettu",
-    "ffdc6cc67a30cb67": "Joka päivä — ajoitettu lääkkeenotto luodaan päivittäin määritettyyn aikaan."
+    "ffdc6cc67a30cb67": "Joka päivä — ajoitettu lääkkeenotto luodaan päivittäin määritettyyn aikaan.",
+    "faf8a19de622912d": "Kaikki lääkkeet on suoritettu tai peruutettu. Tiedot tallennetaan ja ne ovat saatavilla Arkisto:ssä."
   }
 }

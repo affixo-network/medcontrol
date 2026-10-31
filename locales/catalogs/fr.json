@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Heure réelle de prise du médicament",
     "2aa328af0d4eb92d": "Appliquer la correction",
     "2b289eda0bc1bf2a": "Médicaments pris à l’heure",
-    "2b5032c35a7b479a": "Tous les médicaments sont terminés ou annulés. Les données sont enregistrées et disponibles dans le archiver.",
     "2b58828b6759799d": "Aucun événement d'admission planifié n'a été enregistré pour cet ancien enregistrement.",
     "2b68a3d2ced4911d": "Les corrections sont disponibles uniquement jusqu'à 23h59 le jour de la prise du médicament.",
     "2d5e1dc18067b945": "Après annulation, ce dossier de médicaments ne sera plus utilisé",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Cette heure existe déjà.",
     "fe3366e0a3b9adde": "Unité de contenu *",
     "feedada24dcdf297": "Date de début supprimée",
-    "ffdc6cc67a30cb67": "Chaque jour — une prise de médicament planifiée est générée quotidiennement à l'heure spécifiée."
+    "ffdc6cc67a30cb67": "Chaque jour — une prise de médicament planifiée est générée quotidiennement à l'heure spécifiée.",
+    "faf8a19de622912d": "Tous les médicaments sont terminés ou annulés. Les données sont enregistrées et disponibles dans le archiver."
   }
 }

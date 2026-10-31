@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Benetako sarrera-denbora",
     "2aa328af0d4eb92d": "Aplikatu zuzenketa",
     "2b289eda0bc1bf2a": "Hartutako botika garaiz",
-    "2b5032c35a7b479a": "sendagai guztiak amaitu edo bertan behera uzten dira. Datuak Artxiboan gorde eta eskuragarri daude.",
     "2b58828b6759799d": "Ez da programatutako sarrera-gertaerarik gorde erregistro zaharrago honetarako.",
     "2b68a3d2ced4911d": "Zuzenketak botikak hartzen diren eguneko 23:59ak arte bakarrik daude eskuragarri.",
     "2d5e1dc18067b945": "bertan behera utzi ondoren, botika-erregistro hau ez da gehiago erabiliko",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Oraingo hau jada existitzen da.",
     "fe3366e0a3b9adde": "Eduki unitatea *",
     "feedada24dcdf297": "Hasiera-data kendu da",
-    "ffdc6cc67a30cb67": "Egunero - programatutako botika-ingesta egunero sortzen da zehaztutako orduan."
+    "ffdc6cc67a30cb67": "Egunero - programatutako botika-ingesta egunero sortzen da zehaztutako orduan.",
+    "faf8a19de622912d": "sendagai guztiak amaitu edo bertan behera uzten dira. Datuak Artxiboan gorde eta eskuragarri daude."
   }
 }

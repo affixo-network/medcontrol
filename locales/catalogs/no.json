@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Faktisk inntakstid",
     "2aa328af0d4eb92d": "Bruk korreksjon",
     "2b289eda0bc1bf2a": "Medisiner tatt i tide",
-    "2b5032c35a7b479a": "Alle medisiner er fullført eller kansellert. Dataene er lagret og tilgjengelig i Arkiv.",
     "2b58828b6759799d": "Ingen planlagte inntakshendelser ble lagret for denne eldre posten.",
     "2b68a3d2ced4911d": "Rettelser er kun tilgjengelig frem til kl. 23.59 på dagen for medisininntak.",
     "2d5e1dc18067b945": "Etter kansellering vil denne medisinjournalen ikke lenger brukes",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Denne tiden eksisterer allerede.",
     "fe3366e0a3b9adde": "Innholdsenhet *",
     "feedada24dcdf297": "Startdato fjernet",
-    "ffdc6cc67a30cb67": "Hver dag – et planlagt medisininntak genereres daglig til det angitte tidspunktet."
+    "ffdc6cc67a30cb67": "Hver dag – et planlagt medisininntak genereres daglig til det angitte tidspunktet.",
+    "faf8a19de622912d": "Alle medisiner er fullført eller kansellert. Dataene er lagret og tilgjengelig i Arkiv."
   }
 }

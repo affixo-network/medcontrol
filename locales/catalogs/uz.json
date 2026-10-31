@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Haqiqiy qabul qilish vaqti",
     "2aa328af0d4eb92d": "Tuzatishni qo'llash",
     "2b289eda0bc1bf2a": "Qabul qilingan dori vaqtida",
-    "2b5032c35a7b479a": "Barcha dorilar tugallangan yoki bekor qilingan. Ma'lumotlar Arxiv da saqlanadi va mavjud.",
     "2b58828b6759799d": "Ushbu eski yozuv uchun rejalashtirilgan qabul qilish hodisalari saqlanmadi.",
     "2b68a3d2ced4911d": "Tuzatishlar faqat dori qabul qilingan kuni soat 23:59 gacha mavjud.",
     "2d5e1dc18067b945": "Bekor qilinganidan keyin ushbu dori yozuvi endi ishlatilmaydi",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Bu vaqt allaqachon mavjud.",
     "fe3366e0a3b9adde": "Tarkib birligi *",
     "feedada24dcdf297": "Boshlanish sanasi olib tashlandi",
-    "ffdc6cc67a30cb67": "Har kuni — belgilangan vaqtda har kuni rejalashtirilgan dori miqdori ishlab chiqariladi."
+    "ffdc6cc67a30cb67": "Har kuni — belgilangan vaqtda har kuni rejalashtirilgan dori miqdori ishlab chiqariladi.",
+    "faf8a19de622912d": "Barcha dorilar tugallangan yoki bekor qilingan. Ma'lumotlar Arxiv da saqlanadi va mavjud."
   }
 }

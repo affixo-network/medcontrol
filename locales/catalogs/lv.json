@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "faktiskais uzņemšanas laiks",
     "2aa328af0d4eb92d": "veiciet korekciju",
     "2b289eda0bc1bf2a": "lietotas zāles savlaicīgi",
-    "2b5032c35a7b479a": "visas zāles ir pabeigtas vai atceltas. Dati tiek saglabāti un pieejami arhīvs.",
     "2b58828b6759799d": "šim vecākajam ierakstam netika saglabāti plānotie uzņemšanas notikumi.",
     "2b68a3d2ced4911d": "Labojumi ir pieejami tikai līdz 23:59 zāļu lietošanas dienā.",
     "2d5e1dc18067b945": "pēc atcelšanas šis medikamentu ieraksts vairs netiks izmantots",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "šis laiks jau pastāv.",
     "fe3366e0a3b9adde": "satura vienība*",
     "feedada24dcdf297": "sākuma datums ir noņemts",
-    "ffdc6cc67a30cb67": "katru dienu — katru dienu noteiktā laikā tiek ģenerēta plānotā medikamentu uzņemšana."
+    "ffdc6cc67a30cb67": "katru dienu — katru dienu noteiktā laikā tiek ģenerēta plānotā medikamentu uzņemšana.",
+    "faf8a19de622912d": "visas zāles ir pabeigtas vai atceltas. Dati tiek saglabāti un pieejami arhīvs."
   }
 }

@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Fakta konsuma tempo",
     "2aa328af0d4eb92d": "Apliki korekton",
     "2b289eda0bc1bf2a": "Medikamento prenita ĝustatempe",
-    "2b5032c35a7b479a": "Ĉiuj medikamentoj estas kompletigitaj aŭ nuligitaj. La datumoj estas konservitaj kaj haveblaj en la Arkivo.",
     "2b58828b6759799d": "Neniuj planitaj konsumokazaĵoj estis konservitaj por ĉi tiu pli malnova rekordo.",
     "2b68a3d2ced4911d": "Korektoj disponeblas nur ĝis 23:59 en la tago de konsumado de medikamentoj.",
     "2d5e1dc18067b945": "Post nuligo, ĉi tiu medikamenta rekordo ne plu estos uzata",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Ĉi tiu tempo jam ekzistas.",
     "fe3366e0a3b9adde": "Enhava unuo *",
     "feedada24dcdf297": "Komenca dato forigita",
-    "ffdc6cc67a30cb67": "Ĉiutage - planita medikamenta konsumo estas generita ĉiutage je la difinita tempo."
+    "ffdc6cc67a30cb67": "Ĉiutage - planita medikamenta konsumo estas generita ĉiutage je la difinita tempo.",
+    "faf8a19de622912d": "Ĉiuj medikamentoj estas kompletigitaj aŭ nuligitaj. La datumoj estas konservitaj kaj haveblaj en la Arkivo."
   }
 }

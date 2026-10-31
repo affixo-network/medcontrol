@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Faktisk intagstid",
     "2aa328af0d4eb92d": "Tillämpa korrigering",
     "2b289eda0bc1bf2a": "Medicinering tagit i tid",
-    "2b5032c35a7b479a": "Alla mediciner är avslutade eller inställda. Uppgifterna sparas och är tillgängliga i Arkiv.",
     "2b58828b6759799d": "Inga schemalagda intagshändelser sparades för denna äldre post.",
     "2b68a3d2ced4911d": "Korrigeringar är endast tillgängliga fram till 23:59 dagen för medicinintag.",
     "2d5e1dc18067b945": "Efter avbokning kommer denna medicinpost inte längre att användas",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Den här tiden finns redan.",
     "fe3366e0a3b9adde": "Innehållsenhet *",
     "feedada24dcdf297": "Startdatum har tagits bort",
-    "ffdc6cc67a30cb67": "Varje dag — ett schemalagt läkemedelsintag genereras dagligen vid den angivna tiden."
+    "ffdc6cc67a30cb67": "Varje dag — ett schemalagt läkemedelsintag genereras dagligen vid den angivna tiden.",
+    "faf8a19de622912d": "Alla mediciner är avslutade eller inställda. Uppgifterna sparas och är tillgängliga i Arkiv."
   }
 }

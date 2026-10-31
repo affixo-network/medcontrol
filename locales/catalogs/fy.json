@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Werklike intake tiid",
     "2aa328af0d4eb92d": "Korreksje tapasse",
     "2b289eda0bc1bf2a": "Medikaasje nommen op tiid",
-    "2b5032c35a7b479a": "Alle medisinen binne foltôge of annulearre. De gegevens wurde bewarre en beskikber yn 'e Argyf.",
     "2b58828b6759799d": "Gjin plande yntakeveneminten waarden bewarre foar dit âldere rekord.",
     "2b68a3d2ced4911d": "Korreksjes binne allinich beskikber oant 23:59 oere op 'e dei fan medikaasjeopname.",
     "2d5e1dc18067b945": "Nei it annulearjen sil dit medikaasjerecord net mear brûkt wurde",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Dizze tiid bestiet al.",
     "fe3366e0a3b9adde": "Ynhâld ienheid *",
     "feedada24dcdf297": "Startdatum fuorthelle",
-    "ffdc6cc67a30cb67": "Elke dei - in plande medikaasjeopname wurdt alle dagen generearre op 'e opjûne tiid."
+    "ffdc6cc67a30cb67": "Elke dei - in plande medikaasjeopname wurdt alle dagen generearre op 'e opjûne tiid.",
+    "faf8a19de622912d": "Alle medisinen binne foltôge of annulearre. De gegevens wurde bewarre en beskikber yn 'e Argyf."
   }
 }

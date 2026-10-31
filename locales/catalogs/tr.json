@@ -146,7 +146,6 @@
     "29fcf847e36e927b": "Gerçek alım süresi",
     "2aa328af0d4eb92d": "Düzeltmeyi uygula",
     "2b289eda0bc1bf2a": "Alınan ilaç zamanında",
-    "2b5032c35a7b479a": "Tüm ilaçlar tamamlandı veya iptal edildi. Veriler Arşiv'ye kaydedilir ve kullanılabilir.",
     "2b58828b6759799d": "Bu eski kayıt için hiçbir planlanmış alım olayı kaydedilmedi.",
     "2b68a3d2ced4911d": "Düzeltmeler yalnızca ilacın alındığı gün saat 23:59'a kadar yapılabilir.",
     "2d5e1dc18067b945": "İptalden sonra bu ilaç kaydı artık kullanılmayacak",
@@ -643,6 +642,7 @@
     "fe16f78001b27412": "Bu süre zaten mevcut.",
     "fe3366e0a3b9adde": "İçerik birimi *",
     "feedada24dcdf297": "Başlangıç tarihi kaldırıldı",
-    "ffdc6cc67a30cb67": "Her gün — belirlenen saatte günlük olarak planlanmış bir ilaç alımı oluşturulur."
+    "ffdc6cc67a30cb67": "Her gün — belirlenen saatte günlük olarak planlanmış bir ilaç alımı oluşturulur.",
+    "faf8a19de622912d": "Tüm ilaçlar tamamlandı veya iptal edildi. Veriler Arşiv'ye kaydedilir ve kullanılabilir."
   }
 }
