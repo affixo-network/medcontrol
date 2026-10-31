@@ -66,10 +66,17 @@ test('validates every manifest language catalog against the Russian reference', 
     // Russian is the reference source, not a separately published catalog.
     if (code === 'ru') continue;
     const actual = JSON.parse(fs.readFileSync(path.join(root, 'locales/catalogs', code + '.json'), 'utf8'));
-    const checked = await loadCatalog(code, reference, async url => {
-      assert.equal(url, 'locales/catalogs/' + code + '.json');
-      return { ok: true, json: async () => actual };
-    });
+    let checked;
+    try {
+      checked = await loadCatalog(code, reference, async url => {
+        assert.equal(url, 'locales/catalogs/' + code + '.json');
+        return { ok: true, json: async () => actual };
+      });
+    } catch (error) {
+      const missing = Object.keys(reference).filter(key => !Object.hasOwn(actual.messages, key));
+      const extra = Object.keys(actual.messages).filter(key => !Object.hasOwn(reference, key));
+      throw new Error(`Catalog ${code}: ${error.message}; missing=${missing.join(',')}; extra=${extra.join(',')}`, { cause: error });
+    }
     assert.equal(checked.language, code);
     assert.equal(Object.keys(checked.messages).length, 639);
   }
