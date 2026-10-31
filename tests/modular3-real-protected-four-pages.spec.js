@@ -9,7 +9,8 @@ const sample={
  medications:[{id:'synthetic-four',name:'Synthetic Four Sections',times:['09:00'],startDate:'2026-10-14',endDate:'2026-10-16'}],
  intakeLogs:[],intakeCorrections:[],archiveHistory:[],timeHistory:[]
 };
-for (const language of ['ru', 'en', 'fil']) {
+const languages = require('../locales/manifest.json').map(entry => entry.code);
+for (const language of languages) {
 test('[' + language + '] real protected four-page shell survives an offline restart without exposing plaintext',async({browser})=>{
  const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow'});
  const page=await context.newPage();
