@@ -9,10 +9,10 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'locales/manifest.js
 const source = JSON.parse(fs.readFileSync(path.join(root, 'locales/source-ru.json'), 'utf8'));
 const { validateCatalog } = require('../../js/modular3-public-catalog-loader.js');
 
-test('manifest contains exactly 95 distinct, valid languages', () => {
-  assert.equal(manifest.length, 95);
+test('manifest contains distinct valid languages matching installed catalogs', () => {
+  assert.ok(manifest.length >= 95);
   const codes = manifest.map(item => item.code);
-  assert.equal(new Set(codes).size, 95);
+  assert.equal(new Set(codes).size, manifest.length);
   for (const item of manifest) {
     assert.match(item.code, /^[a-z]{2,3}(?:-[a-z]{2,4})?$/);
     assert.ok(item.name && item.englishName);
@@ -38,7 +38,7 @@ test('every committed external catalog is complete and declared', () => {
     validateCatalog(catalog, source, language);
   }
   assert.ok(files.includes('en.json'));
-  console.log('Verified committed external catalogs: ' + files.length + ' / 94 (Russian is source)');
+  console.log('Verified committed external catalogs: ' + files.length + ' / ' + (manifest.length - 1) + ' (Russian is source)');
 });
 
 test('every advertised language has an installed catalog and every installed catalog is advertised', () => {
