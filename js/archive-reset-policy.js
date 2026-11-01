@@ -111,6 +111,8 @@ window.medcontrolScriptReady = (async function(){
     }
     const {meds,current}=medicationState();
     if(!meds.length||current.length)return;
+    window.alert('Полный сброс временно недоступен в обычном режиме: прежние медицинские записи могут сохраниться в резервных копиях. Данные не изменены.');
+    return;
     if(!window.confirm('Начать заново?\n\nТекущий цикл уже находится в Архиве. После сброса рабочие данные этого цикла будут очищены. Резервная копия будет сохранена.'))return;
     resetInProgress=true;
     const oldState=getState();
