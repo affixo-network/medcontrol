@@ -295,6 +295,59 @@ async function run(){
   assert.ok((await entry.locator('body').innerText()).includes('VERSION 3'));
   console.log('PASS default protected entry opens complete original program without second password');
   await fresh.close();
+  // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
+  const resetContext=await browser.newContext({timezoneId:'Asia/Yerevan'});
+  await resetContext.route('**/*',route=>{
+    const u=new URL(route.request().url());
+    if(u.origin!==BASE){external.push(u.origin);return route.abort();}
+    return route.continue();
+  });
+  const resetPage=await resetContext.newPage();
+  resetPage.on('pageerror',e=>errors.push(e.message));
+  resetPage.on('dialog',d=>d.accept());
+  await resetPage.goto(BASE+'/modular3-protected.html');
+  await resetPage.evaluate(async password=>{
+    await window.MedControlModular3ProtectedSession.initialize({
+      settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},
+      medications:[{id:'synthetic-reset-course',name:'Synthetic Archived Course',archivedCompleted:true}],
+      intakeLogs:[{id:'synthetic-intake',medicationId:'synthetic-reset-course'}],
+      intakeCorrections:[{id:'synthetic-correction'}],
+      archiveHistory:[{id:'synthetic-history'}],
+      archivedCourses:[{id:'synthetic-archive'}]
+    },password);
+  },PASS);
+  await resetPage.goto(BASE+'/archive.html');
+  await resetPage.locator('#password').fill(PASS);
+  await resetPage.locator('#unlock').click();
+  await resetPage.waitForFunction(()=>typeof window.manualMedControlCycleReset==='function');
+  const syntheticReset=await resetPage.evaluate(async()=>{
+    const cloud=window.medcontrolCloudSnapshot;
+    const credential=localStorage.getItem('medcontrol_modular3_local_credential_v1');
+    window.medcontrolCloudSnapshot={
+      suspendForReset:async()=>({ok:true,skipped:true}),
+      verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
+      resumeAfterResetFailure:()=>{}
+    };
+    try{
+      await window.manualMedControlCycleReset();
+      const state=window.MedControlModular3ProtectedSession.read();
+      return {
+        empty:['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'].every(k=>Array.isArray(state[k])&&state[k].length===0),
+        credentialPreserved:credential!==null&&credential===localStorage.getItem('medcontrol_modular3_local_credential_v1'),
+        encryptedVaultPresent:localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null
+      };
+    }finally{window.medcontrolCloudSnapshot=cloud;}
+  });
+  assert.deepEqual(syntheticReset,{empty:true,credentialPreserved:true,encryptedVaultPresent:true});
+  await resetPage.goto(BASE+'/input.html');
+  await resetPage.locator('#password').fill(PASS);
+  await resetPage.locator('#unlock').click();
+  await resetPage.locator('#create_name').waitFor();
+  const reloaded=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
+  for(const key of ['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'])
+    assert.deepEqual(reloaded[key],[],key+' must stay empty after restart');
+  console.log('PASS T-038: isolated synthetic protected reset persists after password re-unlock');
+  await resetContext.close();
   assert.deepEqual(external,[],'Protected interface must not contact external services');
   assert.deepEqual(errors,[],'Interface must load without script errors');
   console.log('PASS no external service requests or uncaught browser errors');
