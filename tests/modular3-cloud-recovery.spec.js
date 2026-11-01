@@ -16,7 +16,7 @@ test('cloud sync: snapshot, deduplication, offline failure, retry, restore, no d
   window.STORAGE_KEY=key;
   const records=[];let offline=false;let seq=0;
   const query={
-   select(){return this;},order(){return this;},limit(){return this;},
+   select(){return this;},eq(){return this;},order(){return this;},limit(){return this;},
    async maybeSingle(){return offline?{data:null,error:{message:'network down'}}:{data:records.at(-1)||null,error:null};},
    insert(payload){this.payload=payload;return this;},
    async single(){if(offline)return {data:null,error:{message:'network down'}};const row={id:'mock-'+(++seq),state:this.payload.state,created_at:new Date().toISOString()};records.push(row);return {data:row,error:null};}
