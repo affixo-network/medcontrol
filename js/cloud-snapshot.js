@@ -29,7 +29,7 @@
       if(result.ok)retryState=null;
       else if(!result.skipped)retryState=captured;
       return result;
-    }).catch(error=>{retryState=captured;console.error('MedControl cloud snapshot failed.',error);return {ok:false,reason:'snapshot_exception',error};});
+    }).catch(error=>{if(!resetSuspended)retryState=captured;console.error('MedControl cloud snapshot failed.',error);return {ok:false,reason:'snapshot_exception',error};});
     return snapshotQueue;
   }
   function flushScheduledSnapshot(){
