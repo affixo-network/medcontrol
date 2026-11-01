@@ -119,7 +119,10 @@ window.medcontrolScriptReady = (async function(){
           delete state.replacedTimes;
         });
         resetCommitted=true;
-        await window.medcontrolNavigateTo('input');
+        // Navigation is secondary: the encrypted reset has already committed.
+        // Do not report a successful reset as failed solely because navigation fails.
+        try{await window.medcontrolNavigateTo('input');}
+        catch(navigationError){console.error('MedControl: reset committed, navigation failed.',navigationError);window.alert('Медицинские записи сброшены, но переход в раздел «Ввод» не выполнен. Откройте раздел вручную.');}
       }catch(error){window.alert('Не удалось начать новый цикл: '+error.message);}
       finally{
         if(!resetCommitted)cloudSnapshots?.resumeAfterResetFailure?.();
