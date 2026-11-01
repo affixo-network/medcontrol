@@ -135,6 +135,17 @@ window.medcontrolScriptReady = (async function(){
           delete state.replacedTimes;
         });
         resetCommitted=true;
+        // Verify that no legacy plaintext medical data appeared while the encrypted
+        // transaction was committing. Never report a complete wipe if it did.
+        const remainingLegacyKeys=[];
+        for(let i=0;i<localStorage.length;i++){
+          const key=localStorage.key(i);
+          if(key&&(key==='affixo_medcontrol_standard_v3'||
+            /^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)))
+            remainingLegacyKeys.push(key);
+        }
+        if(remainingLegacyKeys.length)
+          throw Error('После защищённого сброса обнаружены локальные медицинские копии. Полная очистка не подтверждена.');
         // Navigation is secondary: the encrypted reset has already committed.
         // Do not report a successful reset as failed solely because navigation fails.
         try{await window.medcontrolNavigateTo('input');}
