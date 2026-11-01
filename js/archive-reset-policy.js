@@ -69,7 +69,7 @@ window.medcontrolScriptReady = (async function(){
     // A meaningful creation draft is medical data not yet attached to an archived course.
     if(state.inputDraft?.meaningful)return false;
     const meds=state.medications;
-    if(!Array.isArray(meds)||!meds.length||meds.some(m=>!m||m.cancelled||m.archivedCompleted!==true||!m.id))return false;
+    if(!Array.isArray(meds)||!meds.length||meds.some(m=>!m||m.archivedCompleted!==true||!m.id))return false;
     const ids=new Set(meds.map(m=>String(m.id)));
     if(ids.size!==meds.length)return false;
     for(const field of ['intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory']){
