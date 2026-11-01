@@ -185,6 +185,10 @@ async function run(){
   assert.equal(await full.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3_pre_reset_backup')),null);
   console.log('PASS T-038: reset blocked without cloud inventory verification; medical records preserved');
   await full.goto(BASE+'/input.html');
+  if(await full.locator('#password').count()){
+   await full.locator('#password').fill(PASS);
+   await full.locator('#unlock').click();
+  }
   await full.locator('#create_name').waitFor();
   const blockedNavigation=await full.evaluate(async()=>{
    const native=Storage.prototype.setItem;
