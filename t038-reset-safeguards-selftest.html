@@ -32,9 +32,11 @@
   check('Cloud latest read checks suspension after network await',/if\(error\)return \{ok:false,reason:'snapshot_read_failed',error\};if\(resetSuspended\)return/.test(cloud));
   check('Cloud restore checks suspension after latest lookup',/const result=await getLatestCloudSnapshot\(\);if\(resetSuspended\)return/.test(cloud));
   check('Cloud restore checks suspension before local write',/const key=\`\$\{STORAGE_KEY\}_before_cloud_restore_\$\{Date\.now\(\)\}\`;if\(resetSuspended\)return/.test(cloud));
+  check('Inventory rejects reset suspension lost after await',/if\(!resetSuspended\)return \{ok:false,reason:'reset_no_longer_suspended'\}/.test(cloud));
+  check('Inventory rejects unavailable or invalid count',/if\(!Number\.isSafeInteger\(count\)\|\|count<0\)return \{ok:false,reason:'snapshot_inventory_count_unavailable'\}/.test(cloud));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===22;
+ const pass=results.every(x=>x.ok)&&results.length===24;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
