@@ -91,6 +91,14 @@ window.medcontrolScriptReady = (async function(){
         }else{
           throw Error('Проверка облачных резервных копий недоступна. Сброс отменён.');
         }
+        // T-038: never report a complete reset while legacy medical backups remain.
+        const residualBackupKeys=[
+          'affixo_medcontrol_standard_v3_pre_reset_backup',
+          'affixo_medcontrol_standard_v3_corrupt_backup',
+          'affixo_medcontrol_standard_v3_pre_modular_2_upgrade_backup'
+        ];
+        if(residualBackupKeys.some(key=>localStorage.getItem(key)!==null))
+          throw Error('Обнаружены локальные резервные копии медицинских данных. Полный сброс отменён.');
         await session.transact(state=>{
           if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
           delete state.cycleBackups;
