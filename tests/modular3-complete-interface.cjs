@@ -566,6 +566,40 @@ async function run(){
   const persistedNewCourse=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.deepEqual(persistedNewCourse.medications.map(m=>m.id),['t046-new-course'],'T-046 new course must persist after password re-unlock');
   console.log('PASS T-046: new synthetic course saved after reset and persists after password re-unlock');
+
+  // T-046 UI: use the real Input form and both confirmation steps.
+  await resetPage.evaluate(()=>{
+    const set=(id,value)=>{const el=document.getElementById(id);if(!el)throw Error('Missing form field '+id);el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));};
+    set('create_name','Synthetic Form Course After Reset');
+    set('create_manufacturer','Synthetic Manufacturer');
+    set('create_contentValue','1');
+    const content=document.getElementById('create_contentUnit');
+    if(!content?.options.length)throw Error('Missing content unit options');
+    set('create_contentUnit',[...content.options].find(o=>o.value&&o.value!=='other')?.value||'');
+    set('create_intakeQuantity','1');
+    const intake=document.getElementById('create_intakeUnit');
+    if(!intake?.options.length)throw Error('Missing intake unit options');
+    set('create_intakeUnit',[...intake.options].find(o=>o.value&&o.value!=='other')?.value||'');
+    set('create_details','Synthetic UI test only');
+    set('create_scheduleType','daily');
+    set('create_times','09:00');
+    set('create_startDate','2026-10-23');
+    set('create_endDate','2026-10-24');
+    window.createMedication();
+  });
+  await resetPage.locator('#medicationConfirmDialog[open]').waitFor();
+  await resetPage.evaluate(()=>window.proceedMedicationCreateConfirmation());
+  await resetPage.locator('#medicationSaveDialog[open]').waitFor();
+  await resetPage.evaluate(()=>window.confirmMedicationCreate());
+  await resetPage.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.name==='Synthetic Form Course After Reset'));
+  await resetPage.goto(BASE+'/input.html');
+  await resetPage.locator('#password').fill(PASS);
+  await resetPage.locator('#unlock').click();
+  await resetPage.locator('#create_name').waitFor();
+  const uiCreated=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications);
+  assert.equal(uiCreated.filter(m=>m.name==='Synthetic Form Course After Reset').length,1,'T-046 UI-created course must persist after restart');
+  console.log('PASS T-046: Input form creates a new course after reset and it persists after password re-unlock');
+
   const legacyAfterRestart=await resetPage.evaluate(()=>{
     const remaining=[];
     for(let i=0;i<localStorage.length;i++){
