@@ -546,6 +546,26 @@ async function run(){
     assert.deepEqual(reloaded[key],[],key+' must stay empty after restart');
   assert.equal(Object.prototype.hasOwnProperty.call(reloaded,'deletedTimes'),false,'deleted times must stay removed after restart');
   assert.equal(Object.prototype.hasOwnProperty.call(reloaded,'replacedTimes'),false,'replaced times must stay removed after restart');
+  // T-046: a fresh protected course can be created after the completed reset.
+  await resetPage.evaluate(async()=>{
+    await window.MedControlModular3ProtectedSession.transact(state=>{
+      assertNewCourseState(state);
+      state.medications.push({id:'t046-new-course',name:'Synthetic New Course After Reset',archivedCompleted:false});
+    });
+    function assertNewCourseState(state){
+      if(!Array.isArray(state.medications)||state.medications.length!==0)
+        throw new Error('T-046 expected an empty medical course list before creating a new course');
+    }
+  });
+  const created=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
+  assert.deepEqual(created.medications.map(m=>m.id),['t046-new-course'],'T-046 new course must be saved');
+  await resetPage.goto(BASE+'/input.html');
+  await resetPage.locator('#password').fill(PASS);
+  await resetPage.locator('#unlock').click();
+  await resetPage.locator('#create_name').waitFor();
+  const persistedNewCourse=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
+  assert.deepEqual(persistedNewCourse.medications.map(m=>m.id),['t046-new-course'],'T-046 new course must persist after password re-unlock');
+  console.log('PASS T-046: new synthetic course saved after reset and persists after password re-unlock');
   const legacyAfterRestart=await resetPage.evaluate(()=>{
     const remaining=[];
     for(let i=0;i<localStorage.length;i++){
