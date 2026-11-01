@@ -177,27 +177,37 @@ async function run(){
   assert.ok((await full.locator('body').innerText()).includes('Synthetic Edited Course'));
   console.log('PASS immediate auto-archive and original Archive display');
   // T-038: synthetic legacy medical backup must block reset even with an empty cloud inventory.
-  const legacyBackupGate=await full.evaluate(async()=>{
-    const key='affixo_medcontrol_standard_v3_pre_modular_2_upgrade_backup';
+  const legacyBackupGates=await full.evaluate(async()=>{
+    const keys=[
+      'affixo_medcontrol_standard_v3_pre_reset_backup',
+      'affixo_medcontrol_standard_v3_corrupt_backup',
+      'affixo_medcontrol_standard_v3_pre_modular_2_upgrade_backup'
+    ];
     const original=window.medcontrolCloudSnapshot;
-    const before=JSON.stringify(getState());
-    localStorage.setItem(key,JSON.stringify({medications:[{name:'Synthetic Legacy Medication'}]}));
+    const results=[];
     window.medcontrolCloudSnapshot={
       suspendForReset:async()=>({ok:true,skipped:true}),
       verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
       resumeAfterResetFailure:()=>{}
     };
     try{
-      await window.manualMedControlCycleReset();
-      return {unchanged:JSON.stringify(getState())===before,backupPresent:localStorage.getItem(key)!==null};
-    }finally{
-      window.medcontrolCloudSnapshot=original;
-      localStorage.removeItem(key);
-    }
+      for(const key of keys){
+        const before=JSON.stringify(getState());
+        localStorage.setItem(key,JSON.stringify({medications:[{name:'Synthetic Legacy Medication'}]}));
+        try{
+          await window.manualMedControlCycleReset();
+          results.push({key,unchanged:JSON.stringify(getState())===before,backupPresent:localStorage.getItem(key)!==null});
+        }finally{localStorage.removeItem(key);}
+      }
+      return results;
+    }finally{window.medcontrolCloudSnapshot=original;}
   });
-  assert.deepEqual(legacyBackupGate,{unchanged:true,backupPresent:true},
-    'Legacy medical backup must block reset without deleting any records');
-  console.log('PASS T-038: synthetic legacy medical backup blocks reset; records preserved');
+  assert.equal(legacyBackupGates.length,3);
+  for(const result of legacyBackupGates){
+    assert.equal(result.unchanged,true,result.key+' must not erase medical records');
+    assert.equal(result.backupPresent,true,result.key+' must not be silently removed');
+  }
+  console.log('PASS T-038: all three synthetic legacy medical backup types block reset; records preserved');
   // T-038: a reset must never retain an old encrypted cycle backup.
   // The cloud-inventory gate is intentionally unavailable in this isolated offline E2E.
   const beforeReset=await full.evaluate(()=>getState());
