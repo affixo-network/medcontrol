@@ -65,6 +65,21 @@ window.medcontrolScriptReady = (async function(){
     }
   }
 
+  function allMedicalRecordsArchived(state){
+    const meds=state.medications;
+    if(!Array.isArray(meds)||!meds.length||meds.some(m=>!m||m.cancelled||m.archivedCompleted!==true||!m.id))return false;
+    const ids=new Set(meds.map(m=>String(m.id)));
+    if(ids.size!==meds.length)return false;
+    for(const field of ['intakeLogs','intakeCorrections','archiveHistory','archivedCourses']){
+      const entries=state[field];
+      if(entries!=null&&!Array.isArray(entries))return false;
+      for(const entry of entries||[]){
+        if(!entry||!entry.medicationId||!ids.has(String(entry.medicationId)))return false;
+      }
+    }
+    return true;
+  }
+
   let resetInProgress=false;
   async function manualCycleReset(){
     if(resetInProgress)return;
@@ -75,7 +90,7 @@ window.medcontrolScriptReady = (async function(){
       const session=window.MedControlModular3ProtectedSession;
       if(!session?.isUnlocked())throw Error('Войдите с локальным паролем.');
       const {meds,current}=medicationState();
-      if(!meds.length||current.length||meds.some(med=>med.cancelled||med.archivedCompleted!==true))return;
+      if(!meds.length||current.length||!allMedicalRecordsArchived(getState()))return;
       if(!window.confirm('Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.'))return;
       resetInProgress=true;
       const cloudSnapshots=window.medcontrolCloudSnapshot;
@@ -114,7 +129,7 @@ window.medcontrolScriptReady = (async function(){
         if(!finalInventory?.ok||!finalInventory.empty)
           throw Error('Повторная проверка облачных копий не пройдена. Полный сброс отменён.');
         await session.transact(state=>{
-          if(!state.medications.length||state.medications.some(med=>med.cancelled||med.archivedCompleted!==true))throw Error('Не все курсы завершены и архивированы.');
+          if(!allMedicalRecordsArchived(state))throw Error('Не все медицинские записи принадлежат завершённым архивным курсам.');
           delete state.cycleBackups;
           state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];
           delete state.inputDraft;
