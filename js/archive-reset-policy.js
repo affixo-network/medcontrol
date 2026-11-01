@@ -82,6 +82,13 @@ window.medcontrolScriptReady = (async function(){
       let resetCommitted=false;
       try{
         if(cloudSnapshots?.suspendForReset)await cloudSnapshots.suspendForReset();
+        if(cloudSnapshots?.verifyOwnSnapshotInventoryForReset){
+          const inventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
+          if(!inventory.ok)throw Error('Не удалось проверить облачные резервные копии. Сброс отменён.');
+          if(!inventory.empty)throw Error('Обнаружены облачные резервные копии. Полный сброс запрещён до их безопасного удаления.');
+        }else if(window.medcontrolSupabaseUser?.id){
+          throw Error('Проверка облачных резервных копий недоступна. Сброс отменён.');
+        }
         await session.transact(state=>{
           if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
           delete state.cycleBackups;
