@@ -660,7 +660,21 @@ async function run(){
   await resetPage.goto(BASE+'/input.html');
   await resetPage.locator('#password').fill(PASS);
   await resetPage.locator('#unlock').click();
-  await resetPage.locator('#create_name').waitFor();
+  try{
+    await resetPage.locator('#create_name').waitFor({timeout:15000});
+  }catch(error){
+    const diagnostic=await resetPage.evaluate(()=>({
+      path:location.pathname,
+      title:document.title,
+      readyState:document.readyState,
+      passwordPresent:!!document.getElementById('password'),
+      unlockPresent:!!document.getElementById('unlock'),
+      inputPresent:!!document.getElementById('create_name'),
+      bodyText:(document.body?.innerText||'').slice(0,600),
+      protectedSession:!!window.MedControlModular3ProtectedSession
+    }));
+    throw new Error('T-046 3000-course re-unlock diagnostic: '+JSON.stringify(diagnostic)+'; '+error.message);
+  }
   const scaled=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications);
   assert.equal(scaled.length,3000,'T-046 3000 courses must persist after password re-unlock');
   assert.equal(new Set(scaled.map(m=>m.id)).size,3000,'T-046 3000 course IDs must remain unique');
