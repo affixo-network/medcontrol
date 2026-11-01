@@ -75,7 +75,7 @@ window.medcontrolScriptReady = (async function(){
       const session=window.MedControlModular3ProtectedSession;
       if(!session?.isUnlocked())throw Error('Войдите с локальным паролем.');
       const {meds,current}=medicationState();
-      if(!meds.length||current.length)return;
+      if(!meds.length||current.length||meds.some(med=>med.cancelled||med.archivedCompleted!==true))return;
       if(!window.confirm('Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.'))return;
       resetInProgress=true;
       const cloudSnapshots=window.medcontrolCloudSnapshot;
@@ -114,7 +114,7 @@ window.medcontrolScriptReady = (async function(){
         if(!finalInventory?.ok||!finalInventory.empty)
           throw Error('Повторная проверка облачных копий не пройдена. Полный сброс отменён.');
         await session.transact(state=>{
-          if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
+          if(!state.medications.length||state.medications.some(med=>med.cancelled||med.archivedCompleted!==true))throw Error('Не все курсы завершены и архивированы.');
           delete state.cycleBackups;
           state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];
           delete state.inputDraft;
@@ -157,7 +157,7 @@ window.medcontrolScriptReady = (async function(){
       return;
     }
     const {meds,current}=medicationState();
-    if(!meds.length||current.length)return;
+    if(!meds.length||current.length||meds.some(med=>med.cancelled||med.archivedCompleted!==true))return;
     window.alert('Полный сброс временно недоступен в обычном режиме: прежние медицинские записи могут сохраниться в резервных копиях. Данные не изменены.');
     return;
 
