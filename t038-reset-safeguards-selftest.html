@@ -12,6 +12,7 @@
    return response.text();
   }));
   check('Cloud snapshot creation blocked during reset',/async function createCloudSnapshot\(options=\{\}\)\s*\{\s*if\(resetSuspended\)return/.test(cloud));
+  check('Cloud snapshot suspension rechecked immediately before insert',/if\(resetSuspended\)return \{ok:false,skipped:true,reason:'medical_reset_in_progress'\};\s*const \{data,error\}=await supabase\.from\(TABLE\)\.insert\(/.test(cloud));
   check('Cloud snapshot reads blocked during reset',/async function getLatestCloudSnapshot\(\)\s*\{if\(resetSuspended\)return/.test(cloud));
   check('Cloud restoration blocked during reset',/async function restoreLatestCloudSnapshot\(options=\{\}\)\s*\{if\(resetSuspended\)return/.test(cloud));
   check('Queued snapshot failure cannot requeue while reset suspended',/if\(!resetSuspended\)retryState=captured/.test(cloud));
@@ -20,7 +21,7 @@
   check('Protected reset resumes cloud on failure',/if\(!resetCommitted\)cloudSnapshots\?\.resumeAfterResetFailure\?\.\(\)/.test(reset));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===8;
+ const pass=results.every(x=>x.ok)&&results.length===9;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
