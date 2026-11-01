@@ -19,9 +19,11 @@
   check('Protected reset waits for cloud suspension',/await cloudSnapshots\.suspendForReset\(\)/.test(reset));
   check('Protected reset clears medical history',/state\.intakeLogs=\[\];state\.intakeCorrections=\[\];state\.archiveHistory=\[\];state\.archivedCourses=\[\]/.test(reset));
   check('Protected reset resumes cloud on failure',/if\(!resetCommitted\)cloudSnapshots\?\.resumeAfterResetFailure\?\.\(\)/.test(reset));
+  check('Full reset does not preserve a plaintext local backup',!/preserveCycleResetBackup\(oldState,'manual_cycle_reset'\)/.test(reset));
+  check('Full reset does not create an old-state cloud snapshot',!/await window\.medcontrolCloudSnapshot\.create\(\{state:oldState\}\)/.test(reset));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===9;
+ const pass=results.every(x=>x.ok)&&results.length===11;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
