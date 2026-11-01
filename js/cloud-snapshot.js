@@ -52,7 +52,15 @@
   const inheritedSaveState=window.saveState;
   if(typeof inheritedSaveState==='function')window.saveState=function(state,options={}){const saved=inheritedSaveState(state,options);if(saved&&!options.skipCloudSnapshot)scheduleCloudSnapshot(state);return saved;};
   function suspendForReset(){resetSuspended=true;if(snapshotTimer){clearTimeout(snapshotTimer);snapshotTimer=null;}pendingState=null;retryState=null;return snapshotQueue;}
+  async function verifyOwnSnapshotInventoryForReset(){
+    if(!resetSuspended)return {ok:false,reason:'reset_not_suspended'};
+    const supabase=window.medcontrolSupabase,user=window.medcontrolSupabaseUser;
+    if(!supabase||!user?.id)return {ok:false,reason:'auth_unavailable'};
+    const {count,error}=await supabase.from(TABLE).select('id',{count:'exact',head:true}).eq('owner_user_id',user.id);
+    if(error)return {ok:false,reason:'snapshot_inventory_failed',error};
+    return {ok:true,owner_user_id:user.id,remaining:count,empty:count===0};
+  }
   function resumeAfterResetFailure(){resetSuspended=false;}
-  window.medcontrolCloudSnapshot={suspendForReset,resumeAfterResetFailure,create:createCloudSnapshot,queue:queueCloudSnapshot,schedule:scheduleCloudSnapshot,flush:flushScheduledSnapshot,latest:getLatestCloudSnapshot,restoreLatest:restoreLatestCloudSnapshot,validState,meaningfulState};
+  window.medcontrolCloudSnapshot={suspendForReset,resumeAfterResetFailure,verifyOwnSnapshotInventoryForReset,create:createCloudSnapshot,queue:queueCloudSnapshot,schedule:scheduleCloudSnapshot,flush:flushScheduledSnapshot,latest:getLatestCloudSnapshot,restoreLatest:restoreLatestCloudSnapshot,validState,meaningfulState};
   setTimeout(()=>queueCloudSnapshot(),0);
 })();
