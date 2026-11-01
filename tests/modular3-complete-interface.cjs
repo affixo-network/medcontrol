@@ -208,6 +208,23 @@ async function run(){
     assert.equal(result.backupPresent,true,result.key+' must not be silently removed');
   }
   console.log('PASS T-038: all three synthetic legacy medical backup types block reset; records preserved');
+  // T-038: cloud copies must block reset even when all local legacy backups are absent.
+  const cloudInventoryGate=await full.evaluate(async()=>{
+    const original=window.medcontrolCloudSnapshot;
+    const before=JSON.stringify(getState());
+    window.medcontrolCloudSnapshot={
+      suspendForReset:async()=>({ok:true,skipped:true}),
+      verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:false,remaining:1}),
+      resumeAfterResetFailure:()=>{}
+    };
+    try{
+      await window.manualMedControlCycleReset();
+      return {unchanged:JSON.stringify(getState())===before};
+    }finally{window.medcontrolCloudSnapshot=original;}
+  });
+  assert.deepEqual(cloudInventoryGate,{unchanged:true},
+    'Cloud medical backup must block local reset without deleting records');
+  console.log('PASS T-038: synthetic cloud inventory with one backup blocks reset');
   // T-038: a reset must never retain an old encrypted cycle backup.
   // The cloud-inventory gate is intentionally unavailable in this isolated offline E2E.
   const beforeReset=await full.evaluate(()=>getState());
