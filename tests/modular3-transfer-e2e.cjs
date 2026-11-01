@@ -450,6 +450,7 @@ async function run(){
     const scenarios=[
       {name:'unfinished',medications:[{id:'t039-active',archivedCompleted:false,active:true}],allow:false},
       {name:'cancelled',medications:[{id:'t039-cancelled',cancelled:true,archivedCompleted:false}],allow:false},
+      {name:'archived cancelled course',medications:[{id:'t044-cancelled',cancelled:true,archivedCompleted:true}],allow:true},
       {name:'incomplete archive',medications:[{id:'t039-done',archivedCompleted:true},{id:'t039-missing',archivedCompleted:false}],allow:false},
       {name:'fully archived',medications:[{id:'t039-done',archivedCompleted:true}],allow:true},
       {name:'orphan time history',medications:[{id:'t039-done',archivedCompleted:true}],timeHistory:[{id:'orphan',medicationId:'missing-course'}],allow:false},
