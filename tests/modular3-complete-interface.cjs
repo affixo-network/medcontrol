@@ -257,6 +257,41 @@ async function run(){
     ok:true,empty:true,remaining:0,deletedOwners:['synthetic-owner-reset']
   },'Confirmed reset must delete only owner-scoped cloud snapshots and verify zero remaining');
   console.log('PASS T-038: synthetic owner-scoped cloud snapshot deletion and zero-inventory verification');
+  // T-038: a cloud deletion API error must not be misreported as a clean wipe.
+  const syntheticCloudDeletionFailure=await full.evaluate(async()=>{
+    const originalClient=window.medcontrolSupabase;
+    const originalUser=window.medcontrolSupabaseUser;
+    const snapshot=window.medcontrolCloudSnapshot;
+    const before=JSON.stringify(getState());
+    let deletionAttempted=false;
+    window.medcontrolSupabaseUser={id:'synthetic-failed-owner'};
+    window.medcontrolSupabase={
+      from:table=>{
+        if(table!=='mc_cloud_snapshots')throw Error('Unexpected table');
+        return {
+          select:()=>({eq:async()=>({count:1,error:null})}),
+          delete:()=>({eq:async(column,owner)=>{
+            if(column!=='owner_user_id'||owner!=='synthetic-failed-owner')throw Error('Unscoped delete');
+            deletionAttempted=true;
+            return {error:{message:'synthetic deletion denied'}};
+          }})
+        };
+      }
+    };
+    try{
+      await snapshot.suspendForReset();
+      const result=await snapshot.deleteOwnSnapshotsForConfirmedReset();
+      return {ok:result.ok,reason:result.reason,deletionAttempted,localUnchanged:JSON.stringify(getState())===before};
+    }finally{
+      snapshot.resumeAfterResetFailure();
+      window.medcontrolSupabase=originalClient;
+      window.medcontrolSupabaseUser=originalUser;
+    }
+  });
+  assert.deepEqual(syntheticCloudDeletionFailure,{
+    ok:false,reason:'snapshot_delete_failed',deletionAttempted:true,localUnchanged:true
+  },'Cloud deletion failure must be explicit and leave local medical state unchanged');
+  console.log('PASS T-038: synthetic cloud deletion failure is reported without changing local records');
   // T-038: cloud copies must block reset even when all local legacy backups are absent.
   const cloudInventoryGate=await full.evaluate(async()=>{
     const original=window.medcontrolCloudSnapshot;
