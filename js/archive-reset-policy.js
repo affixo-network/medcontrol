@@ -113,28 +113,7 @@ window.medcontrolScriptReady = (async function(){
     if(!meds.length||current.length)return;
     window.alert('Полный сброс временно недоступен в обычном режиме: прежние медицинские записи могут сохраниться в резервных копиях. Данные не изменены.');
     return;
-    if(!window.confirm('Начать заново?\n\nТекущий цикл уже находится в Архиве. После сброса рабочие данные этого цикла будут очищены. Резервная копия будет сохранена.'))return;
-    resetInProgress=true;
-    const oldState=getState();
-    if(!preserveCycleResetBackup(oldState,'manual_cycle_reset')){resetInProgress=false;return;}
-    if(window.medcontrolCloudSnapshot&&window.medcontrolSupabaseUser){
-      const flushed=await window.medcontrolCloudSnapshot.flush();
-      if(flushed&&flushed.ok===false&&!flushed.skipped){
-        resetInProgress=false;
-        window.alert('Сброс остановлен: ожидающая cloud-копия не была подтверждена. Данные не изменены.');
-        return;
-      }
-      const cloud=await window.medcontrolCloudSnapshot.create({state:oldState});
-      if(!cloud.ok){
-        resetInProgress=false;
-        window.alert('Сброс остановлен: cloud snapshot подтвердить не удалось. Данные не изменены.');
-        return;
-      }
-    }
-    try{localStorage.setItem(MANUAL_RESET_MARKER_KEY,new Date().toISOString());}catch(_){}
-    const ok=(await saveStateAsync({settings:{...(oldState.settings||{})},medications:[],intakeLogs:[]},{skipCloudSnapshot:true}));
-    if(!ok){resetInProgress=false;return;}
-    window.location.replace(window.location.hostname==='htmlpreview.github.io'?PREVIEW_INPUT:'input.html');
+
   }
   window.manualMedControlCycleReset=manualCycleReset;
 
