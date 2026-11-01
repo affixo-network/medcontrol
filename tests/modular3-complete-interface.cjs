@@ -491,7 +491,8 @@ async function run(){
       intakeLogs:[{id:'synthetic-intake',medicationId:'synthetic-reset-course'}],
       intakeCorrections:[{id:'synthetic-correction',medicationId:'synthetic-reset-course'}],
       archiveHistory:[{id:'synthetic-history',medicationId:'synthetic-reset-course'}],
-      archivedCourses:[{id:'synthetic-reset-course',medicationId:'synthetic-reset-course'}]
+      archivedCourses:[{id:'synthetic-reset-course',medicationId:'synthetic-reset-course'}],
+       timeHistory:[{id:'synthetic-time-change',medicationId:'synthetic-reset-course'}]
     },password);
   },PASS);
   await resetPage.goto(BASE+'/archive.html');
@@ -524,7 +525,7 @@ async function run(){
       await window.manualMedControlCycleReset();
       const state=window.MedControlModular3ProtectedSession.read();
       return {
-        empty:['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'].every(k=>Array.isArray(state[k])&&state[k].length===0),
+        empty:['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory'].every(k=>Array.isArray(state[k])&&state[k].length===0),
         credentialPreserved:credential!==null&&credential===localStorage.getItem('medcontrol_modular3_local_credential_v1'),
         encryptedVaultPresent:localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null,
         legacyRemoved:legacyKeys.every(key=>localStorage.getItem(key)===null)&&
@@ -538,7 +539,7 @@ async function run(){
   await resetPage.locator('#unlock').click();
   await resetPage.locator('#create_name').waitFor();
   const reloaded=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
-  for(const key of ['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'])
+  for(const key of ['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory'])
     assert.deepEqual(reloaded[key],[],key+' must stay empty after restart');
   const legacyAfterRestart=await resetPage.evaluate(()=>{
     const remaining=[];
