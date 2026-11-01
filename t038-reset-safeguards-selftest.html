@@ -26,9 +26,12 @@
   check('Owner-scoped read-only reset inventory',/select\('id',\{count:'exact',head:true\}\)\.eq\('owner_user_id',user\.id\)/.test(cloud));
   check('Protected reset fails closed without inventory verifier',/\}else\{\s*throw Error\('Проверка облачных резервных копий недоступна\. Сброс отменён\.'\)/.test(reset));
   check('Protected reset rejects remaining cloud copies',/if\(!inventory\.empty\)throw Error/.test(reset));
+  check('Protected reset requires snapshot suspension capability',/if\(!cloudSnapshots\?\.suspendForReset\)throw Error/.test(reset));
+  check('Snapshot suspension happens before inventory check',/await cloudSnapshots\.suspendForReset\(\);[\s\S]*?verifyOwnSnapshotInventoryForReset/.test(reset));
+  check('Cloud inventory failure aborts protected reset',/if\(!inventory\.ok\)throw Error/.test(reset));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===16;
+ const pass=results.every(x=>x.ok)&&results.length===19;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
