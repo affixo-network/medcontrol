@@ -585,7 +585,10 @@ async function run(){
     set('create_times','09:00');
     set('create_startDate','2026-10-23');
     set('create_endDate','2026-10-24');
+    // Report the precise form validation failure rather than waiting on a hidden dialog.
+    try{createMedicationFromForm('create_');}catch(error){throw new Error('T-046 form validation: '+error.message);}
     window.createMedication();
+    if(!document.getElementById('medicationConfirmDialog')?.open)throw new Error('T-046 confirmation did not open after valid form');
   });
   await resetPage.locator('#medicationConfirmDialog[open]').waitFor();
   await resetPage.evaluate(()=>window.proceedMedicationCreateConfirmation());
