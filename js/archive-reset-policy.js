@@ -42,16 +42,6 @@ window.medcontrolScriptReady = (async function(){
   }
   function clearLastMedicationHint(){document.getElementById('medControlLastMedicationHint')?.remove();}
 
-  function preserveCycleResetBackup(oldState,reason='manual_cycle_reset'){
-    const backup={createdAt:new Date().toISOString(),reason,sourceVersion:'modular-2.000',state:oldState};
-    try{localStorage.setItem(CYCLE_RESET_BACKUP_KEY,JSON.stringify(backup));return true;}
-    catch(error){
-      console.error('MedControl: failed to preserve pre-reset backup.',error);
-      window.alert('Сброс остановлен: не удалось создать резервную копию текущего цикла. Данные не изменены.');
-      return false;
-    }
-  }
-
   async function restoreAccidentalAutomaticReset(){
     if(window.MedControlModular3ProtectedSession?.isUnlocked())return false;
     let state;
