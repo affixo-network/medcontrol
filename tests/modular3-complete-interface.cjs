@@ -386,6 +386,16 @@ async function run(){
   assert.deepEqual(external,[],'Protected interface must not contact external services');
   assert.deepEqual(errors,[],'Interface must load without script errors');
   console.log('PASS no external service requests or uncaught browser errors');
- }finally{if(browser)await browser.close();server.kill();}
+ }finally{
+  if(browser)await browser.close();
+  // Wait for the local HTTP server to exit before Node tears down open sockets.
+  if(server.exitCode===null&&!server.killed){
+   await new Promise(resolve=>{
+    const timeout=setTimeout(resolve,3000);
+    server.once('exit',()=>{clearTimeout(timeout);resolve();});
+    server.kill();
+   });
+  }
+ }
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});
