@@ -540,6 +540,17 @@ async function run(){
   const reloaded=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   for(const key of ['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'])
     assert.deepEqual(reloaded[key],[],key+' must stay empty after restart');
+  const legacyAfterRestart=await resetPage.evaluate(()=>{
+    const remaining=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&(key==='affixo_medcontrol_standard_v3'||
+        /^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)))
+        remaining.push(key);
+    }
+    return remaining;
+  });
+  assert.deepEqual(legacyAfterRestart,[],'Legacy medical backups must stay absent after restart');
   console.log('PASS T-038: isolated synthetic protected reset persists after password re-unlock');
   await resetContext.close();
   assert.deepEqual(external,[],'Protected interface must not contact external services');
