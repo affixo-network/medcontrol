@@ -583,8 +583,8 @@ async function run(){
     set('create_details','Synthetic UI test only');
     set('create_scheduleType','daily');
     set('create_times','09:00');
-    set('create_startDate','2026-10-23');
-    set('create_endDate','2026-10-24');
+    set('create_startDate','2026-11-02');
+    set('create_endDate','2026-11-09');
     // Report the precise form validation failure rather than waiting on a hidden dialog.
     try{createMedicationFromForm('create_');}catch(error){throw new Error('T-046 form validation: '+error.message);}
     window.createMedication();
