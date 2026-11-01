@@ -329,6 +329,40 @@ async function run(){
     ok:false,reason:'snapshot_delete_incomplete',remaining:1,checks:2
   },'Reset must not claim cloud deletion success while a snapshot remains');
   console.log('PASS T-038: residual cloud backup blocks false completion after delete response');
+  // T-038: changing the signed-in cloud owner during inventory must stop deletion.
+  const syntheticOwnerSwitch=await full.evaluate(async()=>{
+    const originalClient=window.medcontrolSupabase;
+    const originalUser=window.medcontrolSupabaseUser;
+    const snapshot=window.medcontrolCloudSnapshot;
+    let deletes=0;
+    const client={
+      from:table=>{
+        if(table!=='mc_cloud_snapshots')throw Error('Unexpected table');
+        return {
+          select:()=>({eq:async()=>{
+            window.medcontrolSupabaseUser={id:'different-owner'};
+            return {count:1,error:null};
+          }}),
+          delete:()=>({eq:async()=>{deletes++;return {error:null};}})
+        };
+      }
+    };
+    window.medcontrolSupabase=client;
+    window.medcontrolSupabaseUser={id:'original-owner'};
+    try{
+      await snapshot.suspendForReset();
+      const result=await snapshot.deleteOwnSnapshotsForConfirmedReset();
+      return {ok:result.ok,reason:result.reason,deletes};
+    }finally{
+      snapshot.resumeAfterResetFailure();
+      window.medcontrolSupabase=originalClient;
+      window.medcontrolSupabaseUser=originalUser;
+    }
+  });
+  assert.deepEqual(syntheticOwnerSwitch,{
+    ok:false,reason:'auth_changed_during_inventory',deletes:0
+  },'Owner change during cloud inventory must prevent all deletion');
+  console.log('PASS T-038: cloud account switch prevents deletion');
   // T-038: cloud copies must block reset even when all local legacy backups are absent.
   const cloudInventoryGate=await full.evaluate(async()=>{
     const original=window.medcontrolCloudSnapshot;
