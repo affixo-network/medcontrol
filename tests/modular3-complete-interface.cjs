@@ -225,6 +225,28 @@ async function run(){
   assert.deepEqual(cloudInventoryGate,{unchanged:true},
     'Cloud medical backup must block local reset without deleting records');
   console.log('PASS T-038: synthetic cloud inventory with one backup blocks reset');
+  // T-038: dynamically named cloud-restore backups must also block a reset.
+  const dynamicBackupGate=await full.evaluate(async()=>{
+    const key='affixo_medcontrol_standard_v3_before_cloud_restore_1760000000000';
+    const original=window.medcontrolCloudSnapshot;
+    const before=JSON.stringify(getState());
+    localStorage.setItem(key,JSON.stringify({medications:[{name:'Synthetic Restored Medication'}]}));
+    window.medcontrolCloudSnapshot={
+      suspendForReset:async()=>({ok:true,skipped:true}),
+      verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
+      resumeAfterResetFailure:()=>{}
+    };
+    try{
+      await window.manualMedControlCycleReset();
+      return {unchanged:JSON.stringify(getState())===before,backupPresent:localStorage.getItem(key)!==null};
+    }finally{
+      window.medcontrolCloudSnapshot=original;
+      localStorage.removeItem(key);
+    }
+  });
+  assert.deepEqual(dynamicBackupGate,{unchanged:true,backupPresent:true},
+    'Dynamic cloud-restore medical backup must block reset without losing records');
+  console.log('PASS T-038: synthetic dynamically named cloud-restore backup blocks reset');
   // T-038: a reset must never retain an old encrypted cycle backup.
   // The cloud-inventory gate is intentionally unavailable in this isolated offline E2E.
   const beforeReset=await full.evaluate(()=>getState());
