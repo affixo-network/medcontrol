@@ -86,7 +86,7 @@ window.medcontrolScriptReady = (async function(){
           const inventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
           if(!inventory.ok)throw Error('Не удалось проверить облачные резервные копии. Сброс отменён.');
           if(!inventory.empty)throw Error('Обнаружены облачные резервные копии. Полный сброс запрещён до их безопасного удаления.');
-        }else if(window.medcontrolSupabaseUser?.id){
+        }else{
           throw Error('Проверка облачных резервных копий недоступна. Сброс отменён.');
         }
         await session.transact(state=>{
