@@ -82,7 +82,8 @@ window.medcontrolScriptReady = (async function(){
       let resetCommitted=false;
       try{
         if(!cloudSnapshots?.suspendForReset)throw Error('Приостановка облачного резервирования недоступна. Сброс отменён.');
-        await cloudSnapshots.suspendForReset();
+        const pendingSnapshot=await cloudSnapshots.suspendForReset();
+        if(!pendingSnapshot?.ok&&!pendingSnapshot?.skipped)throw Error('Ожидающая облачная копия завершилась ошибкой. Сброс отменён.');
         if(cloudSnapshots?.verifyOwnSnapshotInventoryForReset){
           const inventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
           if(!inventory.ok)throw Error('Не удалось проверить облачные резервные копии. Сброс отменён.');
