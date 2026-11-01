@@ -86,16 +86,16 @@ window.medcontrolScriptReady = (async function(){
       if(!session?.isUnlocked())throw Error('Войдите с локальным паролем.');
       const {meds,current}=medicationState();
       if(!meds.length||current.length)return;
-      if(!window.confirm('Начать заново? Текущий цикл сохранится в защищённой резервной копии.'))return;
+      if(!window.confirm('Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.'))return;
       resetInProgress=true;
       try{
         await session.transact(state=>{
           if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
-          const previous=structuredClone(state);delete previous.cycleBackups;
-          state.cycleBackups=state.cycleBackups||[];
-          state.cycleBackups.push({createdAt:new Date().toISOString(),reason:'manual_cycle_reset',state:previous});
+          delete state.cycleBackups;
           state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];
           delete state.inputDraft;
+          delete state.deletedTimes;
+          delete state.replacedTimes;
         });
         await window.medcontrolNavigateTo('input');
       }catch(error){window.alert('Не удалось начать новый цикл: '+error.message);}
