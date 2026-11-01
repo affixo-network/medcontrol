@@ -504,6 +504,7 @@ async function run(){
     window.medcontrolCloudSnapshot={
       suspendForReset:async()=>({ok:true,skipped:true}),
       verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
+      deleteOwnSnapshotsForConfirmedReset:async()=>({ok:true,empty:true,remaining:0}),
       resumeAfterResetFailure:()=>{}
     };
     try{
