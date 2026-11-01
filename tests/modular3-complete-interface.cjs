@@ -176,13 +176,14 @@ async function run(){
   await full.waitForFunction(() => document.body.innerText.includes('Synthetic Edited Course'), null, { timeout: 10000 });
   assert.ok((await full.locator('body').innerText()).includes('Synthetic Edited Course'));
   console.log('PASS immediate auto-archive and original Archive display');
+  // T-038: a reset must never retain an old encrypted cycle backup.
+  // The cloud-inventory gate is intentionally unavailable in this isolated offline E2E.
   const beforeReset=await full.evaluate(()=>getState());
   await full.evaluate(async()=>{await window.manualMedControlCycleReset();});
   const afterReset=await full.evaluate(()=>getState());
-  assert.equal(afterReset.medications.length,0);assert.equal(afterReset.cycleBackups.length,1);
-  assert.deepEqual(afterReset.cycleBackups[0].state,beforeReset);
+  assert.deepEqual(afterReset,beforeReset,'Reset must not erase medical records when cloud inventory cannot be verified');
   assert.equal(await full.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3_pre_reset_backup')),null);
-  console.log('PASS explicit new cycle preserves complete prior cycle in encrypted backup');
+  console.log('PASS T-038: reset blocked without cloud inventory verification; medical records preserved');
   const blockedNavigation=await full.evaluate(async()=>{
    const native=Storage.prototype.setItem;
    Storage.prototype.setItem=function(k,v){if(k==='medcontrol_modular3_protected_state_v1')throw Error('Synthetic navigation draft failure');return native.call(this,k,v);};
