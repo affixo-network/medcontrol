@@ -15,6 +15,7 @@
     if(!options.allowEmpty&&!meaningfulState(state))return {ok:false,skipped:true,reason:'empty_local_state'};
     const {data:latest,error:latestError}=await supabase.from(TABLE).select('id,state,created_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(latestError)return {ok:false,reason:'latest_snapshot_read_failed',error:latestError};
+    if(resetSuspended)return {ok:false,skipped:true,reason:'medical_reset_in_progress'};
     if(latest&&JSON.stringify(latest.state)===JSON.stringify(state))return {ok:true,skipped:true,reason:'unchanged',snapshot:latest};
     const {data,error}=await supabase.from(TABLE).insert({owner_user_id:user.id,state,state_version:STATE_VERSION,source_version:SOURCE_VERSION}).select('id,created_at').single();
     return error?{ok:false,reason:'snapshot_insert_failed',error}:{ok:true,snapshot:data};
