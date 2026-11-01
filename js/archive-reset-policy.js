@@ -124,6 +124,16 @@ window.medcontrolScriptReady = (async function(){
         resetCommitted=true;
         // The protected transaction is durable; now clear old plaintext copies.
         for(const key of legacyMedicalKeys)localStorage.removeItem(key);
+        // Catch backups written between the initial inventory and the commit.
+        // Repeat once against the current storage inventory before verification.
+        const lateMedicalKeys=[];
+        for(let i=0;i<localStorage.length;i++){
+          const key=localStorage.key(i);
+          if(key&&(key==='affixo_medcontrol_standard_v3'||
+            /^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)))
+            lateMedicalKeys.push(key);
+        }
+        for(const key of lateMedicalKeys)localStorage.removeItem(key);
         // Verify that no legacy plaintext medical data appeared while the encrypted
         // transaction was committing. Never report a complete wipe if it did.
         const remainingLegacyKeys=[];
