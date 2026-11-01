@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><title>MedControl T-038 reset safeguards — source regression</title>
+<pre id="result">RUNNING</pre>
+<script>
+(async function(){
+ const output=document.getElementById('result'),results=[];
+ const check=(name,ok)=>results.push({name,ok:!!ok});
+ try{
+  const [cloud,reset]=await Promise.all(['js/cloud-snapshot.js','js/archive-reset-policy.js'].map(async path=>{
+   const response=await fetch(path,{cache:'no-store'});
+   if(!response.ok)throw Error(path+': HTTP '+response.status);
+   return response.text();
+  }));
+  check('Cloud snapshot creation blocked during reset',/async function createCloudSnapshot\(options=\{\}\)\s*\{\s*if\(resetSuspended\)return/.test(cloud));
+  check('Cloud snapshot reads blocked during reset',/async function getLatestCloudSnapshot\(\)\s*\{if\(resetSuspended\)return/.test(cloud));
+  check('Cloud restoration blocked during reset',/async function restoreLatestCloudSnapshot\(options=\{\}\)\s*\{if\(resetSuspended\)return/.test(cloud));
+  check('Queued snapshot failure cannot requeue while reset suspended',/if\(!resetSuspended\)retryState=captured/.test(cloud));
+  check('Protected reset waits for cloud suspension',/await cloudSnapshots\.suspendForReset\(\)/.test(reset));
+  check('Protected reset clears medical history',/state\.intakeLogs=\[\];state\.intakeCorrections=\[\];state\.archiveHistory=\[\];state\.archivedCourses=\[\]/.test(reset));
+  check('Protected reset resumes cloud on failure',/if\(!resetCommitted\)cloudSnapshots\?\.resumeAfterResetFailure\?\.\(\)/.test(reset));
+  check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
+ }catch(e){check('Source fetch: '+e.message,false);}
+ const pass=results.every(x=>x.ok)&&results.length===8;
+ output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
+})();
+</script></html>
