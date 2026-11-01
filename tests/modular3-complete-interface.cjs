@@ -513,7 +513,11 @@ async function run(){
     window.medcontrolCloudSnapshot={
       suspendForReset:async()=>({ok:true,skipped:true}),
       verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
-      deleteOwnSnapshotsForConfirmedReset:async()=>({ok:true,empty:true,remaining:0}),
+      deleteOwnSnapshotsForConfirmedReset:async()=>{
+        // Simulate a legacy backup arriving after the first inventory.
+        localStorage.setItem('affixo_medcontrol_standard_v3_before_cloud_restore_late',JSON.stringify({synthetic:true}));
+        return {ok:true,empty:true,remaining:0};
+      },
       resumeAfterResetFailure:()=>{}
     };
     try{
@@ -523,7 +527,8 @@ async function run(){
         empty:['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'].every(k=>Array.isArray(state[k])&&state[k].length===0),
         credentialPreserved:credential!==null&&credential===localStorage.getItem('medcontrol_modular3_local_credential_v1'),
         encryptedVaultPresent:localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null,
-        legacyRemoved:legacyKeys.every(key=>localStorage.getItem(key)===null)
+        legacyRemoved:legacyKeys.every(key=>localStorage.getItem(key)===null)&&
+          localStorage.getItem('affixo_medcontrol_standard_v3_before_cloud_restore_late')===null
       };
     }finally{window.medcontrolCloudSnapshot=cloud;}
   });
