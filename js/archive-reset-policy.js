@@ -87,7 +87,7 @@ window.medcontrolScriptReady = (async function(){
         if(cloudSnapshots?.verifyOwnSnapshotInventoryForReset){
           const inventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
           if(!inventory.ok)throw Error('Не удалось проверить облачные резервные копии. Сброс отменён.');
-          if(!inventory.empty)throw Error('Обнаружены облачные резервные копии. Полный сброс запрещён до их безопасного удаления.');
+          // Inventory verified; the confirmed cleanup follows local safety checks.
         }else{
           throw Error('Проверка облачных резервных копий недоступна. Сброс отменён.');
         }
@@ -114,6 +114,13 @@ window.medcontrolScriptReady = (async function(){
         }
         if(additionalMedicalBackupKeys.length)
           throw Error('Обнаружены дополнительные локальные резервные копии медицинских данных. Полный сброс отменён.');
+        // The cloud inventory must be empty before committing the protected reset.
+        // An authenticated, confirmed deletion is performed through the owner-scoped helper.
+        if(!cloudSnapshots.deleteOwnSnapshotsForConfirmedReset)
+          throw Error('Безопасное удаление облачных копий недоступно.');
+        const deletion=await cloudSnapshots.deleteOwnSnapshotsForConfirmedReset();
+        if(!deletion?.ok||!deletion.empty)
+          throw Error('Облачные копии не удалены полностью. Сброс отменён.');
         // Re-check the cloud inventory immediately before committing the encrypted reset.
         // A new owner-scoped snapshot appearing during preflight must block completion.
         const finalInventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
