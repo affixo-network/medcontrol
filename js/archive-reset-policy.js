@@ -212,7 +212,7 @@ window.medcontrolScriptReady = (async function(){
   }
 
   window.isMedControlMedicationArchival=med=>isArchival(med,currentLocalDate());
-  window.areAllMedControlMedicationsArchival=function(){const {meds,current}=medicationState();return meds.length>0&&current.length===0;};
+  window.areAllMedControlMedicationsArchival=function(){return allMedicalRecordsArchived(getState());};
   window.patchMedControlResetUi=evaluateCycle;
   const inheritedMount=window.mount;
   if(typeof inheritedMount==='function')window.mount=async function(page){const result=(await inheritedMount(page));setTimeout(evaluateCycle,0);return result;};
