@@ -451,12 +451,13 @@ async function run(){
       {name:'unfinished',medications:[{id:'t039-active',archivedCompleted:false,active:true}],allow:false},
       {name:'cancelled',medications:[{id:'t039-cancelled',cancelled:true,archivedCompleted:false}],allow:false},
       {name:'incomplete archive',medications:[{id:'t039-done',archivedCompleted:true},{id:'t039-missing',archivedCompleted:false}],allow:false},
-      {name:'fully archived',medications:[{id:'t039-done',archivedCompleted:true}],allow:true}
+      {name:'fully archived',medications:[{id:'t039-done',archivedCompleted:true}],allow:true},
+      {name:'orphan time history',medications:[{id:'t039-done',archivedCompleted:true}],timeHistory:[{id:'orphan',medicationId:'missing-course'}],allow:false}
     ];
     for(const item of scenarios){
       const storage=new Map([['medcontrol_modular3_protected_state_v1','synthetic']]);
       let confirms=0,transactions=0;
-      const state={medications:item.medications.map(x=>({...x})),intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[]};
+      const state={medications:item.medications.map(x=>({...x})),intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[],timeHistory:item.timeHistory||[]};
       const fakeWindow={
         confirm(){confirms++;return false;},alert(){},mount:async()=>{},
         MedControlModular3ProtectedSession:{isUnlocked:()=>true,async transact(){transactions++;}},
