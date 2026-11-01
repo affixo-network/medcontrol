@@ -9,7 +9,18 @@ async function run(){
  const server=spawn('python3',['-m','http.server','8794','--bind','127.0.0.1'],{stdio:'ignore'});
  let browser;
  try{
-  for(let i=0;i<100;i++){try{if((await fetch(BASE+'/modular3-protected.html')).ok)break;}catch{}await new Promise(r=>setTimeout(r,50));}
+  // Avoid undici's incomplete-response socket teardown during startup polling.
+  const http=require('node:http');
+  for(let i=0;i<100;i++){
+   const ready=await new Promise(resolve=>{
+    const req=http.get(BASE+'/modular3-protected.html',res=>{
+     res.resume();res.on('end',()=>resolve(res.statusCode===200));res.on('error',()=>resolve(false));
+    });
+    req.on('error',()=>resolve(false));
+   });
+   if(ready)break;
+   await new Promise(resolve=>setTimeout(resolve,50));
+  }
   browser=await chromium.launch({headless:true,...(process.env.MEDCONTROL_CHROMIUM?{executablePath:process.env.MEDCONTROL_CHROMIUM,args:['--no-sandbox']}:{} )});
   let context=await browser.newContext();
   let page=await context.newPage();
