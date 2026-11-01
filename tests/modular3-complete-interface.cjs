@@ -670,6 +670,7 @@ async function run(){
       passwordPresent:!!document.getElementById('password'),
       unlockPresent:!!document.getElementById('unlock'),
       inputPresent:!!document.getElementById('create_name'),
+      inputVisibility:(()=>{const e=document.getElementById('create_name');if(!e)return null;const c=getComputedStyle(e);return {display:c.display,visibility:c.visibility,rect:e.getBoundingClientRect().toJSON(),hidden:e.hidden,ancestors:[...function*(x){for(let i=0;x&&i<6;i++,x=x.parentElement)yield {tag:x.tagName,id:x.id,display:getComputedStyle(x).display,hidden:x.hidden};}(e)]};})(),
       bodyText:(document.body?.innerText||'').slice(0,600),
       protectedSession:!!window.MedControlModular3ProtectedSession
     }));
