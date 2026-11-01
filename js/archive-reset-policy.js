@@ -99,6 +99,17 @@ window.medcontrolScriptReady = (async function(){
         ];
         if(residualBackupKeys.some(key=>localStorage.getItem(key)!==null))
           throw Error('Обнаружены локальные резервные копии медицинских данных. Полный сброс отменён.');
+        // T-038: cloud inventory and known backups are not the entire persistence surface.
+        // Block completion if any other legacy MedControl medical backup remains.
+        const additionalMedicalBackupKeys=[];
+        for(let i=0;i<localStorage.length;i++){
+          const key=localStorage.key(i);
+          if(key&&/^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)&&
+             localStorage.getItem(key)!==null&&!residualBackupKeys.includes(key))
+            additionalMedicalBackupKeys.push(key);
+        }
+        if(additionalMedicalBackupKeys.length)
+          throw Error('Обнаружены дополнительные локальные резервные копии медицинских данных. Полный сброс отменён.');
         await session.transact(state=>{
           if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
           delete state.cycleBackups;
