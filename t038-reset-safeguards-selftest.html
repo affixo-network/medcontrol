@@ -34,9 +34,10 @@
   check('Cloud restore checks suspension before local write',/const key=\`\$\{STORAGE_KEY\}_before_cloud_restore_\$\{Date\.now\(\)\}\`;if\(resetSuspended\)return/.test(cloud));
   check('Inventory rejects reset suspension lost after await',/if\(!resetSuspended\)return \{ok:false,reason:'reset_no_longer_suspended'\}/.test(cloud));
   check('Inventory rejects unavailable or invalid count',/if\(!Number\.isSafeInteger\(count\)\|\|count<0\)return \{ok:false,reason:'snapshot_inventory_count_unavailable'\}/.test(cloud));
+  check('Inventory rejects changed authenticated owner',/window\.medcontrolSupabase!==supabase\|\|window\.medcontrolSupabaseUser\?\.id!==user\.id/.test(cloud));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===24;
+ const pass=results.every(x=>x.ok)&&results.length===25;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
