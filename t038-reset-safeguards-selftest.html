@@ -29,9 +29,12 @@
   check('Protected reset requires snapshot suspension capability',/if\(!cloudSnapshots\?\.suspendForReset\)throw Error/.test(reset));
   check('Snapshot suspension happens before inventory check',/await cloudSnapshots\.suspendForReset\(\);[\s\S]*?verifyOwnSnapshotInventoryForReset/.test(reset));
   check('Cloud inventory failure aborts protected reset',/if\(!inventory\.ok\)throw Error/.test(reset));
+  check('Cloud latest read checks suspension after network await',/if\(error\)return \{ok:false,reason:'snapshot_read_failed',error\};if\(resetSuspended\)return/.test(cloud));
+  check('Cloud restore checks suspension after latest lookup',/const result=await getLatestCloudSnapshot\(\);if\(resetSuspended\)return/.test(cloud));
+  check('Cloud restore checks suspension before local write',/const key=\`\$\{STORAGE_KEY\}_before_cloud_restore_\$\{Date\.now\(\)\}\`;if\(resetSuspended\)return/.test(cloud));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===19;
+ const pass=results.every(x=>x.ok)&&results.length===22;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
