@@ -92,28 +92,15 @@ window.medcontrolScriptReady = (async function(){
           throw Error('Проверка облачных резервных копий недоступна. Сброс отменён.');
         }
         // T-038: never report a complete reset while legacy medical backups remain.
-        // A legacy plaintext primary state can resurrect records after a protected reset.
-        // Until migration/removal is verified, refuse to claim a complete wipe.
-        if(localStorage.getItem('affixo_medcontrol_standard_v3')!==null)
-          throw Error('Обнаружено прежнее локальное медицинское хранилище. Полный сброс отменён.');
-        const residualBackupKeys=[
-          'affixo_medcontrol_standard_v3_pre_reset_backup',
-          'affixo_medcontrol_standard_v3_corrupt_backup',
-          'affixo_medcontrol_standard_v3_pre_modular_2_upgrade_backup'
-        ];
-        if(residualBackupKeys.some(key=>localStorage.getItem(key)!==null))
-          throw Error('Обнаружены локальные резервные копии медицинских данных. Полный сброс отменён.');
-        // T-038: cloud inventory and known backups are not the entire persistence surface.
-        // Block completion if any other legacy MedControl medical backup remains.
-        const additionalMedicalBackupKeys=[];
+        // Collect legacy medical storage for deletion only after user confirmation.
+        // Never include the protected encrypted vault or local credential.
+        const legacyMedicalKeys=[];
         for(let i=0;i<localStorage.length;i++){
           const key=localStorage.key(i);
-          if(key&&/^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)&&
-             localStorage.getItem(key)!==null&&!residualBackupKeys.includes(key))
-            additionalMedicalBackupKeys.push(key);
+          if(key&&(key==='affixo_medcontrol_standard_v3'||
+            /^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)))
+            legacyMedicalKeys.push(key);
         }
-        if(additionalMedicalBackupKeys.length)
-          throw Error('Обнаружены дополнительные локальные резервные копии медицинских данных. Полный сброс отменён.');
         // The cloud inventory must be empty before committing the protected reset.
         // An authenticated, confirmed deletion is performed through the owner-scoped helper.
         if(!cloudSnapshots.deleteOwnSnapshotsForConfirmedReset)
@@ -135,6 +122,8 @@ window.medcontrolScriptReady = (async function(){
           delete state.replacedTimes;
         });
         resetCommitted=true;
+        // The protected transaction is durable; now clear old plaintext copies.
+        for(const key of legacyMedicalKeys)localStorage.removeItem(key);
         // Verify that no legacy plaintext medical data appeared while the encrypted
         // transaction was committing. Never report a complete wipe if it did.
         const remainingLegacyKeys=[];
