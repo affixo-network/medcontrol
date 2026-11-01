@@ -70,7 +70,7 @@ window.medcontrolScriptReady = (async function(){
     if(!Array.isArray(meds)||!meds.length||meds.some(m=>!m||m.cancelled||m.archivedCompleted!==true||!m.id))return false;
     const ids=new Set(meds.map(m=>String(m.id)));
     if(ids.size!==meds.length)return false;
-    for(const field of ['intakeLogs','intakeCorrections','archiveHistory','archivedCourses']){
+    for(const field of ['intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory']){
       const entries=state[field];
       if(entries!=null&&!Array.isArray(entries))return false;
       for(const entry of entries||[]){
