@@ -132,7 +132,7 @@ window.medcontrolScriptReady = (async function(){
         await session.transact(state=>{
           if(!allMedicalRecordsArchived(state))throw Error('Не все медицинские записи принадлежат завершённым архивным курсам.');
           delete state.cycleBackups;
-          state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];
+          state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];state.timeHistory=[];
           delete state.inputDraft;
           delete state.deletedTimes;
           delete state.replacedTimes;
