@@ -13,7 +13,7 @@
     let state;try{state=options.state||getState();}catch(error){return {ok:false,skipped:true,reason:'local_state_unreadable',error};}
     if(!validState(state))return {ok:false,skipped:true,reason:'invalid_local_state'};
     if(!options.allowEmpty&&!meaningfulState(state))return {ok:false,skipped:true,reason:'empty_local_state'};
-    const {data:latest,error:latestError}=await supabase.from(TABLE).select('id,state,created_at').order('created_at',{ascending:false}).limit(1).maybeSingle();
+    const {data:latest,error:latestError}=await supabase.from(TABLE).select('id,state,created_at').eq('owner_user_id',user.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
     if(latestError)return {ok:false,reason:'latest_snapshot_read_failed',error:latestError};
     if(resetSuspended)return {ok:false,skipped:true,reason:'medical_reset_in_progress'};
     if(latest&&JSON.stringify(latest.state)===JSON.stringify(state))return {ok:true,skipped:true,reason:'unchanged',snapshot:latest};
