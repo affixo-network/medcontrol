@@ -193,7 +193,7 @@ window.medcontrolScriptReady = (async function(){
     const {meds,current}=medicationState();
     const unfinished=current.filter(med=>!med.courseCompleted);
     if(!meds.length){clearLastMedicationHint();return;}
-    if(current.length===0&&meds.every(med=>!med.cancelled&&med.archivedCompleted===true)){clearLastMedicationHint();showCycleReady();return;}
+    if(current.length===0&&allMedicalRecordsArchived(getState())){clearLastMedicationHint();showCycleReady();return;}
     document.getElementById('medControlCycleReady')?.remove();
     if(unfinished.length===1){
       clearLastMedicationHint();
