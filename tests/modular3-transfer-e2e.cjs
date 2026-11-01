@@ -443,6 +443,42 @@ async function run(){
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.find(x=>x.id==='final-intake-regression').active),true);
   console.log('PASS 11: archived accidental intake undo restores active course and history across restart');
 
+  // T-039: synthetic reset-eligibility checks against the actual reset handler.
+  const eligibility=await page.evaluate(async()=>{
+    const source=await (await fetch('/js/archive-reset-policy.js',{cache:'no-store'})).text();
+    const result=[];
+    const scenarios=[
+      {name:'unfinished',medications:[{id:'t039-active',archivedCompleted:false,active:true}],allow:false},
+      {name:'cancelled',medications:[{id:'t039-cancelled',cancelled:true,archivedCompleted:false}],allow:false},
+      {name:'incomplete archive',medications:[{id:'t039-done',archivedCompleted:true},{id:'t039-missing',archivedCompleted:false}],allow:false},
+      {name:'fully archived',medications:[{id:'t039-done',archivedCompleted:true}],allow:true}
+    ];
+    for(const item of scenarios){
+      const storage=new Map([['medcontrol_modular3_protected_state_v1','synthetic']]);
+      let confirms=0,transactions=0;
+      const state={medications:item.medications.map(x=>({...x})),intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[]};
+      const fakeWindow={
+        confirm(){confirms++;return false;},alert(){},mount:async()=>{},
+        MedControlModular3ProtectedSession:{isUnlocked:()=>true,async transact(){transactions++;}},
+        medcontrolCloudSnapshot:{}
+      };
+      const fakeStorage={getItem:key=>storage.get(key)??null,removeItem:key=>storage.delete(key),key:i=>[...storage.keys()][i]??null,get length(){return storage.size;}};
+      const fakeDocument={getElementById:()=>null,querySelectorAll:()=>[],querySelector:()=>null};
+      const run=new Function('window','localStorage','document','getState','currentLocalDate','setTimeout','clearTimeout','escapeHtml','saveStateAsync',source);
+      run(fakeWindow,fakeStorage,fakeDocument,()=>state,()=> '2026-11-01',()=>0,()=>{},x=>x,async()=>true);
+      await fakeWindow.manualMedControlCycleReset();
+      result.push({name:item.name,confirms,transactions,unchanged:state.medications.length===item.medications.length,allow:item.allow});
+    }
+    return result;
+  });
+  for(const item of eligibility){
+    assert.equal(item.confirms,item.allow?1:0,'T-039 confirmation gate: '+item.name);
+    assert.equal(item.transactions,0,'T-039 no mutation after denial: '+item.name);
+    assert.equal(item.unchanged,true,'T-039 medical data preserved: '+item.name);
+    console.log('PASS T-039: '+item.name+' eligibility');
+  }
+
+
 
  }finally{
   if(browser)await browser.close();
