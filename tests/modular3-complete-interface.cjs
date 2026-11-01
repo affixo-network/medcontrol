@@ -666,6 +666,38 @@ async function run(){
   assert.equal(new Set(scaled.map(m=>m.id)).size,3000,'T-046 3000 course IDs must remain unique');
   console.log('PASS T-046: 3000 synthetic courses persist after password re-unlock');
 
+  // Explicit opt-in destructive-to-test-data stress mode: up to 1,000,000 courses.
+  // Never run against a real vault. Browser storage quota/performance may prevent completion.
+  // This is a storage stress test, NOT one million user-interface submissions.
+  if(process.env.MEDCONTROL_T046_MILLION==='1'){
+    const target=1_000_000;
+    const started=Date.now();
+    const result=await resetPage.evaluate(async target=>{
+      const session=window.MedControlModular3ProtectedSession;
+      const existing=session.read().medications.length;
+      // One protected write avoids quadratic repeated re-encryption of the entire vault.
+      await session.transact(state=>{
+        for(let i=existing;i<target;i++)
+          state.medications.push({id:'t046-million-'+i,name:'Synthetic Scale Course '+i,archivedCompleted:false});
+      });
+      const items=session.read().medications;
+      return {count:items.length,unique:new Set(items.map(m=>m.id)).size};
+    },target);
+    assert.deepEqual(result,{count:target,unique:target},'T-046 million course integrity before restart');
+    console.log('PASS T-046: 1000000 protected synthetic courses written in '+(Date.now()-started)+' ms');
+    await resetPage.goto(BASE+'/input.html');
+    await resetPage.locator('#password').fill(PASS);
+    await resetPage.locator('#unlock').click();
+    await resetPage.locator('#create_name').waitFor();
+    const after=await resetPage.evaluate(()=>{
+      const items=window.MedControlModular3ProtectedSession.read().medications;
+      return {count:items.length,unique:new Set(items.map(m=>m.id)).size};
+    });
+    assert.deepEqual(after,{count:target,unique:target},'T-046 million course integrity after re-unlock');
+    console.log('PASS T-046: 1000000 protected synthetic courses persist after password re-unlock');
+  }
+
+
 
 
   const legacyAfterRestart=await resetPage.evaluate(()=>{
