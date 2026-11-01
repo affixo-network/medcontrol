@@ -74,7 +74,8 @@ window.medcontrolScriptReady = (async function(){
       const entries=state[field];
       if(entries!=null&&!Array.isArray(entries))return false;
       for(const entry of entries||[]){
-        if(!entry||!entry.medicationId||!ids.has(String(entry.medicationId)))return false;
+        const linkedId=field==='archivedCourses'?(entry?.medicationId||entry?.id):entry?.medicationId;
+        if(!linkedId||!ids.has(String(linkedId)))return false;
       }
     }
     return true;
