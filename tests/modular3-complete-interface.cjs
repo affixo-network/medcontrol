@@ -225,6 +225,29 @@ async function run(){
   assert.deepEqual(cloudInventoryGate,{unchanged:true},
     'Cloud medical backup must block local reset without deleting records');
   console.log('PASS T-038: synthetic cloud inventory with one backup blocks reset');
+  // T-038: legacy primary plaintext medical state must block a protected reset.
+  const legacyPrimaryGate=await full.evaluate(async()=>{
+    const key='affixo_medcontrol_standard_v3';
+    const prior=localStorage.getItem(key);
+    const cloud=window.medcontrolCloudSnapshot;
+    const before=JSON.stringify(getState());
+    localStorage.setItem(key,JSON.stringify({medications:[{name:'Synthetic Legacy Primary'}]}));
+    window.medcontrolCloudSnapshot={
+      suspendForReset:async()=>({ok:true,skipped:true}),
+      verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
+      resumeAfterResetFailure:()=>{}
+    };
+    try{
+      await window.manualMedControlCycleReset();
+      return {unchanged:JSON.stringify(getState())===before,legacyPreserved:localStorage.getItem(key)!==null};
+    }finally{
+      window.medcontrolCloudSnapshot=cloud;
+      if(prior===null)localStorage.removeItem(key);else localStorage.setItem(key,prior);
+    }
+  });
+  assert.deepEqual(legacyPrimaryGate,{unchanged:true,legacyPreserved:true},
+    'Legacy primary medical state must prevent reset without erasing either copy');
+  console.log('PASS T-038: synthetic legacy primary medical state blocks protected reset');
   // T-038: dynamically named cloud-restore backups must also block a reset.
   const dynamicBackupGate=await full.evaluate(async()=>{
     const key='affixo_medcontrol_standard_v3_before_cloud_restore_1760000000000';
