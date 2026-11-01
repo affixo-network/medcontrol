@@ -501,6 +501,15 @@ async function run(){
   const syntheticReset=await resetPage.evaluate(async()=>{
     const cloud=window.medcontrolCloudSnapshot;
     const credential=localStorage.getItem('medcontrol_modular3_local_credential_v1');
+    const legacyKeys=[
+      'affixo_medcontrol_standard_v3',
+      'affixo_medcontrol_standard_v3_pre_reset_backup',
+      'affixo_medcontrol_standard_v3_corrupt_backup',
+      'affixo_medcontrol_standard_v3_pre_modular_2_upgrade_backup',
+      'affixo_medcontrol_standard_v3_before_cloud_restore_synthetic'
+    ];
+    for(const key of legacyKeys)localStorage.setItem(key,JSON.stringify({synthetic:true}));
+
     window.medcontrolCloudSnapshot={
       suspendForReset:async()=>({ok:true,skipped:true}),
       verifyOwnSnapshotInventoryForReset:async()=>({ok:true,empty:true,remaining:0}),
@@ -513,11 +522,12 @@ async function run(){
       return {
         empty:['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses'].every(k=>Array.isArray(state[k])&&state[k].length===0),
         credentialPreserved:credential!==null&&credential===localStorage.getItem('medcontrol_modular3_local_credential_v1'),
-        encryptedVaultPresent:localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null
+        encryptedVaultPresent:localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null,
+        legacyRemoved:legacyKeys.every(key=>localStorage.getItem(key)===null)
       };
     }finally{window.medcontrolCloudSnapshot=cloud;}
   });
-  assert.deepEqual(syntheticReset,{empty:true,credentialPreserved:true,encryptedVaultPresent:true});
+  assert.deepEqual(syntheticReset,{empty:true,credentialPreserved:true,encryptedVaultPresent:true,legacyRemoved:true});
   await resetPage.goto(BASE+'/input.html');
   await resetPage.locator('#password').fill(PASS);
   await resetPage.locator('#unlock').click();
