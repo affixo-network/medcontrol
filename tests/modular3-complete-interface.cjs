@@ -639,6 +639,34 @@ async function run(){
     assert.equal(repeated.filter(m=>m.name===name).length,1,'Repeated UI course must persist: '+name);
   console.log('PASS T-046: three consecutive UI-created courses persist after one reset and password re-unlock');
 
+  // T-046 scale check: 300 and 3000 total courses in the protected store.
+  // Bulk fixture writes are not a substitute for creating 3000 courses through the UI.
+  for(const target of [300,3000]){
+    const before=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.length);
+    const start=Date.now();
+    for(let offset=before;offset<target;offset+=100){
+      const count=Math.min(100,target-offset);
+      await resetPage.evaluate(async({offset,count})=>{
+        await window.MedControlModular3ProtectedSession.transact(state=>{
+          for(let i=offset;i<offset+count;i++)
+            state.medications.push({id:'t046-scale-'+i,name:'Synthetic Scale Course '+i,archivedCompleted:false});
+        });
+      },{offset,count});
+    }
+    const actual=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.length);
+    assert.equal(actual,target,'T-046 protected scale count before restart');
+    console.log('PASS T-046: '+target+' synthetic courses stored in protected vault ('+(Date.now()-start)+' ms)');
+  }
+  await resetPage.goto(BASE+'/input.html');
+  await resetPage.locator('#password').fill(PASS);
+  await resetPage.locator('#unlock').click();
+  await resetPage.locator('#create_name').waitFor();
+  const scaled=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications);
+  assert.equal(scaled.length,3000,'T-046 3000 courses must persist after password re-unlock');
+  assert.equal(new Set(scaled.map(m=>m.id)).size,3000,'T-046 3000 course IDs must remain unique');
+  console.log('PASS T-046: 3000 synthetic courses persist after password re-unlock');
+
+
 
   const legacyAfterRestart=await resetPage.evaluate(()=>{
     const remaining=[];
