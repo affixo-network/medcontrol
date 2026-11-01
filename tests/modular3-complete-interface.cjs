@@ -292,6 +292,43 @@ async function run(){
     ok:false,reason:'snapshot_delete_failed',deletionAttempted:true,localUnchanged:true
   },'Cloud deletion failure must be explicit and leave local medical state unchanged');
   console.log('PASS T-038: synthetic cloud deletion failure is reported without changing local records');
+  // T-038: a successful delete response is insufficient if a snapshot remains.
+  const syntheticCloudResidual=await full.evaluate(async()=>{
+    const originalClient=window.medcontrolSupabase;
+    const originalUser=window.medcontrolSupabaseUser;
+    const snapshot=window.medcontrolCloudSnapshot;
+    let checks=0;
+    window.medcontrolSupabaseUser={id:'synthetic-residual-owner'};
+    window.medcontrolSupabase={
+      from:table=>{
+        if(table!=='mc_cloud_snapshots')throw Error('Unexpected table');
+        return {
+          select:()=>({eq:async(column,owner)=>{
+            if(column!=='owner_user_id'||owner!=='synthetic-residual-owner')throw Error('Unscoped inventory');
+            checks++;
+            return {count:1,error:null};
+          }}),
+          delete:()=>({eq:async(column,owner)=>{
+            if(column!=='owner_user_id'||owner!=='synthetic-residual-owner')throw Error('Unscoped delete');
+            return {error:null};
+          }})
+        };
+      }
+    };
+    try{
+      await snapshot.suspendForReset();
+      const result=await snapshot.deleteOwnSnapshotsForConfirmedReset();
+      return {ok:result.ok,reason:result.reason,remaining:result.remaining,checks};
+    }finally{
+      snapshot.resumeAfterResetFailure();
+      window.medcontrolSupabase=originalClient;
+      window.medcontrolSupabaseUser=originalUser;
+    }
+  });
+  assert.deepEqual(syntheticCloudResidual,{
+    ok:false,reason:'snapshot_delete_incomplete',remaining:1,checks:2
+  },'Reset must not claim cloud deletion success while a snapshot remains');
+  console.log('PASS T-038: residual cloud backup blocks false completion after delete response');
   // T-038: cloud copies must block reset even when all local legacy backups are absent.
   const cloudInventoryGate=await full.evaluate(async()=>{
     const original=window.medcontrolCloudSnapshot;
