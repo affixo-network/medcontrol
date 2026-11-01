@@ -489,9 +489,9 @@ async function run(){
       settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},
       medications:[{id:'synthetic-reset-course',name:'Synthetic Archived Course',archivedCompleted:true}],
       intakeLogs:[{id:'synthetic-intake',medicationId:'synthetic-reset-course'}],
-      intakeCorrections:[{id:'synthetic-correction'}],
-      archiveHistory:[{id:'synthetic-history'}],
-      archivedCourses:[{id:'synthetic-archive'}]
+      intakeCorrections:[{id:'synthetic-correction',medicationId:'synthetic-reset-course'}],
+      archiveHistory:[{id:'synthetic-history',medicationId:'synthetic-reset-course'}],
+      archivedCourses:[{id:'synthetic-reset-course',medicationId:'synthetic-reset-course'}]
     },password);
   },PASS);
   await resetPage.goto(BASE+'/archive.html');
