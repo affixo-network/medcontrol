@@ -184,7 +184,7 @@ async function run(){
   assert.deepEqual(afterReset,beforeReset,'Reset must not erase medical records when cloud inventory cannot be verified');
   assert.equal(await full.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3_pre_reset_backup')),null);
   console.log('PASS T-038: reset blocked without cloud inventory verification; medical records preserved');
-  await full.evaluate(async()=>{await window.mount('input');});
+  await full.goto(BASE+'/input.html');
   await full.locator('#create_name').waitFor();
   const blockedNavigation=await full.evaluate(async()=>{
    const native=Storage.prototype.setItem;
