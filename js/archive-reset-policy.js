@@ -93,10 +93,10 @@ window.medcontrolScriptReady = (async function(){
         }
         // T-038: never report a complete reset while legacy medical backups remain.
         // A legacy plaintext primary state can resurrect records after a protected reset.
-      // Until migration/removal is verified, refuse to claim a complete wipe.
-      if(localStorage.getItem('affixo_medcontrol_standard_v3')!==null)
-        throw Error('Обнаружено прежнее локальное медицинское хранилище. Полный сброс отменён.');
-      const residualBackupKeys=[
+        // Until migration/removal is verified, refuse to claim a complete wipe.
+        if(localStorage.getItem('affixo_medcontrol_standard_v3')!==null)
+          throw Error('Обнаружено прежнее локальное медицинское хранилище. Полный сброс отменён.');
+        const residualBackupKeys=[
           'affixo_medcontrol_standard_v3_pre_reset_backup',
           'affixo_medcontrol_standard_v3_corrupt_backup',
           'affixo_medcontrol_standard_v3_pre_modular_2_upgrade_backup'
