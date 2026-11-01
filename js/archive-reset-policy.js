@@ -114,6 +114,11 @@ window.medcontrolScriptReady = (async function(){
         }
         if(additionalMedicalBackupKeys.length)
           throw Error('Обнаружены дополнительные локальные резервные копии медицинских данных. Полный сброс отменён.');
+        // Re-check the cloud inventory immediately before committing the encrypted reset.
+        // A new owner-scoped snapshot appearing during preflight must block completion.
+        const finalInventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
+        if(!finalInventory?.ok||!finalInventory.empty)
+          throw Error('Повторная проверка облачных копий не пройдена. Полный сброс отменён.');
         await session.transact(state=>{
           if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
           delete state.cycleBackups;
