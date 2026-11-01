@@ -58,6 +58,8 @@
     if(!supabase||!user?.id)return {ok:false,reason:'auth_unavailable'};
     const {count,error}=await supabase.from(TABLE).select('id',{count:'exact',head:true}).eq('owner_user_id',user.id);
     if(error)return {ok:false,reason:'snapshot_inventory_failed',error};
+    if(!resetSuspended)return {ok:false,reason:'reset_no_longer_suspended'};
+    if(!Number.isSafeInteger(count)||count<0)return {ok:false,reason:'snapshot_inventory_count_unavailable'};
     return {ok:true,owner_user_id:user.id,remaining:count,empty:count===0};
   }
   function resumeAfterResetFailure(){resetSuspended=false;}
