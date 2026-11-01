@@ -63,7 +63,24 @@
     if(window.medcontrolSupabase!==supabase||window.medcontrolSupabaseUser?.id!==user.id)return {ok:false,reason:'auth_changed_during_inventory'};
     return {ok:true,owner_user_id:user.id,remaining:count,empty:count===0};
   }
+  // Called only from a user-confirmed reset workflow, never during startup.
+  // The authenticated owner filter and post-delete inventory check are mandatory.
+  async function deleteOwnSnapshotsForConfirmedReset(){
+    const before=await verifyOwnSnapshotInventoryForReset();
+    if(!before.ok)return before;
+    if(before.empty)return {ok:true,empty:true,remaining:0};
+    const supabase=window.medcontrolSupabase;
+    const owner=window.medcontrolSupabaseUser?.id;
+    if(!resetSuspended||owner!==before.owner_user_id)
+      return {ok:false,reason:'reset_owner_changed'};
+    const {error}=await supabase.from(TABLE).delete().eq('owner_user_id',owner);
+    if(error)return {ok:false,reason:'snapshot_delete_failed',error};
+    const after=await verifyOwnSnapshotInventoryForReset();
+    if(!after.ok)return after;
+    if(!after.empty)return {ok:false,reason:'snapshot_delete_incomplete',remaining:after.remaining};
+    return {ok:true,empty:true,remaining:0};
+  }
   function resumeAfterResetFailure(){resetSuspended=false;}
-  window.medcontrolCloudSnapshot={suspendForReset,resumeAfterResetFailure,verifyOwnSnapshotInventoryForReset,create:createCloudSnapshot,queue:queueCloudSnapshot,schedule:scheduleCloudSnapshot,flush:flushScheduledSnapshot,latest:getLatestCloudSnapshot,restoreLatest:restoreLatestCloudSnapshot,validState,meaningfulState};
+  window.medcontrolCloudSnapshot={suspendForReset,resumeAfterResetFailure,verifyOwnSnapshotInventoryForReset,deleteOwnSnapshotsForConfirmedReset,create:createCloudSnapshot,queue:queueCloudSnapshot,schedule:scheduleCloudSnapshot,flush:flushScheduledSnapshot,latest:getLatestCloudSnapshot,restoreLatest:restoreLatestCloudSnapshot,validState,meaningfulState};
   setTimeout(()=>queueCloudSnapshot(),0);
 })();
