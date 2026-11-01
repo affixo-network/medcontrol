@@ -21,9 +21,14 @@
   check('Protected reset resumes cloud on failure',/if\(!resetCommitted\)cloudSnapshots\?\.resumeAfterResetFailure\?\.\(\)/.test(reset));
   check('Full reset does not preserve a plaintext local backup',!/preserveCycleResetBackup\(oldState,'manual_cycle_reset'\)/.test(reset));
   check('Full reset does not create an old-state cloud snapshot',!/await window\.medcontrolCloudSnapshot\.create\(\{state:oldState\}\)/.test(reset));
+  check('Owner-scoped snapshot deduplication read',/select\('id,state,created_at'\)\.eq\('owner_user_id',user\.id\)/.test(cloud));
+  check('Owner-scoped snapshot restoration read',/select\('id,state,state_version,source_version,created_at'\)\.eq\('owner_user_id',window\.medcontrolSupabaseUser\.id\)/.test(cloud));
+  check('Owner-scoped read-only reset inventory',/select\('id',\{count:'exact',head:true\}\)\.eq\('owner_user_id',user\.id\)/.test(cloud));
+  check('Protected reset fails closed without inventory verifier',/\}else\{\s*throw Error\('Проверка облачных резервных копий недоступна\. Сброс отменён\.'\)/.test(reset));
+  check('Protected reset rejects remaining cloud copies',/if\(!inventory\.empty\)throw Error/.test(reset));
   check('No password removal in reset source',!/removeItem\(['"]medcontrol_modular3_local_credential_v1/.test(reset));
  }catch(e){check('Source fetch: '+e.message,false);}
- const pass=results.every(x=>x.ok)&&results.length===11;
+ const pass=results.every(x=>x.ok)&&results.length===16;
  output.textContent=(pass?'PASS':'FAIL')+' — T-038 source regression (not E2E)\n\n'+results.map((r,i)=>(i+1)+'. '+r.name+': '+(r.ok?'PASS':'FAIL')).join('\n');
 })();
 </script></html>
