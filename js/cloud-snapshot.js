@@ -60,6 +60,7 @@
     if(error)return {ok:false,reason:'snapshot_inventory_failed',error};
     if(!resetSuspended)return {ok:false,reason:'reset_no_longer_suspended'};
     if(!Number.isSafeInteger(count)||count<0)return {ok:false,reason:'snapshot_inventory_count_unavailable'};
+    if(window.medcontrolSupabase!==supabase||window.medcontrolSupabaseUser?.id!==user.id)return {ok:false,reason:'auth_changed_during_inventory'};
     return {ok:true,owner_user_id:user.id,remaining:count,empty:count===0};
   }
   function resumeAfterResetFailure(){resetSuspended=false;}
