@@ -9,7 +9,7 @@ async function run(){
  const server=spawn('python3',['-m','http.server','8791','--bind','127.0.0.1'],{stdio:'ignore'});
  let browser;
  try{
-  for(let i=0;i<100;i++){try{if((await fetch(BASE+'/input.html')).ok)break;}catch{}await new Promise(r=>setTimeout(r,50));}
+  for(let i=0;i<100;i++){try{const response=await fetch(BASE+'/input.html');await response.arrayBuffer();if(response.ok)break;}catch{}await new Promise(r=>setTimeout(r,50));}
   browser=await chromium.launch({headless:true,...(process.env.MEDCONTROL_CHROMIUM?{executablePath:process.env.MEDCONTROL_CHROMIUM,args:['--no-sandbox']}:{} )});
   const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
   const page=await context.newPage();
