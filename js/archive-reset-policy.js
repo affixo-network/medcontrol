@@ -88,7 +88,10 @@ window.medcontrolScriptReady = (async function(){
       if(!meds.length||current.length)return;
       if(!window.confirm('Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.'))return;
       resetInProgress=true;
+      const cloudSnapshots=window.medcontrolCloudSnapshot;
+      let resetCommitted=false;
       try{
+        if(cloudSnapshots?.suspendForReset)await cloudSnapshots.suspendForReset();
         await session.transact(state=>{
           if(state.medications.some(med=>!isArchival(med,currentLocalDate())))throw Error('Цикл ещё не завершён.');
           delete state.cycleBackups;
@@ -97,9 +100,13 @@ window.medcontrolScriptReady = (async function(){
           delete state.deletedTimes;
           delete state.replacedTimes;
         });
+        resetCommitted=true;
         await window.medcontrolNavigateTo('input');
       }catch(error){window.alert('Не удалось начать новый цикл: '+error.message);}
-      finally{resetInProgress=false;}
+      finally{
+        if(!resetCommitted)cloudSnapshots?.resumeAfterResetFailure?.();
+        resetInProgress=false;
+      }
       return;
     }
     const {meds,current}=medicationState();
