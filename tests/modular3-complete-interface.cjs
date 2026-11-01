@@ -492,7 +492,9 @@ async function run(){
       intakeCorrections:[{id:'synthetic-correction',medicationId:'synthetic-reset-course'}],
       archiveHistory:[{id:'synthetic-history',medicationId:'synthetic-reset-course'}],
       archivedCourses:[{id:'synthetic-reset-course',medicationId:'synthetic-reset-course'}],
-       timeHistory:[{id:'synthetic-time-change',medicationId:'synthetic-reset-course'}]
+       timeHistory:[{id:'synthetic-time-change',medicationId:'synthetic-reset-course'}],
+      deletedTimes:[{medicationId:'synthetic-reset-course',time:'09:00'}],
+      replacedTimes:[{medicationId:'synthetic-reset-course',from:'09:00',to:'10:00'}]
     },password);
   },PASS);
   await resetPage.goto(BASE+'/archive.html');
@@ -526,6 +528,7 @@ async function run(){
       const state=window.MedControlModular3ProtectedSession.read();
       return {
         empty:['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory'].every(k=>Array.isArray(state[k])&&state[k].length===0),
+        temporalHistoryRemoved:!Object.prototype.hasOwnProperty.call(state,'deletedTimes')&&!Object.prototype.hasOwnProperty.call(state,'replacedTimes'),
         credentialPreserved:credential!==null&&credential===localStorage.getItem('medcontrol_modular3_local_credential_v1'),
         encryptedVaultPresent:localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null,
         legacyRemoved:legacyKeys.every(key=>localStorage.getItem(key)===null)&&
@@ -533,7 +536,7 @@ async function run(){
       };
     }finally{window.medcontrolCloudSnapshot=cloud;}
   });
-  assert.deepEqual(syntheticReset,{empty:true,credentialPreserved:true,encryptedVaultPresent:true,legacyRemoved:true});
+  assert.deepEqual(syntheticReset,{empty:true,temporalHistoryRemoved:true,credentialPreserved:true,encryptedVaultPresent:true,legacyRemoved:true});
   await resetPage.goto(BASE+'/input.html');
   await resetPage.locator('#password').fill(PASS);
   await resetPage.locator('#unlock').click();
@@ -541,6 +544,8 @@ async function run(){
   const reloaded=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   for(const key of ['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory'])
     assert.deepEqual(reloaded[key],[],key+' must stay empty after restart');
+  assert.equal(Object.prototype.hasOwnProperty.call(reloaded,'deletedTimes'),false,'deleted times must stay removed after restart');
+  assert.equal(Object.prototype.hasOwnProperty.call(reloaded,'replacedTimes'),false,'replaced times must stay removed after restart');
   const legacyAfterRestart=await resetPage.evaluate(()=>{
     const remaining=[];
     for(let i=0;i<localStorage.length;i++){
