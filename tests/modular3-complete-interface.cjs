@@ -9,7 +9,19 @@ async function run(){
  const server=spawn('python3',['-m','http.server','8791','--bind','127.0.0.1'],{stdio:'ignore'});
  let browser;
  try{
-  for(let i=0;i<100;i++){try{const response=await fetch(BASE+'/input.html');await response.arrayBuffer();if(response.ok)break;}catch{}await new Promise(r=>setTimeout(r,50));}
+  // Use Node's HTTP client for readiness: undici fetch can assert on socket teardown.
+  const http=require('node:http');
+  for(let i=0;i<100;i++){
+    const ready=await new Promise(resolve=>{
+      const request=http.get(BASE+'/input.html',response=>{
+        response.resume();response.on('end',()=>resolve(response.statusCode===200));
+        response.on('error',()=>resolve(false));
+      });
+      request.on('error',()=>resolve(false));
+    });
+    if(ready)break;
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
   browser=await chromium.launch({headless:true,...(process.env.MEDCONTROL_CHROMIUM?{executablePath:process.env.MEDCONTROL_CHROMIUM,args:['--no-sandbox']}:{} )});
   const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
   const page=await context.newPage();
