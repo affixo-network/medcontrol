@@ -178,3 +178,25 @@ test('T-046 atomic encrypted page import rolls back on duplicate ID',async({page
   });
   expect(result).toEqual({imported:2,duplicateRejected:true,absent:true,retained:'two'});
 });
+
+test('T-046 backup page continuity rejects replay and forged cursor',async({page})=>{
+  await page.goto('http://127.0.0.1:8765/auth-login.html');
+  for(const name of ['modular3-shard-crypto.js','modular3-shard-store.js','modular3-shard-vault.js'])
+    await page.addScriptTag({path:path.join(ROOT,'js',name)});
+  const result=await page.evaluate(async()=>{
+    const owner='synthetic-continuity-'+crypto.randomUUID();
+    const vault=await window.MedControlModular3ShardVault.create(owner,'synthetic-continuity-password');
+    await vault.createRecord('001',{dose:1});
+    await vault.createRecord('002',{dose:2});
+    const first=await vault.exportEncryptedPage({limit:2});
+    const second=await vault.exportEncryptedPage({after:first.next,limit:2});
+    const valid=await vault.verifyEncryptedBackupPage(second,{after:first.next});
+    let replayRejected=false,forgedRejected=false;
+    try{await vault.verifyEncryptedBackupPage(first,{after:first.next});}catch(_){replayRejected=true;}
+    const forged=structuredClone(first);
+    forged.next='incorrect';
+    try{await vault.verifyEncryptedBackupPage(forged);}catch(_){forgedRejected=true;}
+    return {valid:valid.verified,replayRejected,forgedRejected};
+  });
+  expect(result).toEqual({valid:1,replayRejected:true,forgedRejected:true});
+});
