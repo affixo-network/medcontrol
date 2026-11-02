@@ -37,3 +37,36 @@ test('T-046 isolated encrypted shards: durable paging, identity binding, stale-w
   expect(result).toEqual({duplicateRejected:true,staleRejected:true,wrongIdentityRejected:true,
     first:['001'],second:['002'],end:true,revision:3});
 });
+
+test('T-046 sharded vault: reopen, wrong password, paging, stale update, lock',async({page})=>{
+  await page.goto('http://127.0.0.1:8765/auth-login.html');
+  for(const name of ['modular3-shard-crypto.js','modular3-shard-store.js','modular3-shard-vault.js'])
+    await page.addScriptTag({path:path.join(ROOT,'js',name)});
+  const owner='synthetic-vault-'+Date.now()+'-'+Math.random();
+  const password='synthetic-vault-password-only';
+  const result=await page.evaluate(async({owner,password})=>{
+    const vault=window.MedControlModular3ShardVault;
+    const first=await vault.create(owner,password);
+    await first.createRecord('001',{dose:1});
+    await first.createRecord('002',{dose:2});
+    let duplicateRejected=false;
+    try{await first.createRecord('001',{dose:9});}catch(_){duplicateRejected=true;}
+    first.lock();
+    let lockedRejected=false;
+    try{await first.getRecord('001');}catch(_){lockedRejected=true;}
+    let wrongPasswordRejected=false;
+    try{await vault.open(owner,'incorrect-password-123');}catch(_){wrongPasswordRejected=true;}
+    const reopened=await vault.open(owner,password);
+    const firstPage=await reopened.page({limit:1});
+    const secondPage=await reopened.page({after:firstPage.next,limit:1});
+    const before=await reopened.getRecord('001');
+    const updated=await reopened.replaceRecord('001',before,{dose:3});
+    let staleRejected=false;
+    try{await reopened.replaceRecord('001',before,{dose:4});}catch(_){staleRejected=true;}
+    return {duplicateRejected,lockedRejected,wrongPasswordRejected,staleRejected,
+      pages:[firstPage.rows.map(r=>r.id),secondPage.rows.map(r=>r.id)],
+      doses:[updated.dose,(await reopened.getRecord('002')).dose]};
+  },{owner,password});
+  expect(result).toEqual({duplicateRejected:true,lockedRejected:true,
+    wrongPasswordRejected:true,staleRejected:true,pages:[['001'],['002']],doses:[3,2]});
+});
