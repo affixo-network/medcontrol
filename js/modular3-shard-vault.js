@@ -64,7 +64,11 @@
          throw Error('Record changed since last read');
        const encrypted=await cipher.encrypt(owner,id,nextRecord);
        await STORE.replaceEncryptedIfMatch(owner,id,current,encrypted);
-       return this.getRecord(id);
+       const persisted=await STORE.getEncrypted(owner,id);
+       const verified=await cipher.decrypt(owner,id,persisted);
+       if(JSON.stringify(verified)!==JSON.stringify(nextRecord))
+         throw Error('Encrypted replacement verification failed');
+       return structuredClone(verified);
      },
      async page({after='',limit=100}={}){
        requireOpen();
