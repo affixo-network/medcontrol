@@ -664,9 +664,21 @@ async function run(){
     try { return window.MedControlModular3ProtectedSession?.read()?.medications?.length === 3000; }
     catch (_) { return false; }
   }, null, {timeout: 60000});
-  // Wait for the UI to mount without re-reading or cloning 3000 records in each poll.
-  // Protected unlock completes before asynchronous page initialization.
-  await resetPage.waitForFunction(() => !!document.getElementById('create_name'), null, {timeout: 120000, polling: 1000});
+  // Rendering 3000 rows can monopolize the page's main thread. Record a
+  // bounded diagnostic instead of extending the polling timeout again.
+  let formMounted=false;
+  try {
+    await resetPage.locator('#create_name').waitFor({state:'attached',timeout:30000});
+    formMounted=true;
+  } catch (_) {
+    const diagnosis=await resetPage.evaluate(() => ({
+      form:!!document.getElementById('create_name'),
+      protectedMode:!!window.medcontrolProtectedInterface,
+      bodyTail:(document.body?.innerText||'').slice(-500)
+    }));
+    throw new Error('T-046 Input mount stalled after 3000 courses: '+JSON.stringify(diagnosis));
+  }
+  assert.equal(formMounted,true);
   const inputMount=await resetPage.evaluate(() => ({
     mounted: !!document.getElementById('create_name'),
     protectedMode: !!window.medcontrolProtectedInterface,
