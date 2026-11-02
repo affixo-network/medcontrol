@@ -57,6 +57,27 @@
       return true;
     }finally{db.close();}
   }
+  // Optimistic concurrency: read and compare inside the same readwrite transaction.
+  // A stale editor cannot overwrite a newer encrypted medical record.
+  async function replaceEncryptedIfMatch(owner,id,expectedCiphertext,nextCiphertext){
+    validate(owner,id);
+    if(!expectedCiphertext||typeof expectedCiphertext!=='object'||
+       !nextCiphertext||typeof nextCiphertext!=='object')throw Error('Encrypted payloads required');
+    const db=await open();
+    try{
+      await transaction(db,'readwrite',store=>{
+        const request=store.get([owner,id]);
+        request.onsuccess=()=>{
+          const previous=request.result;
+          if(!previous||JSON.stringify(previous.ciphertext)!==JSON.stringify(expectedCiphertext)){
+            store.transaction.abort();return;
+          }
+          store.put({owner,id,ciphertext:structuredClone(nextCiphertext)});
+        };
+      });
+      return true;
+    }finally{db.close();}
+  }
   async function getEncrypted(owner,id){
     validate(owner,id);
     const db=await open();
@@ -82,5 +103,5 @@
       };
     });}finally{db.close();}
   }
-  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,putEncrypted,getEncrypted,pageEncrypted});
+  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,putEncrypted,replaceEncryptedIfMatch,getEncrypted,pageEncrypted});
 })(typeof window!=='undefined'?window:globalThis);
