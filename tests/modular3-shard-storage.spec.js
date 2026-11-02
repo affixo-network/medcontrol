@@ -83,3 +83,28 @@ test('T-046 sharded vault: reopen, wrong password, paging, stale update, lock',a
   },{owner,password});
   expect(restored).toEqual({first:{dose:3},second:{dose:2},pageOne:['001']});
 });
+
+test('T-046 interrupted writes leave previously committed encrypted records intact',async({page})=>{
+  await page.goto('http://127.0.0.1:8765/auth-login.html');
+  for(const name of ['modular3-shard-crypto.js','modular3-shard-store.js','modular3-shard-vault.js'])
+    await page.addScriptTag({path:path.join(ROOT,'js',name)});
+  const result=await page.evaluate(async()=>{
+    const owner='synthetic-interruption-'+crypto.randomUUID();
+    const vault=await window.MedControlModular3ShardVault.create(owner,'synthetic-interruption-password');
+    await vault.createRecord('001',{revision:1});
+    const store=window.MedControlModular3ShardStore;
+    const original=store.replaceEncryptedIfMatch;
+    // The facade captures the store object; inject a rejected write at the storage boundary.
+    store.replaceEncryptedIfMatch=async()=>{throw Error('Synthetic storage interruption');};
+    let interrupted=false;
+    try{await vault.replaceRecord('001',{revision:1},{revision:2});}
+    catch(error){interrupted=error.message.includes('Synthetic storage interruption');}
+    finally{store.replaceEncryptedIfMatch=original;}
+    const stillCommitted=await vault.getRecord('001');
+    vault.lock();
+    const reopened=await window.MedControlModular3ShardVault.open(owner,'synthetic-interruption-password');
+    const restored=await reopened.getRecord('001');
+    return {interrupted,stillCommitted,restored};
+  });
+  expect(result).toEqual({interrupted:true,stillCommitted:{revision:1},restored:{revision:1}});
+});
