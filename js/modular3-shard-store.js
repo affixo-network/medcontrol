@@ -1,6 +1,7 @@
 /* Modular-3 T-046: append-only, paged encrypted-record storage foundation.
  * Opt-in only: existing vault and medical records are never migrated implicitly.
  * Callers provide already-encrypted payloads; this module never accepts plaintext.
+ * Never use this store as the sole copy until migration and recovery are verified.
  */
 (function(root){
   'use strict';
