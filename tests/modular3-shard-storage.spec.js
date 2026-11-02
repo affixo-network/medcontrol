@@ -155,3 +155,26 @@ test('T-046 backup verification rejects tampering and foreign vault records',asy
   });
   expect(result).toEqual({valid:2,tamperingRejected:true,foreignRejected:true});
 });
+
+test('T-046 atomic encrypted page import rolls back on duplicate ID',async({page})=>{
+  await page.goto('http://127.0.0.1:8765/auth-login.html');
+  await page.addScriptTag({path:path.join(ROOT,'js','modular3-shard-store.js')});
+  const result=await page.evaluate(async()=>{
+    const store=window.MedControlModular3ShardStore;
+    const owner='synthetic-import-'+crypto.randomUUID();
+    const payload=value=>({iv:'synthetic',ciphertext:value});
+    const initial=[{id:'001',ciphertext:payload('one')},{id:'002',ciphertext:payload('two')}];
+    const imported=await store.importEncryptedPageNewOwner(owner,initial);
+    let duplicateRejected=false;
+    try{
+      await store.importEncryptedPageNewOwner(owner,[
+        {id:'000',ciphertext:payload('must-rollback')},
+        {id:'002',ciphertext:payload('must-not-overwrite')}
+      ]);
+    }catch(_){duplicateRejected=true;}
+    const absent=await store.getEncrypted(owner,'000');
+    const retained=await store.getEncrypted(owner,'002');
+    return {imported,duplicateRejected,absent:absent===null,retained:retained?.ciphertext};
+  });
+  expect(result).toEqual({imported:2,duplicateRejected:true,absent:true,retained:'two'});
+});
