@@ -109,3 +109,26 @@ test('T-046 interrupted writes leave previously committed encrypted records inta
   });
   expect(result).toEqual({interrupted:true,stillCommitted:{revision:1},restored:{revision:1}});
 });
+
+test('T-046 encrypted backup pages retain vault salt and ciphertext without plaintext',async({page})=>{
+  await page.goto('http://127.0.0.1:8765/auth-login.html');
+  for(const name of ['modular3-shard-crypto.js','modular3-shard-store.js','modular3-shard-vault.js'])
+    await page.addScriptTag({path:path.join(ROOT,'js',name)});
+  const result=await page.evaluate(async()=>{
+    const owner='synthetic-backup-'+crypto.randomUUID();
+    const vault=await window.MedControlModular3ShardVault.create(owner,'synthetic-backup-password');
+    await vault.createRecord('001',{medicine:'synthetic-secret-only',dose:1});
+    const first=await vault.exportEncryptedPage({limit:1});
+    const second=await vault.exportEncryptedPage({after:first.next,limit:1});
+    const all=[...first.rows,...second.rows];
+    const metadata=all.find(row=>row.id==='!vault');
+    const medical=all.find(row=>row.id==='001');
+    const serialized=JSON.stringify(all);
+    const hasSalt=typeof metadata?.ciphertext?.salt==='string';
+    const hasCipher=typeof medical?.ciphertext?.ciphertext==='string';
+    const noPlaintext=!serialized.includes('synthetic-secret-only');
+    return {hasSalt,hasCipher,noPlaintext,ids:all.map(row=>row.id),end:second.next===null};
+  });
+  expect(result).toEqual({hasSalt:true,hasCipher:true,noPlaintext:true,
+    ids:['!vault','001'],end:true});
+});
