@@ -673,6 +673,18 @@ async function run(){
     return {inputVisible:!!field&&getComputedStyle(field).visibility==='visible'&&!!rect?.width&&!!rect?.height,
       sessionAvailable:!!session, count:session?.read()?.medications?.length??-1};
   });
+  if(!unlocked3000.inputVisible){
+    const visibilityDiagnostic=await resetPage.evaluate(()=>{
+      const field=document.getElementById('create_name');
+      const nodes=[];
+      for(let n=field,i=0;n&&i<12;n=n.parentElement,i++){
+        const style=getComputedStyle(n);
+        nodes.push({tag:n.tagName,id:n.id,hidden:n.hidden,display:style.display,visibility:style.visibility,width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height});
+      }
+      return {fieldExists:!!field,nodes};
+    });
+    console.log('T-046 3000-course visibility diagnostic: '+JSON.stringify(visibilityDiagnostic));
+  }
   assert.equal(unlocked3000.inputVisible,true,'T-046 Input must remain visible after 3000-course re-unlock: '+JSON.stringify(unlocked3000));
   assert.equal(unlocked3000.sessionAvailable,true,'T-046 protected session must remain available');
   assert.equal(unlocked3000.count,3000,'T-046 protected session must restore 3000 courses');
