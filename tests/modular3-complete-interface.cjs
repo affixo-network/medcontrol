@@ -664,19 +664,15 @@ async function run(){
     try { return window.MedControlModular3ProtectedSession?.read()?.medications?.length === 3000; }
     catch (_) { return false; }
   }, null, {timeout: 60000});
-  try {
-    await resetPage.waitForFunction(() => !!document.getElementById('create_name'), null, {timeout: 60000});
-  } catch (error) {
-    const startup = await resetPage.evaluate(() => ({
-      path: location.pathname,
-      appText: (document.getElementById('app')?.innerText || '').slice(0,1500),
-      startupError: (document.body?.innerText || '').slice(-1200),
-      inputExists: !!document.getElementById('create_name'),
-      protectedMode: !!window.medcontrolProtectedInterface,
-      sessionUnlocked: !!window.MedControlModular3ProtectedSession?.isUnlocked?.()
-    }));
-    throw new Error('T-046 Input startup after 3000 courses: '+JSON.stringify(startup)+'; '+error.message);
-  }
+  // A large synchronous table render can starve Playwright polling. Verify the
+  // mounted form with one direct DOM evaluation after the protected unlock.
+  const inputMount=await resetPage.evaluate(() => ({
+    mounted: !!document.getElementById('create_name'),
+    protectedMode: !!window.medcontrolProtectedInterface,
+    count: window.MedControlModular3ProtectedSession?.read()?.medications?.length ?? -1
+  }));
+  assert.equal(inputMount.count,3000,'T-046 protected vault data after re-unlock');
+  assert.equal(inputMount.mounted,true,'T-046 Input form must mount after 3000-course re-unlock: '+JSON.stringify(inputMount));
   // After a large vault unlock, query the DOM directly; Playwright's visibility
   // polling may time out while the page is busy rendering a large history.
   const unlocked3000=await resetPage.evaluate(()=>{
