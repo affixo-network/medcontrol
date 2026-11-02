@@ -103,13 +103,15 @@
      },
      // Verify a streamed encrypted backup page before any future restore.
      // No writes: a damaged, foreign or plaintext record must be rejected.
-     async verifyEncryptedBackupPage(page){
+     async verifyEncryptedBackupPage(page,{after=''}={}){
        requireOpen();
        if(!page||page.format!=='medcontrol-shard-backup-v1'||page.owner!==owner||
           !Array.isArray(page.rows)||page.rows.length>500||
           (page.next!==null&&typeof page.next!=='string'))
          throw Error('Invalid encrypted backup page');
-       let previous='';
+       if(typeof after!=='string'||after==='\uffff')throw Error('Invalid expected backup cursor');
+       if(page.rows.length===0&&page.next!==null)throw Error('Empty backup page cannot continue');
+       let previous=after;
        for(const row of page.rows){
          if(!row||typeof row.id!=='string'||!row.id||row.id==='\uffff'||
             row.id<=previous||!row.ciphertext||typeof row.ciphertext!=='object')
@@ -129,6 +131,8 @@
            await cipher.decrypt(owner,row.id,row.ciphertext);
          }
        }
+       if(page.next!==null&&page.next!==previous)
+         throw Error('Backup cursor does not match final record');
        return {verified:page.rows.length,next:page.next};
      },
      lock(){active=false;}
