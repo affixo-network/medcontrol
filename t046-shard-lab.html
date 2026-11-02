@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedControl T-046 — испытательный стенд</title>
+<style>body{font:16px system-ui;max-width:800px;margin:2rem auto;padding:0 1rem}button,input{font:inherit;padding:.6rem;margin:.3rem}pre{white-space:pre-wrap;overflow-wrap:anywhere}section{padding:1rem;border:1px solid #aaa;margin:1rem 0}</style>
+<h1>MedControl T-046 — сегментированное хранилище</h1>
+<p>Изолированный стенд. Не подключён к действующим медицинским записям или Production. Не используйте реальные медицинские данные.</p>
+<section><label>Тестовый идентификатор <input id="owner" value="t046-sandbox"></label><label>Пароль <input id="password" type="password"></label>
+<button id="create">Создать новое хранилище</button><button id="unlock">Открыть существующее</button><button id="lock">Заблокировать</button></section>
+<section><label>Количество синтетических курсов <input id="count" type="number" min="1" max="1000000" value="100"></label>
+<button id="populate">Создать синтетические курсы</button><button id="next">Следующая страница (25)</button><button id="restart">Перезагрузить страницу</button>
+<p id="stats">Ожидание</p><pre id="records"></pre></section><pre id="log" role="status"></pre>
+<script src="js/modular3-shard-store.js"></script><script src="js/modular3-shard-crypto.js"></script><script src="js/modular3-shard-vault.js"></script>
+<script>
+(()=>{'use strict';
+let vault=null,cursor='',busy=false;
+const el=id=>document.getElementById(id);
+const log=msg=>{el('log').textContent=new Date().toLocaleTimeString()+' — '+msg};
+const withBusy=async fn=>{if(busy)return;busy=true;for(const b of document.querySelectorAll('button'))b.disabled=true;try{await fn()}catch(e){log('Ошибка: '+e.message)}finally{busy=false;for(const b of document.querySelectorAll('button'))b.disabled=false}};
+const credentials=()=>[el('owner').value,el('password').value];
+el('create').onclick=()=>withBusy(async()=>{vault=await MedControlModular3ShardVault.create(...credentials());cursor='';log('Пустое тестовое хранилище создано')});
+el('unlock').onclick=()=>withBusy(async()=>{vault=await MedControlModular3ShardVault.open(...credentials());cursor='';log('Хранилище открыто')});
+el('lock').onclick=()=>{vault?.lock();vault=null;cursor='';el('records').textContent='';log('Заблокировано')};
+el('restart').onclick=()=>location.reload();
+el('populate').onclick=()=>withBusy(async()=>{
+ if(!vault)throw Error('Сначала откройте хранилище');
+ const count=Number(el('count').value);
+ if(!Number.isInteger(count)||count<1||count>1000000)throw Error('Допустимо 1..1000000');
+ const start=performance.now();let created=0;
+ const prefix='synthetic-'+crypto.randomUUID()+'-';
+ for(let i=0;i<count;i++){
+   const id=prefix+String(i).padStart(7,'0');
+   await vault.createRecord(id,{name:'Синтетический курс '+i,synthetic:true,createdAt:'2026-01-01'});
+   created++;
+   if(created%100===0||created===count){
+     el('stats').textContent='Создано '+created+' / '+count+'; '+Math.round(performance.now()-start)+' мс';
+     await new Promise(resolve=>setTimeout(resolve,0));
+   }
+ }
+ log('Создано '+created+' синтетических курсов. Время '+Math.round(performance.now()-start)+' мс');
+});
+el('next').onclick=()=>withBusy(async()=>{
+ if(!vault)throw Error('Сначала откройте хранилище');
+ const start=performance.now();const result=await vault.page({after:cursor,limit:25});
+ cursor=result.next||'';
+ el('records').textContent=JSON.stringify(result.rows,null,2);
+ el('stats').textContent='Страница: '+result.rows.length+' записей; '+Math.round(performance.now()-start)+' мс; '+(result.next?'есть продолжение':'конец');
+ if(!result.next)cursor='';
+});
+})();
+</script></html>
