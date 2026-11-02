@@ -92,14 +92,15 @@ test('T-046 interrupted writes leave previously committed encrypted records inta
     const owner='synthetic-interruption-'+crypto.randomUUID();
     const vault=await window.MedControlModular3ShardVault.create(owner,'synthetic-interruption-password');
     await vault.createRecord('001',{revision:1});
-    const store=window.MedControlModular3ShardStore;
-    const original=store.replaceEncryptedIfMatch;
-    // The facade captures the store object; inject a rejected write at the storage boundary.
-    store.replaceEncryptedIfMatch=async()=>{throw Error('Synthetic storage interruption');};
+    // Inject a failure through IndexedDB itself; the exported store is frozen.
+    const nativeOpen=IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put=function(){
+      throw Error('Synthetic storage interruption');
+    };
     let interrupted=false;
     try{await vault.replaceRecord('001',{revision:1},{revision:2});}
     catch(error){interrupted=error.message.includes('Synthetic storage interruption');}
-    finally{store.replaceEncryptedIfMatch=original;}
+    finally{IDBObjectStore.prototype.put=nativeOpen;}
     const stillCommitted=await vault.getRecord('001');
     vault.lock();
     const reopened=await window.MedControlModular3ShardVault.open(owner,'synthetic-interruption-password');
