@@ -664,8 +664,9 @@ async function run(){
     try { return window.MedControlModular3ProtectedSession?.read()?.medications?.length === 3000; }
     catch (_) { return false; }
   }, null, {timeout: 60000});
-  // A large synchronous table render can starve Playwright polling. Verify the
-  // mounted form with one direct DOM evaluation after the protected unlock.
+  // Wait for the UI to mount without re-reading or cloning 3000 records in each poll.
+  // Protected unlock completes before asynchronous page initialization.
+  await resetPage.waitForFunction(() => !!document.getElementById('create_name'), null, {timeout: 120000, polling: 1000});
   const inputMount=await resetPage.evaluate(() => ({
     mounted: !!document.getElementById('create_name'),
     protectedMode: !!window.medcontrolProtectedInterface,
