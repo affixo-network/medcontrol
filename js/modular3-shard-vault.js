@@ -101,6 +101,36 @@
        return {format:'medcontrol-shard-backup-v1',owner,
          rows:structuredClone(page.rows),next:page.next};
      },
+     // Verify a streamed encrypted backup page before any future restore.
+     // No writes: a damaged, foreign or plaintext record must be rejected.
+     async verifyEncryptedBackupPage(page){
+       requireOpen();
+       if(!page||page.format!=='medcontrol-shard-backup-v1'||page.owner!==owner||
+          !Array.isArray(page.rows)||page.rows.length>500||
+          (page.next!==null&&typeof page.next!=='string'))
+         throw Error('Invalid encrypted backup page');
+       let previous='';
+       for(const row of page.rows){
+         if(!row||typeof row.id!=='string'||!row.id||row.id==='\uffff'||
+            row.id<=previous||!row.ciphertext||typeof row.ciphertext!=='object')
+           throw Error('Invalid or unordered backup record');
+         previous=row.id;
+         if(row.id===META){
+           const meta=row.ciphertext;
+           if(meta.version!==1||typeof meta.salt!=='string'||!meta.proof)
+             throw Error('Invalid backup vault metadata');
+           const stored=await STORE.getEncrypted(owner,META);
+           if(!stored||stored.salt!==meta.salt)
+             throw Error('Backup vault identity mismatch');
+           const proof=await cipher.decrypt(owner,META,meta.proof);
+           if(proof?.type!=='medcontrol-shard-vault'||proof.version!==1)
+             throw Error('Invalid backup vault proof');
+         }else{
+           await cipher.decrypt(owner,row.id,row.ciphertext);
+         }
+       }
+       return {verified:page.rows.length,next:page.next};
+     },
      lock(){active=false;}
    });
  }
