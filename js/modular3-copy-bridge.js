@@ -7,7 +7,16 @@
  const SOURCE=root.MedControlModular3ProtectedSession;
  const TARGET=root.MedControlModular3ShardVault;
  const MANIFEST='migration:manifest';
- const encode=value=>new TextEncoder().encode(JSON.stringify(value));
+ function canonical(value){
+  if(Array.isArray(value))return value.map(canonical);
+  if(value&&typeof value==='object'){
+   const result={};
+   for(const key of Object.keys(value).sort())result[key]=canonical(value[key]);
+   return result;
+  }
+  return value;
+ }
+ const encode=value=>new TextEncoder().encode(JSON.stringify(canonical(value)));
  async function digest(value){
   const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',encode(value)));
   return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
