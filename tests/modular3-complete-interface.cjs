@@ -664,7 +664,19 @@ async function run(){
     try { return window.MedControlModular3ProtectedSession?.read()?.medications?.length === 3000; }
     catch (_) { return false; }
   }, null, {timeout: 60000});
-  await resetPage.waitForFunction(() => !!document.getElementById('create_name'), null, {timeout: 60000});
+  try {
+    await resetPage.waitForFunction(() => !!document.getElementById('create_name'), null, {timeout: 60000});
+  } catch (error) {
+    const startup = await resetPage.evaluate(() => ({
+      path: location.pathname,
+      appText: (document.getElementById('app')?.innerText || '').slice(0,1500),
+      startupError: (document.body?.innerText || '').slice(-1200),
+      inputExists: !!document.getElementById('create_name'),
+      protectedMode: !!window.medcontrolProtectedInterface,
+      sessionUnlocked: !!window.MedControlModular3ProtectedSession?.isUnlocked?.()
+    }));
+    throw new Error('T-046 Input startup after 3000 courses: '+JSON.stringify(startup)+'; '+error.message);
+  }
   // After a large vault unlock, query the DOM directly; Playwright's visibility
   // polling may time out while the page is busy rendering a large history.
   const unlocked3000=await resetPage.evaluate(()=>{
