@@ -664,11 +664,14 @@ async function run(){
     try { return window.MedControlModular3ProtectedSession?.read()?.medications?.length === 3000; }
     catch (_) { return false; }
   }, null, {timeout: 60000});
-  // T-046: verify the form in the same browser execution context as the vault.
-  // The prior Playwright locator timed out even though diagnostics confirmed the
-  // form existed and the protected interface was already mounted.
-  const formMounted=await resetPage.evaluate(() => !!document.getElementById('create_name'));
-  assert.equal(formMounted,true,'T-046 Input form must exist after protected unlock');
+  // The protected session unlocks before auth-guard completes async module
+  // loading and renderPage(). Wait for the actual application mount, not merely
+  // for successful vault decryption. Use a bounded browser-side check.
+  await resetPage.waitForFunction(() => {
+    const field=document.getElementById('create_name');
+    return !!field && !!field.getBoundingClientRect().width &&
+      !!window.medcontrolProtectedInterface;
+  }, null, {timeout: 45000, polling: 250});
   const inputMount=await resetPage.evaluate(() => ({
     mounted: !!document.getElementById('create_name'),
     protectedMode: !!window.medcontrolProtectedInterface,
