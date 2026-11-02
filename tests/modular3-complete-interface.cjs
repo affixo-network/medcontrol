@@ -660,6 +660,10 @@ async function run(){
   await resetPage.goto(BASE+'/input.html');
   await resetPage.locator('#password').fill(PASS);
   await resetPage.locator('#unlock').click();
+  await resetPage.waitForFunction(() => {
+    try { return window.MedControlModular3ProtectedSession?.read()?.medications?.length === 3000; }
+    catch (_) { return false; }
+  }, null, {timeout: 60000});
   // After a large vault unlock, query the DOM directly; Playwright's visibility
   // polling may time out while the page is busy rendering a large history.
   const unlocked3000=await resetPage.evaluate(()=>{
