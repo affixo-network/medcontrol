@@ -91,6 +91,16 @@
        })));
        return {rows,next};
      },
+     // Read-only encrypted backup stream. Caller must persist each page safely.
+     // No plaintext leaves this method; the vault metadata carries the KDF salt.
+     async exportEncryptedPage({after='',limit=100}={}){
+       requireOpen();
+       if(!Number.isInteger(limit)||limit<1||limit>500)throw Error('Page limit must be 1..500');
+       if(typeof after!=='string'||after==='\uffff')throw Error('Invalid page cursor');
+       const page=await STORE.pageEncrypted(owner,{after,limit});
+       return {format:'medcontrol-shard-backup-v1',owner,
+         rows:structuredClone(page.rows),next:page.next};
+     },
      lock(){active=false;}
    });
  }
