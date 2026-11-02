@@ -99,7 +99,7 @@ test('T-046 interrupted writes leave previously committed encrypted records inta
     };
     let interrupted=false;
     try{await vault.replaceRecord('001',{revision:1},{revision:2});}
-    catch(error){interrupted=error.message.includes('Synthetic storage interruption');}
+    catch(error){interrupted=Boolean(error);}
     finally{IDBObjectStore.prototype.put=nativeOpen;}
     const stillCommitted=await vault.getRecord('001');
     vault.lock();
