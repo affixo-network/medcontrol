@@ -96,5 +96,28 @@
       };
     });}finally{db.close();}
   }
-  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,replaceEncryptedIfMatch,getEncrypted,pageEncrypted});
+  // Atomic import into a NEW owner namespace only. Any collision aborts
+  // the entire page, preventing partial page restoration or overwrites.
+  async function importEncryptedPageNewOwner(owner,rows){
+    validate(owner,'import');
+    if(!Array.isArray(rows)||rows.length<1||rows.length>500)
+      throw Error('Import page must contain 1..500 records');
+    let previous='';
+    const prepared=rows.map(row=>{
+      validate(owner,row?.id);
+      if(row.id<=previous||!row.ciphertext||
+         typeof row.ciphertext!=='object'||Array.isArray(row.ciphertext))
+        throw Error('Invalid or unordered encrypted import records');
+      previous=row.id;
+      return {owner,id:row.id,ciphertext:structuredClone(row.ciphertext)};
+    });
+    const db=await open();
+    try{
+      await transaction(db,'readwrite',store=>{
+        for(const row of prepared)store.add(row);
+      });
+      return prepared.length;
+    }finally{db.close();}
+  }
+  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,replaceEncryptedIfMatch,getEncrypted,pageEncrypted,importEncryptedPageNewOwner});
 })(typeof window!=='undefined'?window:globalThis);
