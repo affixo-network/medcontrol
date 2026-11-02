@@ -36,7 +36,7 @@
     });
   }
   function validate(owner,id){
-    if(typeof owner!=='string'||!owner||typeof id!=='string'||!id)throw Error('Owner and record ID required');
+    if(typeof owner!=='string'||!owner||typeof id!=='string'||!id||id==='\uffff')throw Error('Owner and valid record ID required');
   }
   // Creation must never silently replace an existing medical record.
   async function createEncrypted(owner,id,ciphertext){
@@ -80,7 +80,7 @@
     validate(owner,'page');
     if(!Number.isInteger(limit)||limit<1||limit>500)throw Error('Page limit must be 1..500');
     if(typeof after!=='string')throw Error('Invalid cursor');
-    if(after==='\uffff')return {rows:[],next:null};
+    if(after==='\uffff')throw Error('Invalid cursor');
     const db=await open();
     try{return await transaction(db,'readonly',(store,set)=>{
       const rows=[];
