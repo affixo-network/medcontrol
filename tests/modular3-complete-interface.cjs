@@ -673,7 +673,7 @@ async function run(){
     return {inputVisible:!!field&&getComputedStyle(field).visibility==='visible'&&!!rect?.width&&!!rect?.height,
       sessionAvailable:!!session, count:session?.read()?.medications?.length??-1};
   });
-  assert.equal(unlocked3000.inputVisible,true,'T-046 Input must remain visible after 3000-course re-unlock');
+  assert.equal(unlocked3000.inputVisible,true,'T-046 Input must remain visible after 3000-course re-unlock: '+JSON.stringify(unlocked3000));
   assert.equal(unlocked3000.sessionAvailable,true,'T-046 protected session must remain available');
   assert.equal(unlocked3000.count,3000,'T-046 protected session must restore 3000 courses');
   const scaled=await resetPage.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications);
