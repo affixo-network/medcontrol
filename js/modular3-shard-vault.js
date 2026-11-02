@@ -1,0 +1,84 @@
+/* T-046 opt-in sharded vault facade. Does not migrate or modify the legacy vault.
+ * All records are encrypted individually; the salt is public, never a password.
+ * No production switch until crash recovery, export and UI paging are verified.
+ */
+(function(root){
+ 'use strict';
+ const STORE=root.MedControlModular3ShardStore;
+ const CRYPTO=root.MedControlModular3ShardCrypto;
+ if(!STORE||!CRYPTO)throw Error('Shard storage dependencies unavailable');
+ const META='!vault';
+ const encoder=new TextEncoder();
+ const toB64=bytes=>btoa(String.fromCharCode(...bytes));
+ const fromB64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
+ function validateOwner(owner){
+   if(typeof owner!=='string'||!owner||owner.length>256)throw Error('Invalid vault owner');
+ }
+ function validateId(id){
+   if(typeof id!=='string'||!id||id===META||id==='\uffff')throw Error('Reserved or invalid record ID');
+ }
+ async function create(owner,password){
+   validateOwner(owner);
+   if(await STORE.getEncrypted(owner,META)!==null)throw Error('Sharded vault already exists');
+   const salt=CRYPTO.newSalt();
+   const key=await CRYPTO.deriveKey(password,salt);
+   const cipher=CRYPTO.session(key);
+   const proof=await cipher.encrypt(owner,META,{type:'medcontrol-shard-vault',version:1});
+   await STORE.createEncrypted(owner,META,{version:1,salt:toB64(salt),proof});
+   return open(owner,password);
+ }
+ async function open(owner,password){
+   validateOwner(owner);
+   const meta=await STORE.getEncrypted(owner,META);
+   if(!meta||meta.version!==1||typeof meta.salt!=='string'||!meta.proof)
+     throw Error('Sharded vault metadata missing or invalid');
+   const salt=fromB64(meta.salt);
+   const key=await CRYPTO.deriveKey(password,salt);
+   const cipher=CRYPTO.session(key);
+   const proof=await cipher.decrypt(owner,META,meta.proof);
+   if(proof?.type!=='medcontrol-shard-vault'||proof.version!==1)
+     throw Error('Sharded vault verification failed');
+   let active=true;
+   const requireOpen=()=>{if(!active)throw Error('Sharded vault locked');};
+   return Object.freeze({
+     async createRecord(id,record){
+       requireOpen();validateId(id);
+       const encrypted=await cipher.encrypt(owner,id,record);
+       await STORE.createEncrypted(owner,id,encrypted);
+       const verified=await STORE.getEncrypted(owner,id);
+       const decoded=await cipher.decrypt(owner,id,verified);
+       if(JSON.stringify(decoded)!==JSON.stringify(record))
+         throw Error('Encrypted record verification failed');
+       return structuredClone(decoded);
+     },
+     async getRecord(id){
+       requireOpen();validateId(id);
+       const encrypted=await STORE.getEncrypted(owner,id);
+       return encrypted===null?null:cipher.decrypt(owner,id,encrypted);
+     },
+     async replaceRecord(id,expectedRecord,nextRecord){
+       requireOpen();validateId(id);
+       const current=await STORE.getEncrypted(owner,id);
+       if(current===null)throw Error('Record missing');
+       const decoded=await cipher.decrypt(owner,id,current);
+       if(JSON.stringify(decoded)!==JSON.stringify(expectedRecord))
+         throw Error('Record changed since last read');
+       const encrypted=await cipher.encrypt(owner,id,nextRecord);
+       await STORE.replaceEncryptedIfMatch(owner,id,current,encrypted);
+       return this.getRecord(id);
+     },
+     async page({after='',limit=100}={}){
+       requireOpen();
+       if(after===META)after=META;
+       const result=await STORE.pageEncrypted(owner,{after,limit});
+       const entries=result.rows.filter(row=>row.id!==META);
+       const rows=await Promise.all(entries.map(async row=>({
+         id:row.id,record:await cipher.decrypt(owner,row.id,row.ciphertext)
+       })));
+       return {rows,next:result.next};
+     },
+     lock(){active=false;}
+   });
+ }
+ root.MedControlModular3ShardVault=Object.freeze({create,open});
+})(typeof window!=='undefined'?window:globalThis);
