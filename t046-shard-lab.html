@@ -27,16 +27,17 @@ el('populate').onclick=()=>withBusy(async()=>{
  if(!Number.isInteger(count)||count<1||count>1000000)throw Error('Допустимо 1..1000000');
  const start=performance.now();let created=0;
  const prefix='synthetic-'+crypto.randomUUID()+'-';
- for(let i=0;i<count;i++){
-   const id=prefix+String(i).padStart(7,'0');
-   await vault.createRecord(id,{name:'Синтетический курс '+i,synthetic:true,createdAt:'2026-01-01'});
-   created++;
-   if(created%100===0||created===count){
-     el('stats').textContent='Создано '+created+' / '+count+'; '+Math.round(performance.now()-start)+' мс';
-     await new Promise(resolve=>setTimeout(resolve,0));
-   }
+ for(let offset=0;offset<count;offset+=100){
+   const batch=[];
+   for(let i=offset;i<Math.min(count,offset+100);i++)
+     batch.push({id:prefix+String(i).padStart(7,'0'),
+       record:{name:'Синтетический курс '+i,synthetic:true,createdAt:'2026-01-01'}});
+   await vault.createRecordsBatch(batch);
+   created+=batch.length;
+   el('stats').textContent='Создано '+created+' / '+count+'; '+Math.round(performance.now()-start)+' мс';
+   await new Promise(resolve=>setTimeout(resolve,0));
  }
- log('Создано '+created+' синтетических курсов. Время '+Math.round(performance.now()-start)+' мс');
+  log('Создано '+created+' синтетических курсов. Время '+Math.round(performance.now()-start)+' мс');
 });
 el('next').onclick=()=>withBusy(async()=>{
  if(!vault)throw Error('Сначала откройте хранилище');
