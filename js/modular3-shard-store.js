@@ -47,6 +47,16 @@
       return true;
     }finally{db.close();}
   }
+  // Creation must never silently replace an existing medical record.
+  async function createEncrypted(owner,id,ciphertext){
+    validate(owner,id);
+    if(!ciphertext||typeof ciphertext!=='object'||Array.isArray(ciphertext))throw Error('Encrypted payload required');
+    const db=await open();
+    try{
+      await transaction(db,'readwrite',store=>store.add({owner,id,ciphertext:structuredClone(ciphertext)}));
+      return true;
+    }finally{db.close();}
+  }
   async function getEncrypted(owner,id){
     validate(owner,id);
     const db=await open();
@@ -72,5 +82,5 @@
       };
     });}finally{db.close();}
   }
-  root.MedControlModular3ShardStore=Object.freeze({putEncrypted,getEncrypted,pageEncrypted});
+  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,putEncrypted,getEncrypted,pageEncrypted});
 })(typeof window!=='undefined'?window:globalThis);
