@@ -8,7 +8,6 @@
  const CRYPTO=root.MedControlModular3ShardCrypto;
  if(!STORE||!CRYPTO)throw Error('Shard storage dependencies unavailable');
  const META='!vault';
- const encoder=new TextEncoder();
  const toB64=bytes=>btoa(String.fromCharCode(...bytes));
  const fromB64=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
  function validateOwner(owner){
@@ -69,13 +68,22 @@
      },
      async page({after='',limit=100}={}){
        requireOpen();
-       if(after===META)after=META;
-       const result=await STORE.pageEncrypted(owner,{after,limit});
-       const entries=result.rows.filter(row=>row.id!==META);
+       // Metadata must not consume a medical-record page slot.
+       // Iterate only as needed, preserving cursor order across all record IDs.
+       let cursor=after;
+       const entries=[];
+       let next=null;
+       while(entries.length<limit){
+         const result=await STORE.pageEncrypted(owner,{after:cursor,limit:limit-entries.length});
+         entries.push(...result.rows.filter(row=>row.id!==META));
+         next=result.next;
+         if(next===null)break;
+         cursor=next;
+       }
        const rows=await Promise.all(entries.map(async row=>({
          id:row.id,record:await cipher.decrypt(owner,row.id,row.ciphertext)
        })));
-       return {rows,next:result.next};
+       return {rows,next};
      },
      lock(){active=false;}
    });
