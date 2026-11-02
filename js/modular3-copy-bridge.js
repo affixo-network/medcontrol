@@ -61,9 +61,10 @@
      else if(id.startsWith('structure:')){
       const key=id.slice(10);
       if(!Number.isSafeInteger(record?.length)||record.length<0)throw Error('Invalid array length');
-      arrays.set(key,{length:record.length,items:new Map()});
+      const prior=arrays.get(key);if(prior?.length!==null&&prior?.length!==undefined)throw Error('Duplicate array structure');
+      arrays.set(key,{length:record.length,items:prior?.items||new Map()});
      }else if(id.startsWith('item:')){
-      const match=/^item:(.*):(\\d{12})$/.exec(id);
+      const match=/^item:(.*):(\d{12})$/.exec(id);
       if(!match)throw Error('Invalid item ID');
       const key=match[1],index=Number(match[2]);
       if(!arrays.has(key))arrays.set(key,{length:null,items:new Map()});
