@@ -69,4 +69,17 @@ test('T-046 sharded vault: reopen, wrong password, paging, stale update, lock',a
   },{owner,password});
   expect(result).toEqual({duplicateRejected:true,lockedRejected:true,
     wrongPasswordRejected:true,staleRejected:true,pages:[['001'],['002']],doses:[3,2]});
+  // A real navigation destroys the in-memory key and module session.
+  await page.reload();
+  for(const name of ['modular3-shard-crypto.js','modular3-shard-store.js','modular3-shard-vault.js'])
+    await page.addScriptTag({path:path.join(ROOT,'js',name)});
+  const restored=await page.evaluate(async({owner,password})=>{
+    const vault=await window.MedControlModular3ShardVault.open(owner,password);
+    const first=await vault.getRecord('001');
+    const second=await vault.getRecord('002');
+    const pageOne=await vault.page({limit:1});
+    vault.lock();
+    return {first,second,pageOne:pageOne.rows.map(r=>r.id)};
+  },{owner,password});
+  expect(restored).toEqual({first:{dose:3},second:{dose:2},pageOne:['001']});
 });
