@@ -72,6 +72,8 @@
      },
      async page({after='',limit=100}={}){
        requireOpen();
+       if(!Number.isInteger(limit)||limit<1||limit>500)throw Error('Page limit must be 1..500');
+       if(typeof after!=='string'||after==='\uffff')throw Error('Invalid page cursor');
        // Metadata must not consume a medical-record page slot.
        // Iterate only as needed, preserving cursor order across all record IDs.
        let cursor=after;
