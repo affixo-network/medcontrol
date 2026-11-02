@@ -38,15 +38,6 @@
   function validate(owner,id){
     if(typeof owner!=='string'||!owner||typeof id!=='string'||!id)throw Error('Owner and record ID required');
   }
-  async function putEncrypted(owner,id,ciphertext){
-    validate(owner,id);
-    if(!ciphertext||typeof ciphertext!=='object'||Array.isArray(ciphertext))throw Error('Encrypted payload required');
-    const db=await open();
-    try{
-      await transaction(db,'readwrite',(store)=>store.put({owner,id,ciphertext:structuredClone(ciphertext)}));
-      return true;
-    }finally{db.close();}
-  }
   // Creation must never silently replace an existing medical record.
   async function createEncrypted(owner,id,ciphertext){
     validate(owner,id);
@@ -89,19 +80,21 @@
     validate(owner,'page');
     if(!Number.isInteger(limit)||limit<1||limit>500)throw Error('Page limit must be 1..500');
     if(typeof after!=='string')throw Error('Invalid cursor');
+    if(after==='\uffff')return {rows:[],next:null};
     const db=await open();
     try{return await transaction(db,'readonly',(store,set)=>{
       const rows=[];
       const lower=after?[owner,after]:[owner,''];
-      const range=root.IDBKeyRange.bound(lower,[owner,'\uffff'],!!after,false);
+      const range=root.IDBKeyRange.bound(lower,[owner,'\uffff'],!!after,true);
       const req=store.index('byOwner').openCursor(range);
       req.onsuccess=()=>{
         const cursor=req.result;
-        if(!cursor||rows.length===limit){set({rows,next:rows.length===limit?rows[rows.length-1].id:null});return;}
+        if(!cursor){set({rows,next:null});return;}
+        if(rows.length===limit){set({rows,next:rows[rows.length-1].id});return;}
         rows.push({id:cursor.value.id,ciphertext:cursor.value.ciphertext});
         cursor.continue();
       };
     });}finally{db.close();}
   }
-  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,putEncrypted,replaceEncryptedIfMatch,getEncrypted,pageEncrypted});
+  root.MedControlModular3ShardStore=Object.freeze({createEncrypted,replaceEncryptedIfMatch,getEncrypted,pageEncrypted});
 })(typeof window!=='undefined'?window:globalThis);
