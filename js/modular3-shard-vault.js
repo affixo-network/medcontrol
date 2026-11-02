@@ -50,6 +50,24 @@
          throw Error('Encrypted record verification failed');
        return structuredClone(decoded);
      },
+     // Bounded batch writer for synthetic fixtures and future bulk import.
+     // Encryption happens outside IndexedDB transactions; commit is atomic.
+     async createRecordsBatch(records){
+       requireOpen();
+       if(!Array.isArray(records)||records.length<1||records.length>100)
+         throw Error('Batch size must be 1..100');
+       const seen=new Set();
+       const rows=[];
+       for(const item of records){
+         validateId(item?.id);
+         if(seen.has(item.id))throw Error('Duplicate batch record ID');
+         seen.add(item.id);
+         rows.push({id:item.id,ciphertext:await cipher.encrypt(owner,item.id,item.record)});
+       }
+       rows.sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
+       await STORE.importEncryptedPageNewOwner(owner,rows);
+       return rows.length;
+     },
      async getRecord(id){
        requireOpen();validateId(id);
        const encrypted=await STORE.getEncrypted(owner,id);
