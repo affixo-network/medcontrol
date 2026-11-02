@@ -132,3 +132,26 @@ test('T-046 encrypted backup pages retain vault salt and ciphertext without plai
   expect(result).toEqual({hasSalt:true,hasCipher:true,noPlaintext:true,
     ids:['!vault','001'],end:true});
 });
+
+test('T-046 backup verification rejects tampering and foreign vault records',async({page})=>{
+  await page.goto('http://127.0.0.1:8765/auth-login.html');
+  for(const name of ['modular3-shard-crypto.js','modular3-shard-store.js','modular3-shard-vault.js'])
+    await page.addScriptTag({path:path.join(ROOT,'js',name)});
+  const result=await page.evaluate(async()=>{
+    const owner='synthetic-verify-'+crypto.randomUUID();
+    const vault=await window.MedControlModular3ShardVault.create(owner,'synthetic-verify-password');
+    await vault.createRecord('001',{dose:1});
+    const first=await vault.exportEncryptedPage({limit:2});
+    const valid=await vault.verifyEncryptedBackupPage(first);
+    const corrupted=structuredClone(first);
+    corrupted.rows[1].ciphertext.ciphertext='AAAA';
+    let tamperingRejected=false;
+    try{await vault.verifyEncryptedBackupPage(corrupted);}catch(_){tamperingRejected=true;}
+    const foreign=structuredClone(first);
+    foreign.owner='another-owner';
+    let foreignRejected=false;
+    try{await vault.verifyEncryptedBackupPage(foreign);}catch(_){foreignRejected=true;}
+    return {valid:valid.verified,tamperingRejected,foreignRejected};
+  });
+  expect(result).toEqual({valid:2,tamperingRejected:true,foreignRejected:true});
+});
