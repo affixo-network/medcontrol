@@ -36,9 +36,36 @@
     tx.oncomplete=()=>resolve(true);
     tx.onerror=()=>reject(tx.error||Error('Atomic indexed write failed'));
     tx.onabort=()=>reject(tx.error||Error('Atomic indexed write aborted'));
-    tx.objectStore(EVENTS).add({owner,id,envelope:structuredClone(envelope)});
+    tx.objectStore(EVENTS).add({owner,id,envelope:structuredClone(envelope),tokens:opaque,revision:1});
     const index=tx.objectStore(TOKENS);
     for(const token of opaque)index.add({owner,token,id});
+   });
+  }finally{db.close();}
+ }
+ async function replaceIfRevision(owner,id,expectedRevision,envelope,tokens){
+  check(owner,'owner');check(id,'id');
+  if(!Number.isSafeInteger(expectedRevision)||expectedRevision<1)throw Error('Invalid expected revision');
+  if(!envelope||typeof envelope!=='object'||Array.isArray(envelope))throw Error('Encrypted envelope required');
+  const opaque=checkTokens(tokens),db=await open();
+  try{
+   return await new Promise((resolve,reject)=>{
+    const tx=db.transaction([EVENTS,TOKENS],'readwrite');
+    let conflict=false;
+    tx.oncomplete=()=>resolve(expectedRevision+1);
+    tx.onerror=()=>reject(tx.error||Error('Atomic replacement failed'));
+    tx.onabort=()=>reject(conflict?Error('Stale event revision'):tx.error||Error('Atomic replacement aborted'));
+    const events=tx.objectStore(EVENTS),index=tx.objectStore(TOKENS);
+    const read=events.get([owner,id]);
+    read.onsuccess=()=>{
+     const prior=read.result;
+     if(!prior||prior.revision!==expectedRevision||!Array.isArray(prior.tokens)){
+      conflict=true;tx.abort();return;
+     }
+     const old=new Set(prior.tokens),next=new Set(opaque);
+     for(const token of old)if(!next.has(token))index.delete([owner,token,id]);
+     for(const token of next)if(!old.has(token))index.add({owner,token,id});
+     events.put({owner,id,envelope:structuredClone(envelope),tokens:opaque,revision:expectedRevision+1});
+    };
    });
   }finally{db.close();}
  }
@@ -64,12 +91,12 @@
      const read=tx.objectStore(EVENTS).get([owner,id]);
      read.onsuccess=()=>{
       if(!read.result){tx.abort();return;}
-      rows.push({id,envelope:read.result.envelope});
+      rows.push({id,envelope:read.result.envelope,revision:read.result.revision});
       cursor.continue();
      };
     };
    });
   }finally{db.close();}
  }
- root.MedControlT046IndexedEvents=Object.freeze({insert,page});
+ root.MedControlT046IndexedEvents=Object.freeze({insert,replaceIfRevision,page});
 })(typeof window!=='undefined'?window:globalThis);
