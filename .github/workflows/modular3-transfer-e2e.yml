@@ -6,6 +6,7 @@ on:
     paths:
       - 'tests/modular3-transfer-e2e.cjs'
       - 'tests/modular3-shard-storage.spec.js'
+      - 'tests/modular3-copy-bridge.spec.js'
       - 'tests/modular3-commercial-baseline.cjs'
       - 'js/translations.js'
       - 'js/language.js'
@@ -76,7 +77,7 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Isolated encrypted shard integrity E2E
-        run: npx playwright test tests/modular3-shard-storage.spec.js --config=playwright.modular3.config.cjs --reporter=line
+        run: npx playwright test tests/modular3-shard-storage.spec.js tests/modular3-copy-bridge.spec.js --config=playwright.modular3.config.cjs --reporter=line
 
       - name: Browser E2E (synthetic records only)
         run: |
