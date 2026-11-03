@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/t046-capacity-sequence.yml'
       - 'playwright.t046-profile.config.cjs'
+      - 'tests/t046-windows-profile.spec.js'
 permissions:
   contents: read
 concurrency:
@@ -47,7 +48,7 @@ jobs:
         shell: powershell
         run: |
           npx playwright test tests/t046-windows-profile.spec.js --config=playwright.t046-profile.config.cjs --reporter=line
-          if ($LASTEXITCODE -ne 0) { throw 'T046 10K probe failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'T046 1M capacity trial failed' }
       - name: Report remaining free space
         if: always()
         shell: powershell
