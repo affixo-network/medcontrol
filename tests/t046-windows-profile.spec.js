@@ -13,6 +13,9 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
  if(!fs.existsSync(path.dirname(PROFILE_ROOT)))throw Error('Profile parent directory missing');
  const profile=path.resolve(PROFILE_ROOT);
  const owner='probe-'+Date.now();
+ const RESERVE_BYTES=100*1024**3;
+ const diskFree=()=>{const s=fs.statfsSync(profile);return Number(s.bavail)*Number(s.bsize);};
+ if(diskFree()<RESERVE_BYTES)throw Error('T046 insufficient D-drive free space before write');
  const url='http://127.0.0.1:8765/t046-indexed-test.html';
  const script=path.resolve(__dirname,'../js/modular3-indexed-events.js');
  let context=await chromium.launchPersistentContext(profile,{headless:true});
@@ -21,6 +24,12 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
   const page=context.pages()[0]||await context.newPage();
   await page.goto(url);
   await page.addScriptTag({path:script});
+  page.on('console',message=>{if(message.text().startsWith('T046_'))console.log(message.text());});
+  await page.exposeFunction('t046CheckDisk',()=>{
+   const free=diskFree();
+   if(free<RESERVE_BYTES)throw Error('T046 disk safety reserve breached');
+   return free;
+  });
   writeMs=await page.evaluate(async ({owner,count})=>{
    const api=MedControlT046IndexedEvents,token='a'.repeat(64),start=performance.now();
    const session=await api.openBatchSession();
@@ -32,8 +41,9 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
      }));
      await session.insertBatch(owner,batch);
      if((offset+1000)%1000000===0){
+      const freeBytes=await window.t046CheckDisk();
       const estimate=await navigator.storage.estimate();
-      console.log('T046_CAPACITY_CHECKPOINT '+JSON.stringify({events:offset+1000,elapsedMs:performance.now()-start,usageBytes:estimate.usage,quotaBytes:estimate.quota}));
+      console.log('T046_CAPACITY_CHECKPOINT '+JSON.stringify({events:offset+1000,elapsedMs:performance.now()-start,freeBytes,usageBytes:estimate.usage,quotaBytes:estimate.quota}));
      }
     }
    }finally{session.close();}
@@ -46,6 +56,7 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
   const page=context.pages()[0]||await context.newPage();
   await page.goto(url);
   await page.addScriptTag({path:script});
+  page.on('console',message=>{if(message.text().startsWith('T046_'))console.log(message.text());});
   const result=await page.evaluate(async ({owner,count:expectedCount})=>{
    const api=MedControlT046IndexedEvents,start=performance.now();
    let after='',count=0,pages=0,last='',ordered=true;
