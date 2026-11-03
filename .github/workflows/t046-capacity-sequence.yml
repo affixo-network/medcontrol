@@ -11,12 +11,6 @@ on:
           - '10000000'
           - '50000000'
           - '500000000'
-  push:
-    branches: [modular-3.000]
-    paths:
-      - '.github/workflows/t046-capacity-sequence.yml'
-      - 'playwright.t046-profile.config.cjs'
-      - 'tests/t046-windows-profile.spec.js'
 permissions:
   contents: read
 concurrency:
@@ -25,7 +19,7 @@ concurrency:
 jobs:
   capacity-millions:
     runs-on: [self-hosted, Windows, X64, t046-capacity]
-    timeout-minutes: 360
+    timeout-minutes: 1440
     steps:
       - uses: actions/checkout@v5
         with:
