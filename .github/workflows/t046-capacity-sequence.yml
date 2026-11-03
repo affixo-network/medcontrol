@@ -1,5 +1,9 @@
 name: T-046 Windows Million-Scale Capacity
 on:
+  push:
+    branches: [modular-3.000]
+    paths:
+      - '.github/workflows/t046-capacity-sequence.yml'
   workflow_dispatch:
     inputs:
       event_count:
@@ -33,7 +37,7 @@ jobs:
           $free = (Get-PSDrive D).Free
           Write-Host ('D_FREE_GIB=' + [math]::Round($free / 1GB, 2))
           if ($free -lt 100GB) { throw 'At least 100 GiB free required before capacity trial' }
-          $count = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.event_count }}' } else { '10000000' }
+          $count = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.event_count }}' } else { '50000000' }
           if ($count -notin @('10000000','50000000','500000000')) { throw 'Unsupported event count' }
           Write-Host ('T046_CAPACITY_COUNT=' + $count)
           $tempDir = Join-Path $root ('run-' + $env:GITHUB_RUN_ID)
