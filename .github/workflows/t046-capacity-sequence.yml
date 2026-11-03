@@ -23,7 +23,7 @@ concurrency:
 jobs:
   capacity-millions:
     runs-on: [self-hosted, Windows, X64, t046-capacity]
-    timeout-minutes: 1440
+    timeout-minutes: 5760
     steps:
       - uses: actions/checkout@v5
         with:
@@ -37,7 +37,7 @@ jobs:
           $free = (Get-PSDrive D).Free
           Write-Host ('D_FREE_GIB=' + [math]::Round($free / 1GB, 2))
           if ($free -lt 100GB) { throw 'At least 100 GiB free required before capacity trial' }
-          $count = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.event_count }}' } else { '50000000' }
+          $count = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.event_count }}' } else { '500000000' }
           if ($count -notin @('10000000','50000000','500000000')) { throw 'Unsupported event count' }
           Write-Host ('T046_CAPACITY_COUNT=' + $count)
           $tempDir = Join-Path $root ('run-' + $env:GITHUB_RUN_ID)
