@@ -42,7 +42,7 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
   const page=context.pages()[0]||await context.newPage();
   await page.goto(url);
   await page.addScriptTag({path:script});
-  const result=await page.evaluate(async ({owner,count})=>{
+  const result=await page.evaluate(async ({owner,count:expectedCount})=>{
    const api=MedControlT046IndexedEvents,start=performance.now();
    let after='',count=0,pages=0,last='',ordered=true;
    while(true){
@@ -51,7 +51,7 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
     for(const row of p.rows){if(last&&row.id<=last)ordered=false;last=row.id;count++;}
     if(!p.next)break;
     after=p.next;
-    if(pages>Math.ceil(count/100)+1)throw Error('Pagination loop');
+    if(pages>Math.ceil(expectedCount/100)+1)throw Error('Pagination loop');
    }
    return {count,pages,last,ordered,readMs:performance.now()-start};
   },{owner,count:COUNT});
