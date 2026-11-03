@@ -17,13 +17,15 @@ test('T-046 dedicated capacity trial',async({page})=>{
  const metrics=await page.evaluate(async({owner,count})=>{
   const api=MedControlT046IndexedEvents,token='f'.repeat(64);
   const started=performance.now(),checkpoints=[];
-  for(let offset=0;offset<count;offset+=100){
-   const batch=Array.from({length:Math.min(100,count-offset)},(_,i)=>{
+  const session=await api.openBatchSession();
+  try {
+  for(let offset=0;offset<count;offset+=1000){
+   const batch=Array.from({length:Math.min(1000,count-offset)},(_,i)=>{
     const n=offset+i;
     return {id:'event-'+String(n).padStart(10,'0'),
       envelope:{ciphertext:'synthetic-placeholder-'+n},tokens:[token]};
    });
-   await api.insertBatch(owner,batch);
+   await session.insertBatch(owner,batch);
    if((offset+batch.length)%100000===0){
     const estimate=await navigator.storage?.estimate?.();
     checkpoints.push({events:offset+batch.length,elapsedMs:performance.now()-started,
@@ -31,6 +33,7 @@ test('T-046 dedicated capacity trial',async({page})=>{
     console.log('T-046 capacity checkpoint '+JSON.stringify(checkpoints[checkpoints.length-1]));
    }
   }
+  } finally {session.close();}
   return {writeMs:performance.now()-started,checkpoints};
  },{owner,count:COUNT});
  console.log('T-046 capacity write result '+JSON.stringify({
