@@ -5,9 +5,9 @@ const path=require('node:path');
 const fs=require('node:fs');
 const PROFILE_ROOT=process.env.T046_PROFILE_ROOT;
 const COUNT=Number(process.env.T046_EVENT_COUNT||10000);
-if(![10000,1000000].includes(COUNT))throw Error('Unsupported T-046 event count');
+if(![1000000,10000000,50000000,500000000].includes(COUNT))throw Error('Unsupported T-046 event count');
 test('T-046 million-scale persistent IndexedDB on isolated D drive profile',async()=>{
- test.setTimeout(3600000);
+ test.setTimeout(0);
  if(!PROFILE_ROOT||path.parse(PROFILE_ROOT).root.toUpperCase()!=='D:\\')
   throw Error('T046_PROFILE_ROOT must be an absolute D: drive directory');
  if(!fs.existsSync(path.dirname(PROFILE_ROOT)))throw Error('Profile parent directory missing');
@@ -31,6 +31,10 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
       envelope:{ciphertext:'synthetic-'+(offset+i)},tokens:[token]
      }));
      await session.insertBatch(owner,batch);
+     if((offset+1000)%1000000===0){
+      const estimate=await navigator.storage.estimate();
+      console.log('T046_CAPACITY_CHECKPOINT '+JSON.stringify({events:offset+1000,elapsedMs:performance.now()-start,usageBytes:estimate.usage,quotaBytes:estimate.quota}));
+     }
     }
    }finally{session.close();}
    return performance.now()-start;
@@ -51,6 +55,7 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
     for(const row of p.rows){if(last&&row.id<=last)ordered=false;last=row.id;count++;}
     if(!p.next)break;
     after=p.next;
+    if(pages%10000===0)console.log('T046_SCAN_CHECKPOINT '+JSON.stringify({pages,count}));
     if(pages>Math.ceil(expectedCount/100)+1)throw Error('Pagination loop');
    }
    return {count,pages,last,ordered,readMs:performance.now()-start};
