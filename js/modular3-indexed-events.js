@@ -42,6 +42,57 @@
    });
   }finally{db.close();}
  }
+ async function insertBatch(owner,records){
+  check(owner,'owner');
+  if(!Array.isArray(records)||records.length<1||records.length>100)throw Error('Batch must contain 1..100 events');
+  const ids=new Set();
+  const prepared=records.map(item=>{
+   if(!item||typeof item!=='object')throw Error('Invalid batch event');
+   check(item.id,'id');
+   if(ids.has(item.id))throw Error('Duplicate batch id');
+   ids.add(item.id);
+   if(!item.envelope||typeof item.envelope!=='object'||Array.isArray(item.envelope))throw Error('Encrypted envelope required');
+   return {owner,id:item.id,envelope:structuredClone(item.envelope),tokens:checkTokens(item.tokens),revision:1};
+  });
+  const db=await open();
+  try{
+   return await new Promise((resolve,reject)=>{
+    const tx=db.transaction([EVENTS,TOKENS],'readwrite');
+    tx.oncomplete=()=>resolve(prepared.length);
+    tx.onerror=()=>reject(tx.error||Error('Atomic batch write failed'));
+    tx.onabort=()=>reject(tx.error||Error('Atomic batch write aborted'));
+    const events=tx.objectStore(EVENTS),index=tx.objectStore(TOKENS);
+    for(const record of prepared){
+     events.add(record);
+     for(const token of record.tokens)index.add({owner,token,id:record.id});
+    }
+   });
+  }finally{db.close();}
+ }
+ async function scanPage(owner,{after='',limit=100}={}){
+  check(owner,'owner');
+  if(typeof after!=='string'||!Number.isInteger(limit)||limit<1||limit>100)throw Error('Invalid scan page');
+  const db=await open();
+  try{
+   return await new Promise((resolve,reject)=>{
+    const tx=db.transaction(EVENTS,'readonly'),rows=[];
+    let next=null;
+    tx.oncomplete=()=>resolve({rows,next});
+    tx.onerror=()=>reject(tx.error||Error('Owner scan failed'));
+    tx.onabort=()=>reject(tx.error||Error('Owner scan aborted'));
+    const range=root.IDBKeyRange.bound([owner,after],[owner,'\\uffff'],!!after,true);
+    const req=tx.objectStore(EVENTS).openCursor(range);
+    req.onsuccess=()=>{
+     const cursor=req.result;
+     if(!cursor)return;
+     if(rows.length===limit){next=rows[rows.length-1].id;return;}
+     const value=cursor.value;
+     rows.push({id:value.id,envelope:value.envelope,revision:value.revision});
+     cursor.continue();
+    };
+   });
+  }finally{db.close();}
+ }
  async function replaceIfRevision(owner,id,expectedRevision,envelope,tokens){
   check(owner,'owner');check(id,'id');
   if(!Number.isSafeInteger(expectedRevision)||expectedRevision<1)throw Error('Invalid expected revision');
@@ -98,5 +149,5 @@
    });
   }finally{db.close();}
  }
- root.MedControlT046IndexedEvents=Object.freeze({insert,replaceIfRevision,page});
+ root.MedControlT046IndexedEvents=Object.freeze({insert,insertBatch,scanPage,replaceIfRevision,page});
 })(typeof window!=='undefined'?window:globalThis);
