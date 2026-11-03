@@ -1,4 +1,4 @@
-name: T-046 Windows 10K Safe Probe
+name: T-046 Windows 1M Capacity Trial
 on:
   workflow_dispatch:
   push:
@@ -9,12 +9,12 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: t046-windows-10k-probe
+  group: t046-windows-1m-trial
   cancel-in-progress: false
 jobs:
-  probe-10k:
+  capacity-1m:
     runs-on: [self-hosted, Windows, X64, t046-capacity]
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,6 +34,7 @@ jobs:
           'TMP=' + $tempDir | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           'PLAYWRIGHT_BROWSERS_PATH=' + (Join-Path $root 'browsers') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           'T046_PROFILE_ROOT=' + (Join-Path $tempDir 'chromium-profile') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'T046_EVENT_COUNT=1000000' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host ('ISOLATED_TEMP=' + $tempDir)
       - name: Install Playwright without package manifest
         shell: powershell
@@ -42,7 +43,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'npm failed' }
           npx playwright install chromium
           if ($LASTEXITCODE -ne 0) { throw 'Chromium install failed' }
-      - name: Run bounded 10000 synthetic event integrity and timing probe
+      - name: Run one million synthetic event persistent storage trial
         shell: powershell
         run: |
           npx playwright test tests/t046-windows-profile.spec.js --config=playwright.t046-profile.config.cjs --reporter=line
