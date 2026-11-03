@@ -67,3 +67,34 @@ test('T-046 10 courses and 1200 events: paged copy, exact reconstruction, tamper
  });
  expect(result).toEqual({copied:true,good:true,bad:false,records:1216,batches:13,sourceIntact:true});
 });
+
+test('T-046 concurrent source edit invalidates copy certification without touching original',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/auth-login.html');
+ for(const file of ['modular3-shard-store.js','modular3-shard-crypto.js','modular3-shard-vault.js'])
+  await page.addScriptTag({path:path.join(ROOT,'js',file)});
+ await page.evaluate(()=>{
+  let state={settings:{language:'ru'},medications:[{id:'course',name:'Synthetic'}],intakeLogs:[]};
+  window.__t046Concurrent={
+   edit:()=>{state.intakeLogs.push({id:'new-event',status:'taken'});},
+   read:()=>structuredClone(state)
+  };
+  window.MedControlModular3ProtectedSession=Object.freeze({
+   isUnlocked:()=>true,read:()=>structuredClone(state)
+  });
+ });
+ await page.addScriptTag({path:path.join(ROOT,'js/modular3-copy-bridge.js')});
+ const result=await page.evaluate(async()=>{
+  const owner='t046-copy-'+crypto.randomUUID(),password='synthetic-concurrent-password';
+  let rejected=false;
+  try{
+   await window.MedControlModular3CopyBridge.copy({
+    owner,password,onProgress:()=>window.__t046Concurrent.edit()
+   });
+  }catch(error){rejected=/changed during copy/.test(error.message);}
+  let incomplete=false;
+  try{await window.MedControlModular3CopyBridge.verify({owner,password});}
+  catch(error){incomplete=/Copy incomplete/.test(error.message);}
+  return {rejected,incomplete,sourceEventPreserved:window.__t046Concurrent.read().intakeLogs.length>0};
+ });
+ expect(result).toEqual({rejected:true,incomplete:true,sourceEventPreserved:true});
+});
