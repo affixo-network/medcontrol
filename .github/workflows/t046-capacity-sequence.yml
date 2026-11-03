@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: t046-capacity-sequence
+  group: t046-windows-10k-probe
   cancel-in-progress: false
 jobs:
   probe-10k:
