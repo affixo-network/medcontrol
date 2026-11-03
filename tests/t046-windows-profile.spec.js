@@ -14,7 +14,7 @@ test('T-046 million-scale persistent IndexedDB on isolated D drive profile',asyn
  const profile=path.resolve(PROFILE_ROOT);
  const owner='probe-'+Date.now();
  const RESERVE_BYTES=100*1024**3;
- const diskFree=()=>{const s=fs.statfsSync(profile);return Number(s.bavail)*Number(s.bsize);};
+ const diskFree=()=>{const s=fs.statfsSync(path.dirname(profile));return Number(s.bavail)*Number(s.bsize);};
  if(diskFree()<RESERVE_BYTES)throw Error('T046 insufficient D-drive free space before write');
  const url='http://127.0.0.1:8765/t046-indexed-test.html';
  const script=path.resolve(__dirname,'../js/modular3-indexed-events.js');
