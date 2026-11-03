@@ -47,6 +47,9 @@
     await vault.createRecordsBatch(records.slice(offset,offset+100));
     onProgress({copied:Math.min(offset+100,records.length),total:records.length});
    }
+   // Do not certify a stale copy if the active medical history changed mid-transfer.
+   if(!SOURCE.isUnlocked()||await digest(SOURCE.read())!==expectedHash)
+    throw Error('Original medical state changed during copy; destination is not certified');
    // Manifest is written last; incomplete copies cannot pass verification.
    await vault.createRecord(MANIFEST,{format:'t046-legacy-copy-v1',hash:expectedHash,records:records.length});
    const verified=await verify({owner,password,expected:source});
