@@ -149,5 +149,39 @@
    });
   }finally{db.close();}
  }
- root.MedControlT046IndexedEvents=Object.freeze({insert,insertBatch,scanPage,replaceIfRevision,page});
+ // Dedicated high-throughput session: one open connection, bounded atomic batches.
+ // The caller must close the session. Existing API and medical vault remain unchanged.
+ async function openBatchSession(){
+  const db=await open();
+  let closed=false;
+  return Object.freeze({
+   async insertBatch(owner,records){
+    if(closed)throw Error('Batch session closed');
+    check(owner,'owner');
+    if(!Array.isArray(records)||records.length<1||records.length>1000)throw Error('Batch must contain 1..1000 events');
+    const ids=new Set();
+    const prepared=records.map(item=>{
+     if(!item||typeof item!=='object')throw Error('Invalid batch event');
+     check(item.id,'id');
+     if(ids.has(item.id))throw Error('Duplicate batch id');
+     ids.add(item.id);
+     if(!item.envelope||typeof item.envelope!=='object'||Array.isArray(item.envelope))throw Error('Encrypted envelope required');
+     return {owner,id:item.id,envelope:structuredClone(item.envelope),tokens:checkTokens(item.tokens),revision:1};
+    });
+    return await new Promise((resolve,reject)=>{
+     const tx=db.transaction([EVENTS,TOKENS],'readwrite');
+     tx.oncomplete=()=>resolve(prepared.length);
+     tx.onerror=()=>reject(tx.error||Error('Atomic session batch write failed'));
+     tx.onabort=()=>reject(tx.error||Error('Atomic session batch write aborted'));
+     const events=tx.objectStore(EVENTS),index=tx.objectStore(TOKENS);
+     for(const record of prepared){
+      events.add(record);
+      for(const token of record.tokens)index.add({owner,token,id:record.id});
+     }
+    });
+   },
+   close(){if(!closed){closed=true;db.close();}}
+  });
+ }
+ root.MedControlT046IndexedEvents=Object.freeze({insert,insertBatch,scanPage,replaceIfRevision,page,openBatchSession});
 })(typeof window!=='undefined'?window:globalThis);
