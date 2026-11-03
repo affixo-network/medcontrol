@@ -80,7 +80,7 @@
     tx.oncomplete=()=>resolve({rows,next});
     tx.onerror=()=>reject(tx.error||Error('Owner scan failed'));
     tx.onabort=()=>reject(tx.error||Error('Owner scan aborted'));
-    const range=root.IDBKeyRange.bound([owner,after],[owner,'\\uffff'],!!after,true);
+    const range=root.IDBKeyRange.bound([owner,after],[owner,'\uffff'],!!after,true);
     const req=tx.objectStore(EVENTS).openCursor(range);
     req.onsuccess=()=>{
      const cursor=req.result;
