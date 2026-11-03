@@ -17,27 +17,20 @@ test('T-046 protected session rejects stale cross-tab writer without losing encr
  await second.evaluate(async password=>{
   await MedControlModular3ProtectedSession.unlock(password);
  },password);
- await Promise.all([
+ const outcomes=await Promise.allSettled([
   first.evaluate(()=>MedControlModular3ProtectedSession.transact(state=>{
    state.intakeLogs.push({id:'first',status:'taken'});
   })),
-  second.evaluate(async()=>{
-   try{
-    await MedControlModular3ProtectedSession.transact(state=>{
-     state.intakeLogs.push({id:'second',status:'taken'});
-    });
-    return 'committed';
-   }catch(error){return error.message;}
-  })
- ]).then(async([,secondResult])=>{
-  const firstState=await first.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked()
-   ?MedControlModular3ProtectedSession.read():null);
-  const stored=await first.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
-  expect(stored).not.toContain('"first"');
-  expect(stored).not.toContain('"second"');
-  expect(secondResult==='committed'||/changed|unlock again/i.test(secondResult)).toBeTruthy();
-  expect(firstState===null||Array.isArray(firstState.intakeLogs)).toBeTruthy();
- });
+  second.evaluate(()=>MedControlModular3ProtectedSession.transact(state=>{
+   state.intakeLogs.push({id:'second',status:'taken'});
+  }))
+ ]);
+ expect(outcomes.filter(x=>x.status==='fulfilled')).toHaveLength(1);
+ expect(outcomes.filter(x=>x.status==='rejected')).toHaveLength(1);
+ expect(String(outcomes.find(x=>x.status==='rejected').reason)).toMatch(/changed|unlock again/i);
+ const stored=await first.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
+ expect(stored).not.toContain('"first"');
+ expect(stored).not.toContain('"second"');
  const fresh=await context.newPage();
  await fresh.goto(url);
  const state=await fresh.evaluate(async password=>{
