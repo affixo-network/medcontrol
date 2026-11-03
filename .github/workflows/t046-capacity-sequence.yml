@@ -1,10 +1,6 @@
 name: T-046 Capacity 50M then 500M
 on:
   workflow_dispatch:
-  push:
-    branches: [modular-3.000]
-    paths:
-      - '.github/workflows/t046-capacity-sequence.yml'
 permissions:
   contents: read
 concurrency:
@@ -12,22 +8,26 @@ concurrency:
   cancel-in-progress: false
 jobs:
   capacity-50m:
-    # A persistent dedicated SSD runner is required: hosted ephemeral runners
-    # cannot certify large persistent browser storage or a specific 8 GB PC.
-    runs-on: [self-hosted, linux, x64, t046-capacity]
+    runs-on: [self-hosted, Windows, X64, t046-capacity]
     timeout-minutes: 4320
     steps:
       - uses: actions/checkout@v4
-      - name: Verify dedicated runner resources
-        shell: bash
+      - name: Check Windows host and free disk
+        shell: pwsh
         run: |
-          set -eu
-          command -v node
-          command -v python3
-          command -v npx
-          test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 104857600
-          free -h
-          df -h .
+          $ErrorActionPreference = 'Stop'
+          node --version
+          npm --version
+          $drive = (Get-Location).Drive.Name
+          $disk = Get-PSDrive -Name $drive
+          Write-Host "Available GB:" ([math]::Round($disk.Free / 1GB, 2))
+          $os = Get-CimInstance Win32_OperatingSystem
+          Write-Host "Installed physical RAM bytes:" (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
+          if ($disk.Free -lt 20GB) { throw 'At least 20 GB free is required for initial capacity testing' }
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install chromium
       - name: Run 50 million synthetic events
         env:
           T046_EVENT_COUNT: '50000000'
@@ -35,20 +35,22 @@ jobs:
         run: npx playwright test --config=playwright.t046-capacity.config.cjs --reporter=line
   capacity-500m:
     needs: capacity-50m
-    runs-on: [self-hosted, linux, x64, t046-capacity]
+    runs-on: [self-hosted, Windows, X64, t046-capacity]
     timeout-minutes: 4320
     steps:
       - uses: actions/checkout@v4
-      - name: Verify dedicated runner resources
-        shell: bash
+      - name: Check Windows host and free disk
+        shell: pwsh
         run: |
-          set -eu
-          command -v node
-          command -v python3
-          command -v npx
-          test "$(df -Pk . | awk 'NR==2 {print $4}')" -ge 104857600
-          free -h
-          df -h .
+          $ErrorActionPreference = 'Stop'
+          $drive = (Get-Location).Drive.Name
+          $disk = Get-PSDrive -Name $drive
+          Write-Host "Available GB:" ([math]::Round($disk.Free / 1GB, 2))
+          if ($disk.Free -lt 100GB) { throw '500M test requires at least 100 GB free; no writes attempted' }
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install chromium
       - name: Run 500 million synthetic events
         env:
           T046_EVENT_COUNT: '500000000'
