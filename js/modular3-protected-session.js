@@ -7,6 +7,7 @@
  const VAULT=root.MedControlModular3EncryptedVault;
  if(!CREDENTIAL||!VAULT)throw Error('Modular-3 protected dependencies unavailable');
  const DATA_KEY='medcontrol_modular3_protected_state_v1';
+ const WRITE_LOCK='medcontrol-modular3-protected-write';
  let secret=null,state=null,checkpoint=null,chain=Promise.resolve();
  const clone=x=>structuredClone(x);
  function requireOpen(){if(!secret||!state||!CREDENTIAL.isUnlocked())throw Error('Protected session locked');}
@@ -54,6 +55,8 @@
   transact(mutator,options={}){
    if(typeof mutator!=='function')return Promise.reject(Error('Mutation callback required'));
    const task=chain.then(async()=>{
+    if(!navigator.locks?.request)throw Error('Cross-tab storage locking unavailable');
+    return navigator.locks.request(WRITE_LOCK,{mode:'exclusive'},async()=>{
     requireOpen();
     if(localStorage.getItem(DATA_KEY)!==checkpoint){secret=null;state=null;checkpoint=null;CREDENTIAL.lock();throw Error('Encrypted data changed in another tab; unlock again');}
     const next=clone(state);
@@ -89,6 +92,7 @@
      }
      throw error;
     }
+    });
    });
    chain=task.catch(()=>{});
    return task;
