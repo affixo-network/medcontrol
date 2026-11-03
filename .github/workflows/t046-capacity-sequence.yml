@@ -5,6 +5,7 @@ on:
     branches: [modular-3.000]
     paths:
       - '.github/workflows/t046-capacity-sequence.yml'
+      - 'playwright.t046-profile.config.cjs'
 permissions:
   contents: read
 concurrency:
