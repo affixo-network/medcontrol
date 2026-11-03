@@ -1,6 +1,16 @@
-name: T-046 Windows 1M Capacity Trial
+name: T-046 Windows Million-Scale Capacity
 on:
   workflow_dispatch:
+    inputs:
+      event_count:
+        description: 'Synthetic events; run 10M before 50M and 50M before 500M'
+        required: true
+        type: choice
+        default: '10000000'
+        options:
+          - '10000000'
+          - '50000000'
+          - '500000000'
   push:
     branches: [modular-3.000]
     paths:
@@ -10,14 +20,14 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: t046-windows-1m-trial
+  group: t046-windows-capacity
   cancel-in-progress: false
 jobs:
-  capacity-1m:
+  capacity-millions:
     runs-on: [self-hosted, Windows, X64, t046-capacity]
-    timeout-minutes: 90
+    timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Check and prepare isolated D drive browser profile
@@ -28,14 +38,17 @@ jobs:
           if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'D drive test directory missing' }
           $free = (Get-PSDrive D).Free
           Write-Host ('D_FREE_GIB=' + [math]::Round($free / 1GB, 2))
-          if ($free -lt 20GB) { throw 'At least 20 GiB free required before probe' }
+          if ($free -lt 100GB) { throw 'At least 100 GiB free required before capacity trial' }
+          $count = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.event_count }}' } else { '10000000' }
+          if ($count -notin @('10000000','50000000','500000000')) { throw 'Unsupported event count' }
+          Write-Host ('T046_CAPACITY_COUNT=' + $count)
           $tempDir = Join-Path $root ('run-' + $env:GITHUB_RUN_ID)
           New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
           'TEMP=' + $tempDir | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           'TMP=' + $tempDir | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           'PLAYWRIGHT_BROWSERS_PATH=' + (Join-Path $root 'browsers') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           'T046_PROFILE_ROOT=' + (Join-Path $tempDir 'chromium-profile') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          'T046_EVENT_COUNT=1000000' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'T046_EVENT_COUNT=' + $count | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host ('ISOLATED_TEMP=' + $tempDir)
       - name: Install Playwright without package manifest
         shell: powershell
@@ -44,11 +57,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'npm failed' }
           npx playwright install chromium
           if ($LASTEXITCODE -ne 0) { throw 'Chromium install failed' }
-      - name: Run one million synthetic event persistent storage trial
+      - name: Run selected million-scale synthetic event persistent storage trial
         shell: powershell
         run: |
           npx playwright test tests/t046-windows-profile.spec.js --config=playwright.t046-profile.config.cjs --reporter=line
-          if ($LASTEXITCODE -ne 0) { throw 'T046 1M capacity trial failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'T046 million-scale capacity trial failed' }
       - name: Report remaining free space
         if: always()
         shell: powershell
