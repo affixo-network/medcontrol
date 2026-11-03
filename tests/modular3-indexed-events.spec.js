@@ -2,7 +2,7 @@
 const {test,expect}=require('@playwright/test');
 const path=require('node:path');
 test('T-046 indexed encrypted event writes are atomic and owner scoped',async({page})=>{
- await page.goto('http://127.0.0.1:8765/input.html');
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-indexed-events.js')});
  const result=await page.evaluate(async()=>{
   const api=MedControlT046IndexedEvents;
@@ -28,7 +28,7 @@ test('T-046 indexed encrypted event writes are atomic and owner scoped',async({p
 
 
 test('T-046 revision replacement updates tokens atomically and rejects stale tab',async({page})=>{
- await page.goto('http://127.0.0.1:8765/input.html');
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-indexed-events.js')});
  const result=await page.evaluate(async()=>{
   const api=MedControlT046IndexedEvents,owner='synthetic-'+crypto.randomUUID();
