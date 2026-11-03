@@ -1,6 +1,10 @@
 name: T-046 Windows 10K Safe Probe
 on:
   workflow_dispatch:
+  push:
+    branches: [modular-3.000]
+    paths:
+      - '.github/workflows/t046-capacity-sequence.yml'
 permissions:
   contents: read
 concurrency:
