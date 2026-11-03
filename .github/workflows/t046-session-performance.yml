@@ -1,0 +1,30 @@
+name: T-046 Measured Session Performance
+on:
+  push:
+    branches: [modular-3.000]
+    paths:
+      - 'tests/t046-session-performance.spec.js'
+      - 'js/modular3-indexed-events.js'
+      - 'playwright.t046-session.config.cjs'
+      - '.github/workflows/t046-session-performance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measured-session:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Chromium and test runner
+        run: |
+          npm install --no-save --no-package-lock @playwright/test@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Measure persistent batch performance and verify restart
+        run: npx playwright test --config=playwright.t046-session.config.cjs --reporter=line
