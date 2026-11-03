@@ -1,4 +1,4 @@
-name: T-046 Capacity 50M then 500M
+name: T-046 Windows 10K Safe Probe
 on:
   workflow_dispatch:
 permissions:
@@ -7,52 +7,43 @@ concurrency:
   group: t046-capacity-sequence
   cancel-in-progress: false
 jobs:
-  capacity-50m:
+  probe-10k:
     runs-on: [self-hosted, Windows, X64, t046-capacity]
-    timeout-minutes: 4320
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Check Windows host and free disk
-        shell: pwsh
+        with:
+          persist-credentials: false
+      - name: Check and prepare isolated D drive browser profile
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          node --version
-          npm --version
-          $drive = (Get-Location).Drive.Name
-          $disk = Get-PSDrive -Name $drive
-          Write-Host "Available GB:" ([math]::Round($disk.Free / 1GB, 2))
-          $os = Get-CimInstance Win32_OperatingSystem
-          Write-Host "Installed physical RAM bytes:" (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
-          if ($disk.Free -lt 20GB) { throw 'At least 20 GB free is required for initial capacity testing' }
-      - name: Install dependencies
-        run: npm install --no-save --no-package-lock @playwright/test@1.58.2
-      - name: Install Chromium
-        run: npx playwright install chromium
-      - name: Run 50 million synthetic events
-        env:
-          T046_EVENT_COUNT: '50000000'
-          T046_CAPACITY_APPROVED: 'YES'
-        run: npx playwright test --config=playwright.t046-capacity.config.cjs --reporter=line
-  capacity-500m:
-    needs: capacity-50m
-    runs-on: [self-hosted, Windows, X64, t046-capacity]
-    timeout-minutes: 4320
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check Windows host and free disk
-        shell: pwsh
+          $root = 'D:\MedControl-T046'
+          if (-not (Test-Path -LiteralPath $root -PathType Container)) { throw 'D drive test directory missing' }
+          $free = (Get-PSDrive D).Free
+          Write-Host ('D_FREE_GIB=' + [math]::Round($free / 1GB, 2))
+          if ($free -lt 20GB) { throw 'At least 20 GiB free required before probe' }
+          $tempDir = Join-Path $root ('run-' + $env:GITHUB_RUN_ID)
+          New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+          'TEMP=' + $tempDir | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'TMP=' + $tempDir | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'PLAYWRIGHT_BROWSERS_PATH=' + (Join-Path $root 'browsers') | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host ('ISOLATED_TEMP=' + $tempDir)
+      - name: Install Playwright without package manifest
+        shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
-          $drive = (Get-Location).Drive.Name
-          $disk = Get-PSDrive -Name $drive
-          Write-Host "Available GB:" ([math]::Round($disk.Free / 1GB, 2))
-          if ($disk.Free -lt 100GB) { throw '500M test requires at least 100 GB free; no writes attempted' }
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Chromium
-        run: npx playwright install chromium
-      - name: Run 500 million synthetic events
-        env:
-          T046_EVENT_COUNT: '500000000'
-          T046_CAPACITY_APPROVED: 'YES'
-        run: npx playwright test --config=playwright.t046-capacity.config.cjs --reporter=line
+          npm install --no-save --no-package-lock @playwright/test@1.58.2
+          if ($LASTEXITCODE -ne 0) { throw 'npm failed' }
+          npx playwright install chromium
+          if ($LASTEXITCODE -ne 0) { throw 'Chromium install failed' }
+      - name: Run bounded 10000 synthetic event integrity and timing probe
+        shell: powershell
+        run: |
+          npx playwright test --config=playwright.t046-session.config.cjs --reporter=line
+          if ($LASTEXITCODE -ne 0) { throw 'T046 10K probe failed' }
+      - name: Report remaining free space
+        if: always()
+        shell: powershell
+        run: |
+          Write-Host ('D_FREE_GIB=' + [math]::Round((Get-PSDrive D).Free / 1GB, 2))
+          Write-Host ('C_FREE_GIB=' + [math]::Round((Get-PSDrive C).Free / 1GB, 2))
