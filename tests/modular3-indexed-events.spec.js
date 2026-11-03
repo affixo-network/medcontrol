@@ -73,3 +73,48 @@ test('T-046 bounded batch and owner scan preserve atomicity',async({page})=>{
  expect(result).toEqual({count:23,rejected:true,total:23,unique:23,pages:4,
   first:'event-000',last:'event-022',indexed:23,rollback:false});
 });
+
+
+test('T-046 synthetic 1000-event streaming benchmark uses bounded pages',async({page})=>{
+ test.setTimeout(120000);
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-indexed-events.js')});
+ const metrics=await page.evaluate(async()=>{
+  const api=MedControlT046IndexedEvents,owner='benchmark-'+crypto.randomUUID();
+  const token='f'.repeat(64),size=1000,batchSize=100,pageSize=100;
+  const start=performance.now();
+  for(let offset=0;offset<size;offset+=batchSize){
+   const batch=Array.from({length:batchSize},(_,j)=>{
+    const n=offset+j;
+    return {id:'event-'+String(n).padStart(7,'0'),
+     envelope:{ciphertext:'synthetic-encrypted-placeholder-'+n},tokens:[token]};
+   });
+   await api.insertBatch(owner,batch);
+  }
+  const writeMs=performance.now()-start;
+  const readStart=performance.now();
+  let after='',total=0,pages=0,maxPage=0,ordered=true,previous='';
+  while(true){
+   const result=await api.scanPage(owner,{after,limit:pageSize});
+   pages++;
+   maxPage=Math.max(maxPage,result.rows.length);
+   for(const row of result.rows){
+    if(previous && row.id<=previous)ordered=false;
+    previous=row.id;
+    total++;
+   }
+   if(!result.next)break;
+   after=result.next;
+   if(pages>20)throw Error('Unexpected scan pagination loop');
+  }
+  const readMs=performance.now()-readStart;
+  return {total,pages,maxPage,ordered,writeMs,readMs};
+ });
+ expect(metrics.total).toBe(1000);
+ expect(metrics.pages).toBe(10);
+ expect(metrics.maxPage).toBeLessThanOrEqual(100);
+ expect(metrics.ordered).toBe(true);
+ expect(metrics.writeMs).toBeGreaterThanOrEqual(0);
+ expect(metrics.readMs).toBeGreaterThanOrEqual(0);
+ console.log('T-046 synthetic 1000-event benchmark (not a 100M certification): '+JSON.stringify(metrics));
+});
