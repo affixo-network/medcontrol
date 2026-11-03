@@ -45,3 +45,31 @@ test('T-046 revision replacement updates tokens atomically and rejects stale tab
  });
  expect(result).toEqual({revision:2,staleRejected:true,oldCount:0,newCount:1,payload:'after',storedRevision:2});
 });
+
+
+test('T-046 bounded batch and owner scan preserve atomicity',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-indexed-events.js')});
+ const result=await page.evaluate(async()=>{
+  const api=MedControlT046IndexedEvents,owner='batch-'+crypto.randomUUID(),token='e'.repeat(64);
+  const records=Array.from({length:23},(_,i)=>({id:'event-'+String(i).padStart(3,'0'),
+   envelope:{ciphertext:'synthetic-'+i},tokens:[token]}));
+  const count=await api.insertBatch(owner,records);
+  let rejected=false;
+  try{await api.insertBatch(owner,[{id:'event-999',envelope:{ciphertext:'new'},tokens:[token]},records[0]]);}
+  catch(_){rejected=true;}
+  let after='',ids=[],pages=0;
+  do{
+   const page=await api.scanPage(owner,{after,limit:7});
+   ids.push(...page.rows.map(row=>row.id));
+   after=page.next||'';pages++;
+   if(!page.next)break;
+  }while(pages<10);
+  const indexed=await api.page(owner,token,{limit:50});
+  return {count,rejected,total:ids.length,unique:new Set(ids).size,pages,
+   first:ids[0],last:ids.at(-1),indexed:indexed.rows.length,
+   rollback:ids.includes('event-999')};
+ });
+ expect(result).toEqual({count:23,rejected:true,total:23,unique:23,pages:4,
+  first:'event-000',last:'event-022',indexed:23,rollback:false});
+});
