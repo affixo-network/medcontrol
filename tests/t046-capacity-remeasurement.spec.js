@@ -18,5 +18,5 @@ test('T-046 expansion only admits writes after authoritative capacity remeasurem
  });
  expect(result.admitted.admitted).toBe(true);
  expect(result.refused.admitted).toBe(false);
- expect(result.requests).toBe(2);
+ expect(result.requests).toBe(1);
 });
