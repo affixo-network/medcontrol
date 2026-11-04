@@ -78,8 +78,8 @@ test('A01.4 measure indexed encryption overhead at 0, 1 and 4 tokens',async({pag
    const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('medcontrol_t046_journal_v1');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
    const rows=await new Promise((resolve,reject)=>{
     const tx=db.transaction(['events','tokens'],'readonly');
-    const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
-    const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+    const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
+    const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
     let events,indexes;
     e.onsuccess=()=>{events=e.result;};t.onsuccess=()=>{indexes=t.result;};
     tx.oncomplete=()=>resolve({events,indexes});tx.onerror=()=>reject(tx.error);
