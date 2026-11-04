@@ -4,6 +4,8 @@ on:
     branches: [modular-3.000]
     paths:
       - 'js/modular3-t046-authenticated-commitment.js'
+      - 'js/modular3-t046-authenticated-gateway.js'
+      - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
       - '.github/workflows/t046-authenticated-commitment.yml'
