@@ -9,6 +9,9 @@ async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexToke
   auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue;
  if(!journal||!codec||!auth||!queue||!commitmentKey)throw Error('Integrated vault prerequisites missing');
  if(!Number.isSafeInteger(sequence)||sequence<1)throw Error('Invalid sequence');
+ // Generation 1 is a single-event prototype. Reject later sequences rather than
+ // silently rewriting generation 1 or losing an existing replication queue entry.
+ if(sequence!==1)throw Error('Multi-event manifest chain not implemented');
  if(capacityGateway!==null){
   if(typeof capacityGateway.reserve!=='function'||!Number.isSafeInteger(reservationBytes)||reservationBytes<1)
    throw Error('Invalid capacity reservation prerequisites');
