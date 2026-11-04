@@ -67,7 +67,9 @@ async function verifyManifest(m,previous=null){
   if(!m||m.format!=='mc.manifest'||m.version!==1||!digest(m.commitment))return false;
   if(previous&&(m.previousCommitment!==previous.commitment||m.generation!==previous.generation+1||m.vaultId!==previous.vaultId))return false;
   const regenerated=await buildManifest(m);
-  return regenerated.commitment===m.commitment;
+  return regenerated.commitment===m.commitment&&
+   regenerated.committedThrough===m.committedThrough&&
+   regenerated.eventCount===m.eventCount;
  }catch{return false;}
 }
 root.MedControlT046SegmentCodec=Object.freeze({buildSegment,verifySegment,buildManifest,verifyManifest});
