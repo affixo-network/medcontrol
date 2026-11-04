@@ -14,9 +14,9 @@ test('T-046 replica queue survives reload and retains unconfirmed work',async({p
   const q=window.MedControlT046ReplicaQueue;
   const before=await q.pending();
   let invalidRejected=false;
-  try{await q.confirm(j,{replicaConfirmed:false,generation:1});}catch{invalidRejected=true;}
+  try{await q.confirm(j,{replicaConfirmed:false,generation:1},async()=>false);}catch{invalidRejected=true;}
   const stillPending=await q.pending();
-  await q.confirm(j,{replicaConfirmed:true,generation:1});
+  await q.confirm(j,{replicaConfirmed:true,generation:1},async()=>true);
   return {before:before.length,invalidRejected,stillPending:stillPending.length,after:(await q.pending()).length};
  },job);
  expect(result).toEqual({before:1,invalidRejected:true,stillPending:1,after:0});
