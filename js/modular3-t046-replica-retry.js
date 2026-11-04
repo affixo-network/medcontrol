@@ -12,7 +12,13 @@ function create(resolveJob){
   if(disposed)return Promise.resolve({skipped:true});
   if(running)return running;
   if(root.navigator&&root.navigator.onLine===false)return Promise.resolve({offline:true});
-  running=Promise.resolve().then(()=>drain.drain(resolveJob)).finally(()=>{running=null;});
+  running=Promise.resolve().then(async()=>{
+   const locks=root.navigator?.locks;
+   // Never silently fall back to unsafe concurrent writers.
+   if(!locks||typeof locks.request!=='function')return {lockUnavailable:true};
+   return locks.request('medcontrol-t046-replica-drain',{mode:'exclusive',ifAvailable:true},
+    lock=>lock?drain.drain(resolveJob):{busy:true});
+  }).finally(()=>{running=null;});
   return running;
  };
  const onOnline=()=>{run().catch(()=>{/* jobs remain pending */});};
