@@ -15,15 +15,7 @@ async function replicate(job,adapter,key,segment,manifest,segmentTag,manifestTag
  if(proof.replicaConfirmed!==true||proof.generation!==job.generation)throw Error('Replica not verified');
  // Only this coordinator accepts the protocol's verified result. Queue.confirm
  // remains a lower-level prototype API and is NOT a production security boundary.
- await queue.confirm(job,proof,async candidate=>{
-  const head=await adapter.getHead();
-  if(!head||head.vaultId!==candidate.vaultId||head.generation!==candidate.generation||
-     head.commitment!==candidate.manifestCommitment)return false;
-  const storedSegment=await adapter.getSegment(segment.commitment);
-  const storedManifest=await adapter.getManifest(manifest.generation);
-  return JSON.stringify(storedSegment)===JSON.stringify({segment,tag:segmentTag})&&
-         JSON.stringify(storedManifest)===JSON.stringify({manifest,tag:manifestTag});
- });
+ await queue.confirmVerified(job,adapter,key,segment,manifest,segmentTag,manifestTag);
  return {replicaConfirmed:true,generation:job.generation};
 }
 root.MedControlT046ReplicaCoordinator=Object.freeze({replicate});
