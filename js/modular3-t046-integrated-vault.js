@@ -67,7 +67,7 @@ async function recoverOrphanEvent({vaultId,eventId,commitmentKey}){
  await head.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey});
  return {recovered:true,replicaConfirmed:false,manifestCommitment:manifest.commitment};
 }
-async function appendNextAndStage({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,expectedHead}){
+async function appendNextAndStageLocked({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,expectedHead}){
  const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
   auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue,
   head=root.MedControlT046ManifestHead;
@@ -96,6 +96,13 @@ async function appendNextAndStage({vaultId,eventId,kind,body,encryptionKey,index
  await head.commitObjects({vaultId,expected:current,segment,manifest,segmentTag,manifestTag,commitmentKey});
  await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
  return {localCommitted:local.committed,replicaConfirmed:false,segment,manifest,segmentTag,manifestTag};
+}
+async function appendNextAndStage(args){
+ const locks=root.navigator?.locks;
+ if(!locks||typeof locks.request!=='function')throw Error('Cross-tab write lock unavailable');
+ if(typeof args?.vaultId!=='string'||!/^vault_[A-Za-z0-9_-]{8,128}$/.test(args.vaultId))
+  throw Error('Invalid vault');
+ return locks.request('medcontrol-t046-chain-'+args.vaultId,{mode:'exclusive'},()=>appendNextAndStageLocked(args));
 }
 root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
