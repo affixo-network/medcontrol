@@ -40,6 +40,23 @@ async function pending(){
   req.onerror=()=>reject(req.error);
  });}finally{db.close();}
 }
+async function pendingBatch(limit=100){
+ if(!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid replica batch limit');
+ const db=await open();
+ try{return await new Promise((resolve,reject)=>{
+  const result=[],tx=db.transaction('jobs','readonly');
+  const request=tx.objectStore('jobs').openCursor();
+  request.onerror=()=>reject(request.error);
+  request.onsuccess=()=>{
+   const cursor=request.result;
+   if(!cursor||result.length===limit){resolve(result);return;}
+   if(cursor.value.status==='pending')result.push(cursor.value);
+   if(result.length===limit){resolve(result);return;}
+   cursor.continue();
+  };
+  tx.onabort=()=>reject(tx.error||Error('Queue read aborted'));
+ });}finally{db.close();}
+}
 async function confirmVerified(job,adapter,key,segment,manifest,segmentTag,manifestTag){
  const candidate=validate(job);
  const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
@@ -71,5 +88,5 @@ async function confirmVerified(job,adapter,key,segment,manifest,segmentTag,manif
   };
  });}finally{db.close();}
 }
-root.MedControlT046ReplicaQueue=Object.freeze({enqueue,pending,confirmVerified});
+root.MedControlT046ReplicaQueue=Object.freeze({enqueue,pending,pendingBatch,confirmVerified});
 })(typeof window!=='undefined'?window:globalThis);
