@@ -35,3 +35,64 @@ test('T-046 recover orphan encrypted event after restart; refuse conflicting rep
  expect(result.queued.recovered).toBe(true);
  expect(result.pending).toHaveLength(1);
 });
+
+
+test('T-046 restart reconciles second encrypted event interrupted between journal and manifest',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ const scripts=['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'];
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const prepared=await page.evaluate(async()=>{
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const eventId='event_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},true,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  await api.appendAndStage({vaultId,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),
+   kind:'intake',body:{dose:1},encryptionKey,commitmentKey});
+  const expectedHead=await window.MedControlT046ManifestHead.read(vaultId);
+  const original=window.MedControlT046ManifestHead;
+  window.MedControlT046ManifestHead=Object.freeze({...original,commitObjects:async()=>{throw Error('Injected crash before manifest commit');}});
+  let interrupted=false;
+  try{
+   await api.appendNextAndStage({vaultId,eventId,kind:'intake',body:{dose:2},encryptionKey,commitmentKey,expectedHead});
+  }catch(e){interrupted=/Injected crash/.test(e.message);}
+  window.MedControlT046ManifestHead=original;
+  const orphan=await window.MedControlT046Journal.encrypted({owner:vaultId,id:eventId});
+  const unchanged=await original.read(vaultId);
+  return {vaultId,eventId,expectedHead,interrupted,orphanPresent:!!orphan,
+   headUnchanged:unchanged.commitment===expectedHead.commitment,
+   key:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',commitmentKey)))};
+ });
+ expect(prepared.interrupted).toBe(true);
+ expect(prepared.orphanPresent).toBe(true);
+ expect(prepared.headUnchanged).toBe(true);
+ await page.reload();
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async({vaultId,eventId,expectedHead,key})=>{
+  const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(key),
+   {name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const recovered=await api.recoverNextOrphanEvent({vaultId,eventId,expectedHead,commitmentKey});
+  const current=await window.MedControlT046ManifestHead.read(vaultId);
+  const manifest=await window.MedControlT046ManifestHead.object(vaultId,current.commitment);
+  const storedSegment=await window.MedControlT046ManifestHead.object(vaultId,manifest.object.segments[0].commitment);
+  const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===vaultId);
+  let replayRejected=false;
+  try{await api.recoverNextOrphanEvent({vaultId,eventId,expectedHead,commitmentKey});}
+  catch(e){replayRejected=/conflict/.test(e.message);}
+  return {recovered,current,manifest:manifest.object,segment:storedSegment.object,
+   pending,replayRejected,
+   valid:await window.MedControlT046SegmentCodec.verifySegment(storedSegment.object)&&
+    await window.MedControlT046SegmentCodec.verifyManifest(manifest.object)};
+ },prepared);
+ expect(result.recovered.recovered).toBe(true);
+ expect(result.recovered.replicaConfirmed).toBe(false);
+ expect(result.current.generation).toBe(2);
+ expect(result.manifest.previousCommitment).toBe(prepared.expectedHead.commitment);
+ expect(result.manifest.committedThrough).toBe(2);
+ expect(result.segment.frames[0].eventId).toBe(prepared.eventId);
+ expect(result.valid).toBe(true);
+ expect(result.pending).toHaveLength(2);
+ expect(result.pending.some(x=>x.manifestCommitment===result.current.commitment)).toBe(true);
+ expect(result.replayRejected).toBe(true);
+});
