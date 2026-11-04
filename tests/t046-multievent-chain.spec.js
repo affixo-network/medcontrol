@@ -134,3 +134,62 @@ test('T-046 concurrent tabs: injected failure before journal append cannot erase
   expect(state.pending).toBe(2);
  }finally{await context.close();}
 });
+
+
+test('T-046 closing tab holding vault write lock lets surviving tab commit without history loss',async({browser})=>{
+ const context=await browser.newContext();
+ const [blockedTab,survivor]=await Promise.all([context.newPage(),context.newPage()]);
+ try{
+  for(const tab of [blockedTab,survivor]){
+   await tab.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+    await tab.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+  }
+  const setup=await survivor.evaluate(async()=>{
+   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+   const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},true,['sign','verify']);
+   const firstId='event_'+crypto.randomUUID().replaceAll('-','');
+   await window.MedControlT046IntegratedVault.appendAndStage({vaultId,eventId:firstId,kind:'intake',body:{dose:1},encryptionKey,commitmentKey});
+   return {vaultId,firstId,expectedHead:await window.MedControlT046ManifestHead.read(vaultId),
+    encryption:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',encryptionKey))),
+    commitment:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',commitmentKey)))};
+  });
+  // Hold the exact vault lock in one real browser tab until the tab is closed.
+  const holding=blockedTab.evaluate(async(vaultId)=>{
+   await navigator.locks.request('medcontrol-t046-chain-'+vaultId,{mode:'exclusive'},async()=>{
+    window.__t046LockHeld=true;
+    await new Promise(()=>{});
+   });
+  },setup.vaultId).catch(()=>{});
+  await blockedTab.waitForFunction(()=>window.__t046LockHeld===true);
+  const successorId='event_'+require('node:crypto').randomUUID().replaceAll('-','');
+  const writing=survivor.evaluate(async({setup,eventId})=>{
+   const encryptionKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.encryption),'AES-GCM',false,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.commitment),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const result=await window.MedControlT046IntegratedVault.appendNextAndStage({
+    vaultId:setup.vaultId,eventId,kind:'intake',body:{dose:2},encryptionKey,commitmentKey,expectedHead:setup.expectedHead});
+   return {generation:result.manifest.generation,commitment:result.manifest.commitment};
+  },{setup,eventId:successorId});
+  // The queued writer cannot proceed while the other tab holds the lock.
+  await survivor.waitForFunction(async vaultId=>{
+   const state=await navigator.locks.query();
+   return state.pending.some(x=>x.name==='medcontrol-t046-chain-'+vaultId);
+  },setup.vaultId);
+  await blockedTab.close();
+  await holding;
+  const written=await writing;
+  const inspection=await survivor.evaluate(async({setup,eventId})=>{
+   const head=await window.MedControlT046ManifestHead.read(setup.vaultId);
+   const first=await window.MedControlT046Journal.encrypted({owner:setup.vaultId,id:setup.firstId});
+   const second=await window.MedControlT046Journal.encrypted({owner:setup.vaultId,id:eventId});
+   const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===setup.vaultId);
+   return {head,first:!!first,second:!!second,pending:pending.length};
+  },{setup,eventId:successorId});
+  expect(written.generation).toBe(2);
+  expect(inspection.head.commitment).toBe(written.commitment);
+  expect(inspection.first).toBe(true);
+  expect(inspection.second).toBe(true);
+  expect(inspection.pending).toBe(2);
+ }finally{await context.close();}
+});
