@@ -179,3 +179,41 @@ test('T-046 two browser tabs cannot overwrite a queued generation with conflicti
   expect(stored[0]).toEqual(stored[1]);
  }finally{await Promise.all(pages.map(p=>p.close()));}
 });
+
+
+test('T-046 two tabs concurrently confirm the same authenticated replica without queue corruption',async({context})=>{
+ const pages=await Promise.all([context.newPage(),context.newPage()]);
+ try{
+  for(const page of pages){
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   for(const name of ['segment-codec','authenticated-commitment','replica-queue'])
+    await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+  }
+  const fixture=await pages[0].evaluate(async()=>{
+   const codec=window.MedControlT046SegmentCodec,auth=window.MedControlT046AuthenticatedCommitment;
+   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+   const raw=crypto.getRandomValues(new Uint8Array(32));
+   const key=await crypto.subtle.importKey('raw',raw,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const segment=await codec.buildSegment({vaultId,frames:[{sequence:1,eventId:'event_0000000000000001',envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}}]});
+   const manifest=await codec.buildManifest({vaultId,generation:1,segments:[segment]});
+   const segmentTag=await auth.sign(key,vaultId,'segment',segment.commitment);
+   const manifestTag=await auth.sign(key,vaultId,'manifest',manifest.commitment);
+   const job={vaultId,generation:1,manifestCommitment:manifest.commitment};
+   await window.MedControlT046ReplicaQueue.enqueue(job);
+   return {raw:Array.from(raw),job,segment,manifest,segmentTag,manifestTag};
+  });
+  const attempts=await Promise.allSettled(pages.map(page=>page.evaluate(async data=>{
+   const key=await crypto.subtle.importKey('raw',new Uint8Array(data.raw),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const adapter={
+    async getHead(){return {vaultId:data.job.vaultId,generation:1,commitment:data.manifest.commitment};},
+    async getSegment(){return {segment:data.segment,tag:data.segmentTag};},
+    async getManifest(){return {manifest:data.manifest,tag:data.manifestTag};}
+   };
+   return window.MedControlT046ReplicaQueue.confirmVerified(data.job,adapter,key,data.segment,data.manifest,data.segmentTag,data.manifestTag);
+  },fixture)));
+  expect(attempts.filter(x=>x.status==='fulfilled')).toHaveLength(2);
+  const states=await Promise.all(pages.map(page=>page.evaluate(job=>
+   window.MedControlT046ReplicaQueue.pendingJob(job),fixture.job)));
+  expect(states).toEqual([null,null]);
+ }finally{await Promise.all(pages.map(p=>p.close()));}
+});
