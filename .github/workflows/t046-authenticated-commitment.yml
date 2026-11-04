@@ -39,6 +39,12 @@ on:
       - 'js/modular3-t046-resource-governor.js'
       - 'tests/t046-capacity-remeasurement.spec.js'
       - 'tests/t046-resource-governor.spec.js'
+      - 'js/modular3-t046-integrated-vault.js'
+      - 'tests/t046-integrated-vault.spec.js'
+      - 'tests/helpers/t046-capacity-coordinator.cjs'
+      - 'tests/t046-capacity-coordinator.spec.js'
+      - 'tests/helpers/t046-capacity-reservation-gateway.cjs'
+      - 'tests/t046-capacity-reservation-gateway.spec.js'
       - '.github/workflows/t046-authenticated-commitment.yml'
   workflow_dispatch:
 permissions:
