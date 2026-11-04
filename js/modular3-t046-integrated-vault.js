@@ -52,5 +52,20 @@ async function recoverReplicaQueue({vaultId,commitmentKey}){
  await queue.enqueue({vaultId,generation:current.generation,manifestCommitment:current.commitment});
  return {recovered:true,generation:current.generation,replicaConfirmed:false};
 }
-root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,recoverReplicaQueue});
+async function recoverOrphanEvent({vaultId,eventId,commitmentKey}){
+ const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
+  auth=root.MedControlT046AuthenticatedCommitment,head=root.MedControlT046ManifestHead;
+ if(!journal||!codec||!auth||!head||!commitmentKey)throw Error('Recovery prerequisites missing');
+ // Fail closed: an existing head requires explicit chain reconciliation.
+ if(await head.read(vaultId))throw Error('Existing manifest head requires reconciliation');
+ const record=await journal.encrypted({owner:vaultId,id:eventId});
+ if(!record)return {recovered:false,reason:'event-not-found'};
+ const segment=await codec.buildSegment({vaultId,frames:[{sequence:1,eventId,envelope:record.envelope}]});
+ const manifest=await codec.buildManifest({vaultId,generation:1,segments:[segment]});
+ const segmentTag=await auth.sign(commitmentKey,vaultId,'segment',segment.commitment);
+ const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+ await head.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey});
+ return {recovered:true,replicaConfirmed:false,manifestCommitment:manifest.commitment};
+}
+root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,recoverReplicaQueue,recoverOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
