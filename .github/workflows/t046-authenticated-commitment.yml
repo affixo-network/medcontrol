@@ -1,0 +1,36 @@
+name: T-046 Authenticated Commitment
+on:
+  push:
+    branches: [modular-3.000]
+    paths:
+      - 'js/modular3-t046-authenticated-commitment.js'
+      - 'tests/t046-authenticated-commitment.spec.js'
+      - 'playwright.t046-auth.config.cjs'
+      - '.github/workflows/t046-authenticated-commitment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authenticate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Chromium
+        run: |
+          npm install --no-save --no-package-lock @playwright/test@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Verify keyed commitments
+        run: npx playwright test --config=playwright.t046-auth.config.cjs --reporter=line
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: t046-auth-traces
+          path: test-results/
+          retention-days: 7
