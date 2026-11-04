@@ -56,3 +56,44 @@ test('T-046 measure real AES-GCM journal record sizes (isolated sample)',async({
  expect(report.serializedMaxBytes).toBeGreaterThanOrEqual(report.serializedP95Bytes);
  console.log('T046_ENCRYPTED_SIZE_SAMPLE '+JSON.stringify(report));
 });
+
+test('A01.4 measure indexed encryption overhead at 0, 1 and 4 tokens',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+ const result=await page.evaluate(async()=>{
+  const j=window.MedControlT046Journal;
+  const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const size=v=>new TextEncoder().encode(JSON.stringify(v)).length;
+  const results=[];
+  for(const tokenCount of [0,1,4]){
+   const owner='sizing-tokens-'+tokenCount+'-'+crypto.randomUUID();
+   const tokens=[];
+   for(let i=0;i<tokenCount;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+   for(let i=0;i<60;i++){
+    await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
+     body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}},
+     key,tokens});
+   }
+   const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('medcontrol_t046_journal_v1');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+   const rows=await new Promise((resolve,reject)=>{
+    const tx=db.transaction(['events','tokens'],'readonly');
+    const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+    const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+    let events,indexes;
+    e.onsuccess=()=>{events=e.result;};t.onsuccess=()=>{indexes=t.result;};
+    tx.oncomplete=()=>resolve({events,indexes});tx.onerror=()=>reject(tx.error);
+   });db.close();
+   const recordBytes=rows.events.reduce((s,v)=>s+size(v),0);
+   const indexBytes=rows.indexes.reduce((s,v)=>s+size(v),0);
+   results.push({tokenCount,count:rows.events.length,indexCount:rows.indexes.length,
+    averageEventBytes:recordBytes/60,averageIndexBytes:indexBytes/60,
+    averageTotalBytes:(recordBytes+indexBytes)/60,storageEstimate:await navigator.storage.estimate()});
+  }
+  return results;
+ });
+ for(const r of result){expect(r.count).toBe(60);expect(r.indexCount).toBe(60*r.tokenCount);}
+ expect(result[0].averageTotalBytes).toBeLessThan(result[1].averageTotalBytes);
+ expect(result[1].averageTotalBytes).toBeLessThan(result[2].averageTotalBytes);
+ console.log('T046_TOKEN_OVERHEAD_SAMPLE '+JSON.stringify(result));
+});
