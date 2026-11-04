@@ -52,7 +52,7 @@ async function confirmVerified(job,adapter,key,segment,manifest,segmentTag,manif
     !await auth.verify(key,candidate.vaultId,'manifest',manifest.commitment,manifestTag))
   throw Error('Authenticated replica evidence required');
  const [head,sr,mr]=await Promise.all([
-  adapter.getHead(),adapter.getSegment(segment.commitment),adapter.getManifest(manifest.generation)
+  adapter.getHead(),adapter.getSegment(segment.commitment),adapter.getManifest(manifest.commitment)
  ]);
  if(!head||head.vaultId!==candidate.vaultId||head.generation!==candidate.generation||
     head.commitment!==candidate.manifestCommitment||
