@@ -152,3 +152,30 @@ test('T-046 concurrent replica workers publish only one durable head',async({pag
  expect(result.pending).toBeNull();
  expect(result.results.every(x=>x==='fulfilled'||x==='rejected')).toBe(true);
 });
+
+
+test('T-046 two browser tabs cannot overwrite a queued generation with conflicting commitment',async({context})=>{
+ const pages=await Promise.all([context.newPage(),context.newPage()]);
+ try{
+  for(const page of pages){
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-replica-queue.js')});
+  }
+  const vaultId='vault_'+require('node:crypto').randomUUID().replaceAll('-','');
+  const jobs=[
+   {vaultId,generation:1,manifestCommitment:'a'.repeat(64)},
+   {vaultId,generation:1,manifestCommitment:'b'.repeat(64)}
+  ];
+  const attempts=await Promise.allSettled(pages.map((page,i)=>page.evaluate(job=>
+   window.MedControlT046ReplicaQueue.enqueue(job),jobs[i])));
+  const stored=await Promise.all(pages.map(page=>page.evaluate(job=>
+   window.MedControlT046ReplicaQueue.pendingJob(job),jobs[0])));
+  const other=await pages[1].evaluate(job=>
+   window.MedControlT046ReplicaQueue.pendingJob(job),jobs[1]);
+  expect(attempts.filter(x=>x.status==='fulfilled')).toHaveLength(1);
+  expect(attempts.filter(x=>x.status==='rejected')).toHaveLength(1);
+  expect(stored[0]!==null||other!==null).toBe(true);
+  expect(stored[0]!==null&&other!==null).toBe(false);
+  expect(stored[0]).toEqual(stored[1]);
+ }finally{await Promise.all(pages.map(p=>p.close()));}
+});
