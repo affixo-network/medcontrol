@@ -3,7 +3,7 @@ const {test,expect}=require('@playwright/test');
 const path=require('node:path');
 test('T-046 integrated encrypted event replicates to immutable store with verified head',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
- for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','replica-protocol','replica-coordinator','immutable-replica','integrated-vault'])
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','replica-protocol','replica-coordinator','immutable-replica','manifest-head','integrated-vault'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
   const vaultId='vault_integrated_'+crypto.randomUUID().replaceAll('-','');
