@@ -38,3 +38,35 @@ test('T-046 drain retains offline job and confirms it on reconnect without repla
   headWrites:1
  });
 });
+
+
+test('T-046 bounded drain preserves 205 failed jobs across browser reload',async({page})=>{
+ const load=async()=>{
+  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+  for(const name of ['replica-queue','replica-drain'])
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ };
+ await load();
+ const prepared=await page.evaluate(async()=>{
+  const q=window.MedControlT046ReplicaQueue;
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  for(let generation=1;generation<=205;generation++)
+   await q.enqueue({vaultId,generation,manifestCommitment:generation.toString(16).padStart(64,'0')});
+  // This test isolates drain failure handling; no remote replica is contacted.
+  window.MedControlT046ReplicaCoordinator={replicate:async()=>{throw Error('offline');}};
+  const first=await window.MedControlT046ReplicaDrain.drain(async()=>{throw Error('offline');});
+  return {vaultId,first};
+ });
+ await load();
+ const after=await page.evaluate(async vaultId=>{
+  const q=window.MedControlT046ReplicaQueue;
+  window.MedControlT046ReplicaCoordinator={replicate:async()=>{throw Error('offline');}};
+  const second=await window.MedControlT046ReplicaDrain.drain(async()=>{throw Error('offline');});
+  const pending=(await q.pending()).filter(x=>x.vaultId===vaultId);
+  return {second,count:pending.length,unique:new Set(pending.map(x=>x.id)).size};
+ },prepared.vaultId);
+ expect(prepared.first).toEqual({confirmed:0,failed:205,remaining:205});
+ expect(after.second).toEqual({confirmed:0,failed:205,remaining:205});
+ expect(after.count).toBe(205);
+ expect(after.unique).toBe(205);
+});
