@@ -37,19 +37,36 @@ async function recoverReplicaQueue({vaultId,commitmentKey}){
  if(!head||!queue||!codec||!auth||!commitmentKey)throw Error('Recovery prerequisites missing');
  const current=await head.read(vaultId);
  if(!current)return {recovered:false,reason:'no-committed-head'};
- const stored=await head.object(vaultId,current.commitment);
- if(!stored||stored.type!=='manifest'||stored.object.commitment!==current.commitment||
-    stored.object.generation!==current.generation||
-    !await codec.verifyManifest(stored.object)||
-    !await auth.verify(commitmentKey,vaultId,'manifest',stored.object.commitment,stored.tag))
-  throw Error('Committed manifest authentication failed');
- for(const descriptor of stored.object.segments){
-  const segment=await head.object(vaultId,descriptor.commitment);
-  if(!segment||segment.type!=='segment'||!await codec.verifySegment(segment.object)||
-     !await auth.verify(commitmentKey,vaultId,'segment',segment.object.commitment,segment.tag))
-   throw Error('Committed segment authentication failed');
+ let cursor=current,restored=0;
+ const seen=new Set();
+ while(cursor){
+  if(seen.has(cursor.commitment))throw Error('Manifest chain cycle');
+  seen.add(cursor.commitment);
+  const stored=await head.object(vaultId,cursor.commitment);
+  if(!stored||stored.type!=='manifest'||stored.object.commitment!==cursor.commitment||
+     stored.object.generation!==cursor.generation||
+     !await codec.verifyManifest(stored.object)||
+     !await auth.verify(commitmentKey,vaultId,'manifest',stored.object.commitment,stored.tag))
+   throw Error('Committed manifest authentication failed');
+  for(const descriptor of stored.object.segments){
+   const segment=await head.object(vaultId,descriptor.commitment);
+   if(!segment||segment.type!=='segment'||segment.object.commitment!==descriptor.commitment||
+      !await codec.verifySegment(segment.object)||
+      !await auth.verify(commitmentKey,vaultId,'segment',segment.object.commitment,segment.tag))
+    throw Error('Committed segment authentication failed');
+  }
+  if(cursor.generation===1){
+   if(stored.object.previousCommitment!==null)throw Error('Invalid genesis predecessor');
+  }else if(!stored.object.previousCommitment)throw Error('Missing predecessor');
+  await queue.enqueue({vaultId,generation:cursor.generation,manifestCommitment:cursor.commitment});
+  restored++;
+  if(cursor.generation===1)break;
+  const previous=await head.object(vaultId,stored.object.previousCommitment);
+  if(!previous||previous.type!=='manifest'||previous.object.generation!==cursor.generation-1||
+     previous.object.commitment!==stored.object.previousCommitment)
+   throw Error('Manifest predecessor missing');
+  cursor={generation:previous.object.generation,commitment:previous.object.commitment};
  }
- await queue.enqueue({vaultId,generation:current.generation,manifestCommitment:current.commitment});
  return {recovered:true,generation:current.generation,replicaConfirmed:false};
 }
 async function recoverOrphanEvent({vaultId,eventId,commitmentKey}){
