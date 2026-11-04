@@ -198,11 +198,11 @@ test('T-046 corrupted predecessor fails closed without staging newer replication
   catch(e){if(!/Injected queue interruption/.test(e.message))throw e;}
   window.MedControlT046ReplicaQueue=queue;
   const head=window.MedControlT046ManifestHead;
-  const originalObject=head.object;
-  head.object=async(vault,commitment)=>commitment===predecessor.commitment?null:originalObject(vault,commitment);
+  window.MedControlT046ManifestHead=Object.freeze({...head,object:async(vault,commitment)=>
+   commitment===predecessor.commitment?null:head.object(vault,commitment)});
   let rejected=false;
   try{await api.recoverReplicaQueue({vaultId,commitmentKey});}catch(e){rejected=/predecessor|manifest/i.test(e.message);}
-  head.object=originalObject;
+  window.MedControlT046ManifestHead=head;
   const pending=(await queue.pending()).filter(x=>x.vaultId===vaultId);
   const current=await head.read(vaultId);
   return {rejected,pending:pending.map(x=>x.generation),generation:current.generation};
