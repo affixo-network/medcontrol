@@ -80,3 +80,62 @@ test('T-046 crash after second manifest commit restores missing queue without fa
  expect(recovered.pending).toHaveLength(2);
  expect(recovered.pending.some(x=>x.generation===2&&x.manifestCommitment===prepared.commitment)).toBe(true);
 });
+
+
+test('T-046 recovery after interrupted second queue preserves linked third generation',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ const scripts=['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'];
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const prepared=await page.evaluate(async()=>{
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},true,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const first=await api.appendAndStage({vaultId,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),
+   kind:'intake',body:{dose:1},encryptionKey,commitmentKey});
+  const expectedHead=await window.MedControlT046ManifestHead.read(vaultId);
+  const queue=window.MedControlT046ReplicaQueue;
+  window.MedControlT046ReplicaQueue=Object.freeze({...queue,enqueue:async()=>{throw Error('Injected queue interruption');}});
+  let interrupted=false;
+  try{await api.appendNextAndStage({vaultId,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),
+   kind:'intake',body:{dose:2},encryptionKey,commitmentKey,expectedHead});}
+  catch(e){interrupted=/Injected queue interruption/.test(e.message);}
+  window.MedControlT046ReplicaQueue=queue;
+  const secondHead=await window.MedControlT046ManifestHead.read(vaultId);
+  return {vaultId,interrupted,firstCommitment:first.manifest.commitment,secondHead,
+   encryption:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',encryptionKey))),
+   commitment:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',commitmentKey)))};
+ });
+ expect(prepared.interrupted).toBe(true);
+ expect(prepared.secondHead.generation).toBe(2);
+ await page.reload();
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async setup=>{
+  const encryptionKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.encryption),'AES-GCM',false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.commitment),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const recovery=await api.recoverReplicaQueue({vaultId:setup.vaultId,commitmentKey});
+  const third=await api.appendNextAndStage({vaultId:setup.vaultId,
+   eventId:'event_'+crypto.randomUUID().replaceAll('-',''),kind:'intake',body:{dose:3},
+   encryptionKey,commitmentKey,expectedHead:setup.secondHead});
+  const head=window.MedControlT046ManifestHead;
+  const final=await head.read(setup.vaultId);
+  const second=await head.object(setup.vaultId,setup.secondHead.commitment);
+  const thirdStored=await head.object(setup.vaultId,final.commitment);
+  const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===setup.vaultId);
+  return {recovery,third,final,second:second.object,thirdStored:thirdStored.object,
+   pending,firstCommitment:setup.firstCommitment,
+   validSecond:await window.MedControlT046SegmentCodec.verifyManifest(second.object),
+   validThird:await window.MedControlT046SegmentCodec.verifyManifest(thirdStored.object)};
+ },prepared);
+ expect(result.recovery).toEqual({recovered:true,generation:2,replicaConfirmed:false});
+ expect(result.final.generation).toBe(3);
+ expect(result.second.previousCommitment).toBe(result.firstCommitment);
+ expect(result.thirdStored.previousCommitment).toBe(prepared.secondHead.commitment);
+ expect(result.thirdStored.committedThrough).toBe(3);
+ expect(result.validSecond).toBe(true);
+ expect(result.validThird).toBe(true);
+ expect(result.third.replicaConfirmed).toBe(false);
+ expect(result.pending).toHaveLength(3);
+ expect(result.pending.map(x=>x.generation).sort()).toEqual([1,2,3]);
+});
