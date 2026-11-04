@@ -261,7 +261,7 @@ test('T-046 bounded recovery traverses long authenticated chain twice without re
   const actualHead=window.MedControlT046ManifestHead;
   const actualQueue=window.MedControlT046ReplicaQueue;
   const objects=new Map(),jobs=new Map();
-  const count=128;
+  const count=512;
   let previous=null;
   for(let generation=1;generation<=count;generation++){
    const segment=await codec.buildSegment({vaultId,frames:[{
