@@ -23,11 +23,19 @@ function createCapacityLedger(pool,vaultId){
   }catch(error){await client.query('ROLLBACK');throw error;}
   finally{client.release();}
  }
+ async function reconcileMeasuredCapacity(measureProviderBytes){
+  if(typeof measureProviderBytes!=='function')throw Error('Authoritative measurement required');
+  const measured=await measureProviderBytes();
+  if(!Number.isSafeInteger(measured)||measured<0)throw Error('Invalid measured capacity');
+  const result=await pool.query('UPDATE t046_replica_capacity SET limit_bytes=$2 WHERE vault_id=$1 AND reserved_bytes<=$2 RETURNING limit_bytes',[vaultId,measured]);
+  if(!result.rowCount)return {updated:false,reason:'RESERVATIONS_EXCEED_MEASUREMENT'};
+  return {updated:true,limitBytes:Number(result.rows[0].limit_bytes)};
+ }
  async function available(){
   const result=await pool.query('SELECT limit_bytes-reserved_bytes AS available FROM t046_replica_capacity WHERE vault_id=$1',[vaultId]);
   if(!result.rowCount)throw Error('Capacity not provisioned');
   return Number(result.rows[0].available);
  }
- return Object.freeze({reserve,available});
+ return Object.freeze({reserve,available,reconcileMeasuredCapacity});
 }
 module.exports={createCapacityLedger};
