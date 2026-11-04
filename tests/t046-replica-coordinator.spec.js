@@ -42,7 +42,7 @@ test('T-046 queue confirms only after verified replica publication',async({page}
 
 test('T-046 coordinator scans bounded pages and rejects absent jobs without full queue read',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
- for(const name of ['replica-queue','replica-coordinator'])
+ for(const name of ['replica-protocol','replica-queue','replica-coordinator'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
   const q=window.MedControlT046ReplicaQueue;
