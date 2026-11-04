@@ -9,8 +9,17 @@ async function replicate(job,adapter,key,segment,manifest,segmentTag,manifestTag
  if(!queue||!protocol||!job||!manifest||!segment)throw Error('Missing replication prerequisites');
  if(job.vaultId!==manifest.vaultId||job.vaultId!==segment.vaultId||
     job.generation!==manifest.generation||job.manifestCommitment!==manifest.commitment)throw Error('Queue job mismatch');
- const jobs=await queue.pending();
- if(!jobs.some(x=>x.id===job.vaultId+':'+job.generation&&x.manifestCommitment===job.manifestCommitment))throw Error('No pending replication job');
+ if(typeof queue.pendingPage!=='function')throw Error('Bounded queue lookup required');
+ let afterId=null,found=false;
+ do{
+  const page=await queue.pendingPage({afterId,limit:100});
+  if(page.jobs.some(x=>x.id===job.vaultId+':'+job.generation&&x.manifestCommitment===job.manifestCommitment)){
+   found=true;
+   break;
+  }
+  afterId=page.nextAfterId;
+ }while(afterId!==null);
+ if(!found)throw Error('No pending replication job');
  const proof=await protocol.resume(adapter,key,segment,manifest,segmentTag,manifestTag,expectedGeneration);
  if(proof.replicaConfirmed!==true||proof.generation!==job.generation)throw Error('Replica not verified');
  // Only this coordinator accepts the protocol's verified result. Queue.confirm
