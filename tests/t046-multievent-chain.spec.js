@@ -35,3 +35,51 @@ test('T-046 two encrypted events form authenticated linked generations and rejec
  expect(result.staleRejected).toBe(true);
  expect(result.pending).toBe(2);
 });
+
+
+test('T-046 cross-tab same-head race leaves one committed successor and no orphan loser',async({browser})=>{
+ const context=await browser.newContext();
+ const [firstTab,secondTab]=await Promise.all([context.newPage(),context.newPage()]);
+ try{
+  for(const tab of [firstTab,secondTab]){
+   await tab.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+    await tab.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+  }
+  const setup=await firstTab.evaluate(async()=>{
+   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+   const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},true,['sign','verify']);
+   const eventId='event_'+crypto.randomUUID().replaceAll('-','');
+   await window.MedControlT046IntegratedVault.appendAndStage({vaultId,eventId,kind:'intake',body:{dose:1},encryptionKey,commitmentKey});
+   return {vaultId,expectedHead:await window.MedControlT046ManifestHead.read(vaultId),
+    encryption:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',encryptionKey))),
+    commitment:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',commitmentKey)))};
+  });
+  const ids=['event_'+require('node:crypto').randomUUID().replaceAll('-',''),
+             'event_'+require('node:crypto').randomUUID().replaceAll('-','')];
+  const append=async(tab,eventId)=>tab.evaluate(async({setup,eventId})=>{
+   const encryptionKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.encryption),'AES-GCM',false,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.commitment),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   try{
+    const result=await window.MedControlT046IntegratedVault.appendNextAndStage({
+     vaultId:setup.vaultId,eventId,kind:'intake',body:{dose:eventId},encryptionKey,commitmentKey,expectedHead:setup.expectedHead});
+    return {ok:true,commitment:result.manifest.commitment};
+   }catch(error){return {ok:false,error:String(error.message)};}
+  },{setup,eventId});
+  const outcomes=await Promise.all([append(firstTab,ids[0]),append(secondTab,ids[1])]);
+  const inspection=await firstTab.evaluate(async({setup,ids})=>{
+   const head=await window.MedControlT046ManifestHead.read(setup.vaultId);
+   const events=await Promise.all(ids.map(id=>window.MedControlT046Journal.encrypted({owner:setup.vaultId,id})));
+   const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===setup.vaultId);
+   return {head,exists:events.map(Boolean),pending:pending.length};
+  },{setup,ids});
+  expect(outcomes.filter(x=>x.ok)).toHaveLength(1);
+  expect(outcomes.filter(x=>!x.ok)).toHaveLength(1);
+  expect(outcomes.find(x=>!x.ok).error).toMatch(/Manifest head conflict/);
+  expect(inspection.head.generation).toBe(2);
+  expect(inspection.head.commitment).toBe(outcomes.find(x=>x.ok).commitment);
+  expect(inspection.exists).toEqual(outcomes.map(x=>x.ok));
+  expect(inspection.pending).toBe(2);
+ }finally{await context.close();}
+});
