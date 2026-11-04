@@ -67,6 +67,42 @@ async function recoverOrphanEvent({vaultId,eventId,commitmentKey}){
  await head.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey});
  return {recovered:true,replicaConfirmed:false,manifestCommitment:manifest.commitment};
 }
+async function recoverNextOrphanEvent({vaultId,eventId,expectedHead,commitmentKey}){
+ const locks=root.navigator?.locks;
+ if(!locks||typeof locks.request!=='function')throw Error('Cross-tab write lock unavailable');
+ if(typeof vaultId!=='string'||!/^vault_[A-Za-z0-9_-]{8,128}$/.test(vaultId))
+  throw Error('Invalid vault');
+ return locks.request('medcontrol-t046-chain-'+vaultId,{mode:'exclusive'},async()=>{
+  const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
+   auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue,
+   head=root.MedControlT046ManifestHead;
+  if(!journal||!codec||!auth||!queue||!head||!commitmentKey||
+     !expectedHead||!Number.isSafeInteger(expectedHead.generation)||expectedHead.generation<1)
+   throw Error('Recovery prerequisites missing');
+  const current=await head.read(vaultId);
+  if(!current||current.commitment!==expectedHead.commitment||
+     current.generation!==expectedHead.generation)throw Error('Manifest head conflict');
+  const predecessor=await head.object(vaultId,current.commitment);
+  if(!predecessor||predecessor.type!=='manifest'||
+     predecessor.object.commitment!==current.commitment||
+     predecessor.object.generation!==current.generation||
+     !await codec.verifyManifest(predecessor.object)||
+     !await auth.verify(commitmentKey,vaultId,'manifest',predecessor.object.commitment,predecessor.tag))
+   throw Error('Predecessor manifest authentication failed');
+  const record=await journal.encrypted({owner:vaultId,id:eventId});
+  if(!record)return {recovered:false,reason:'event-not-found'};
+  const sequence=predecessor.object.committedThrough+1;
+  if(!Number.isSafeInteger(sequence))throw Error('Sequence exhausted');
+  const segment=await codec.buildSegment({vaultId,frames:[{sequence,eventId,envelope:record.envelope}]});
+  const manifest=await codec.buildManifest({vaultId,generation:current.generation+1,
+   previousCommitment:current.commitment,segments:[segment]});
+  const segmentTag=await auth.sign(commitmentKey,vaultId,'segment',segment.commitment);
+  const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+  await head.commitObjects({vaultId,expected:current,segment,manifest,segmentTag,manifestTag,commitmentKey});
+  await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
+  return {recovered:true,replicaConfirmed:false,manifestCommitment:manifest.commitment};
+ });
+}
 async function appendNextAndStageLocked({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,expectedHead}){
  const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
   auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue,
@@ -104,5 +140,5 @@ async function appendNextAndStage(args){
   throw Error('Invalid vault');
  return locks.request('medcontrol-t046-chain-'+args.vaultId,{mode:'exclusive'},()=>appendNextAndStageLocked(args));
 }
-root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent});
+root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
