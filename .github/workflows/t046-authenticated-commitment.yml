@@ -16,6 +16,8 @@ on:
       - 'tests/t046-replica-interruption.spec.js'
       - 'tests/t046-replica-resume.spec.js'
       - 'tests/t046-replica-restart.spec.js'
+      - 'js/modular3-t046-replica-queue.js'
+      - 'tests/t046-replica-queue.spec.js'
       - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
