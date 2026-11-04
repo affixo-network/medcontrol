@@ -3,7 +3,7 @@ const {test,expect}=require('@playwright/test');
 const path=require('node:path');
 test('T-046 integrated disposable vault commits real ciphertext and stages authenticated replica',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
- for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
   const vaultId='vault_integrated_'+crypto.randomUUID().replaceAll('-','');
@@ -20,7 +20,9 @@ test('T-046 integrated disposable vault commits real ciphertext and stages authe
    segmentValid:await codec.verifySegment(result.segment),manifestValid:await codec.verifyManifest(result.manifest),
    segmentAuthenticated:await auth.verify(commitmentKey,vaultId,'segment',result.segment.commitment,result.segmentTag),
    manifestAuthenticated:await auth.verify(commitmentKey,vaultId,'manifest',result.manifest.commitment,result.manifestTag),
-   queued:pending?.manifestCommitment===result.manifest.commitment};
+   queued:pending?.manifestCommitment===result.manifest.commitment,
+   durableHead:(await window.MedControlT046ManifestHead.read(vaultId))?.commitment===result.manifest.commitment,
+   durableSegment:(await window.MedControlT046ManifestHead.object(vaultId,result.segment.commitment))?.type==='segment'};
  });
  expect(result.localCommitted).toBe(true);
  expect(result.replicaConfirmed).toBe(false);
@@ -31,11 +33,13 @@ test('T-046 integrated disposable vault commits real ciphertext and stages authe
  expect(result.segmentAuthenticated).toBe(true);
  expect(result.manifestAuthenticated).toBe(true);
  expect(result.queued).toBe(true);
+ expect(result.durableHead).toBe(true);
+ expect(result.durableSegment).toBe(true);
 });
 
 test('T-046 integrated vault rejects unreserved writes before journal mutation',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
- for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
   const vaultId='vault_capacity_'+crypto.randomUUID().replaceAll('-','');
@@ -53,7 +57,7 @@ test('T-046 integrated vault rejects unreserved writes before journal mutation',
 
 test('T-046 reserved encrypted write is queued for replication',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
- for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
   const vaultId='vault_reserved_'+crypto.randomUUID().replaceAll('-',''),eventId='event_'+crypto.randomUUID().replaceAll('-','');
@@ -77,7 +81,7 @@ test('T-046 reserved encrypted write is queued for replication',async({page})=>{
 
 test('T-046 unsupported second sequence fails before journal mutation',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
- for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
   const vaultId='vault_sequence_'+crypto.randomUUID().replaceAll('-',''),eventId='event_'+crypto.randomUUID().replaceAll('-','');
