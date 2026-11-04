@@ -108,5 +108,16 @@ async function page({owner,token,after='',limit=100,key}){
   return {rows,next:records.length===limit?records[records.length-1].id:null};
  }finally{db.close();}
 }
-root.MedControlT046Journal=Object.freeze({append,get,page,tokenFor});
+async function encrypted({owner,id}){
+ assertId(owner,'owner');assertId(id,'id');
+ const db=await open();
+ try{
+  const tx=db.transaction(EVENTS,'readonly'),finished=txDone(tx);
+  const record=await req(tx.objectStore(EVENTS).get([owner,id]));
+  await finished;
+  if(!record)return null;
+  return structuredClone({owner:record.owner,id:record.id,kind:record.kind,envelope:record.envelope});
+ }finally{db.close();}
+}
+root.MedControlT046Journal=Object.freeze({append,get,page,tokenFor,encrypted});
 })(typeof window!=='undefined'?window:globalThis);
