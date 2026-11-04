@@ -97,3 +97,31 @@ test('A01.4 measure indexed encryption overhead at 0, 1 and 4 tokens',async({pag
  expect(result[1].averageTotalBytes).toBeLessThan(result[2].averageTotalBytes);
  console.log('T046_TOKEN_OVERHEAD_SAMPLE '+JSON.stringify(result));
 });
+
+test('A01.4 isolated physical IndexedDB usage by token count',async({browser})=>{
+ const rows=[];
+ for(const tokenCount of [0,1,4]){
+  const context=await browser.newContext();
+  try{
+   const page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+   const row=await page.evaluate(async(tokenCount)=>{
+    const j=window.MedControlT046Journal,owner='isolated-'+crypto.randomUUID();
+    const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+    const before=await navigator.storage.estimate();
+    const tokens=[];
+    for(let i=0;i<tokenCount;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+    for(let i=0;i<60;i++)await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
+     body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}},key,tokens});
+    const after=await navigator.storage.estimate();
+    return {tokenCount,beforeUsage:before.usage,afterUsage:after.usage,deltaBytes:after.usage-before.usage,deltaPerEventBytes:(after.usage-before.usage)/60,
+     caveat:'Browser quota estimate, not SSD physical allocation; context isolation must be verified'};
+   },tokenCount);
+   rows.push(row);
+  }finally{await context.close();}
+ }
+ for(const row of rows)expect(row.deltaBytes).toBeGreaterThan(0);
+ console.log('T046_ISOLATED_USAGE_SAMPLE '+JSON.stringify(rows));
+});
