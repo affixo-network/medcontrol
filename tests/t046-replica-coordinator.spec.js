@@ -271,3 +271,46 @@ test('T-046 closing one tab mid-confirmation leaves durable pending job for surv
   expect(confirmed).toBeNull();
  }finally{await context.close();}
 });
+
+
+test('T-046 aborted IndexedDB confirmation transaction cannot partially confirm replica',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['segment-codec','authenticated-commitment','replica-queue'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const outcome=await page.evaluate(async()=>{
+  const codec=window.MedControlT046SegmentCodec,auth=window.MedControlT046AuthenticatedCommitment,queue=window.MedControlT046ReplicaQueue;
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const key=await crypto.subtle.importKey('raw',crypto.getRandomValues(new Uint8Array(32)),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const segment=await codec.buildSegment({vaultId,frames:[{sequence:1,eventId:'event_0000000000000001',envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}}]});
+  const manifest=await codec.buildManifest({vaultId,generation:1,segments:[segment]});
+  const segmentTag=await auth.sign(key,vaultId,'segment',segment.commitment);
+  const manifestTag=await auth.sign(key,vaultId,'manifest',manifest.commitment);
+  const job={vaultId,generation:1,manifestCommitment:manifest.commitment};
+  const adapter={
+   async getHead(){return {vaultId,generation:1,commitment:manifest.commitment};},
+   async getSegment(){return {segment,tag:segmentTag};},
+   async getManifest(){return {manifest,tag:manifestTag};}
+  };
+  await queue.enqueue(job);
+  const original=IDBObjectStore.prototype.put;
+  let injected=false;
+  IDBObjectStore.prototype.put=function(value,...args){
+   const req=original.call(this,value,...args);
+   if(!injected&&this.name==='jobs'&&value?.status==='confirmed'){
+    injected=true;
+    this.transaction.abort();
+   }
+   return req;
+  };
+  let rejected=false;
+  try{
+   await queue.confirmVerified(job,adapter,key,segment,manifest,segmentTag,manifestTag);
+  }catch{rejected=true;}
+  finally{IDBObjectStore.prototype.put=original;}
+  const pendingAfterAbort=await queue.pendingJob(job);
+  if(!rejected||!injected||!pendingAfterAbort)return {rejected,injected,pendingAfterAbort,confirmedAfterRetry:false};
+  await queue.confirmVerified(job,adapter,key,segment,manifest,segmentTag,manifestTag);
+  return {rejected,injected,pendingAfterAbort:pendingAfterAbort.status,confirmedAfterRetry:(await queue.pendingJob(job))===null};
+ });
+ expect(outcome).toEqual({rejected:true,injected:true,pendingAfterAbort:'pending',confirmedAfterRetry:true});
+});
