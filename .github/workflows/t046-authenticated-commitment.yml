@@ -40,6 +40,22 @@ permissions:
 jobs:
   authenticate:
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: t046
+          POSTGRES_PASSWORD: t046_ci_only
+          POSTGRES_DB: t046_replica
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U t046 -d t046_replica"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      T046_POSTGRES_URL: postgresql://t046:t046_ci_only@127.0.0.1:5432/t046_replica
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -51,8 +67,10 @@ jobs:
           python-version: '3.12'
       - name: Install Chromium
         run: |
-          npm install --no-save --no-package-lock @playwright/test@1.58.2
+          npm install --no-save --no-package-lock @playwright/test@1.58.2 pg@8
           npx playwright install --with-deps chromium
+      - name: Initialize isolated PostgreSQL replica schema
+        run: psql "$T046_POSTGRES_URL" -v ON_ERROR_STOP=1 -f tests/helpers/t046-postgres-replica.sql
       - name: Verify keyed commitments
         run: npx playwright test --config=playwright.t046-auth.config.cjs --reporter=line
       - uses: actions/upload-artifact@v4
