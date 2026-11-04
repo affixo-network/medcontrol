@@ -32,3 +32,21 @@ test('T-046 integrated disposable vault commits real ciphertext and stages authe
  expect(result.manifestAuthenticated).toBe(true);
  expect(result.queued).toBe(true);
 });
+
+test('T-046 integrated vault rejects unreserved writes before journal mutation',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_capacity_'+crypto.randomUUID().replaceAll('-','');
+  const eventId='event_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  let failed=false;
+  try{await window.MedControlT046IntegratedVault.appendAndStage({vaultId,eventId,kind:'intake',body:{dose:'1'},encryptionKey,commitmentKey,capacityGateway:{reserve:async()=>({reserved:false})},reservationBytes:1024});}
+  catch(error){failed=error.message==='Capacity reservation not committed';}
+  const record=await window.MedControlT046Journal.encrypted({owner:vaultId,id:eventId});
+  return {failed,untouched:record==null};
+ });
+ expect(result).toEqual({failed:true,untouched:true});
+});
