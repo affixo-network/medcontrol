@@ -17,8 +17,8 @@ async function publish(adapter,key,segment,manifest,segmentTag,manifestTag,expec
  await adapter.putSegment(segment.commitment,{segment,tag:segmentTag});
  const sr=await adapter.getSegment(segment.commitment);
  if(!sr||JSON.stringify(sr)!==JSON.stringify({segment,tag:segmentTag}))throw Error('Segment readback failed');
- await adapter.putManifest(manifest.generation,{manifest,tag:manifestTag});
- const mr=await adapter.getManifest(manifest.generation);
+ await adapter.putManifest(manifest.commitment,{manifest,tag:manifestTag});
+ const mr=await adapter.getManifest(manifest.commitment);
  if(!mr||JSON.stringify(mr)!==JSON.stringify({manifest,tag:manifestTag}))throw Error('Manifest readback failed');
  // The adapter must implement an atomic conditional head write in its own
  // durable store. A non-atomic adapter does NOT meet the production contract.
@@ -39,7 +39,7 @@ async function resume(adapter,key,segment,manifest,segmentTag,manifestTag,expect
  const next={vaultId:manifest.vaultId,generation:manifest.generation,commitment:manifest.commitment};
  const current=await adapter.getHead();
  if(current&&current.generation===next.generation&&current.commitment===next.commitment&&current.vaultId===next.vaultId){
-  const sr=await adapter.getSegment(segment.commitment),mr=await adapter.getManifest(manifest.generation);
+  const sr=await adapter.getSegment(segment.commitment),mr=await adapter.getManifest(manifest.commitment);
   if(JSON.stringify(sr)!==JSON.stringify({segment,tag:segmentTag})||
      JSON.stringify(mr)!==JSON.stringify({manifest,tag:manifestTag}))throw Error('Replica confirmation incomplete');
   return {replicaConfirmed:true,generation:next.generation,alreadyPublished:true};
@@ -53,7 +53,7 @@ async function resume(adapter,key,segment,manifest,segmentTag,manifestTag,expect
   // verify immutable objects before reporting a recovered acknowledgement.
   const observed=await adapter.getHead();
   if(observed&&observed.generation===next.generation&&observed.commitment===next.commitment&&observed.vaultId===next.vaultId){
-   const sr=await adapter.getSegment(segment.commitment),mr=await adapter.getManifest(manifest.generation);
+   const sr=await adapter.getSegment(segment.commitment),mr=await adapter.getManifest(manifest.commitment);
    if(JSON.stringify(sr)===JSON.stringify({segment,tag:segmentTag})&&
       JSON.stringify(mr)===JSON.stringify({manifest,tag:manifestTag}))
     return {replicaConfirmed:true,generation:next.generation,alreadyPublished:true};
