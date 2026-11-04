@@ -38,11 +38,7 @@ async function recoverReplicaQueue({vaultId,commitmentKey}){
  const current=await head.read(vaultId);
  if(!current)return {recovered:false,reason:'no-committed-head'};
  let cursor=current;
- const validated=[];
- const seen=new Set();
  while(cursor){
-  if(seen.has(cursor.commitment))throw Error('Manifest chain cycle');
-  seen.add(cursor.commitment);
   const stored=await head.object(vaultId,cursor.commitment);
   if(!stored||stored.type!=='manifest'||stored.object.commitment!==cursor.commitment||
      stored.object.generation!==cursor.generation||
@@ -59,7 +55,7 @@ async function recoverReplicaQueue({vaultId,commitmentKey}){
   if(cursor.generation===1){
    if(stored.object.previousCommitment!==null)throw Error('Invalid genesis predecessor');
   }else if(!stored.object.previousCommitment)throw Error('Missing predecessor');
-  validated.push({vaultId,generation:cursor.generation,manifestCommitment:cursor.commitment});
+
   if(cursor.generation===1)break;
   const previous=await head.object(vaultId,stored.object.previousCommitment);
   if(!previous||previous.type!=='manifest'||previous.object.generation!==cursor.generation-1||
@@ -67,7 +63,16 @@ async function recoverReplicaQueue({vaultId,commitmentKey}){
    throw Error('Manifest predecessor missing');
   cursor={generation:previous.object.generation,commitment:previous.object.commitment};
  }
- for(const job of validated.reverse())await queue.enqueue(job);
+ // Stage only after complete authentication; a second descending traversal
+ // avoids retaining one object per historical generation in memory.
+ cursor=current;
+ while(cursor){
+  await queue.enqueue({vaultId,generation:cursor.generation,manifestCommitment:cursor.commitment});
+  if(cursor.generation===1)break;
+  const stored=await head.object(vaultId,cursor.commitment);
+  const previous=await head.object(vaultId,stored.object.previousCommitment);
+  cursor={generation:previous.object.generation,commitment:previous.object.commitment};
+ }
  return {recovered:true,generation:current.generation,replicaConfirmed:false};
 }
 async function recoverOrphanEvent({vaultId,eventId,commitmentKey}){
