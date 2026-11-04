@@ -5,6 +5,8 @@ on:
     paths:
       - 'js/modular3-t046-authenticated-commitment.js'
       - 'js/modular3-t046-authenticated-gateway.js'
+      - 'js/modular3-t046-authenticated-atomic.js'
+      - 'tests/t046-authenticated-atomic.spec.js'
       - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
