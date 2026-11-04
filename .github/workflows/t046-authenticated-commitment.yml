@@ -41,6 +41,7 @@ on:
       - 'tests/t046-resource-governor.spec.js'
       - 'js/modular3-t046-integrated-vault.js'
       - 'tests/t046-integrated-vault.spec.js'
+      - 'tests/t046-multievent-chain.spec.js'
       - 'tests/t046-integrated-replication.spec.js'
       - 'js/modular3-t046-manifest-head.js'
       - 'tests/t046-manifest-head.spec.js'
