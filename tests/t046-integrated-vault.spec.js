@@ -56,7 +56,7 @@ test('T-046 reserved encrypted write is queued for replication',async({page})=>{
  for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
  const result=await page.evaluate(async()=>{
-  const vaultId='reserved_'+crypto.randomUUID().replaceAll('-',''),eventId='event_'+crypto.randomUUID().replaceAll('-','');
+  const vaultId='vault_reserved_'+crypto.randomUUID().replaceAll('-',''),eventId='event_'+crypto.randomUUID().replaceAll('-','');
   const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
   const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
   let reservation=null;
