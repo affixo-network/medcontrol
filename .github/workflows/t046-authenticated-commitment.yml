@@ -33,6 +33,12 @@ on:
       - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
+      - 'tests/helpers/t046-postgres-capacity.cjs'
+      - 'tests/helpers/t046-postgres-capacity.sql'
+      - 'tests/t046-postgres-capacity.spec.js'
+      - 'js/modular3-t046-resource-governor.js'
+      - 'tests/t046-capacity-remeasurement.spec.js'
+      - 'tests/t046-resource-governor.spec.js'
       - '.github/workflows/t046-authenticated-commitment.yml'
   workflow_dispatch:
 permissions:
