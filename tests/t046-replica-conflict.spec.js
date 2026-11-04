@@ -34,10 +34,10 @@ test('T-046 concurrent conflicting replica heads accept exactly one generation',
   try{const x=[first,second][loser];await p.resume(adapter,key,x.segment,x.manifest,x.st,x.mt,0);}catch{staleRejected=true;}
   return {statuses:attempts.map(x=>x.status),winner,staleRejected,writes:state.writes,head:state.head?.commitment,
    expected:[first,second][winner]?.manifest.commitment,
-   storedManifest:state.manifests.get(1)?.manifest.commitment,
+   storedManifest:state.manifests.get([first,second][winner]?.manifest.commitment)?.manifest.commitment,
    storedSegment:state.segments.has([first,second][winner]?.segment.commitment),
-   manifestValid:await c.verifyManifest(state.manifests.get(1)?.manifest),
-   manifestAuthenticated:await a.verify(key,vaultId,'manifest',state.manifests.get(1)?.manifest.commitment,state.manifests.get(1)?.tag)};
+   manifestValid:await c.verifyManifest(state.manifests.get([first,second][winner]?.manifest.commitment)?.manifest),
+   manifestAuthenticated:await a.verify(key,vaultId,'manifest',state.manifests.get([first,second][winner]?.manifest.commitment)?.manifest.commitment,state.manifests.get([first,second][winner]?.manifest.commitment)?.tag)};
  });
  expect(result.winner).toBeGreaterThanOrEqual(0);
  expect(result.statuses.sort()).toEqual(['fulfilled','rejected']);
@@ -87,7 +87,7 @@ test('T-046 late losing writer cannot corrupt the winning generation manifest',a
   const winnerResult=await p.publish(adapter,key,winning.segment,winning.manifest,winning.st,winning.mt,0);
   releaseLate();
   const loserResult=await Promise.allSettled([loserTask]);
-  const stored=await adapter.getManifest(1);
+  const stored=await adapter.getManifest(winning.manifest.commitment);
   return {winnerConfirmed:winnerResult.replicaConfirmed,loserRejected:loserResult[0].status==='rejected',
    head:state.head.commitment,stored:stored.manifest.commitment,expected:winning.manifest.commitment,writes:state.writes};
  });
