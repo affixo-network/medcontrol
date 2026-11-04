@@ -211,3 +211,39 @@ test('T-046 corrupted predecessor fails closed without staging newer replication
  expect(result.generation).toBe(2);
  expect(result.pending).toEqual([1]);
 });
+
+
+test('T-046 altered authenticated predecessor blocks queue recovery without changing committed head',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ const scripts=['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'];
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  await api.appendAndStage({vaultId,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),kind:'intake',body:{dose:1},encryptionKey,commitmentKey});
+  const predecessor=await window.MedControlT046ManifestHead.read(vaultId);
+  const queue=window.MedControlT046ReplicaQueue;
+  window.MedControlT046ReplicaQueue=Object.freeze({...queue,enqueue:async()=>{throw Error('Injected queue interruption');}});
+  try{await api.appendNextAndStage({vaultId,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),kind:'intake',body:{dose:2},encryptionKey,commitmentKey,expectedHead:predecessor});}
+  catch(e){if(!/Injected queue interruption/.test(e.message))throw e;}
+  window.MedControlT046ReplicaQueue=queue;
+  const head=window.MedControlT046ManifestHead;
+  window.MedControlT046ManifestHead=Object.freeze({...head,object:async(vault,commitment)=>{
+   const original=await head.object(vault,commitment);
+   if(commitment!==predecessor.commitment||!original)return original;
+   return {...original,object:{...original.object,committedThrough:999999}};
+  }});
+  let rejected=false;
+  try{await api.recoverReplicaQueue({vaultId,commitmentKey});}
+  catch(e){rejected=/authentication|manifest|commitment/i.test(e.message);}
+  window.MedControlT046ManifestHead=head;
+  const pending=(await queue.pending()).filter(x=>x.vaultId===vaultId);
+  const current=await head.read(vaultId);
+  return {rejected,pending:pending.map(x=>x.generation),generation:current.generation,commitment:current.commitment};
+ });
+ expect(result.rejected).toBe(true);
+ expect(result.generation).toBe(2);
+ expect(result.pending).toEqual([1]);
+});
