@@ -80,5 +80,33 @@ async function verifyState(){
  }
  return {valid:true,empty:false,generation:head.generation};
 }
-root.MedControlT046AtomicExperiment=Object.freeze({commit,inspect,verifyState});
+async function restoreSegmentFromCopy(candidate){
+ const codec=root.MedControlT046SegmentCodec;
+ if(!codec||!await codec.verifySegment(candidate))throw Error('Unverified recovery candidate');
+ const db=await openDB();
+ try{
+  return await new Promise((resolve,reject)=>{
+   const tx=db.transaction(['head','manifests','segments'],'readwrite');
+   const headStore=tx.objectStore('head');
+   let restored=false;
+   tx.oncomplete=()=>resolve(restored);
+   tx.onabort=()=>reject(tx.error||Error('Recovery transaction aborted'));
+   headStore.get('current').onsuccess=e=>{
+    const head=e.target.result;
+    if(!head||head.vaultId!==candidate.vaultId){tx.abort();return;}
+    tx.objectStore('manifests').get(head.generation).onsuccess=me=>{
+     const manifest=me.target.result;
+     if(!manifest||manifest.commitment!==head.commitment||!manifest.segments.some(s=>s.commitment===candidate.commitment&&s.firstSequence===candidate.firstSequence&&s.lastSequence===candidate.lastSequence)){tx.abort();return;}
+     const segments=tx.objectStore('segments');
+     segments.get(candidate.commitment).onsuccess=se=>{
+      if(se.target.result){restored=false;return;}
+      segments.put(structuredClone(candidate),candidate.commitment);
+      restored=true;
+     };
+    };
+   };
+  });
+ }finally{db.close();}
+}
+root.MedControlT046AtomicExperiment=Object.freeze({commit,inspect,verifyState,restoreSegmentFromCopy});
 })(typeof window!=='undefined'?window:globalThis);
