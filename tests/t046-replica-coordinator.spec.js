@@ -38,3 +38,33 @@ test('T-046 queue confirms only after verified replica publication',async({page}
  });
  expect(result).toEqual({rejected:true,pendingAfterFailure:1,success:{replicaConfirmed:true,generation:1},pendingAfterSuccess:0});
 });
+
+
+test('T-046 coordinator scans bounded pages and rejects absent jobs without full queue read',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['replica-queue','replica-coordinator'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const q=window.MedControlT046ReplicaQueue;
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  for(let generation=1;generation<=215;generation++)
+   await q.enqueue({vaultId,generation,manifestCommitment:generation.toString(16).padStart(64,'0')});
+  let pages=0,fullReads=0;
+  window.MedControlT046ReplicaQueue={
+   pending:async()=>{fullReads++;throw Error('Full queue read forbidden');},
+   pendingPage:async options=>{pages++;return q.pendingPage(options);}
+  };
+  const missing={vaultId,generation:216,manifestCommitment:'f'.repeat(64)};
+  let error='';
+  try{
+   await window.MedControlT046ReplicaCoordinator.replicate(
+    missing,{},null,{vaultId},{vaultId,generation:216,commitment:missing.manifestCommitment},null,null,215
+   );
+  }catch(e){error=e.message;}
+  window.MedControlT046ReplicaQueue=q;
+  return {pages,fullReads,error};
+ });
+ expect(result.fullReads).toBe(0);
+ expect(result.pages).toBeGreaterThanOrEqual(3);
+ expect(result.error).toBe('No pending replication job');
+});
