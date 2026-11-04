@@ -67,5 +67,35 @@ async function recoverOrphanEvent({vaultId,eventId,commitmentKey}){
  await head.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey});
  return {recovered:true,replicaConfirmed:false,manifestCommitment:manifest.commitment};
 }
-root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,recoverReplicaQueue,recoverOrphanEvent});
+async function appendNextAndStage({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,expectedHead}){
+ const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
+  auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue,
+  head=root.MedControlT046ManifestHead;
+ if(!journal||!codec||!auth||!queue||!head||!commitmentKey||
+    !expectedHead||!Number.isSafeInteger(expectedHead.generation)||expectedHead.generation<1)
+  throw Error('Next append prerequisites missing');
+ const current=await head.read(vaultId);
+ if(!current||current.commitment!==expectedHead.commitment||
+    current.generation!==expectedHead.generation)throw Error('Manifest head conflict');
+ const prior=await head.object(vaultId,current.commitment);
+ if(!prior||prior.type!=='manifest'||prior.object.commitment!==current.commitment||
+    prior.object.generation!==current.generation||
+    !await codec.verifyManifest(prior.object)||
+    !await auth.verify(commitmentKey,vaultId,'manifest',prior.object.commitment,prior.tag))
+  throw Error('Predecessor manifest authentication failed');
+ const sequence=prior.object.committedThrough+1;
+ if(!Number.isSafeInteger(sequence))throw Error('Sequence exhausted');
+ const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens});
+ const record=await journal.encrypted({owner:vaultId,id:eventId});
+ if(!record)throw Error('Committed event not readable');
+ const segment=await codec.buildSegment({vaultId,frames:[{sequence,eventId,envelope:record.envelope}]});
+ const manifest=await codec.buildManifest({vaultId,generation:current.generation+1,
+  previousCommitment:current.commitment,segments:[segment]});
+ const segmentTag=await auth.sign(commitmentKey,vaultId,'segment',segment.commitment);
+ const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+ await head.commitObjects({vaultId,expected:current,segment,manifest,segmentTag,manifestTag,commitmentKey});
+ await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
+ return {localCommitted:local.committed,replicaConfirmed:false,segment,manifest,segmentTag,manifestTag};
+}
+root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
