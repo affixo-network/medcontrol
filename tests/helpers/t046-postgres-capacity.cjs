@@ -7,7 +7,7 @@ function createCapacityLedger(pool,vaultId){
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
-   const existing=await client.query('SELECT bytes FROM t046_replica_reservations WHERE vault_id=$1 AND request_id=$2',[vaultId,requestId]);
+   // Lock the vault row before checking idempotency, including concurrent retries.\n   const lock=await client.query('SELECT vault_id FROM t046_replica_capacity WHERE vault_id=$1 FOR UPDATE',[vaultId]);\n   if(!lock.rowCount){await client.query('ROLLBACK');return {reserved:false,idempotent:false};}\n   const existing=await client.query('SELECT bytes FROM t046_replica_reservations WHERE vault_id=$1 AND request_id=$2',[vaultId,requestId]);
    if(existing.rowCount){
     await client.query('COMMIT');
     return {reserved:Number(existing.rows[0].bytes)===bytes,idempotent:true};
