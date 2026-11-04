@@ -98,5 +98,34 @@ async function verifyPersisted(key){
   return {valid:true,empty:false,generation:head.generation};
  }finally{db.close();}
 }
-root.MedControlT046AuthenticatedAtomic=Object.freeze({commitAuthenticated,inspect,verifyPersisted});
+async function restoreAuthenticatedSegment(key,candidate,tag){
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!codec||!auth||!candidate||!await codec.verifySegment(candidate)||
+    !await auth.verify(key,candidate.vaultId,'segment',candidate.commitment,tag))throw Error('Unauthenticated recovery copy');
+ const db=await openDB();
+ try{return await new Promise((resolve,reject)=>{
+  const tx=db.transaction(['head','manifests','segments'],'readwrite');
+  let restored=false;
+  tx.oncomplete=()=>resolve(restored);
+  tx.onabort=()=>reject(tx.error||Error('Recovery transaction aborted'));
+  tx.objectStore('head').get('current').onsuccess=e=>{
+   const head=e.target.result;
+   if(!head||head.vaultId!==candidate.vaultId){tx.abort();return;}
+   tx.objectStore('manifests').get(head.generation).onsuccess=m=>{
+    const record=m.target.result;
+    const manifest=record&&record.manifest;
+    if(!manifest||manifest.commitment!==head.commitment||manifest.generation!==head.generation||
+       !manifest.segments.some(s=>s.commitment===candidate.commitment&&s.firstSequence===candidate.firstSequence&&s.lastSequence===candidate.lastSequence)){tx.abort();return;}
+    const segments=tx.objectStore('segments');
+    segments.get(candidate.commitment).onsuccess=s=>{
+     const existing=s.target.result;
+     if(existing&&JSON.stringify(existing.segment)===JSON.stringify(candidate)&&existing.tag===tag)return;
+     segments.put({segment:structuredClone(candidate),tag},candidate.commitment);
+     restored=true;
+    };
+   };
+  };
+ });}finally{db.close();}
+}
+root.MedControlT046AuthenticatedAtomic=Object.freeze({commitAuthenticated,inspect,verifyPersisted,restoreAuthenticatedSegment});
 })(typeof window!=='undefined'?window:globalThis);
