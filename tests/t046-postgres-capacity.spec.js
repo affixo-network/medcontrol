@@ -18,5 +18,11 @@ test('T-046 capacity ledger is atomic across pools and idempotent for retries',a
   expect(await right.available()).toBe(10);
   expect((await left.reserve('same',21)).reserved).toBe(false);
   expect(await left.available()).toBe(10);
+  const rejected=await left.reconcileMeasuredCapacity(async()=>80);
+  expect(rejected).toEqual({updated:false,reason:'RESERVATIONS_EXCEED_MEASUREMENT'});
+  expect(await left.available()).toBe(10);
+  const expanded=await left.reconcileMeasuredCapacity(async()=>200);
+  expect(expanded).toEqual({updated:true,limitBytes:200});
+  expect(await left.available()).toBe(110);
  }finally{await Promise.all([a.end(),b.end()]);}
 });
