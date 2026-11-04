@@ -40,3 +40,37 @@ test('T-046 replica queue cursor batch bounds returned jobs and preserves pendin
  });
  expect(result).toEqual({batchCount:3,fullCount:12,rejected:true,allPending:true});
 });
+
+
+test('T-046 paginated replica queue traverses all pending jobs without repeats',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-replica-queue.js')});
+ const result=await page.evaluate(async()=>{
+  const q=window.MedControlT046ReplicaQueue;
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const expected=[];
+  for(let generation=1;generation<=13;generation++){
+   const job={vaultId,generation,manifestCommitment:generation.toString(16).padStart(64,'0')};
+   await q.enqueue(job);
+   expected.push(vaultId+':'+generation);
+  }
+  const seen=[];
+  let afterId=null,pages=0,finished=false;
+  do{
+   const page=await q.pendingPage({afterId,limit:4});
+   seen.push(...page.jobs.filter(job=>job.vaultId===vaultId).map(job=>job.id));
+   pages++;
+   afterId=page.nextAfterId;
+   if(afterId===null){finished=true;break;}
+  }while(pages<20);
+  let invalidRejected=false;
+  try{await q.pendingPage({limit:1001});}catch{invalidRejected=true;}
+  return {seen,expected,pages,finished,invalidRejected};
+ });
+ expect(result.finished).toBe(true);
+ expect(result.invalidRejected).toBe(true);
+ expect(result.seen).toHaveLength(13);
+ expect(new Set(result.seen).size).toBe(13);
+ expect(result.seen.slice().sort()).toEqual(result.expected.slice().sort());
+ expect(result.pages).toBeGreaterThanOrEqual(4);
+});
