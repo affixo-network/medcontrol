@@ -126,3 +126,37 @@ test('T-046 recovery rejects missing referenced encrypted segment',async({page})
  expect(result.before).toEqual({valid:true,empty:false,generation:1});
  expect(after).toEqual({valid:false,reason:'missing-segment'});
 });
+
+
+test('T-046 missing segment recovered only from verified matching copy',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-segment-codec.js')});
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-atomic-prototype.js')});
+ const result=await page.evaluate(async()=>{
+  const c=window.MedControlT046SegmentCodec,a=window.MedControlT046AtomicExperiment;
+  const vaultId='vault_0123456789abcdef';
+  const s=await c.buildSegment({vaultId,frames:[{sequence:1,eventId:'event_0000000000000001',envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}}]});
+  const m=await c.buildManifest({vaultId,generation:1,segments:[s]});
+  await a.commit(s,m,0);
+  const req=await new Promise((resolve,reject)=>{
+   const open=indexedDB.open('t046-atomic-experiment-v1',1);
+   open.onerror=()=>reject(open.error);
+   open.onsuccess=()=>{
+    const db=open.result,tx=db.transaction('segments','readwrite');
+    tx.objectStore('segments').delete(s.commitment);
+    tx.oncomplete=()=>{db.close();resolve(true);};
+    tx.onerror=()=>reject(tx.error);
+   };
+  });
+  const damaged=await a.verifyState();
+  const forged=structuredClone(s);
+  forged.frames[0].envelope.ciphertext='AAAAAAAA';
+  let forgedRejected=false;
+  try{await a.restoreSegmentFromCopy(forged);}catch{forgedRejected=true;}
+  const stillDamaged=await a.verifyState();
+  const restored=await a.restoreSegmentFromCopy(s);
+  const final=await a.verifyState();
+  return {req,damaged,forgedRejected,stillDamaged,restored,final};
+ });
+ expect(result).toEqual({req:true,damaged:{valid:false,reason:'missing-segment'},forgedRejected:true,stillDamaged:{valid:false,reason:'missing-segment'},restored:true,final:{valid:true,empty:false,generation:1}});
+});
