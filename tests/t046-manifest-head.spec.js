@@ -37,3 +37,36 @@ test('T-046 manifest head persists and rejects competing generations',async({pag
  },result.final.vaultId);
  expect(persisted).toEqual(result.final);
 });
+
+test('T-046 encrypted objects and manifest head commit atomically',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['segment-codec','authenticated-commitment','manifest-head'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_objects_'+crypto.randomUUID().replaceAll('-','');
+  const codec=window.MedControlT046SegmentCodec,h=window.MedControlT046ManifestHead;
+  const key=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const frame={sequence:1,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),
+   envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQID'}};
+  const segment=await codec.buildSegment({vaultId,frames:[frame]});
+  const manifest=await codec.buildManifest({vaultId,generation:1,segments:[segment]});
+  const auth=window.MedControlT046AuthenticatedCommitment;
+  const segmentTag=await auth.sign(key,vaultId,'segment',segment.commitment);
+  const manifestTag=await auth.sign(key,vaultId,'manifest',manifest.commitment);
+  const saved=await h.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag});
+  const head=await h.read(vaultId);
+  const storedSegment=await h.object(vaultId,segment.commitment);
+  const storedManifest=await h.object(vaultId,manifest.commitment);
+  let rejected=false;
+  try{await h.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag});}
+  catch(e){rejected=e.message==='Manifest head conflict';}
+  const after=await h.read(vaultId);
+  return {saved,head,storedSegment,storedManifest,rejected,after};
+ });
+ expect(result.saved.committed).toBe(true);
+ expect(result.head.commitment).toBe(result.storedManifest.commitment);
+ expect(result.storedSegment.type).toBe('segment');
+ expect(result.storedManifest.type).toBe('manifest');
+ expect(result.rejected).toBe(true);
+ expect(result.after).toEqual(result.head);
+});
