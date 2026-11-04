@@ -2,25 +2,42 @@
 const {test,expect}=require('@playwright/test');
 const path=require('node:path');
 test('T-046 retries pending jobs with bounded backoff and cancels timer on stop',async({page})=>{
- await page.clock.install();
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-replica-retry.js')});
- await page.evaluate(()=>{
-  window.__calls=0;
-  window.MedControlT046ReplicaDrain={drain:async()=>{window.__calls++;return {confirmed:0,failed:1,remaining:1};}};
-  window.__retry=window.MedControlT046ReplicaRetry.create(async()=>({}));
-  window.__retry.start();
+ const result=await page.evaluate(async()=>{
+  const originalSet=window.setTimeout,originalClear=window.clearTimeout;
+  const timers=new Map();
+  let nextId=1,calls=0;
+  window.setTimeout=(callback,delay)=>{const id=nextId++;timers.set(id,{callback,delay});return id;};
+  window.clearTimeout=id=>timers.delete(id);
+  const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
+  const fire=async()=>{
+   const [id,timer]=timers.entries().next().value;
+   timers.delete(id);timer.callback();
+   await settle();
+  };
+  try{
+   window.MedControlT046ReplicaDrain={drain:async()=>{calls++;return {confirmed:0,failed:1,remaining:1};}};
+   const retry=window.MedControlT046ReplicaRetry.create(async()=>({}));
+   retry.start();await settle();
+   const first={calls,delays:[...timers.values()].map(t=>t.delay)};
+   await fire();
+   const second={calls,delays:[...timers.values()].map(t=>t.delay)};
+   await fire();
+   const third={calls,delays:[...timers.values()].map(t=>t.delay)};
+   retry.stop();
+   const stopped={calls,pending:timers.size};
+   retry.dispose();
+   return {first,second,third,stopped};
+  }finally{
+   window.setTimeout=originalSet;
+   window.clearTimeout=originalClear;
+  }
  });
- await expect.poll(()=>page.evaluate(()=>window.__calls)).toBe(1);
- await page.clock.runFor(999);
- expect(await page.evaluate(()=>window.__calls)).toBe(1);
- await page.clock.runFor(1);
- await expect.poll(()=>page.evaluate(()=>window.__calls)).toBe(2);
- await page.clock.runFor(1999);
- expect(await page.evaluate(()=>window.__calls)).toBe(2);
- await page.clock.runFor(1);
- await expect.poll(()=>page.evaluate(()=>window.__calls)).toBe(3);
- await page.evaluate(()=>window.__retry.stop());
- await page.clock.runFor(120000);
- expect(await page.evaluate(()=>window.__calls)).toBe(3);
+ expect(result).toEqual({
+  first:{calls:1,delays:[1000]},
+  second:{calls:2,delays:[2000]},
+  third:{calls:3,delays:[4000]},
+  stopped:{calls:3,pending:0}
+ });
 });
