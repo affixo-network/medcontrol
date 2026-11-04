@@ -40,9 +40,10 @@ async function pending(){
   req.onerror=()=>reject(req.error);
  });}finally{db.close();}
 }
-async function confirm(job,proof){
+async function confirm(job,proof,verifyReplica){
  const candidate=validate(job);
- if(!proof||proof.replicaConfirmed!==true||proof.generation!==candidate.generation)throw Error('Unverified replica acknowledgement');
+ if(!proof||proof.replicaConfirmed!==true||proof.generation!==candidate.generation||
+    typeof verifyReplica!=='function'||await verifyReplica(candidate)!==true)throw Error('Replica verification required');
  const db=await open();
  try{return await new Promise((resolve,reject)=>{
   const tx=db.transaction('jobs','readwrite'),store=tx.objectStore('jobs');
