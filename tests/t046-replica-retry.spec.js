@@ -5,22 +5,31 @@ test('T-046 retry controller starts on online and coalesces concurrent runs',asy
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-replica-retry.js')});
  const result=await page.evaluate(async()=>{
-  let calls=0,release;
-  window.MedControlT046ReplicaDrain={drain:async()=>{calls++;await new Promise(resolve=>release=resolve);return {confirmed:1};}};
+  let calls=0;
+  const releases=[];
+  window.MedControlT046ReplicaDrain={drain:async()=>{
+   calls++;
+   await new Promise(resolve=>releases.push(resolve));
+   return {confirmed:1};
+  }};
+  const waitForCalls=async target=>{
+   for(let i=0;i<200&&calls<target;i++)await new Promise(resolve=>setTimeout(resolve,5));
+   if(calls!==target)throw Error('Drain did not start: '+target+' actual '+calls);
+  };
   const retry=window.MedControlT046ReplicaRetry.create(async()=>({}));
   const first=retry.run(),second=retry.run();
-  await Promise.resolve();await Promise.resolve();
+  await waitForCalls(1);
   const during=calls;
-  release();
+  releases.shift()();
   const both=await Promise.all([first,second]);
   retry.start();
-  await Promise.resolve();await Promise.resolve();
-  if(release)release();
+  await waitForCalls(2);
+  releases.shift()();
   await new Promise(resolve=>setTimeout(resolve,0));
   const afterStart=calls;
   window.dispatchEvent(new Event('online'));
-  await Promise.resolve();await Promise.resolve();
-  if(release)release();
+  await waitForCalls(3);
+  releases.shift()();
   await new Promise(resolve=>setTimeout(resolve,0));
   const afterOnline=calls;
   retry.dispose();
