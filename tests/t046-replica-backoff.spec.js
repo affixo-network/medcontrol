@@ -10,18 +10,21 @@ test('T-046 retries pending jobs with bounded backoff and cancels timer on stop'
   let nextId=1,calls=0;
   window.setTimeout=(callback,delay)=>{const id=nextId++;timers.set(id,{callback,delay});return id;};
   window.clearTimeout=id=>timers.delete(id);
-  const settle=async()=>{for(let i=0;i<100;i++)await Promise.resolve();};
-  const fire=async()=>{
-   for(let i=0;i<100&&!timers.size;i++)await Promise.resolve();
+  const settle=async()=>{await new Promise(resolve=>originalSet(resolve,0));};
+  const waitForTimer=async()=>{
+   for(let i=0;i<100&&!timers.size;i++)await settle();
    if(!timers.size)throw Error('Retry timer was not scheduled; calls='+calls+'; pending='+timers.size);
+  };
+  const fire=async()=>{
+   await waitForTimer();
    const [id,timer]=timers.entries().next().value;
    timers.delete(id);timer.callback();
-   await settle();
+   await waitForTimer();
   };
   try{
    window.MedControlT046ReplicaDrain={drain:async()=>{calls++;return {confirmed:0,failed:1,remaining:1};}};
    const retry=window.MedControlT046ReplicaRetry.create(async()=>({}));
-   retry.start();await settle();
+   retry.start();await waitForTimer();
    const first={calls,delays:[...timers.values()].map(t=>t.delay)};
    await fire();
    const second={calls,delays:[...timers.values()].map(t=>t.delay)};
