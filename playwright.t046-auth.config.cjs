@@ -1,7 +1,7 @@
 const {defineConfig}=require('@playwright/test');
 module.exports=defineConfig({
  testDir:'./tests',
- testMatch:['t046-authenticated-commitment.spec.js','t046-authenticated-gateway.spec.js','t046-authenticated-atomic.spec.js','t046-authenticated-abort.spec.js','t046-authenticated-reopen.spec.js','t046-authenticated-corruption.spec.js','t046-authenticated-restore.spec.js'],
+ testMatch:['t046-authenticated-commitment.spec.js','t046-authenticated-gateway.spec.js','t046-authenticated-atomic.spec.js','t046-authenticated-abort.spec.js','t046-authenticated-reopen.spec.js','t046-authenticated-corruption.spec.js','t046-authenticated-restore.spec.js','t046-replica-protocol.spec.js'],
  timeout:45000,
  retries:0,
  use:{browserName:'chromium',headless:true,trace:'retain-on-failure'},
