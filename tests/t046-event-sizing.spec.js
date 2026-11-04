@@ -32,6 +32,8 @@ test('T-046 measure real AES-GCM journal record sizes (isolated sample)',async({
   });db.close();
   const size=v=>new TextEncoder().encode(JSON.stringify(v)).length;
   const perKind={};
+  const sizes=records.events.map(r=>size(r)+records.tokens.filter(t=>t.id===r.id).reduce((s,t)=>s+size(t),0)).sort((a,b)=>a-b);
+  const percentile=p=>sizes[Math.ceil(p*sizes.length)-1];
   for(const r of records.events){
    const item=perKind[r.kind]||(perKind[r.kind]={count:0,plaintextBytes:0,recordJsonBytes:0,envelopeJsonBytes:0});
    item.count++;
@@ -44,10 +46,13 @@ test('T-046 measure real AES-GCM journal record sizes (isolated sample)',async({
   }
   const eventJsonBytes=records.events.reduce((s,r)=>s+size(r),0);
   const indexJsonBytes=records.tokens.reduce((s,r)=>s+size(r),0);
-  return {count:records.events.length,indexCount:records.tokens.length,eventJsonBytes,indexJsonBytes,averageSerializedBytes:(eventJsonBytes+indexJsonBytes)/records.events.length,perKind,storageEstimate:await navigator.storage.estimate()};
+  return {count:records.events.length,indexCount:records.tokens.length,eventJsonBytes,indexJsonBytes,averageSerializedBytes:(eventJsonBytes+indexJsonBytes)/records.events.length,serializedP50Bytes:percentile(.5),serializedP95Bytes:percentile(.95),serializedMaxBytes:sizes[sizes.length-1],projected500mSerializedBytes:Math.ceil((eventJsonBytes+indexJsonBytes)/records.events.length*500000000),projectionCaveat:'JSON serialization proxy only; excludes IndexedDB physical B-tree/page overhead, segment/manifest overhead, encryption key backups and replica capacity; not a 500M acceptance measurement',perKind,storageEstimate:await navigator.storage.estimate()};
  });
  expect(report.count).toBe(60);
  expect(report.indexCount).toBe(60);
  expect(report.averageSerializedBytes).toBeGreaterThan(0);
+ expect(report.serializedP50Bytes).toBeGreaterThan(0);
+ expect(report.serializedP95Bytes).toBeGreaterThanOrEqual(report.serializedP50Bytes);
+ expect(report.serializedMaxBytes).toBeGreaterThanOrEqual(report.serializedP95Bytes);
  console.log('T046_ENCRYPTED_SIZE_SAMPLE '+JSON.stringify(report));
 });
