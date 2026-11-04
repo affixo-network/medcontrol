@@ -103,3 +103,41 @@ test('T-046 bounded drain retains remaining jobs after interruption mid-batch an
  expect(prepared.calls).toBe(205);
  expect(after).toEqual({count:205,unique:205});
 });
+
+
+test('T-046 abrupt tab closure during drain retains unconfirmed queue',async({browser})=>{
+ const context=await browser.newContext();
+ const page=await context.newPage();
+ const load=async target=>{
+  await target.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+  for(const name of ['replica-queue','replica-drain'])
+   await target.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ };
+ try{
+  await load(page);
+  const vaultId=await page.evaluate(async()=>{
+   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+   const q=window.MedControlT046ReplicaQueue;
+   for(let generation=1;generation<=205;generation++)
+    await q.enqueue({vaultId,generation,manifestCommitment:generation.toString(16).padStart(64,'0')});
+   window.MedControlT046ReplicaCoordinator={
+    replicate:async()=>new Promise(()=>{})
+   };
+   window.__drainStarted=false;
+   window.MedControlT046ReplicaDrain.drain(async()=>{
+    window.__drainStarted=true;
+    return {adapter:{},key:{}};
+   }).catch(()=>{});
+   return vaultId;
+  });
+  await expect.poll(()=>page.evaluate(()=>window.__drainStarted)).toBe(true);
+  await page.close();
+  const reopened=await context.newPage();
+  await load(reopened);
+  const state=await reopened.evaluate(async vaultId=>{
+   const jobs=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===vaultId);
+   return {count:jobs.length,unique:new Set(jobs.map(x=>x.id)).size};
+  },vaultId);
+  expect(state).toEqual({count:205,unique:205});
+ }finally{await context.close();}
+});
