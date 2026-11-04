@@ -8,9 +8,12 @@ async function drain(resolveJob){
  const queue=root.MedControlT046ReplicaQueue;
  const coordinator=root.MedControlT046ReplicaCoordinator;
  if(!queue||!coordinator||typeof resolveJob!=='function')throw Error('Replica drain prerequisites required');
- const jobs=await queue.pending();
+ if(typeof queue.pendingPage!=='function')throw Error('Bounded replica queue pages required');
+ let afterId=null;
  const result={confirmed:0,failed:0,remaining:0};
- for(const job of jobs){
+ do{
+  const page=await queue.pendingPage({afterId,limit:100});
+  for(const job of page.jobs){
   try{
    const item=await resolveJob(job);
    if(!item||!item.adapter||!item.key)throw Error('Replica unavailable');
@@ -21,8 +24,15 @@ async function drain(resolveJob){
    // Do not discard jobs on failure. A later explicit drain can retry.
    result.failed++;
   }
- }
- result.remaining=(await queue.pending()).length;
+  }
+  afterId=page.nextAfterId;
+ }while(afterId!==null);
+ afterId=null;
+ do{
+  const page=await queue.pendingPage({afterId,limit:100});
+  result.remaining+=page.jobs.length;
+  afterId=page.nextAfterId;
+ }while(afterId!==null);
  return result;
 }
 root.MedControlT046ReplicaDrain=Object.freeze({drain});
