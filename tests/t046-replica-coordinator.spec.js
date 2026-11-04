@@ -40,7 +40,7 @@ test('T-046 queue confirms only after verified replica publication',async({page}
 });
 
 
-test('T-046 coordinator scans bounded pages and rejects absent jobs without full queue read',async({page})=>{
+test('T-046 coordinator uses keyed lookup and rejects absent jobs without scanning queue',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  for(const name of ['replica-protocol','replica-queue','replica-coordinator'])
   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
@@ -49,10 +49,11 @@ test('T-046 coordinator scans bounded pages and rejects absent jobs without full
   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
   for(let generation=1;generation<=215;generation++)
    await q.enqueue({vaultId,generation,manifestCommitment:generation.toString(16).padStart(64,'0')});
-  let pages=0,fullReads=0;
+  let keyedReads=0,fullReads=0,pageReads=0;
   window.MedControlT046ReplicaQueue={
    pending:async()=>{fullReads++;throw Error('Full queue read forbidden');},
-   pendingPage:async options=>{pages++;return q.pendingPage(options);}
+   pendingPage:async()=>{pageReads++;throw Error('Queue scan forbidden');},
+   pendingJob:async job=>{keyedReads++;return q.pendingJob(job);}
   };
   const missing={vaultId,generation:216,manifestCommitment:'f'.repeat(64)};
   let error='';
@@ -62,9 +63,10 @@ test('T-046 coordinator scans bounded pages and rejects absent jobs without full
    );
   }catch(e){error=e.message;}
   window.MedControlT046ReplicaQueue=q;
-  return {pages,fullReads,error};
+  return {keyedReads,pageReads,fullReads,error};
  });
  expect(result.fullReads).toBe(0);
- expect(result.pages).toBeGreaterThanOrEqual(3);
+ expect(result.keyedReads).toBe(1);
+ expect(result.pageReads).toBe(0);
  expect(result.error).toBe('No pending replication job');
 });
