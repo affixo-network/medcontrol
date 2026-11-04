@@ -33,11 +33,19 @@ test('T-046 concurrent conflicting replica heads accept exactly one generation',
   let staleRejected=false;
   try{const x=[first,second][loser];await p.resume(adapter,key,x.segment,x.manifest,x.st,x.mt,0);}catch{staleRejected=true;}
   return {statuses:attempts.map(x=>x.status),winner,staleRejected,writes:state.writes,head:state.head?.commitment,
-   expected:[first,second][winner]?.manifest.commitment};
+   expected:[first,second][winner]?.manifest.commitment,
+   storedManifest:state.manifests.get(1)?.manifest.commitment,
+   storedSegment:state.segments.has([first,second][winner]?.segment.commitment),
+   manifestValid:await c.verifyManifest(state.manifests.get(1)?.manifest),
+   manifestAuthenticated:await a.verify(key,vaultId,'manifest',state.manifests.get(1)?.manifest.commitment,state.manifests.get(1)?.tag)};
  });
  expect(result.winner).toBeGreaterThanOrEqual(0);
  expect(result.statuses.sort()).toEqual(['fulfilled','rejected']);
  expect(result.staleRejected).toBe(true);
  expect(result.writes).toBe(1);
  expect(result.head).toBe(result.expected);
+ expect(result.storedManifest).toBe(result.expected);
+ expect(result.storedSegment).toBe(true);
+ expect(result.manifestValid).toBe(true);
+ expect(result.manifestAuthenticated).toBe(true);
 });
