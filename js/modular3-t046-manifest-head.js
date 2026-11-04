@@ -50,13 +50,14 @@ async function advance({vaultId,expected=null,next}){
  });}finally{db.close();}
 }
 
-async function commitObjects({vaultId,expected=null,segment,manifest,segmentTag,manifestTag}){
+async function commitObjects({vaultId,expected=null,segment,manifest,segmentTag,manifestTag,commitmentKey}){
  const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
  if(!validVault(vaultId)||!validObject(segment)||!validObject(manifest)||
     segment.vaultId!==vaultId||manifest.vaultId!==vaultId||
     !codec||!await codec.verifySegment(segment)||!await codec.verifyManifest(manifest)||
     !manifest.segments.some(s=>s.commitment===segment.commitment)||
-    !auth||typeof segmentTag!=='string'||typeof manifestTag!=='string'||
+    !auth||!commitmentKey||!await auth.verify(commitmentKey,vaultId,'segment',segment.commitment,segmentTag)||
+    !await auth.verify(commitmentKey,vaultId,'manifest',manifest.commitment,manifestTag)||
     manifest.previousCommitment!==(expected?expected.commitment:null)||
     manifest.generation!==(expected?expected.generation+1:1))
   throw Error('Invalid authenticated object transition');
