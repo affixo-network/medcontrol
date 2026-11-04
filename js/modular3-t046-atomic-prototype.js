@@ -67,5 +67,18 @@ async function inspect(){
   });
  }finally{db.close();}
 }
-root.MedControlT046AtomicExperiment=Object.freeze({commit,inspect});
+async function verifyState(){
+ const snapshot=await inspect();
+ if(!snapshot.head)return {valid:true,empty:true};
+ const {head,manifest,segments}=snapshot;
+ const codec=root.MedControlT046SegmentCodec;
+ if(!codec||!manifest||manifest.commitment!==head.commitment||manifest.generation!==head.generation||manifest.vaultId!==head.vaultId||!await codec.verifyManifest(manifest))return {valid:false,reason:'invalid-manifest'};
+ if(segments.length!==manifest.segments.length||segments.some(x=>!x))return {valid:false,reason:'missing-segment'};
+ for(const descriptor of manifest.segments){
+  const segment=segments.find(x=>x&&x.commitment===descriptor.commitment);
+  if(!segment||segment.vaultId!==head.vaultId||segment.firstSequence!==descriptor.firstSequence||segment.lastSequence!==descriptor.lastSequence||!await codec.verifySegment(segment))return {valid:false,reason:'invalid-segment'};
+ }
+ return {valid:true,empty:false,generation:head.generation};
+}
+root.MedControlT046AtomicExperiment=Object.freeze({commit,inspect,verifyState});
 })(typeof window!=='undefined'?window:globalThis);
