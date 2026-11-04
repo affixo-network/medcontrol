@@ -57,6 +57,27 @@ async function pendingBatch(limit=100){
   tx.onabort=()=>reject(tx.error||Error('Queue read aborted'));
  });}finally{db.close();}
 }
+async function pendingPage({afterId=null,limit=100}={}){
+ if(afterId!==null&&(typeof afterId!=='string'||afterId.length>256)||
+    !Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid replica page');
+ const db=await open();
+ try{return await new Promise((resolve,reject)=>{
+  const jobs=[],tx=db.transaction('jobs','readonly');
+  const range=afterId===null?undefined:IDBKeyRange.lowerBound(afterId,true);
+  const request=tx.objectStore('jobs').openCursor(range);
+  let lastId=afterId;
+  request.onerror=()=>reject(request.error);
+  request.onsuccess=()=>{
+   const cursor=request.result;
+   if(!cursor){resolve({jobs,nextAfterId:null});return;}
+   lastId=cursor.key;
+   if(cursor.value.status==='pending')jobs.push(cursor.value);
+   if(jobs.length===limit){resolve({jobs,nextAfterId:lastId});return;}
+   cursor.continue();
+  };
+  tx.onabort=()=>reject(tx.error||Error('Queue page aborted'));
+ });}finally{db.close();}
+}
 async function confirmVerified(job,adapter,key,segment,manifest,segmentTag,manifestTag){
  const candidate=validate(job);
  const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
@@ -88,5 +109,5 @@ async function confirmVerified(job,adapter,key,segment,manifest,segmentTag,manif
   };
  });}finally{db.close();}
 }
-root.MedControlT046ReplicaQueue=Object.freeze({enqueue,pending,pendingBatch,confirmVerified});
+root.MedControlT046ReplicaQueue=Object.freeze({enqueue,pending,pendingBatch,pendingPage,confirmVerified});
 })(typeof window!=='undefined'?window:globalThis);
