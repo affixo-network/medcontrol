@@ -50,3 +50,27 @@ test('T-046 integrated vault rejects unreserved writes before journal mutation',
  });
  expect(result).toEqual({failed:true,untouched:true});
 });
+
+test('T-046 reserved encrypted write is queued for replication',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='reserved_'+crypto.randomUUID().replaceAll('-',''),eventId='event_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  let reservation=null;
+  const committed=await window.MedControlT046IntegratedVault.appendAndStage({
+   vaultId,eventId,kind:'intake',body:{dose:'1 tablet'},encryptionKey,commitmentKey,reservationBytes:4096,
+   capacityGateway:{reserve:async(id,bytes)=>{reservation={id,bytes};return {reserved:true};}}
+  });
+  const saved=await window.MedControlT046Journal.get({owner:vaultId,id:eventId,key:encryptionKey});
+  const queued=(await window.MedControlT046ReplicaQueue.pending()).some(x=>x.vaultId===vaultId&&x.manifestCommitment===committed.manifest.commitment);
+  return {reservation,committed:committed.localCommitted,replicaConfirmed:committed.replicaConfirmed,body:saved.body,queued};
+ });
+ expect(result.reservation.bytes).toBe(4096);
+ expect(result.committed).toBe(true);
+ expect(result.replicaConfirmed).toBe(false);
+ expect(result.body).toEqual({dose:'1 tablet'});
+ expect(result.queued).toBe(true);
+});
