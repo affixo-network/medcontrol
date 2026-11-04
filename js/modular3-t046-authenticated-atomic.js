@@ -58,5 +58,45 @@ async function inspect(){
   };
  });}finally{db.close();}
 }
-root.MedControlT046AuthenticatedAtomic=Object.freeze({commitAuthenticated,inspect});
+async function verifyPersisted(key){
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!codec||!auth||!key)throw Error('Authentication prerequisites required');
+ const db=await openDB();
+ try{
+  const state=await new Promise((resolve,reject)=>{
+   const tx=db.transaction(['head','manifests','segments'],'readonly');
+   let head=null,record=null,segments=[];
+   tx.onerror=()=>reject(tx.error);
+   tx.oncomplete=()=>resolve({head,record,segments});
+   tx.objectStore('head').get('current').onsuccess=e=>{
+    head=e.target.result||null;
+    if(!head)return;
+    tx.objectStore('manifests').get(head.generation).onsuccess=m=>{
+     record=m.target.result||null;
+     if(!record||!record.manifest||!Array.isArray(record.manifest.segments))return;
+     for(const descriptor of record.manifest.segments){
+      tx.objectStore('segments').get(descriptor.commitment).onsuccess=s=>segments.push({descriptor,stored:s.target.result||null});
+     }
+    };
+   };
+  });
+  if(!state.head)return {valid:true,empty:true};
+  const {head,record,segments}=state;
+  if(!record||!record.manifest)return {valid:false,reason:'missing-manifest'};
+  const manifest=record.manifest;
+  if(manifest.commitment!==head.commitment||manifest.generation!==head.generation||manifest.vaultId!==head.vaultId||
+     !await codec.verifyManifest(manifest)||
+     !await auth.verify(key,head.vaultId,'manifest',manifest.commitment,record.tag))return {valid:false,reason:'invalid-manifest'};
+  if(segments.length!==manifest.segments.length||segments.some(s=>!s.stored))return {valid:false,reason:'missing-segment'};
+  for(const {descriptor,stored} of segments){
+   const segment=stored.segment;
+   if(!segment||segment.commitment!==descriptor.commitment||segment.vaultId!==head.vaultId||
+      segment.firstSequence!==descriptor.firstSequence||segment.lastSequence!==descriptor.lastSequence||
+      !await codec.verifySegment(segment)||
+      !await auth.verify(key,head.vaultId,'segment',segment.commitment,stored.tag))return {valid:false,reason:'invalid-segment'};
+  }
+  return {valid:true,empty:false,generation:head.generation};
+ }finally{db.close();}
+}
+root.MedControlT046AuthenticatedAtomic=Object.freeze({commitAuthenticated,inspect,verifyPersisted});
 })(typeof window!=='undefined'?window:globalThis);
