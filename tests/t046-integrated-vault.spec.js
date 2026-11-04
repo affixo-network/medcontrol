@@ -74,3 +74,18 @@ test('T-046 reserved encrypted write is queued for replication',async({page})=>{
  expect(result.body).toEqual({dose:'1 tablet'});
  expect(result.queued).toBe(true);
 });
+
+test('T-046 unsupported second sequence fails before journal mutation',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_sequence_'+crypto.randomUUID().replaceAll('-',''),eventId='event_'+crypto.randomUUID().replaceAll('-','');
+  let rejected=false;
+  try{await window.MedControlT046IntegratedVault.appendAndStage({vaultId,eventId,sequence:2});}
+  catch(e){rejected=e.message==='Integrated vault prerequisites missing'||e.message==='Multi-event manifest chain not implemented';}
+  const stored=await window.MedControlT046Journal.encrypted({owner:vaultId,id:eventId});
+  return {rejected,untouched:stored==null};
+ });
+ expect(result).toEqual({rejected:true,untouched:true});
+});
