@@ -217,3 +217,57 @@ test('T-046 two tabs concurrently confirm the same authenticated replica without
   expect(states).toEqual([null,null]);
  }finally{await Promise.all(pages.map(p=>p.close()));}
 });
+
+
+test('T-046 closing one tab mid-confirmation leaves durable pending job for survivor',async({context})=>{
+ const [closing,survivor]=await Promise.all([context.newPage(),context.newPage()]);
+ try{
+  for(const page of [closing,survivor]){
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   for(const name of ['segment-codec','authenticated-commitment','replica-queue'])
+    await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+  }
+  const fixture=await survivor.evaluate(async()=>{
+   const c=window.MedControlT046SegmentCodec,a=window.MedControlT046AuthenticatedCommitment;
+   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+   const raw=crypto.getRandomValues(new Uint8Array(32));
+   const key=await crypto.subtle.importKey('raw',raw,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const segment=await c.buildSegment({vaultId,frames:[{sequence:1,eventId:'event_0000000000000001',envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}}]});
+   const manifest=await c.buildManifest({vaultId,generation:1,segments:[segment]});
+   const segmentTag=await a.sign(key,vaultId,'segment',segment.commitment);
+   const manifestTag=await a.sign(key,vaultId,'manifest',manifest.commitment);
+   const job={vaultId,generation:1,manifestCommitment:manifest.commitment};
+   await window.MedControlT046ReplicaQueue.enqueue(job);
+   return {raw:Array.from(raw),job,segment,manifest,segmentTag,manifestTag};
+  });
+  await closing.evaluate(data=>{
+   window.__confirmationPaused=false;
+   const keyPromise=crypto.subtle.importKey('raw',new Uint8Array(data.raw),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const adapter={
+    async getHead(){window.__confirmationPaused=true;return new Promise(()=>{});},
+    async getSegment(){throw Error('Should not reach readback');},
+    async getManifest(){throw Error('Should not reach readback');}
+   };
+   keyPromise.then(key=>window.MedControlT046ReplicaQueue.confirmVerified(
+    data.job,adapter,key,data.segment,data.manifest,data.segmentTag,data.manifestTag
+   )).catch(()=>{});
+  },fixture);
+  await expect.poll(()=>closing.evaluate(()=>window.__confirmationPaused)).toBe(true);
+  await closing.close();
+  const before=await survivor.evaluate(job=>window.MedControlT046ReplicaQueue.pendingJob(job),fixture.job);
+  expect(before).not.toBeNull();
+  const confirmed=await survivor.evaluate(async data=>{
+   const key=await crypto.subtle.importKey('raw',new Uint8Array(data.raw),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const adapter={
+    async getHead(){return {vaultId:data.job.vaultId,generation:1,commitment:data.manifest.commitment};},
+    async getSegment(){return {segment:data.segment,tag:data.segmentTag};},
+    async getManifest(){return {manifest:data.manifest,tag:data.manifestTag};}
+   };
+   await window.MedControlT046ReplicaQueue.confirmVerified(
+    data.job,adapter,key,data.segment,data.manifest,data.segmentTag,data.manifestTag
+   );
+   return window.MedControlT046ReplicaQueue.pendingJob(data.job);
+  },fixture);
+  expect(confirmed).toBeNull();
+ }finally{await context.close();}
+});
