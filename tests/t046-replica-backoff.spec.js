@@ -10,8 +10,10 @@ test('T-046 retries pending jobs with bounded backoff and cancels timer on stop'
   let nextId=1,calls=0;
   window.setTimeout=(callback,delay)=>{const id=nextId++;timers.set(id,{callback,delay});return id;};
   window.clearTimeout=id=>timers.delete(id);
-  const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
+  const settle=async()=>{for(let i=0;i<100;i++)await Promise.resolve();};
   const fire=async()=>{
+   for(let i=0;i<100&&!timers.size;i++)await Promise.resolve();
+   if(!timers.size)throw Error('Retry timer was not scheduled');
    const [id,timer]=timers.entries().next().value;
    timers.delete(id);timer.callback();
    await settle();
