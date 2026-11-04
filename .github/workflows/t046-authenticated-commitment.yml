@@ -22,6 +22,8 @@ on:
       - 'tests/t046-replica-coordinator.spec.js'
       - 'js/modular3-t046-replica-drain.js'
       - 'tests/t046-replica-drain.spec.js'
+      - 'js/modular3-t046-replica-retry.js'
+      - 'tests/t046-replica-retry.spec.js'
       - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
