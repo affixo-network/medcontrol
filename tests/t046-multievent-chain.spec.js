@@ -83,3 +83,54 @@ test('T-046 cross-tab same-head race leaves one committed successor and no orpha
   expect(inspection.pending).toBe(2);
  }finally{await context.close();}
 });
+
+
+test('T-046 concurrent tabs: injected failure before journal append cannot erase winning successor',async({browser})=>{
+ const context=await browser.newContext();
+ const tabs=await Promise.all([context.newPage(),context.newPage()]);
+ try{
+  for(const tab of tabs){
+   await tab.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+    await tab.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+  }
+  const setup=await tabs[0].evaluate(async()=>{
+   const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+   const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},true,['sign','verify']);
+   await window.MedControlT046IntegratedVault.appendAndStage({vaultId,eventId:'event_'+crypto.randomUUID().replaceAll('-',''),kind:'intake',body:{dose:1},encryptionKey,commitmentKey});
+   return {vaultId,expectedHead:await window.MedControlT046ManifestHead.read(vaultId),
+    encryption:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',encryptionKey))),
+    commitment:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',commitmentKey)))};
+  });
+  const failedId='event_'+require('node:crypto').randomUUID().replaceAll('-','');
+  const winningId='event_'+require('node:crypto').randomUUID().replaceAll('-','');
+  const failure=await tabs[0].evaluate(async({setup,eventId})=>{
+   const encryptionKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.encryption),'AES-GCM',false,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.commitment),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const original=window.MedControlT046Journal;
+   window.MedControlT046Journal=Object.freeze({...original,append:async()=>{throw Error('Injected writer crash');}});
+   try{await window.MedControlT046IntegratedVault.appendNextAndStage({vaultId:setup.vaultId,eventId,kind:'intake',body:{dose:2},encryptionKey,commitmentKey,expectedHead:setup.expectedHead});return false;}
+   catch(e){return /Injected writer crash/.test(e.message);}
+   finally{window.MedControlT046Journal=original;}
+  },{setup,eventId:failedId});
+  const success=await tabs[1].evaluate(async({setup,eventId})=>{
+   const encryptionKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.encryption),'AES-GCM',false,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(setup.commitment),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   return window.MedControlT046IntegratedVault.appendNextAndStage({vaultId:setup.vaultId,eventId,kind:'intake',body:{dose:3},encryptionKey,commitmentKey,expectedHead:setup.expectedHead});
+  },{setup,eventId:winningId});
+  const state=await tabs[0].evaluate(async({setup,failedId,winningId})=>{
+   const head=await window.MedControlT046ManifestHead.read(setup.vaultId);
+   const lost=await window.MedControlT046Journal.encrypted({owner:setup.vaultId,id:failedId});
+   const won=await window.MedControlT046Journal.encrypted({owner:setup.vaultId,id:winningId});
+   const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===setup.vaultId);
+   return {head,lost:!!lost,won:!!won,pending:pending.length};
+  },{setup,failedId,winningId});
+  expect(failure).toBe(true);
+  expect(state.head.generation).toBe(2);
+  expect(state.head.commitment).toBe(success.manifest.commitment);
+  expect(state.lost).toBe(false);
+  expect(state.won).toBe(true);
+  expect(state.pending).toBe(2);
+ }finally{await context.close();}
+});
