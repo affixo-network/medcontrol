@@ -5,10 +5,11 @@
 (function(root){
 'use strict';
 const NAME='t046-manifest-head-v1';
+const validObject=o=>o&&typeof o==='object'&&digest(o.commitment);
 function open(){
  return new Promise((resolve,reject)=>{
-  const r=root.indexedDB.open(NAME,1);
-  r.onupgradeneeded=()=>r.result.createObjectStore('heads',{keyPath:'vaultId'});
+  const r=root.indexedDB.open(NAME,2);
+  r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('heads'))db.createObjectStore('heads',{keyPath:'vaultId'});if(!db.objectStoreNames.contains('objects'))db.createObjectStore('objects',{keyPath:['vaultId','commitment']});};
   r.onsuccess=()=>resolve(r.result);
   r.onerror=()=>reject(r.error||Error('Head database open failed'));
   r.onblocked=()=>reject(Error('Head database blocked'));
@@ -48,5 +49,40 @@ async function advance({vaultId,expected=null,next}){
   };
  });}finally{db.close();}
 }
-root.MedControlT046ManifestHead=Object.freeze({read,advance});
+
+async function commitObjects({vaultId,expected=null,segment,manifest,segmentTag,manifestTag}){
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!validVault(vaultId)||!validObject(segment)||!validObject(manifest)||
+    segment.vaultId!==vaultId||manifest.vaultId!==vaultId||
+    !codec||!await codec.verifySegment(segment)||!await codec.verifyManifest(manifest)||
+    !manifest.segments.some(s=>s.commitment===segment.commitment)||
+    !auth||typeof segmentTag!=='string'||typeof manifestTag!=='string'||
+    manifest.previousCommitment!==(expected?expected.commitment:null)||
+    manifest.generation!==(expected?expected.generation+1:1))
+  throw Error('Invalid authenticated object transition');
+ const db=await open();
+ try{return await new Promise((resolve,reject)=>{
+  const tx=db.transaction(['heads','objects'],'readwrite'),heads=tx.objectStore('heads'),objects=tx.objectStore('objects');
+  let conflict=false;
+  tx.oncomplete=()=>resolve({committed:true,generation:manifest.generation});
+  tx.onabort=()=>reject(Error(conflict?'Manifest head conflict':'Object transaction aborted'));
+  heads.get(vaultId).onsuccess=e=>{
+   const old=e.target.result||null;
+   if((old?.commitment||null)!==(expected?.commitment||null)||
+      (old?.generation||0)!==(expected?.generation||0)){conflict=true;tx.abort();return;}
+   objects.put({vaultId,commitment:segment.commitment,type:'segment',object:segment,tag:segmentTag});
+   objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
+   heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
+  };
+ });}finally{db.close();}
+}
+async function object(vaultId,commitment){
+ if(!validVault(vaultId)||!digest(commitment))throw Error('Invalid object reference');
+ const db=await open();
+ try{return await new Promise((resolve,reject)=>{
+  const tx=db.transaction('objects','readonly'),r=tx.objectStore('objects').get([vaultId,commitment]);
+  r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error);
+ });}finally{db.close();}
+}
+root.MedControlT046ManifestHead=Object.freeze({read,advance,commitObjects,object});
 })(typeof window!=='undefined'?window:globalThis);
