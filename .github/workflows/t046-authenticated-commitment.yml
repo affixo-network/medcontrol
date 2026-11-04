@@ -26,6 +26,7 @@ on:
       - 'tests/t046-replica-retry.spec.js'
       - 'tests/t046-replica-cross-tab.spec.js'
       - 'tests/t046-replica-backoff.spec.js'
+      - 'tests/t046-replica-restart-queue.spec.js'
       - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
