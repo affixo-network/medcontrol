@@ -96,3 +96,49 @@ test('T-046 restart reconciles second encrypted event interrupted between journa
  expect(result.pending.some(x=>x.manifestCommitment===result.current.commitment)).toBe(true);
  expect(result.replayRejected).toBe(true);
 });
+
+
+test('T-046 interrupted first append preserves encrypted journal across reload and recovers once',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ const scripts=['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'];
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const prepared=await page.evaluate(async()=>{
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const eventId='event_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},true,['sign','verify']);
+  const original=window.MedControlT046ManifestHead;
+  window.MedControlT046ManifestHead=Object.freeze({...original,commitObjects:async()=>{throw Error('Injected shutdown before head commit');}});
+  let rejected=false;
+  try{await window.MedControlT046IntegratedVault.appendAndStage({vaultId,eventId,kind:'intake',body:{dose:1},encryptionKey,commitmentKey});}
+  catch(e){rejected=/Injected shutdown/.test(e.message);}
+  window.MedControlT046ManifestHead=original;
+  const orphan=await window.MedControlT046Journal.encrypted({owner:vaultId,id:eventId});
+  const head=await original.read(vaultId);
+  const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===vaultId);
+  return {vaultId,eventId,rejected,orphanPresent:!!orphan,head,pending:pending.length,
+   key:Array.from(new Uint8Array(await crypto.subtle.exportKey('raw',commitmentKey)))};
+ });
+ expect(prepared.rejected).toBe(true);
+ expect(prepared.orphanPresent).toBe(true);
+ expect(prepared.head).toBeNull();
+ expect(prepared.pending).toBe(0);
+ await page.reload();
+ for(const name of scripts)await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async({vaultId,eventId,key})=>{
+  const commitmentKey=await crypto.subtle.importKey('raw',new Uint8Array(key),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const recovered=await api.recoverOrphanEvent({vaultId,eventId,commitmentKey});
+  await api.recoverReplicaQueue({vaultId,commitmentKey});
+  await api.recoverReplicaQueue({vaultId,commitmentKey});
+  const head=await window.MedControlT046ManifestHead.read(vaultId);
+  const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===vaultId);
+  const orphan=await window.MedControlT046Journal.encrypted({owner:vaultId,id:eventId});
+  return {recovered,head,pending,orphanPresent:!!orphan};
+ },prepared);
+ expect(result.recovered.recovered).toBe(true);
+ expect(result.recovered.replicaConfirmed).toBe(false);
+ expect(result.head.generation).toBe(1);
+ expect(result.pending).toHaveLength(1);
+ expect(result.orphanPresent).toBe(true);
+});
