@@ -113,11 +113,11 @@ test('A01.4 isolated physical IndexedDB usage by token count',async({browser})=>
     const before=await navigator.storage.estimate();
     const tokens=[];
     for(let i=0;i<tokenCount;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
-    for(let i=0;i<60;i++)await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
+    for(let i=0;i<300;i++)await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
      body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}},key,tokens});
     const after=await navigator.storage.estimate();
-    return {tokenCount,beforeUsage:before.usage,afterUsage:after.usage,deltaBytes:after.usage-before.usage,deltaPerEventBytes:(after.usage-before.usage)/60,
-     caveat:'Browser quota estimate, not SSD physical allocation; context isolation must be verified'};
+    return {tokenCount,beforeUsage:before.usage,afterUsage:after.usage,deltaBytes:after.usage-before.usage,deltaPerEventBytes:(after.usage-before.usage)/300,
+     caveat:'Browser quota estimate, not SSD physical allocation; context isolation must be verified; 300-event sample'};
    },tokenCount);
    rows.push(row);
   }finally{await context.close();}
