@@ -6,8 +6,9 @@
 'use strict';
 async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,sequence=1,capacityGateway=null,reservationBytes=null}){
  const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
-  auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue;
- if(!journal||!codec||!auth||!queue||!commitmentKey)throw Error('Integrated vault prerequisites missing');
+  auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue,
+  head=root.MedControlT046ManifestHead;
+ if(!journal||!codec||!auth||!queue||!head||!commitmentKey)throw Error('Integrated vault prerequisites missing');
  if(!Number.isSafeInteger(sequence)||sequence<1)throw Error('Invalid sequence');
  // Generation 1 is a single-event prototype. Reject later sequences rather than
  // silently rewriting generation 1 or losing an existing replication queue entry.
@@ -18,6 +19,7 @@ async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexToke
   const reservation=await capacityGateway.reserve(vaultId+':'+eventId,reservationBytes);
   if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation not committed');
  }
+ if(await head.read(vaultId))throw Error('Existing manifest head requires multi-event append protocol');
  const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens});
  const record=await journal.encrypted({owner:vaultId,id:eventId});
  if(!record)throw Error('Committed event not readable');
@@ -25,6 +27,7 @@ async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexToke
  const manifest=await codec.buildManifest({vaultId,generation:1,segments:[segment]});
  const segmentTag=await auth.sign(commitmentKey,vaultId,'segment',segment.commitment);
  const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+ await head.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey});
  await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
  return {localCommitted:local.committed,replicaConfirmed:false,segment,manifest,segmentTag,manifestTag};
 }
