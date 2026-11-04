@@ -4,11 +4,11 @@
  */
 (function(root){
 'use strict';
-function create({maxInFlight=2,maxBatchBytes=1024*1024,lowWatermarkBytes=8*1024*1024,requestCapacity}={}){
+function create({maxInFlight=2,maxBatchBytes=1024*1024,lowWatermarkBytes=8*1024*1024,requestCapacity,measureCapacity}={}){
  if(!Number.isSafeInteger(maxInFlight)||maxInFlight<1||maxInFlight>16||
     !Number.isSafeInteger(maxBatchBytes)||maxBatchBytes<1||
     !Number.isSafeInteger(lowWatermarkBytes)||lowWatermarkBytes<0||
-    typeof requestCapacity!=='function')throw Error('Invalid governor configuration');
+    typeof requestCapacity!=='function'||(measureCapacity!==undefined&&typeof measureCapacity!=='function'))throw Error('Invalid governor configuration');
  let inFlight=0,expansion=null;
  async function reserve({availableBytes,pendingBytes=0,estimatedWriteBytes}){
   for(const value of [availableBytes,pendingBytes,estimatedWriteBytes])
@@ -21,10 +21,15 @@ function create({maxInFlight=2,maxBatchBytes=1024*1024,lowWatermarkBytes=8*1024*
    })).finally(()=>{expansion=null;});
   }
   if(expansion)await expansion;
-  // Never claim space was provisioned until the caller measures it again.
-  return Object.freeze({admitted:remaining>=estimatedWriteBytes,
-   status:remaining>=estimatedWriteBytes?'LOCAL_CAPACITY_MEASURED':'CAPACITY_UNAVAILABLE',
-   requiresRecheck:!!expansion||remaining-estimatedWriteBytes<lowWatermarkBytes});
+  // The expansion callback is only a request, not proof of provisioned bytes.
+  // An authoritative measurement is required before admission after expansion.
+  const measured=measureCapacity?await measureCapacity():null;
+  if(measured!==null&&(!Number.isSafeInteger(measured)||measured<0))throw Error('Invalid capacity remeasurement');
+  const actual=measured===null?availableBytes:measured;
+  const admitted=actual-pendingBytes>=estimatedWriteBytes;
+  return Object.freeze({admitted,
+   status:admitted?'LOCAL_CAPACITY_MEASURED':'CAPACITY_UNAVAILABLE',
+   requiresRecheck:measured===null&&remaining-estimatedWriteBytes<lowWatermarkBytes});
  }
  async function runBatch({bytes,task}){
   if(!Number.isSafeInteger(bytes)||bytes<1||bytes>maxBatchBytes||typeof task!=='function')throw Error('Invalid batch');
