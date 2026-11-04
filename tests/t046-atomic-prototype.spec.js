@@ -57,3 +57,38 @@ test('T-046 competing writers: exactly one commit survives restart',async({page}
  expect(recovered.manifest).toEqual(result.manifest);
  expect(recovered.segments).toEqual(result.segments);
 });
+
+
+test('T-046 aborted transaction leaves no partial generation',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-segment-codec.js')});
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-atomic-prototype.js')});
+ const result=await page.evaluate(async()=>{
+  const c=window.MedControlT046SegmentCodec,a=window.MedControlT046AtomicExperiment;
+  const vaultId='vault_0123456789abcdef';
+  const frame=n=>({sequence:n,eventId:'event_'+String(n).padStart(16,'0'),envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}});
+  const s1=await c.buildSegment({vaultId,frames:[frame(1)]});
+  const m1=await c.buildManifest({vaultId,generation:1,segments:[s1]});
+  await a.commit(s1,m1,0);
+  const before=await a.inspect();
+  const s2=await c.buildSegment({vaultId,frames:[frame(2)]});
+  const m2=await c.buildManifest({vaultId,generation:2,previousCommitment:m1.commitment,segments:[s1,s2]});
+  const aborted=await new Promise((resolve,reject)=>{
+   const open=indexedDB.open('t046-atomic-experiment-v1',1);
+   open.onerror=()=>reject(open.error);
+   open.onsuccess=()=>{
+    const db=open.result;
+    const tx=db.transaction(['segments','manifests','head'],'readwrite');
+    tx.onabort=()=>{db.close();resolve(true);};
+    tx.oncomplete=()=>{db.close();resolve(false);};
+    tx.objectStore('segments').put(s2,s2.commitment);
+    tx.objectStore('manifests').put(m2,m2.generation);
+    tx.objectStore('head').put({generation:2,commitment:m2.commitment,vaultId},'current');
+    tx.abort();
+   };
+  });
+  const after=await a.inspect();
+  return {aborted,unchanged:JSON.stringify(before)===JSON.stringify(after),generation:after.head.generation,segmentCount:after.segments.length};
+ });
+ expect(result).toEqual({aborted:true,unchanged:true,generation:1,segmentCount:1});
+});
