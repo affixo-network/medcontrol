@@ -31,5 +31,26 @@ async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexToke
  await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
  return {localCommitted:local.committed,replicaConfirmed:false,segment,manifest,segmentTag,manifestTag};
 }
-root.MedControlT046IntegratedVault=Object.freeze({appendAndStage});
+async function recoverReplicaQueue({vaultId,commitmentKey}){
+ const head=root.MedControlT046ManifestHead,queue=root.MedControlT046ReplicaQueue,
+  codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!head||!queue||!codec||!auth||!commitmentKey)throw Error('Recovery prerequisites missing');
+ const current=await head.read(vaultId);
+ if(!current)return {recovered:false,reason:'no-committed-head'};
+ const stored=await head.object(vaultId,current.commitment);
+ if(!stored||stored.type!=='manifest'||stored.object.commitment!==current.commitment||
+    stored.object.generation!==current.generation||
+    !await codec.verifyManifest(stored.object)||
+    !await auth.verify(commitmentKey,vaultId,'manifest',stored.object.commitment,stored.tag))
+  throw Error('Committed manifest authentication failed');
+ for(const descriptor of stored.object.segments){
+  const segment=await head.object(vaultId,descriptor.commitment);
+  if(!segment||segment.type!=='segment'||!await codec.verifySegment(segment.object)||
+     !await auth.verify(commitmentKey,vaultId,'segment',segment.object.commitment,segment.tag))
+   throw Error('Committed segment authentication failed');
+ }
+ await queue.enqueue({vaultId,generation:current.generation,manifestCommitment:current.commitment});
+ return {recovered:true,generation:current.generation,replicaConfirmed:false};
+}
+root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,recoverReplicaQueue});
 })(typeof window!=='undefined'?window:globalThis);
