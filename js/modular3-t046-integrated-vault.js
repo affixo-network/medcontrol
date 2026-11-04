@@ -4,11 +4,17 @@
  */
 (function(root){
 'use strict';
-async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,sequence=1}){
+async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,sequence=1,capacityGateway=null,reservationBytes=null}){
  const journal=root.MedControlT046Journal,codec=root.MedControlT046SegmentCodec,
   auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue;
  if(!journal||!codec||!auth||!queue||!commitmentKey)throw Error('Integrated vault prerequisites missing');
  if(!Number.isSafeInteger(sequence)||sequence<1)throw Error('Invalid sequence');
+ if(capacityGateway!==null){
+  if(typeof capacityGateway.reserve!=='function'||!Number.isSafeInteger(reservationBytes)||reservationBytes<1)
+   throw Error('Invalid capacity reservation prerequisites');
+  const reservation=await capacityGateway.reserve(vaultId+':'+eventId,reservationBytes);
+  if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation not committed');
+ }
  const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens});
  const record=await journal.encrypted({owner:vaultId,id:eventId});
  if(!record)throw Error('Committed event not readable');
