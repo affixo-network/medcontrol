@@ -40,10 +40,25 @@ async function pending(){
   req.onerror=()=>reject(req.error);
  });}finally{db.close();}
 }
-async function confirm(job,proof,verifyReplica){
+async function confirmVerified(job,adapter,key,segment,manifest,segmentTag,manifestTag){
  const candidate=validate(job);
- if(!proof||proof.replicaConfirmed!==true||proof.generation!==candidate.generation||
-    typeof verifyReplica!=='function'||await verifyReplica(candidate)!==true)throw Error('Replica verification required');
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!codec||!auth||!adapter||!key||!segment||!manifest||
+    segment.vaultId!==candidate.vaultId||manifest.vaultId!==candidate.vaultId||
+    manifest.generation!==candidate.generation||manifest.commitment!==candidate.manifestCommitment||
+    !Array.isArray(manifest.segments)||!manifest.segments.some(x=>x.commitment===segment.commitment)||
+    !await codec.verifySegment(segment)||!await codec.verifyManifest(manifest)||
+    !await auth.verify(key,candidate.vaultId,'segment',segment.commitment,segmentTag)||
+    !await auth.verify(key,candidate.vaultId,'manifest',manifest.commitment,manifestTag))
+  throw Error('Authenticated replica evidence required');
+ const [head,sr,mr]=await Promise.all([
+  adapter.getHead(),adapter.getSegment(segment.commitment),adapter.getManifest(manifest.generation)
+ ]);
+ if(!head||head.vaultId!==candidate.vaultId||head.generation!==candidate.generation||
+    head.commitment!==candidate.manifestCommitment||
+    JSON.stringify(sr)!==JSON.stringify({segment,tag:segmentTag})||
+    JSON.stringify(mr)!==JSON.stringify({manifest,tag:manifestTag}))
+  throw Error('Replica readback mismatch');
  const db=await open();
  try{return await new Promise((resolve,reject)=>{
   const tx=db.transaction('jobs','readwrite'),store=tx.objectStore('jobs');
@@ -56,5 +71,5 @@ async function confirm(job,proof,verifyReplica){
   };
  });}finally{db.close();}
 }
-root.MedControlT046ReplicaQueue=Object.freeze({enqueue,pending,confirm});
+root.MedControlT046ReplicaQueue=Object.freeze({enqueue,pending,confirmVerified});
 })(typeof window!=='undefined'?window:globalThis);
