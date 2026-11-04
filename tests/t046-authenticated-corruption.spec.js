@@ -30,24 +30,21 @@ test('T-046 detects modified encrypted segment after reload',async({page})=>{
    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
   });
   db.close();
-  return {key};
- });
- // Retain the non-extractable test key only across the page reload via a
- // separate IndexedDB key store. This is test scaffolding, not key management.
- await page.evaluate(async(key)=>{
-  const open=indexedDB.open('t046-corruption-test-key',1);
-  await new Promise((resolve,reject)=>{
+  const keyDb=await new Promise((resolve,reject)=>{
+   const open=indexedDB.open('t046-corruption-test-key',1);
    open.onupgradeneeded=()=>open.result.createObjectStore('keys');
-   open.onsuccess=()=>resolve();open.onerror=()=>reject(open.error);
+   open.onsuccess=()=>resolve(open.result);
+   open.onerror=()=>reject(open.error);
   });
-  const db=open.result;
   await new Promise((resolve,reject)=>{
-   const tx=db.transaction('keys','readwrite');
+   const tx=keyDb.transaction('keys','readwrite');
    tx.objectStore('keys').put(key,'key');
    tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
   });
-  db.close();
- },r.key);
+  keyDb.close();
+ });
+ // Retain the non-extractable test key only across the page reload via a
+ // separate IndexedDB key store. This is test scaffolding, not key management.
  await load();
  const result=await page.evaluate(async()=>{
   const db=await new Promise((resolve,reject)=>{
