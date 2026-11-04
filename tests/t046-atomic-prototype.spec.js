@@ -92,3 +92,37 @@ test('T-046 aborted transaction leaves no partial generation',async({page})=>{
  });
  expect(result).toEqual({aborted:true,unchanged:true,generation:1,segmentCount:1});
 });
+
+
+test('T-046 recovery rejects missing referenced encrypted segment',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ const codecPath=path.resolve(__dirname,'../js/modular3-t046-segment-codec.js');
+ const atomicPath=path.resolve(__dirname,'../js/modular3-t046-atomic-prototype.js');
+ await page.addScriptTag({path:codecPath});
+ await page.addScriptTag({path:atomicPath});
+ const result=await page.evaluate(async()=>{
+  const c=window.MedControlT046SegmentCodec,a=window.MedControlT046AtomicExperiment;
+  const vaultId='vault_0123456789abcdef';
+  const s=await c.buildSegment({vaultId,frames:[{sequence:1,eventId:'event_0000000000000001',envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}}]});
+  const m=await c.buildManifest({vaultId,generation:1,segments:[s]});
+  await a.commit(s,m,0);
+  const before=await a.verifyState();
+  await new Promise((resolve,reject)=>{
+   const req=indexedDB.open('t046-atomic-experiment-v1',1);
+   req.onerror=()=>reject(req.error);
+   req.onsuccess=()=>{
+    const db=req.result,tx=db.transaction('segments','readwrite');
+    tx.objectStore('segments').delete(s.commitment);
+    tx.oncomplete=()=>{db.close();resolve();};
+    tx.onerror=()=>reject(tx.error);
+   };
+  });
+  return {before};
+ });
+ await page.reload();
+ await page.addScriptTag({path:codecPath});
+ await page.addScriptTag({path:atomicPath});
+ const after=await page.evaluate(()=>window.MedControlT046AtomicExperiment.verifyState());
+ expect(result.before).toEqual({valid:true,empty:false,generation:1});
+ expect(after).toEqual({valid:false,reason:'missing-segment'});
+});
