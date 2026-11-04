@@ -53,12 +53,12 @@ test('T-046 encrypted objects and manifest head commit atomically',async({page})
   const auth=window.MedControlT046AuthenticatedCommitment;
   const segmentTag=await auth.sign(key,vaultId,'segment',segment.commitment);
   const manifestTag=await auth.sign(key,vaultId,'manifest',manifest.commitment);
-  const saved=await h.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag});
+  const saved=await h.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey:key});
   const head=await h.read(vaultId);
   const storedSegment=await h.object(vaultId,segment.commitment);
   const storedManifest=await h.object(vaultId,manifest.commitment);
   let rejected=false;
-  try{await h.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag});}
+  try{await h.commitObjects({vaultId,segment,manifest,segmentTag,manifestTag,commitmentKey:key});}
   catch(e){rejected=e.message==='Manifest head conflict';}
   const after=await h.read(vaultId);
   return {saved,head,storedSegment,storedManifest,rejected,after};
