@@ -247,3 +247,56 @@ test('T-046 altered authenticated predecessor blocks queue recovery without chan
  expect(result.generation).toBe(2);
  expect(result.pending).toEqual([1]);
 });
+
+
+test('T-046 bounded recovery traverses long authenticated chain twice without retaining generation arrays',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const metrics=await page.evaluate(async()=>{
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const key=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const codec=window.MedControlT046SegmentCodec;
+  const auth=window.MedControlT046AuthenticatedCommitment;
+  const actualHead=window.MedControlT046ManifestHead;
+  const actualQueue=window.MedControlT046ReplicaQueue;
+  const objects=new Map(),jobs=new Map();
+  const count=128;
+  let previous=null;
+  for(let generation=1;generation<=count;generation++){
+   const segment=await codec.buildSegment({vaultId,frames:[{
+    sequence:generation,eventId:'event_'+String(generation).padStart(16,'0'),
+    envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}
+   }]});
+   const manifest=await codec.buildManifest({vaultId,generation,previousCommitment:previous?.commitment||null,segments:[segment]});
+   objects.set(segment.commitment,{type:'segment',object:segment,tag:await auth.sign(key,vaultId,'segment',segment.commitment)});
+   objects.set(manifest.commitment,{type:'manifest',object:manifest,tag:await auth.sign(key,vaultId,'manifest',manifest.commitment)});
+   previous=manifest;
+  }
+  let reads=0;
+  window.MedControlT046ManifestHead=Object.freeze({
+   ...actualHead,
+   read:async()=>({generation:count,commitment:previous.commitment}),
+   object:async(_vault,commitment)=>{reads++;return objects.get(commitment)||null;}
+  });
+  window.MedControlT046ReplicaQueue=Object.freeze({
+   ...actualQueue,
+   enqueue:async job=>{jobs.set(job.generation,job.manifestCommitment);}
+  });
+  const start=performance.now();
+  try{
+   const result=await window.MedControlT046IntegratedVault.recoverReplicaQueue({vaultId,commitmentKey:key});
+   return {result,count,jobs:jobs.size,first:jobs.has(1),last:jobs.has(count),reads,
+    elapsedMs:Math.round(performance.now()-start)};
+  }finally{
+   window.MedControlT046ManifestHead=actualHead;
+   window.MedControlT046ReplicaQueue=actualQueue;
+  }
+ });
+ expect(metrics.result.recovered).toBe(true);
+ expect(metrics.jobs).toBe(metrics.count);
+ expect(metrics.first).toBe(true);
+ expect(metrics.last).toBe(true);
+ expect(metrics.reads).toBeLessThanOrEqual(metrics.count*5);
+ console.log('T-046 recovery benchmark',JSON.stringify(metrics));
+});
