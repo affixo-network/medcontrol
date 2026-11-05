@@ -237,5 +237,17 @@ async function stageEncryptedBatch({vaultId,frames,commitmentKey,capacityGateway
    eventCount:manifest.eventCount,manifestCommitment:manifest.commitment};
  });
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,stageEncryptedBatch,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Bounded staging directly from the durable encrypted journal.
+ * The journal snapshot supplies event envelopes and position evidence together.
+ */
+async function stageJournalRange({vaultId,startSequence,count,commitmentKey,capacityGateway,reservationBytes}){
+ const journal=root.MedControlT046Journal;
+ if(!journal||typeof journal.encryptedRange!=='function'||
+    !Number.isSafeInteger(startSequence)||startSequence<1||
+    !Number.isSafeInteger(count)||count<1||count>1024)
+  throw Error('Invalid journal batch request');
+ const frames=await journal.encryptedRange({owner:vaultId,start:startSequence-1,limit:count});
+ return stageEncryptedBatch({vaultId,frames,commitmentKey,capacityGateway,reservationBytes});
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
