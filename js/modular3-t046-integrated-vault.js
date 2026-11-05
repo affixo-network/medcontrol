@@ -424,7 +424,7 @@ async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primar
  const manifest=bundle.manifest.object;
  const commitment=manifest.commitment;
  const previous=manifest.previousCommitment??null;
- const canonical=x=>JSON.stringify(x);
+ const canonical=x=>{if(x===null||typeof x!=='object')return JSON.stringify(x);if(Array.isArray(x))return '['+x.map(canonical).join(',')+']';return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';};
  const publish=async adapter=>{
   for(const segment of bundle.segments){
    const object={segment:segment.object,tag:segment.tag};
