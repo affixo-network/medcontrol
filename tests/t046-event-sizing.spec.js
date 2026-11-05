@@ -590,12 +590,14 @@ test('A01 persist encrypted events at real boundary positions across reopen',asy
   try{await j.append({owner,id:'duplicate-id',position:1024,kind:'intake',body:{status:'duplicate'},key});}
   catch(e){duplicateRejected=true;}
   const absent=await j.getAt({owner,position:499999998,key});
-  return {results,count,duplicateRejected,absent:absent===null};
+  const orphan=await j.get({owner,id:'duplicate-id',key});
+  return {results,count,duplicateRejected,absent:absent===null,orphanAbsent:orphan===null};
  });
  expect(result.count).toBeGreaterThanOrEqual(4);
  expect(result.results).toHaveLength(4);
  expect(result.results.every(x=>x.matched)).toBe(true);
  expect(result.duplicateRejected).toBe(true);
+ expect(result.orphanAbsent).toBe(true);
  expect(result.absent).toBe(true);
  console.log('T046_A01_REAL_POSITION_STORAGE '+JSON.stringify(result));
 });
