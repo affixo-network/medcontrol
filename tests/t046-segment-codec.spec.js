@@ -32,3 +32,27 @@ test('T-046 A01 batches 2050 contiguous encrypted frames into bounded authentica
  });
  expect(result).toEqual({counts:[1024,1024,2],valid:[true,true,true],first:1,last:2050});
 });
+
+
+test('T-046 A01 streaming segmentation consumes an async source in bounded batches',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:require('node:path').resolve(__dirname,'../js/modular3-t046-segment-codec.js')});
+ const result=await page.evaluate(async()=>{
+  const codec=window.MedControlT046SegmentCodec;
+  const vaultId='vault_0123456789abcdef';
+  let produced=0;const counts=[],last=[];
+  async function* frames(){for(let i=1;i<=2050;i++){
+   produced++;
+   yield {sequence:i,eventId:'event_'+String(i).padStart(16,'0'),envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}};
+  }}
+  for await(const segment of codec.streamSegments({vaultId,frames:frames()})){
+   counts.push(segment.eventCount);last.push(produced);
+   if(!await codec.verifySegment(segment))throw Error('Invalid streamed segment');
+  }
+  return {counts,last,produced};
+ });
+ expect(result.counts).toEqual([1024,1024,2]);
+ expect(result.produced).toBe(2050);
+ expect(result.last[0]).toBeLessThanOrEqual(1025);
+ expect(result.last[1]).toBeLessThanOrEqual(2049);
+});

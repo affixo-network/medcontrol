@@ -43,6 +43,25 @@ async function buildSegment({vaultId,frames}){
  assertSegmentSize(core);
  return Object.freeze({...core,commitment:await hash(core)});
 }
+async function* streamSegments({vaultId,frames}){
+ if(!opaque(vaultId)||!frames||typeof frames[Symbol.asyncIterator]!=='function'&&typeof frames[Symbol.iterator]!=='function')throw Error('Invalid frame stream');
+ let batch=[],previous=0;
+ for await(const frame of frames){
+  frameCheck(frame);
+  if(previous&&frame.sequence!==previous+1)throw Error('Noncontiguous sequence');
+  previous=frame.sequence;
+  if(batch.length===1024){yield await buildSegment({vaultId,frames:batch});batch=[];}
+  batch.push(frame);
+  const core={format:'mc.segment',version:1,vaultId,firstSequence:batch[0].sequence,lastSequence:frame.sequence,eventCount:batch.length,frames:batch};
+  if(segmentBytes(core)>MAX_SEGMENT_BYTES){
+   batch.pop();
+   if(!batch.length)throw Error('Single frame exceeds 64 MiB segment');
+   yield await buildSegment({vaultId,frames:batch});
+   batch=[frame];
+  }
+ }
+ if(batch.length)yield await buildSegment({vaultId,frames:batch});
+}
 async function buildSegments({vaultId,frames}){
  if(!opaque(vaultId)||!Array.isArray(frames)||frames.length<1)throw Error('Invalid frames');
  const result=[];let batch=[];let previous=0;
@@ -97,5 +116,5 @@ async function verifyManifest(m,previous=null){
    regenerated.eventCount===m.eventCount;
  }catch{return false;}
 }
-root.MedControlT046SegmentCodec=Object.freeze({buildSegment,buildSegments,verifySegment,buildManifest,verifyManifest});
+root.MedControlT046SegmentCodec=Object.freeze({buildSegment,buildSegments,streamSegments,verifySegment,buildManifest,verifyManifest});
 })(typeof window!=='undefined'?window:globalThis);
