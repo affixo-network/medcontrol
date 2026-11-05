@@ -52,6 +52,11 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
   if(ciphertextBudget>64*1024*1024)throw Error('Encrypted batch exceeds bounded memory budget');
   seen.add(e.id);prepared.push({id:e.id,kind:e.kind,tokens:e.tokens.slice(),envelope:f.envelope});
  }
+ // Reject events whose ciphertext is not a valid AES-GCM envelope before
+ // allocating an IndexedDB transaction. The decrypting read authenticates AAD.
+ for(const frame of frames){
+  if(frame.envelope.v!==1||frame.envelope.alg!=='AES-GCM')throw Error('Unsupported encrypted frame');
+ }
  const first=frames[0].sequence,last=frames[frames.length-1].sequence;
  if(expectedHead!==null&&(!Number.isSafeInteger(expectedHead.generation)||expectedHead.generation<1||
     !Number.isSafeInteger(expectedHead.lastSequence)||expectedHead.lastSequence<1||
