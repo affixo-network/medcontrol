@@ -379,7 +379,7 @@ async function recoverOrphanBatch({vaultId,startSequence,count,commitmentKey,cap
  * integration of the atomic journal, encrypted index, authenticated manifest
  * and durable replica intent. Existing Modular-3 medical data is untouched.
  * No remote protection is claimed by a successful local transaction. */
-function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,reservationBytes}){
+function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,reservationBytes,primary=null,recovery=null}){
  const store=root.MedControlT046UnifiedStore;
  if(!store||typeof store.appendEncryptedBatch!=='function'||
     typeof store.readDecryptedAt!=='function'||typeof store.replicaPage!=='function'||
@@ -399,6 +399,14 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
   async getHead(){return store.readHead(vaultId);},
   async getReplicaIntentPage(afterGeneration=0,limit=100){return store.replicaPage(vaultId,afterGeneration,limit);},
   async verifyGeneration(generation){return store.verifyGeneration({vaultId,generation,commitmentKey});},
+  async sync({afterGeneration=0,maxGenerations=16}={}){
+   if(!primary||!recovery)throw Error('Managed archive endpoints unavailable');
+   return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,afterGeneration,maxGenerations});
+  },
+  async restoreGeneration(generation){
+   if(!primary||!recovery)throw Error('Managed archive endpoints unavailable');
+   return retrieveUnifiedArchiveGeneration({vaultId,generation,commitmentKey,primary,recovery});
+  },
   async getProtectionStatus(){
    const head=await store.readHead(vaultId);
    return Object.freeze({lastLocalGeneration:head?.generation??0,independentReplicaVerified:false,
