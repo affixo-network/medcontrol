@@ -375,5 +375,36 @@ async function recoverOrphanBatch({vaultId,startSequence,count,commitmentKey,cap
  // modifying any journal ciphertext. It rechecks the head under its write lock.
  return stageJournalRange({vaultId,startSequence,count,commitmentKey,capacityGateway,reservationBytes});
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Versioned storage boundary for disposable T-046 vaults. This is an opt-in
+ * integration of the atomic journal, encrypted index, authenticated manifest
+ * and durable replica intent. Existing Modular-3 medical data is untouched.
+ * No remote protection is claimed by a successful local transaction. */
+function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,reservationBytes}){
+ const store=root.MedControlT046UnifiedStore;
+ if(!store||typeof store.appendEncryptedBatch!=='function'||
+    typeof store.readDecryptedAt!=='function'||typeof store.replicaPage!=='function'||
+    !encryptionKey||!commitmentKey||!capacityGateway||
+    typeof capacityGateway.reserve!=='function'||
+    !Number.isSafeInteger(reservationBytes)||reservationBytes<1)
+  throw Error('Unified vault prerequisites unavailable');
+ const base={vaultId,encryptionKey,commitmentKey,capacityGateway,reservationBytes};
+ return Object.freeze({
+  version:1,
+  async append(entries){
+   const expectedHead=await store.readHead(vaultId);
+   const receipt=await store.appendEncryptedBatch({...base,entries,expectedHead});
+   return Object.freeze({localReceipt:receipt,protectionState:'LOCAL_DURABLE',independentReplicaVerified:false});
+  },
+  async getByPosition(position){return store.readDecryptedAt({vaultId,position,encryptionKey,commitmentKey});},
+  async getHead(){return store.readHead(vaultId);},
+  async getReplicaIntentPage(afterGeneration=0,limit=100){return store.replicaPage(vaultId,afterGeneration,limit);},
+  async verifyGeneration(generation){return store.verifyGeneration({vaultId,generation,commitmentKey});},
+  async getProtectionStatus(){
+   const head=await store.readHead(vaultId);
+   return Object.freeze({lastLocalGeneration:head?.generation??0,independentReplicaVerified:false,
+    protectionState:head?'LOCAL_DURABLE':'EMPTY'});
+  }
+ });
+}
+root.MedControlT046IntegratedVault=Object.freeze({openUnifiedVault,append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
