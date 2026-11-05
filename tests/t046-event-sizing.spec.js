@@ -591,13 +591,20 @@ test('A01 persist encrypted events at real boundary positions across reopen',asy
   catch(e){duplicateRejected=true;}
   const absent=await j.getAt({owner,position:499999998,key});
   const orphan=await j.get({owner,id:'duplicate-id',key});
-  return {results,count,duplicateRejected,absent:absent===null,orphanAbsent:orphan===null};
+  const preserved=await j.getAt({owner,position:1024,key});
+  const newAfterConflict=await j.append({owner,id:'after-conflict',position:2048,kind:'intake',body:{status:'accepted',courseId:'test-course'},key});
+  const recovered=await j.getAt({owner,position:2048,key});
+  return {results,count,duplicateRejected,absent:absent===null,orphanAbsent:orphan===null,
+   preservedOriginal:preserved?.id==='event-1024'&&preserved.body.position===1024,
+   writeAfterConflict:newAfterConflict.committed===true&&recovered?.id==='after-conflict'};
  });
  expect(result.count).toBeGreaterThanOrEqual(4);
  expect(result.results).toHaveLength(4);
  expect(result.results.every(x=>x.matched)).toBe(true);
  expect(result.duplicateRejected).toBe(true);
  expect(result.orphanAbsent).toBe(true);
+ expect(result.preservedOriginal).toBe(true);
+ expect(result.writeAfterConflict).toBe(true);
  expect(result.absent).toBe(true);
  console.log('T046_A01_REAL_POSITION_STORAGE '+JSON.stringify(result));
 });
