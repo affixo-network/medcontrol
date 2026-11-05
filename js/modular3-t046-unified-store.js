@@ -175,9 +175,32 @@ async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid va
 async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const id=await req(tx.objectStore('positions').get([vaultId,position]));const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,...record}:null;}finally{db.close();}}
 /* Bounded authenticated read. Never return medical plaintext if the event
  * identifier, type, vault or ciphertext authentication has been altered. */
-async function readDecryptedAt({vaultId,position,encryptionKey}){
+async function readDecryptedAt({vaultId,position,encryptionKey,commitmentKey=null}){
  if(!encryptionKey||encryptionKey.type!=='secret'||encryptionKey.algorithm?.name!=='AES-GCM'||
     !encryptionKey.usages.includes('decrypt'))throw Error('AES-GCM decryption key required');
+ if(commitmentKey){
+  const head=await readHead(vaultId);
+  if(!head||position>=head.lastSequence)throw Error('Event is outside committed history');
+  // Authenticate the segment containing this position, rather than scanning
+  // or materializing the complete history of a long-lived medical vault.
+  const db=await open();
+  let generation=0;
+  try{
+   const tx=db.transaction('manifests','readonly'),finished=done(tx);
+   const cursor=tx.objectStore('manifests').openCursor(IDBKeyRange.bound([vaultId,1],[vaultId,head.generation]));
+   await new Promise((resolve,reject)=>{
+    cursor.onerror=()=>reject(cursor.error);
+    cursor.onsuccess=()=>{const c=cursor.result;if(!c){resolve();return;}
+     const m=c.value.object;
+     if(m.segments.some(segment=>segment.firstSequence<=position+1&&segment.lastSequence>=position+1)){
+      generation=m.generation;resolve();return;
+     }c.continue();};
+   });
+   await finished;
+  }finally{db.close();}
+  if(!generation||!await verifyGeneration({vaultId,generation,commitmentKey}))
+   throw Error('Encrypted event generation authentication failed');
+ }
  const record=await readAt(vaultId,position);
  if(!record)return null;
  const envelope=record.envelope;
