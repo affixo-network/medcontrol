@@ -368,10 +368,21 @@ test('one-generation archive lag is repaired only after authenticated ancestry p
   const advanced=await api.deliverUnifiedGeneration({vaultId,generation:2,commitmentKey,
    primary,recovery:{...recovery,compareAndSwapHead:async()=>{throw Error('Replica outage');}}})
    .then(()=>false,()=>true);
+  const headBefore=await primary.getHead();
+  const forged={...primary,getManifest:async id=>{
+   const stored=await primary.getManifest(id);
+   return {...stored,tag:'forged-authentication-tag'};
+  }};
+  const guarded=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,primary:forged,recovery,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  let rejected=false;
+  try{await guarded.sync();}catch(error){rejected=/authentication failed/.test(error.message);}
+  const untouched=(await recovery.getHead()).generation===1&&
+   (await primary.getHead()).commitment===headBefore.commitment;
   const repaired=await vault.sync();
   const head=await primary.getHead();
   const after=await recovery.getHead();
-  return {advanced,repaired:repaired.processed,primary:head.generation,recovery:after.generation};
+  return {advanced,rejected,untouched,repaired:repaired.processed,primary:head.generation,recovery:after.generation};
  });
- expect(result).toEqual({advanced:true,repaired:1,primary:2,recovery:2});
+ expect(result).toEqual({advanced:true,rejected:true,untouched:true,repaired:1,primary:2,recovery:2});
 });
