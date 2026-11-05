@@ -163,3 +163,33 @@ test('unified transaction aborts every store when event ID collides after CAS',a
  });
  expect(result).toEqual({rejected:true,generation:1,preserved:1,phantom:null,phantomManifest:null,jobs:1});
 });
+
+test('versioned integrated vault commits encrypted medical history atomically and exposes pending replica work',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_interface_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const vault=window.MedControlT046IntegratedVault.openUnifiedVault({
+   vaultId,encryptionKey,commitmentKey,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000
+  });
+  const a=await vault.append([{id:'event_interface_00000001',kind:'course',body:{course:'A'},tokens:[]}]);
+  const b=await vault.append([{id:'event_interface_00000002',kind:'correction',body:{corrects:'event_interface_00000001'},tokens:[]}]);
+  const head=await vault.getHead();
+  const first=await vault.getByPosition(0),second=await vault.getByPosition(1);
+  const jobs=await vault.getReplicaIntentPage(0,10);
+  const status=await vault.getProtectionStatus();
+  const exported=await window.MedControlT046UnifiedStore.exportVerifiedGeneration({vaultId,generation:2,commitmentKey});
+  return {a:a.protectionState,b:b.protectionState,generation:head.generation,
+   first:first.body.course,correction:second.body.corrects,jobs:jobs.jobs.length,
+   status:status.protectionState,replicaVerified:status.independentReplicaVerified,
+   manifestGeneration:exported.manifest.object.generation,
+   segmentCount:exported.segments.length,intentGeneration:exported.intent.generation};
+ });
+ expect(result).toEqual({a:'LOCAL_DURABLE',b:'LOCAL_DURABLE',generation:2,first:'A',
+  correction:'event_interface_00000001',jobs:2,status:'LOCAL_DURABLE',
+  replicaVerified:false,manifestGeneration:2,segmentCount:1,intentGeneration:2});
+});
