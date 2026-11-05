@@ -257,3 +257,53 @@ test('bounded dual archive reconciliation restores authenticated generation from
  });
  expect(result).toEqual({first:1,second:1,cursor:2,source:'recovery',frames:1});
 });
+
+test('integrated browser vault archives through PostgreSQL and disk adapters with authenticated fallback',async({page})=>{
+ const {Pool}=require('pg');
+ const fs=require('node:fs/promises'),os=require('node:os'),pathNode=require('node:path');
+ const {createPostgresReplica}=require('./helpers/t046-postgres-replica.cjs');
+ const {createDiskReplica}=require('./helpers/t046-disk-replica.cjs');
+ const vaultId='vault_bridge_'+require('node:crypto').randomUUID().replaceAll('-','');
+ const directory=await fs.mkdtemp(pathNode.join(os.tmpdir(),'t046-bridge-'));
+ const pool=new Pool({connectionString:process.env.T046_POSTGRES_URL});
+ const primary=createPostgresReplica(pool,vaultId),recovery=createDiskReplica(directory);
+ const adapters={primary,recovery};
+ try{
+  await page.exposeFunction('t046ArchiveCall',async({domain,method,args})=>{
+   if(!Object.prototype.hasOwnProperty.call(adapters,domain)||
+      !['putSegment','getSegment','putManifest','getManifest','getHead','compareAndSwapHead'].includes(method))
+    throw Error('Invalid archive bridge operation');
+   return adapters[domain][method](...args);
+  });
+  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+  for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+  const result=await page.evaluate(async vaultId=>{
+   const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+   const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+   const api=window.MedControlT046IntegratedVault;
+   const vault=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,
+    capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+   await vault.append([{id:'event_bridge_00000001',kind:'course',body:{n:1},tokens:[]}]);
+   await vault.append([{id:'event_bridge_00000002',kind:'correction',body:{n:2},tokens:[]}]);
+   const adapter=domain=>Object.fromEntries(
+    ['putSegment','getSegment','putManifest','getManifest','getHead','compareAndSwapHead']
+    .map(method=>[method,(...args)=>window.t046ArchiveCall({domain,method,args})]));
+   const primary=adapter('primary'),recovery=adapter('recovery');
+   const drained=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,maxGenerations:4});
+   const retried=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,maxGenerations:4});
+   const unavailable={...primary,getHead:async()=>{throw Error('Primary outage');}};
+   const restored=await api.retrieveUnifiedArchiveGeneration({vaultId,generation:2,commitmentKey,
+    primary:unavailable,recovery});
+   const second=await vault.getByPosition(1);
+   return {processed:drained.processed,retried:retried.processed,
+    cursor:drained.nextGeneration,source:restored.source,
+    eventCount:restored.manifest.manifest.eventCount,
+    correction:second.body.n,protection:drained.receipts[1].protectionState};
+  },vaultId);
+  expect(result).toEqual({processed:2,retried:2,cursor:2,source:'recovery',
+   eventCount:1,correction:2,protection:'SIMULATED_DUAL_READBACK'});
+  expect((await primary.getHead()).generation).toBe(2);
+  expect((await recovery.getHead()).generation).toBe(2);
+ }finally{await pool.end();await fs.rm(directory,{recursive:true,force:true});}
+});
