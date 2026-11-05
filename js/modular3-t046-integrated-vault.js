@@ -163,5 +163,25 @@ async function appendNextAndStage(args){
   throw Error('Invalid vault');
  return locks.request('medcontrol-t046-chain-'+args.vaultId,{mode:'exclusive'},()=>appendNextAndStageLocked(args));
 }
-root.MedControlT046IntegratedVault=Object.freeze({appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Unified admission path for disposable T-046 vaults. The same cross-tab lock
+ * protects genesis and successors. A reservation is checked before mutation.
+ * This is local durability only; remote replica status remains unconfirmed.
+ */
+async function append({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],commitmentKey,capacityGateway=null,reservationBytes=null}){
+ const locks=root.navigator?.locks,head=root.MedControlT046ManifestHead;
+ if(!locks||typeof locks.request!=='function'||!head)throw Error('Unified vault prerequisites missing');
+ if(typeof vaultId!=='string'||!/^vault_[A-Za-z0-9_-]{8,128}$/.test(vaultId))throw Error('Invalid vault');
+ return locks.request('medcontrol-t046-chain-'+vaultId,{mode:'exclusive'},async()=>{
+  if(capacityGateway!==null){
+   if(typeof capacityGateway.reserve!=='function'||!Number.isSafeInteger(reservationBytes)||reservationBytes<1)
+    throw Error('Invalid capacity reservation prerequisites');
+   const reservation=await capacityGateway.reserve(vaultId+':'+eventId,reservationBytes);
+   if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation not committed');
+  }
+  const current=await head.read(vaultId);
+  if(!current)return appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexTokens,commitmentKey});
+  return appendNextAndStageLocked({vaultId,eventId,kind,body,encryptionKey,indexTokens,commitmentKey,expectedHead:current});
+ });
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);

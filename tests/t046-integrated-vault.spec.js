@@ -93,3 +93,33 @@ test('T-046 unsupported second sequence fails before journal mutation',async({pa
  });
  expect(result).toEqual({rejected:true,untouched:true});
 });
+
+
+test('T-046 unified vault append links encrypted writes, indexed reads, replica staging and recovery',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+  await page.addScriptTag({path:require('node:path').resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const r=await page.evaluate(async()=>{
+  const vaultId='vault_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const journal=window.MedControlT046Journal,api=window.MedControlT046IntegratedVault;
+  const indexKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const token=await journal.tokenFor(indexKey,vaultId,'course-test');
+  const ids=[];for(let i=0;i<3;i++){
+   const eventId='event_'+crypto.randomUUID().replaceAll('-');ids.push(eventId);
+   const result=await api.append({vaultId,eventId,kind:'intake',body:{ordinal:i},encryptionKey,commitmentKey,indexTokens:[token],capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:4096});
+   if(!result.localCommitted||result.replicaConfirmed)throw Error('Incorrect local status');
+  }
+  const pageResult=await journal.page({owner:vaultId,token,key:encryptionKey});
+  const head=await window.MedControlT046ManifestHead.read(vaultId);
+  const recovered=await api.recoverReplicaQueue({vaultId,commitmentKey});
+  const jobs=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===vaultId);
+  return {generation:head.generation,ordinals:pageResult.rows.map(x=>x.body.ordinal).sort(),recovered:recovered.recovered,queue:jobs.length,ids:pageResult.rows.map(x=>x.id).sort(),expected:ids.sort()};
+ });
+ expect(r.generation).toBe(3);
+ expect(r.ordinals).toEqual([0,1,2]);
+ expect(r.recovered).toBe(true);
+ expect(r.queue).toBe(3);
+ expect(r.ids).toEqual(r.expected);
+});
