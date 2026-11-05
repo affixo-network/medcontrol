@@ -291,7 +291,7 @@ test('integrated browser vault archives through PostgreSQL and disk adapters wit
     .map(method=>[method,(...args)=>window.t046ArchiveCall({domain,method,args})]));
    const primary=adapter('primary'),recovery=adapter('recovery');
    const drained=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,maxGenerations:4});
-   const retried=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,maxGenerations:4});
+   const retried=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,afterGeneration:drained.nextGeneration,maxGenerations:4});
    const unavailable={...primary,getHead:async()=>{throw Error('Primary outage');}};
    const restored=await api.retrieveUnifiedArchiveGeneration({vaultId,generation:2,commitmentKey,
     primary:unavailable,recovery});
@@ -301,7 +301,7 @@ test('integrated browser vault archives through PostgreSQL and disk adapters wit
     eventCount:restored.manifest.manifest.eventCount,
     correction:second.body.n,protection:drained.receipts[1].protectionState};
   },vaultId);
-  expect(result).toEqual({processed:2,retried:2,cursor:2,source:'recovery',
+  expect(result).toEqual({processed:2,retried:0,cursor:2,source:'recovery',
    eventCount:1,correction:2,protection:'SIMULATED_DUAL_READBACK'});
   expect((await primary.getHead()).generation).toBe(2);
   expect((await recovery.getHead()).generation).toBe(2);
