@@ -172,3 +172,25 @@ test('T-046 integrated appendBatch publishes a verified two-event generation',as
  });
  expect(result).toEqual({committed:true,count:2,through:2,first:1,second:2,queued:true,intentMatches:true});
 });
+
+test('T-046 authenticated replica recovery resumes from a durable generation checkpoint',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_resume_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const vault=window.MedControlT046IntegratedVault;
+  for(let i=0;i<3;i++)await vault.appendBatch({vaultId,encryptionKey,commitmentKey,
+   entries:[{eventId:'event_resume_000000'+i,kind:'intake',body:{i},indexTokens:[]}],
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:100000});
+  const first=await vault.recoverAllReplicaIntents({vaultId,commitmentKey,pageSize:1,maxPages:1});
+  const second=await vault.recoverAllReplicaIntents({vaultId,commitmentKey,afterGeneration:first.nextGeneration,pageSize:1,maxPages:1});
+  const third=await vault.recoverAllReplicaIntents({vaultId,commitmentKey,afterGeneration:second.nextGeneration,pageSize:1,maxPages:1});
+  const pending=(await window.MedControlT046ReplicaQueue.pending()).filter(j=>j.vaultId===vaultId);
+  return {first:first.nextGeneration,second:second.nextGeneration,third:third.nextGeneration,
+   pending:pending.length,through:(await window.MedControlT046ManifestHead.read(vaultId)).generation};
+ });
+ expect(result).toEqual({first:1,second:2,third:3,pending:3,through:3});
+});
