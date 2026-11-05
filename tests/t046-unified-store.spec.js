@@ -136,3 +136,30 @@ test('unified authenticated read fails closed when stored ciphertext is tampered
  });
  expect(result).toEqual({before:1,rejected:true,generation:1});
 });
+
+test('unified transaction aborts every store when event ID collides after CAS',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store'])await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_abort_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const store=window.MedControlT046UnifiedStore;
+  const base={vaultId,encryptionKey,commitmentKey,capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000};
+  const first=await store.appendEncryptedBatch({...base,entries:[{id:'event_abort_00000001',kind:'intake',body:{n:1},tokens:[]}]});
+  let rejected=false;
+  try{await store.appendEncryptedBatch({...base,expectedHead:first,entries:[{id:'event_abort_00000001',kind:'intake',body:{n:999},tokens:[]}]});}
+  catch{rejected=true;}
+  const head=await store.readHead(vaultId);
+  const preserved=await store.readDecryptedAt({vaultId,position:0,encryptionKey,commitmentKey});
+  const phantom=await store.readAt(vaultId,1);
+  const jobs=await store.replicaPage(vaultId);
+  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('medcontrol_t046_unified_v1',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+  const tx=db.transaction(['manifests','segments'],'readonly');
+  const get=(store,key)=>new Promise((resolve,reject)=>{const r=tx.objectStore(store).get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+  const phantomManifest=await get('manifests',[vaultId,2]);
+  await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();
+  return {rejected,generation:head.generation,preserved:preserved.body.n,phantom,phantomManifest:phantomManifest??null,jobs:jobs.jobs.length};
+ });
+ expect(result).toEqual({rejected:true,generation:1,preserved:1,phantom:null,phantomManifest:null,jobs:1});
+});
