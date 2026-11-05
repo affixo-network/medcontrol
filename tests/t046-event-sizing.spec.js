@@ -128,3 +128,45 @@ test('A01.4 isolated physical IndexedDB usage by token count',async({browser})=>
  for(const row of rows)expect(row.deltaBytes).toBeGreaterThan(0);
  console.log('T046_ISOLATED_USAGE_SAMPLE '+JSON.stringify(rows));
 });
+
+test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
+ const {chromium}=require('@playwright/test');
+ const fs=require('node:fs'),os=require('node:os');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'t046-disk-'));
+ const diskBytes=dir=>{
+  if(!fs.existsSync(dir))return 0;
+  return fs.readdirSync(dir,{withFileTypes:true}).reduce((sum,e)=>{
+   const p=path.join(dir,e.name);
+   return sum+(e.isDirectory()?diskBytes(p):e.isFile()?fs.statSync(p).size:0);
+  },0);
+ };
+ const rows=[];
+ try{
+  for(const tokenCount of [0,1,4]){
+   const dir=path.join(root,'profile-'+tokenCount);
+   let context=await chromium.launchPersistentContext(dir,{headless:true});
+   let page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await context.close();
+   const baseline=diskBytes(path.join(dir,'Default','IndexedDB'));
+   context=await chromium.launchPersistentContext(dir,{headless:true});
+   page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+   await page.evaluate(async(tokenCount)=>{
+    const j=window.MedControlT046Journal,owner='disk-'+crypto.randomUUID();
+    const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+    const tokens=[];
+    for(let i=0;i<tokenCount;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+    for(let i=0;i<300;i++)await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
+     body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}},key,tokens});
+   },tokenCount);
+   await context.close();
+   const final=diskBytes(path.join(dir,'Default','IndexedDB'));
+   rows.push({tokenCount,baselineBytes:baseline,finalBytes:final,deltaBytes:final-baseline,deltaPerEventBytes:(final-baseline)/300});
+  }
+  for(const row of rows)expect(row.deltaBytes).toBeGreaterThan(0);
+  console.log('T046_INDEXEDDB_DISK_SAMPLE '+JSON.stringify(rows));
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
