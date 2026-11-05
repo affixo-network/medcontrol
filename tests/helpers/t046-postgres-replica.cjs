@@ -21,7 +21,8 @@ function createPostgresReplica(pool,vaultId){
     [vaultId,kind,id,payload]);
    if(result.rowCount===1)return;
    const current=await client.query('SELECT payload FROM t046_replica_objects WHERE vault_id=$1 AND kind=$2 AND commitment=$3',[vaultId,kind,id]);
-   if(current.rowCount!==1||JSON.stringify(current.rows[0].payload)!==JSON.stringify(JSON.parse(payload)))throw Error('Immutable conflict');
+   const canonical=x=>x===null||typeof x!=='object'?JSON.stringify(x):Array.isArray(x)?'['+x.map(canonical).join(',')+']':'{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';
+   if(current.rowCount!==1||canonical(current.rows[0].payload)!==canonical(JSON.parse(payload)))throw Error('Immutable conflict');
   });
  }
  async function get(kind,id){
