@@ -94,6 +94,33 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
   }finally{db.close();}
  });
 }
+/* Authenticate a committed generation and every referenced encrypted segment.
+ * Bounded to the maximum 1024 segments of one manifest generation. */
+async function verifyGeneration({vaultId,generation,commitmentKey}){
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!validVault(vaultId)||!Number.isSafeInteger(generation)||generation<1||!codec||!auth||!commitmentKey)
+  throw Error('Invalid generation verification');
+ const db=await open();
+ try{
+  const tx=db.transaction(['manifests','segments'],'readonly'),finished=done(tx);
+  const stored=await req(tx.objectStore('manifests').get([vaultId,generation]));
+  if(!stored){await finished;return false;}
+  const segments=await Promise.all(stored.object.segments.map(s=>req(tx.objectStore('segments').get([vaultId,s.commitment]))));
+  await finished;
+  if(stored.object.generation!==generation||stored.object.vaultId!==vaultId||
+     !await codec.verifyManifest(stored.object)||
+     !await auth.verify(commitmentKey,vaultId,'manifest',stored.object.commitment,stored.tag))return false;
+  for(let i=0;i<segments.length;i++){
+   const item=segments[i],descriptor=stored.object.segments[i];
+   if(!item||item.object.commitment!==descriptor.commitment||
+      item.object.firstSequence!==descriptor.firstSequence||item.object.lastSequence!==descriptor.lastSequence||
+      item.object.eventCount!==descriptor.eventCount||
+      !await codec.verifySegment(item.object)||
+      !await auth.verify(commitmentKey,vaultId,'segment',item.object.commitment,item.tag))return false;
+  }
+  return true;
+ }finally{db.close();}
+}
 async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid vault');const db=await open();try{const tx=db.transaction('heads','readonly'),finished=done(tx),head=await req(tx.objectStore('heads').get(vaultId));await finished;return head??null;}finally{db.close();}}
 async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const id=await req(tx.objectStore('positions').get([vaultId,position]));const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,...record}:null;}finally{db.close();}}
 /* Bounded authenticated read. Never return medical plaintext if the event
@@ -115,5 +142,5 @@ async function readDecryptedAt({vaultId,position,encryptionKey}){
  return {id:record.id,kind:record.kind,body:JSON.parse(new TextDecoder().decode(plain))};
 }
 async function replicaPage(vaultId,afterGeneration=0,limit=100){if(!validVault(vaultId)||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid page');const db=await open();try{const tx=db.transaction('replicaJobs','readonly'),finished=done(tx);const range=IDBKeyRange.bound([vaultId,afterGeneration+1],[vaultId,Number.MAX_SAFE_INTEGER]);const cursor=tx.objectStore('replicaJobs').openCursor(range);const jobs=[];await new Promise((ok,no)=>{cursor.onerror=()=>no(cursor.error);cursor.onsuccess=()=>{const c=cursor.result;if(!c||jobs.length===limit){ok();return;}jobs.push(c.value);c.continue();};});await finished;return {jobs,nextGeneration:jobs.length?jobs[jobs.length-1].generation:afterGeneration};}finally{db.close();}}
-root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,readHead,readAt,readDecryptedAt,replicaPage});
+root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,verifyGeneration,readHead,readAt,readDecryptedAt,replicaPage});
 })(typeof window!=='undefined'?window:globalThis);
