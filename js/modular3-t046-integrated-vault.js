@@ -304,9 +304,11 @@ async function appendBatch({vaultId,entries,encryptionKey,commitmentKey,capacity
 /* Incrementally rebuild delivery queue from atomically persisted intents.
  * A bounded page avoids traversing every historical manifest on startup.
  * Cursor advances only after every job on that page is durably enqueued. */
-async function recoverReplicaIntentPage({vaultId,afterGeneration=0,limit=100}){
- const head=root.MedControlT046ManifestHead,queue=root.MedControlT046ReplicaQueue;
- if(!head||typeof head.replicaIntentPage!=='function'||!queue||typeof queue.enqueue!=='function')
+async function recoverReplicaIntentPage({vaultId,afterGeneration=0,limit=100,commitmentKey}){
+ const head=root.MedControlT046ManifestHead,queue=root.MedControlT046ReplicaQueue,
+  auth=root.MedControlT046AuthenticatedCommitment,codec=root.MedControlT046SegmentCodec;
+ if(!head||typeof head.replicaIntentPage!=='function'||!queue||typeof queue.enqueue!=='function'||
+    !auth||!codec||!commitmentKey)
   throw Error('Replica intent recovery prerequisites missing');
  const intents=await head.replicaIntentPage({vaultId,afterGeneration,limit});
  let cursor=afterGeneration;
@@ -317,6 +319,9 @@ async function recoverReplicaIntentPage({vaultId,afterGeneration=0,limit=100}){
   const manifest=await head.object(vaultId,intent.manifestCommitment);
   if(!manifest||manifest.type!=='manifest'||manifest.object.commitment!==intent.manifestCommitment||
      manifest.object.generation!==intent.generation)throw Error('Replica intent manifest missing');
+  if(!await codec.verifyManifest(manifest.object)||
+     !await auth.verify(commitmentKey,vaultId,'manifest',manifest.object.commitment,manifest.tag))
+   throw Error('Replica intent manifest authentication failed');
   await queue.enqueue({vaultId,generation:intent.generation,manifestCommitment:intent.manifestCommitment});
   cursor=intent.generation;
  }
