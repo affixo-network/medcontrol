@@ -307,3 +307,38 @@ test('integrated browser vault archives through PostgreSQL and disk adapters wit
   expect((await recovery.getHead()).generation).toBe(2);
  }finally{await pool.end();await fs.rm(directory,{recursive:true,force:true});}
 });
+
+test('automatic archive resume rejects split brain and preserves local history',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_conflict_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const make=()=>{const segments=new Map(),manifests=new Map();let head=null;return {
+   async putSegment(k,v){segments.set(k,v);},async getSegment(k){return segments.get(k)||null;},
+   async putManifest(k,v){manifests.set(k,v);},async getManifest(k){return manifests.get(k)||null;},
+   async getHead(){return head;},async compareAndSwapHead(g,p,n){
+    if((head?.generation??0)!==g||(head?.commitment??null)!==p)return false;head=n;return true;},
+   setHead(next){head=next;}
+  };};
+  const primary=make(),recovery=make();
+  const vault=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,primary,recovery,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  await vault.append([{id:'event_conflict_00000001',kind:'intake',body:{n:1},tokens:[]}]);
+  const first=await vault.sync();
+  const second=await vault.sync();
+  primary.setHead({vaultId,generation:1,commitment:'a'.repeat(64)});
+  let rejected=false;
+  try{await vault.sync();}catch(e){rejected=/split-brain/.test(e.message);}
+  const local=await vault.getByPosition(0);
+  const backup=await recovery.getHead();
+  return {first:first.processed,second:second.processed,rejected,
+   local:local.body.n,backupGeneration:backup.generation,
+   backupCommitmentUnchanged:backup.commitment!=='a'.repeat(64)};
+ });
+ expect(result).toEqual({first:1,second:0,rejected:true,local:1,
+  backupGeneration:1,backupCommitmentUnchanged:true});
+});
