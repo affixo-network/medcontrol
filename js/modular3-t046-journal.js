@@ -57,7 +57,7 @@ function validateTokens(tokens){
 }
 async function append({owner,id,kind,body,key,tokens=[],position}){
  assertId(owner,'owner');assertId(id,'id');assertId(kind,'kind');
- if(position!==undefined&&(!Number.isSafeInteger(position)||position<0||position>=500_000_000))throw Error('Invalid event position');
+ if(position!==undefined&&(!Number.isSafeInteger(position)||position<0||position>Number.MAX_SAFE_INTEGER))throw Error('Invalid event position');
  const index=validateTokens(tokens);
  const envelope=await encrypt(key,owner,id,kind,body);
  const db=await open();
@@ -113,7 +113,7 @@ async function page({owner,token,after='',limit=100,key}){
 }
 async function getAt({owner,position,key}){
  assertId(owner,'owner');
- if(!Number.isSafeInteger(position)||position<0||position>=500_000_000)throw Error('Invalid event position');
+ if(!Number.isSafeInteger(position)||position<0||position>Number.MAX_SAFE_INTEGER)throw Error('Invalid event position');
  const db=await open();
  try{
   const tx=db.transaction([POSITIONS,EVENTS],'readonly'),finished=txDone(tx);
