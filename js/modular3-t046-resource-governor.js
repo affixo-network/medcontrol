@@ -29,10 +29,12 @@ function create({maxInFlight=2,maxBatchBytes=1024*1024,lowWatermarkBytes=8*1024*
   const requiresRecheck=measured===null&&remaining-estimatedWriteBytes<lowWatermarkBytes;
   // A capacity expansion request is not evidence that bytes were provisioned.
   // Fail closed rather than admit a medical write using a stale measurement.
-  const admitted=!requiresRecheck&&actual-pendingBytes>=estimatedWriteBytes;
+  // Without a fresh provider measurement, a prior availability estimate
+  // cannot justify a write, even when the low-watermark is not crossed.
+  const admitted=!requiresRecheck&&measured!==null&&actual-pendingBytes>=estimatedWriteBytes;
   return Object.freeze({admitted,
-   status:admitted?'LOCAL_CAPACITY_MEASURED':requiresRecheck?'CAPACITY_REMEASUREMENT_REQUIRED':'CAPACITY_UNAVAILABLE',
-   requiresRecheck});
+   status:admitted?'LOCAL_CAPACITY_MEASURED':measured===null?'CAPACITY_REMEASUREMENT_REQUIRED':'CAPACITY_UNAVAILABLE',
+   requiresRecheck:measured===null});
  }
  async function runBatch({bytes,task}){
   if(!Number.isSafeInteger(bytes)||bytes<1||bytes>maxBatchBytes||typeof task!=='function')throw Error('Invalid batch');
