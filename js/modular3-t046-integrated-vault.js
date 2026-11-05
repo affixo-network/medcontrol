@@ -183,5 +183,44 @@ async function append({vaultId,eventId,kind,body,encryptionKey,indexTokens=[],co
   return appendNextAndStageLocked({vaultId,eventId,kind,body,encryptionKey,indexTokens,commitmentKey,expectedHead:current});
  });
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Atomically publish a bounded batch of already encrypted, contiguous frames.
+ * Each batch is authenticated and committed as one manifest generation; the
+ * manifest head and every segment share one IndexedDB transaction.
+ * Caller retains responsibility for atomic journal/index admission.
+ */
+async function stageEncryptedBatch({vaultId,frames,commitmentKey,capacityGateway,reservationBytes}){
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment,
+  head=root.MedControlT046ManifestHead,queue=root.MedControlT046ReplicaQueue,locks=root.navigator?.locks;
+ if(!codec||!auth||!head||!queue||!locks||typeof locks.request!=='function'||
+    typeof vaultId!=='string'||!/^vault_[A-Za-z0-9_-]{8,128}$/.test(vaultId)||
+    !Array.isArray(frames)||frames.length<1||!commitmentKey||
+    !capacityGateway||typeof capacityGateway.reserve!=='function'||
+    !Number.isSafeInteger(reservationBytes)||reservationBytes<1)
+  throw Error('Batch staging prerequisites missing');
+ return locks.request('medcontrol-t046-chain-'+vaultId,{mode:'exclusive'},async()=>{
+  const current=await head.read(vaultId);
+  const first=current?current.generation+1:1;
+  const previous=current?await head.object(vaultId,current.commitment):null;
+  if(current&&(!previous||previous.type!=='manifest'||
+    !await codec.verifyManifest(previous.object)||
+    !await auth.verify(commitmentKey,vaultId,'manifest',previous.object.commitment,previous.tag)))
+   throw Error('Unauthenticated predecessor');
+  const nextSequence=previous?previous.object.committedThrough+1:1;
+  if(frames[0].sequence!==nextSequence)throw Error('Batch sequence discontinuity');
+  const segments=await codec.buildSegments({vaultId,frames});
+  if(segments.length>1024)throw Error('Batch exceeds manifest segment capacity');
+  const manifest=await codec.buildManifest({vaultId,generation:first,
+   previousCommitment:current?.commitment||null,segments});
+  const segmentTags=[];
+  for(const segment of segments)segmentTags.push(await auth.sign(commitmentKey,vaultId,'segment',segment.commitment));
+  const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+  const reservation=await capacityGateway.reserve(vaultId+':manifest:'+manifest.commitment,reservationBytes);
+  if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation not committed');
+  await head.commitObjects({vaultId,expected:current,segments,segmentTags,manifest,manifestTag,commitmentKey});
+  await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
+  return {localCommitted:true,replicaConfirmed:false,segmentCount:segments.length,
+   eventCount:manifest.eventCount,manifestCommitment:manifest.commitment};
+ });
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,stageEncryptedBatch,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
