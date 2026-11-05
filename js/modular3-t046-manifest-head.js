@@ -55,7 +55,7 @@ async function commitObjects({vaultId,expected=null,segment,manifest,segmentTag,
  if(!validVault(vaultId)||!validObject(segment)||!validObject(manifest)||
     segment.vaultId!==vaultId||manifest.vaultId!==vaultId||
     !codec||!await codec.verifySegment(segment)||!await codec.verifyManifest(manifest)||
-    !manifest.segments.some(s=>s.commitment===segment.commitment)||
+    (manifest.segments.length!==1||manifest.segments[0].commitment!==segment.commitment||manifest.segments[0].firstSequence!==segment.firstSequence||manifest.segments[0].lastSequence!==segment.lastSequence||manifest.segments[0].eventCount!==segment.eventCount)||
     !auth||!commitmentKey||!await auth.verify(commitmentKey,vaultId,'segment',segment.commitment,segmentTag)||
     !await auth.verify(commitmentKey,vaultId,'manifest',manifest.commitment,manifestTag)||
     manifest.previousCommitment!==(expected?expected.commitment:null)||
