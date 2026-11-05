@@ -430,7 +430,11 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
          !await auth.verify(commitmentKey,vaultId,'manifest',advanced.commitment,stored.tag))
        throw Error('Archive ancestry authentication failed');
       cursor=behind.generation;
-     }else cursor=0;
+     }else{
+      if(advanced.generation!==1)
+       throw Error('Archive bootstrap lag requires authenticated checkpoint replay');
+      cursor=0;
+     }
     }
    }
    return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
