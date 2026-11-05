@@ -301,5 +301,26 @@ async function appendBatch({vaultId,entries,encryptionKey,commitmentKey,capacity
   return {localCommitted:true,replicaConfirmed:false,eventCount:frames.length,manifestCommitment:manifest.commitment};
  });
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Incrementally rebuild delivery queue from atomically persisted intents.
+ * A bounded page avoids traversing every historical manifest on startup.
+ * Cursor advances only after every job on that page is durably enqueued. */
+async function recoverReplicaIntentPage({vaultId,afterGeneration=0,limit=100}){
+ const head=root.MedControlT046ManifestHead,queue=root.MedControlT046ReplicaQueue;
+ if(!head||typeof head.replicaIntentPage!=='function'||!queue||typeof queue.enqueue!=='function')
+  throw Error('Replica intent recovery prerequisites missing');
+ const intents=await head.replicaIntentPage({vaultId,afterGeneration,limit});
+ let cursor=afterGeneration;
+ for(const intent of intents){
+  if(intent.vaultId!==vaultId||!Number.isSafeInteger(intent.generation)||intent.generation<=cursor||
+     typeof intent.manifestCommitment!=='string'||!/^[a-f0-9]{64}$/.test(intent.manifestCommitment))
+   throw Error('Corrupt durable replica intent');
+  const manifest=await head.object(vaultId,intent.manifestCommitment);
+  if(!manifest||manifest.type!=='manifest'||manifest.object.commitment!==intent.manifestCommitment||
+     manifest.object.generation!==intent.generation)throw Error('Replica intent manifest missing');
+  await queue.enqueue({vaultId,generation:intent.generation,manifestCommitment:intent.manifestCommitment});
+  cursor=intent.generation;
+ }
+ return {recovered:intents.length,nextGeneration:cursor,hasMore:intents.length===limit};
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
