@@ -189,3 +189,72 @@ test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
   console.log('T046_INDEXEDDB_DISK_SAMPLE '+JSON.stringify(rows));
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+
+
+test('A01 measure physical IndexedDB growth across intake correction and course events',async()=>{
+ const {chromium}=require('@playwright/test');
+ const fs=require('node:fs'),os=require('node:os');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'t046-a01-kinds-'));
+ const diskBytes=dir=>!fs.existsSync(dir)?0:fs.readdirSync(dir,{withFileTypes:true}).reduce((sum,e)=>{
+  const p=path.join(dir,e.name);
+  return sum+(e.isDirectory()?diskBytes(p):e.isFile()?fs.statSync(p).size:0);
+ },0);
+ const kinds=[
+  {kind:'intake',body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}}},
+  {kind:'correction',body:{courseId:'course-01',corrects:'intake-001',reason:'mistake',correctedAt:'2026-11-04T09:07:00+04:00',note:'wrong scheduled time'}},
+  {kind:'course',body:{courseId:'course-01',medicine:'Example medication',manufacturer:'Example manufacturer',schedule:{frequency:'daily',time:'09:00'},start:'2026-11-04',end:'2027-11-04'}}
+ ];
+ const rows=[];
+ try{
+  for(const item of kinds){
+   const dir=path.join(root,item.kind);
+   let context=await chromium.launchPersistentContext(dir,{headless:true});
+   let page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await context.close();
+   const before=diskBytes(path.join(dir,'Default','IndexedDB'));
+   context=await chromium.launchPersistentContext(dir,{headless:true});
+   page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+   const stats=await page.evaluate(async(item)=>{
+    const j=window.MedControlT046Journal,owner='a01-kind-'+crypto.randomUUID();
+    const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+    const tokens=[];
+    for(let i=0;i<4;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+    const sizes=[];
+    for(let i=0;i<1000;i++){
+     const id='event-'+String(i).padStart(8,'0');
+     await j.append({owner,id,kind:item.kind,body:item.body,key,tokens});
+    }
+    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('medcontrol_t046_journal_v1');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+    const rows=await new Promise((resolve,reject)=>{
+     const tx=db.transaction(['events','tokens'],'readonly');
+     const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+     const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+     let events,indexes;
+     e.onsuccess=()=>{events=e.result;};t.onsuccess=()=>{indexes=t.result;};
+     tx.oncomplete=()=>resolve({events,indexes});tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+    const size=v=>new TextEncoder().encode(JSON.stringify(v)).length;
+    const tokenSizes=new Map();
+    for(const t of rows.indexes)tokenSizes.set(t.id,(tokenSizes.get(t.id)||0)+size(t));
+    for(const e of rows.events)sizes.push(size(e)+(tokenSizes.get(e.id)||0));
+    sizes.sort((a,b)=>a-b);
+    return {eventCount:rows.events.length,indexCount:rows.indexes.length,serializedP50Bytes:sizes[499],serializedP95Bytes:sizes[949],serializedMaxBytes:sizes[999]};
+   },item);
+   await context.close();
+   const after=diskBytes(path.join(dir,'Default','IndexedDB'));
+   rows.push({kind:item.kind,...stats,physicalDeltaBytes:after-before,physicalBytesPerEvent:(after-before)/1000});
+  }
+  for(const row of rows){
+   expect(row.eventCount).toBe(1000);
+   expect(row.indexCount).toBe(4000);
+   expect(row.physicalDeltaBytes).toBeGreaterThan(0);
+   expect(row.serializedMaxBytes).toBeGreaterThanOrEqual(row.serializedP95Bytes);
+  }
+  console.log('T046_A01_EVENT_KIND_PHYSICAL_SAMPLE '+JSON.stringify(rows));
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
