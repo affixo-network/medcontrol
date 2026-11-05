@@ -266,15 +266,28 @@ async function appendBatch({vaultId,entries,encryptionKey,commitmentKey,capacity
   const previous=current?await head.object(vaultId,current.commitment):null;
   if(current&&(!previous||previous.type!=='manifest'||
      !await codec.verifyManifest(previous.object)))throw Error('Invalid predecessor');
+  const auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue;
+  if(!auth||!queue||!commitmentKey||!encryptionKey||
+     typeof auth.sign!=='function'||typeof auth.verify!=='function')
+   throw Error('Integrated batch authentication unavailable');
+  if(previous&&!await auth.verify(commitmentKey,vaultId,'manifest',previous.object.commitment,previous.tag))
+   throw Error('Unauthenticated predecessor');
   const start=previous?previous.object.committedThrough:0;
-  const prepared=entries.map(e=>({id:e.eventId,kind:e.kind,body:e.body,key:encryptionKey,tokens:e.indexTokens||[]}));
+  if(!Number.isSafeInteger(start+entries.length))throw Error('Batch sequence overflow');
+  const seen=new Set();
+  for(const entry of entries){
+   if(!entry||typeof entry.eventId!=='string'||!/^[A-Za-z0-9_-]{16,128}$/.test(entry.eventId)||
+      seen.has(entry.eventId)||typeof entry.kind!=='string'||!entry.kind||
+      !Array.isArray(entry.indexTokens)||entry.indexTokens.length>16)
+    throw Error('Invalid integrated batch entry');
+   seen.add(entry.eventId);
+  }
+  const prepared=entries.map(e=>({id:e.eventId,kind:e.kind,body:e.body,key:encryptionKey,tokens:e.indexTokens}));
   const reserve=await capacityGateway.reserve(vaultId+':journal-batch:'+start+':'+prepared[0].id,reservationBytes);
   if(!reserve||reserve.reserved!==true)throw Error('Capacity reservation not committed');
   await journal.appendBatch({owner:vaultId,entries:prepared,startPosition:start});
   const frames=await journal.encryptedRange({owner:vaultId,start,limit:prepared.length});
   // The same cross-tab lock is already held; avoid nested navigator.locks.
-  const auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue;
-  if(!auth||!queue)throw Error('Integrated batch authentication unavailable');
   const segments=await codec.buildSegments({vaultId,frames});
   const manifest=await codec.buildManifest({vaultId,generation:current?current.generation+1:1,
    previousCommitment:current?.commitment||null,segments});
