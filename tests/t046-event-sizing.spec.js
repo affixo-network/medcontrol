@@ -643,3 +643,38 @@ test('A01 recover encrypted positioned event after full browser profile restart'
   }finally{await context.close();}
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+
+test('A01 concurrent encrypted writes to one physical position commit exactly once',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+ const result=await page.evaluate(async()=>{
+  const j=window.MedControlT046Journal,owner='a01-race-'+crypto.randomUUID(),position=499999999;
+  const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const attempts=await Promise.allSettled(Array.from({length:8},(_,i)=>
+   j.append({owner,id:'racer-'+i,position,kind:'intake',body:{courseId:'race-test',winner:i},key})));
+  const success=attempts.filter(x=>x.status==='fulfilled').length;
+  const rejected=attempts.filter(x=>x.status==='rejected').length;
+  const stored=await j.getAt({owner,position,key});
+  const db=await new Promise((resolve,reject)=>{
+   const request=indexedDB.open('medcontrol_t046_journal_v1');
+   request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+  });
+  const records=await new Promise((resolve,reject)=>{
+   const tx=db.transaction(['events','positions'],'readonly');
+   const a=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+   const b=tx.objectStore('positions').getAll(IDBKeyRange.bound([owner,0],[owner,499999999]));
+   let events,positions;
+   a.onsuccess=()=>events=a.result;b.onsuccess=()=>positions=b.result;
+   tx.oncomplete=()=>resolve({events,positions});tx.onerror=()=>reject(tx.error);
+  });
+  db.close();
+  return {success,rejected,storedId:stored?.id,storedWinner:stored?.body?.winner,
+   eventCount:records.events.length,positionCount:records.positions.length,
+   matches:records.events.length===1&&records.positions.length===1&&records.events[0].id===stored?.id};
+ });
+ expect(result.success).toBe(1);
+ expect(result.rejected).toBe(7);
+ expect(result.matches).toBe(true);
+ console.log('T046_A01_CONCURRENT_POSITION '+JSON.stringify(result));
+});
