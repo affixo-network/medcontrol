@@ -42,3 +42,20 @@ These values are **scenario projections only**. They exclude backups and replica
 5. Establish a defensible resource-extension mechanism: finite local SSD capacity cannot guarantee 500 million events on **every** device, regardless of available space.
 
 **Decision:** A01.4 measurements are evidenced at up to 10,000 synthetic events; A01 overall capacity acceptance remains **OPEN**. No production or patient data changes.
+
+## Follow-up: allocated blocks and order-reversal control (2026-11-05)
+
+The Linux test runner measured `stat.blocks * 512` for Chromium IndexedDB files after browser shutdown. This is filesystem block allocation, **not** total SSD free-space consumption or a durability guarantee.
+
+| Run | Variant order | Tokens/event | Logical bytes at 10,000 | Allocated bytes at 10,000 |
+| --- | --- | ---: | ---: | ---: |
+| [41940260453](https://github.com/affixo-network/medcontrol/actions/runs/41940260453) | 0,1,4 | 0 | 7,147,044 | 7,172,096 |
+| same | 0,1,4 | 1 | 10,124,439 | 10,149,888 |
+| same | 0,1,4 | 4 | 8,644,465 | 8,663,040 |
+| [41940596614](https://github.com/affixo-network/medcontrol/actions/runs/41940596614) | 4,1,0 | 4 | 15,661,395 | 15,687,680 |
+| same | 4,1,0 | 1 | 10,149,376 | 10,170,368 |
+| same | 4,1,0 | 0 | 7,139,205 | 7,163,904 |
+
+Both runs: **SUCCESS, 4 tests passed**. The 4-token variant varies substantially between runs while the 0/1-token variants remain close. The order-reversal result is consistent with 4 > 1 > 0, but **does not establish that order caused the anomalous result**. IndexedDB compaction, scheduling, write patterns and timing remain unisolated variables. The sizing model must not use the anomalously low 4-token result as an assured capacity figure.
+
+**Next controlled measurement:** repeat identical token variants with fixed seeds and multiple independent persistent profiles per variant; record file-level breakdown and timing of shutdown/compaction. Keep A01 capacity acceptance open until resource bounds and recovery reserve are established.
