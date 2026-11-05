@@ -131,7 +131,7 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
     for(let i=0;i<prepared.length;i++){
      const e=prepared[i],position=first+i-1;
      tx.objectStore('events').add({kind:e.kind,envelope:e.envelope},[vaultId,e.id]);
-     tx.objectStore('positions').add(e.id,[vaultId,position]);
+     tx.objectStore('positions').add({id:e.id,generation},[vaultId,position]);
      for(const t of e.tokens)tx.objectStore('tokens').add(true,[vaultId,t,e.id]);
     }
     for(let i=0;i<segments.length;i++)tx.objectStore('segments').add({object:segments[i],tag:segmentTags[i]},[vaultId,segments[i].commitment]);
@@ -172,37 +172,36 @@ async function verifyGeneration({vaultId,generation,commitmentKey}){
  }finally{db.close();}
 }
 async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid vault');const db=await open();try{const tx=db.transaction('heads','readonly'),finished=done(tx),head=await req(tx.objectStore('heads').get(vaultId));await finished;return head??null;}finally{db.close();}}
-async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const id=await req(tx.objectStore('positions').get([vaultId,position]));const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,...record}:null;}finally{db.close();}}
+async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const ref=await req(tx.objectStore('positions').get([vaultId,position]));const id=typeof ref==='string'?ref:ref?.id;const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,generation:ref?.generation??null,...record}:null;}finally{db.close();}}
 /* Bounded authenticated read. Never return medical plaintext if the event
  * identifier, type, vault or ciphertext authentication has been altered. */
 async function readDecryptedAt({vaultId,position,encryptionKey,commitmentKey=null}){
  if(!encryptionKey||encryptionKey.type!=='secret'||encryptionKey.algorithm?.name!=='AES-GCM'||
     !encryptionKey.usages.includes('decrypt'))throw Error('AES-GCM decryption key required');
- if(commitmentKey){
-  const head=await readHead(vaultId);
-  if(!head||position>=head.lastSequence)throw Error('Event is outside committed history');
-  // Authenticate the segment containing this position, rather than scanning
-  // or materializing the complete history of a long-lived medical vault.
-  const db=await open();
-  let generation=0;
-  try{
-   const tx=db.transaction('manifests','readonly'),finished=done(tx);
-   const cursor=tx.objectStore('manifests').openCursor(IDBKeyRange.bound([vaultId,1],[vaultId,head.generation]));
-   await new Promise((resolve,reject)=>{
-    cursor.onerror=()=>reject(cursor.error);
-    cursor.onsuccess=()=>{const c=cursor.result;if(!c){resolve();return;}
-     const m=c.value.object;
-     if(m.segments.some(segment=>segment.firstSequence<=position+1&&segment.lastSequence>=position+1)){
-      generation=m.generation;resolve();return;
-     }c.continue();};
-   });
-   await finished;
-  }finally{db.close();}
-  if(!generation||!await verifyGeneration({vaultId,generation,commitmentKey}))
-   throw Error('Encrypted event generation authentication failed');
- }
  const record=await readAt(vaultId,position);
  if(!record)return null;
+ if(commitmentKey){
+  const head=await readHead(vaultId);
+  if(!head||position>=head.lastSequence||!Number.isSafeInteger(record.generation)||record.generation<1)
+   throw Error('Event has no authenticated generation index');
+  if(!await verifyGeneration({vaultId,generation:record.generation,commitmentKey}))
+   throw Error('Encrypted event generation authentication failed');
+  // Authentication must cover this exact ciphertext, not merely an unrelated
+  // valid manifest in the same generation.
+  const db=await open();
+  let match=false;
+  try{
+   const tx=db.transaction(['manifests','segments'],'readonly'),finished=done(tx);
+   const stored=await req(tx.objectStore('manifests').get([vaultId,record.generation]));
+   const descriptor=stored?.object.segments.find(x=>x.firstSequence<=position+1&&x.lastSequence>=position+1);
+   const segment=descriptor?await req(tx.objectStore('segments').get([vaultId,descriptor.commitment])):null;
+   await finished;
+   const frame=segment?.object.frames[position+1-descriptor.firstSequence];
+   match=frame?.eventId===record.id&&JSON.stringify(frame.envelope)===JSON.stringify(record.envelope);
+  }finally{db.close();}
+  if(!match)throw Error('Encrypted event does not match authenticated segment');
+ }
+
  const envelope=record.envelope;
  if(!envelope||envelope.v!==1||envelope.alg!=='AES-GCM'||
     typeof envelope.iv!=='string'||typeof envelope.ciphertext!=='string')throw Error('Invalid encrypted event');
