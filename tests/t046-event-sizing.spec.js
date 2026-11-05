@@ -305,9 +305,13 @@ test('A01 compare physical IndexedDB growth at 1000 and 3000 intake events',asyn
   }
   const first=rows[1].physicalBytes-rows[0].physicalBytes;
   const second=rows[2].physicalBytes-rows[1].physicalBytes;
-  const report={rows,first1000BytesPerEvent:first/1000,next2000BytesPerEvent:second/2000,
-   marginalGrowthRatio:(second/2000)/(first/1000),
-   caveat:'Single IndexedDB profile; LevelDB compaction and file retention make these observed deltas non-monotonic and not a capacity upper bound'};
+  const peakPhysicalBytes=Math.max(...rows.map(row=>row.physicalBytes));
+  const report={rows,peakPhysicalBytes,
+   first1000BytesPerEvent:first/1000,
+   next2000ObservedDiskDeltaBytes:second,
+   next2000ObservedDiskDeltaPerEvent:second/2000,
+   negativeDeltaMeansCompaction:second<0,
+   caveat:'Observed disk delta may be negative due to LevelDB compaction; never interpret it as negative per-event storage cost or a proven capacity upper bound'};
   expect(first).toBeGreaterThan(0);
   expect(rows[2].physicalBytes).toBeGreaterThan(rows[0].physicalBytes);
   console.log('T046_A01_PHYSICAL_SCALE_SAMPLE '+JSON.stringify(report));
