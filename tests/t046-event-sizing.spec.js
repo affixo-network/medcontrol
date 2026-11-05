@@ -153,18 +153,27 @@ test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
    page=await context.newPage();
    await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
    await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
-   await page.evaluate(async(tokenCount)=>{
-    const j=window.MedControlT046Journal,owner='disk-'+crypto.randomUUID();
+   const owner='disk-'+tokenCount+'-'+Date.now();
+   const writeBatch=async(start,count)=>page.evaluate(async({tokenCount,owner,start,count})=>{
+    const j=window.MedControlT046Journal;
     const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
     const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
     const tokens=[];
     for(let i=0;i<tokenCount;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
-    for(let i=0;i<300;i++)await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
+    for(let i=start;i<start+count;i++)await j.append({owner,id:'event-'+String(i).padStart(6,'0'),kind:'intake',
      body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}},key,tokens});
-   },tokenCount);
+   },{tokenCount,owner,start,count});
+   await writeBatch(0,60);
+   await context.close();
+   const at60=diskBytes(path.join(dir,'Default','IndexedDB'));
+   context=await chromium.launchPersistentContext(dir,{headless:true});
+   page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+   await writeBatch(60,240);
    await context.close();
    const final=diskBytes(path.join(dir,'Default','IndexedDB'));
-   rows.push({tokenCount,baselineBytes:baseline,finalBytes:final,deltaBytes:final-baseline,deltaPerEventBytes:(final-baseline)/300});
+   rows.push({tokenCount,baselineBytes:baseline,bytesAt60:at60,bytesAt300:final,initialBytesPerEvent:(at60-baseline)/60,marginalBytesPerEvent:(final-at60)/240,deltaBytes:final-baseline});
   }
   for(const row of rows)expect(row.deltaBytes).toBeGreaterThan(0);
   console.log('T046_INDEXEDDB_DISK_SAMPLE '+JSON.stringify(rows));
