@@ -125,3 +125,27 @@ test('T-046 unified vault append links encrypted writes, indexed reads, replica 
  expect(r.queue).toBe(3);
  expect(r.ids).toEqual(r.expected);
 });
+
+test('T-046 durable journal batch commits two authenticated events and rejects an absent third',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_batch_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const journal=window.MedControlT046Journal,integrated=window.MedControlT046IntegratedVault;
+  for(let i=0;i<2;i++)await journal.append({owner:vaultId,id:'batch_'+i,kind:'intake',body:{i},key:encryptionKey,position:i});
+  const capacityGateway={reserve:async()=>({reserved:true})};
+  const committed=await integrated.stageJournalRange({vaultId,startSequence:1,count:2,commitmentKey,capacityGateway,reservationBytes:100000});
+  const head=await window.MedControlT046ManifestHead.read(vaultId);
+  const manifest=await window.MedControlT046ManifestHead.object(vaultId,head.commitment);
+  let missingRejected=false;
+  try{await integrated.stageJournalRange({vaultId,startSequence:3,count:1,commitmentKey,capacityGateway,reservationBytes:100000});}
+  catch(e){missingRejected=/missing position/.test(e.message);}
+  const after=await window.MedControlT046ManifestHead.read(vaultId);
+  return {committed:committed.localCommitted,eventCount:committed.eventCount,segments:committed.segmentCount,
+   through:manifest.object.committedThrough,missingRejected,headUnchanged:after.commitment===head.commitment};
+ });
+ expect(result).toEqual({committed:true,eventCount:2,segments:1,through:2,missingRejected:true,headUnchanged:true});
+});
