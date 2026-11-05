@@ -467,8 +467,12 @@ async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primar
  for(const adapter of [primary,recovery])
   if(required.some(method=>typeof adapter[method]!=='function'))
    throw Error('Archive adapter missing immutable/CAS protocol');
- const bundle=await store.exportVerifiedGeneration({vaultId,generation,commitmentKey});
- const manifest=bundle.manifest.object;
+ if(typeof store.exportVerifiedGenerationPage!=='function')
+  throw Error('Bounded authenticated export unavailable');
+ const firstPage=await store.exportVerifiedGenerationPage({
+  vaultId,generation,commitmentKey,afterSegment:0,limit:4
+ });
+ const manifest=firstPage.manifest.object;
  const commitment=manifest.commitment;
  const previous=manifest.previousCommitment??null;
  const canonical=x=>{if(x===null||typeof x!=='object')return JSON.stringify(x);if(Array.isArray(x))return '['+x.map(canonical).join(',')+']';return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';};
@@ -488,13 +492,22 @@ async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primar
     throw Error('Advanced archive missing authenticated historical generation');
    return;
   }
-  for(const segment of bundle.segments){
-   const object={segment:segment.object,tag:segment.tag};
-   await adapter.putSegment(segment.object.commitment,object);
-   const back=await adapter.getSegment(segment.object.commitment);
-   if(canonical(back)!==canonical(object))throw Error('Archive segment readback mismatch');
+  let page=firstPage;
+  while(true){
+   if(page.manifest.object.commitment!==commitment)
+    throw Error('Export manifest changed during replication');
+   for(const segment of page.segments){
+    const object={segment:segment.object,tag:segment.tag};
+    await adapter.putSegment(segment.object.commitment,object);
+    const back=await adapter.getSegment(segment.object.commitment);
+    if(canonical(back)!==canonical(object))throw Error('Archive segment readback mismatch');
+   }
+   if(!page.hasMore)break;
+   page=await store.exportVerifiedGenerationPage({
+    vaultId,generation,commitmentKey,afterSegment:page.nextSegment,limit:4
+   });
   }
-  const object={manifest,tag:bundle.manifest.tag};
+  const object={manifest,tag:firstPage.manifest.tag};
   await adapter.putManifest(commitment,object);
   const back=await adapter.getManifest(commitment);
   if(canonical(back)!==canonical(object))throw Error('Archive manifest readback mismatch');
