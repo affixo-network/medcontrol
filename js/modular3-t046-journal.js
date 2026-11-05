@@ -71,6 +71,37 @@ async function append({owner,id,kind,body,key,tokens=[],position}){
   return {id,committed:true};
  }finally{db.close();}
 }
+/* Encrypt outside IndexedDB, then atomically admit a bounded contiguous batch
+ * of ciphertext, opaque tokens, and positions in one transaction. */
+async function appendBatch({owner,entries,startPosition}){
+ assertId(owner,'owner');
+ if(!Array.isArray(entries)||entries.length<1||entries.length>1024||
+    !Number.isSafeInteger(startPosition)||startPosition<0||
+    !Number.isSafeInteger(startPosition+entries.length-1))throw Error('Invalid journal batch');
+ const prepared=[],ids=new Set();
+ for(const entry of entries){
+  if(!entry)throw Error('Invalid journal batch entry');
+  const {id,kind,body,key,tokens=[]}=entry;
+  assertId(id,'id');assertId(kind,'kind');
+  if(ids.has(id))throw Error('Duplicate batch event');
+  ids.add(id);
+  const index=validateTokens(tokens);
+  prepared.push({owner,id,kind,envelope:await encrypt(key,owner,id,kind,body),tokens:index});
+ }
+ const db=await open();
+ try{
+  const tx=db.transaction([EVENTS,TOKENS,POSITIONS],'readwrite'),finished=txDone(tx);
+  const events=tx.objectStore(EVENTS),tokens=tx.objectStore(TOKENS),positions=tx.objectStore(POSITIONS);
+  for(let i=0;i<prepared.length;i++){
+   const record=prepared[i];
+   events.add(record);
+   for(const token of record.tokens)tokens.add({owner,token,id:record.id});
+   positions.add({owner,position:startPosition+i,id:record.id});
+  }
+  await finished;
+  return {committed:true,eventCount:prepared.length,firstSequence:startPosition+1,lastSequence:startPosition+prepared.length};
+ }finally{db.close();}
+}
 async function get({owner,id,key}){
  assertId(owner,'owner');assertId(id,'id');
  const db=await open();
@@ -157,5 +188,5 @@ async function encryptedRange({owner,start,limit}){
   return records.map((record,i)=>({sequence:start+i+1,eventId:record.id,envelope:record.envelope}));
  }finally{db.close();}
 }
-root.MedControlT046Journal=Object.freeze({append,get,getAt,page,tokenFor,encrypted,encryptedRange});
+root.MedControlT046Journal=Object.freeze({append,appendBatch,get,getAt,page,tokenFor,encrypted,encryptedRange});
 })(typeof window!=='undefined'?window:globalThis);
