@@ -10,6 +10,27 @@ function open(){return new Promise((ok,no)=>{const r=root.indexedDB.open(DB,VERS
  };r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error||Error('Open failed'));r.onblocked=()=>no(Error('Upgrade blocked'));});}
 const validVault=v=>typeof v==='string'&&/^vault_[A-Za-z0-9_-]{8,128}$/.test(v);
 const token=t=>typeof t==='string'&&/^[0-9a-f]{64}$/.test(t);
+/* Encrypt medical event bodies before the atomic storage transaction. */
+async function appendEncryptedBatch({vaultId,entries,encryptionKey,commitmentKey,expectedHead=null,capacityGateway,reservationBytes}){
+ if(!encryptionKey||encryptionKey.type!=='secret'||encryptionKey.algorithm?.name!=='AES-GCM'||
+    !encryptionKey.usages.includes('encrypt')||!Array.isArray(entries)||entries.length<1||entries.length>1024)
+  throw Error('Invalid encrypted batch');
+ const first=(expectedHead?.lastSequence??0)+1;
+ const encoder=new TextEncoder(),frames=[],indexes=[];
+ for(let i=0;i<entries.length;i++){
+  const e=entries[i];
+  if(!e||typeof e.id!=='string'||!/^event_[A-Za-z0-9_-]{8,128}$/.test(e.id)||
+     typeof e.kind!=='string'||!e.kind||!Array.isArray(e.tokens))throw Error('Invalid event');
+  const iv=root.crypto.getRandomValues(new Uint8Array(12));
+  const aad=encoder.encode(JSON.stringify([1,vaultId,e.id,e.kind]));
+  const plaintext=encoder.encode(JSON.stringify(e.body));
+  const ciphertext=new Uint8Array(await root.crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},encryptionKey,plaintext));
+  const b64=bytes=>btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''));
+  frames.push({sequence:first+i,eventId:e.id,envelope:{v:1,alg:'AES-GCM',iv:b64(iv),ciphertext:b64(ciphertext)}});
+  indexes.push({id:e.id,kind:e.kind,tokens:e.tokens});
+ }
+ return commitBatch({vaultId,frames,entries:indexes,commitmentKey,expectedHead,capacityGateway,reservationBytes});
+}
 async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=null,capacityGateway,reservationBytes}){
  const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
  if(!codec||!auth||!validVault(vaultId)||!Array.isArray(frames)||!frames.length||frames.length>1024||
@@ -67,5 +88,5 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
 async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid vault');const db=await open();try{const tx=db.transaction('heads','readonly'),finished=done(tx),head=await req(tx.objectStore('heads').get(vaultId));await finished;return head??null;}finally{db.close();}}
 async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const id=await req(tx.objectStore('positions').get([vaultId,position]));const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,...record}:null;}finally{db.close();}}
 async function replicaPage(vaultId,afterGeneration=0,limit=100){if(!validVault(vaultId)||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid page');const db=await open();try{const tx=db.transaction('replicaJobs','readonly'),finished=done(tx);const range=IDBKeyRange.bound([vaultId,afterGeneration+1],[vaultId,Number.MAX_SAFE_INTEGER]);const cursor=tx.objectStore('replicaJobs').openCursor(range);const jobs=[];await new Promise((ok,no)=>{cursor.onerror=()=>no(cursor.error);cursor.onsuccess=()=>{const c=cursor.result;if(!c||jobs.length===limit){ok();return;}jobs.push(c.value);c.continue();};});await finished;return {jobs,nextGeneration:jobs.length?jobs[jobs.length-1].generation:afterGeneration};}finally{db.close();}}
-root.MedControlT046UnifiedStore=Object.freeze({commitBatch,readHead,readAt,replicaPage});
+root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,readHead,readAt,replicaPage});
 })(typeof window!=='undefined'?window:globalThis);
