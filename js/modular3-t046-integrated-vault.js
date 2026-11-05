@@ -413,11 +413,24 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
     }else{
      const advanced=(a?.generation??0)>(b?.generation??0)?a:b;
      const behind=advanced===a?b:a;
-     // The behind archive must be an authenticated ancestor of the advanced
-     // archive. Without proof, stop rather than overwrite or fork history.
-     if(behind?.generation)
-      throw Error('Archive divergence requires authenticated ancestry proof');
-     cursor=0;
+     // A one-generation lag can be repaired only when the newer authenticated
+     // manifest names the exact older commitment. Otherwise fail closed.
+     if(behind?.generation){
+      if(advanced.generation!==behind.generation+1)
+       throw Error('Archive divergence requires authenticated ancestry proof');
+      const advancedAdapter=advanced===a?primary:recovery;
+      const stored=await advancedAdapter.getManifest(advanced.commitment);
+      const codec=root.MedControlT046SegmentCodec;
+      const auth=root.MedControlT046AuthenticatedCommitment;
+      if(!stored||stored.manifest?.commitment!==advanced.commitment||
+         stored.manifest?.vaultId!==vaultId||
+         stored.manifest?.generation!==advanced.generation||
+         stored.manifest?.previousCommitment!==behind.commitment||
+         !await codec.verifyManifest(stored.manifest)||
+         !await auth.verify(commitmentKey,vaultId,'manifest',advanced.commitment,stored.tag))
+       throw Error('Archive ancestry authentication failed');
+      cursor=behind.generation;
+     }else cursor=0;
     }
    }
    return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
