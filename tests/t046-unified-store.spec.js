@@ -342,3 +342,36 @@ test('automatic archive resume rejects split brain and preserves local history',
  expect(result).toEqual({first:1,second:0,rejected:true,local:1,
   backupGeneration:1,backupCommitmentUnchanged:true});
 });
+
+test('one-generation archive lag is repaired only after authenticated ancestry proof',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_lag_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const make=()=>{const segments=new Map(),manifests=new Map();let head=null;return {
+   async putSegment(k,v){segments.set(k,v);},async getSegment(k){return segments.get(k)||null;},
+   async putManifest(k,v){manifests.set(k,v);},async getManifest(k){return manifests.get(k)||null;},
+   async getHead(){return head;},async compareAndSwapHead(g,p,n){
+    if((head?.generation??0)!==g||(head?.commitment??null)!==p)return false;head=n;return true;},
+   corrupt(k){const v=manifests.get(k);manifests.set(k,{...v,tag:'tampered'});}
+  };};
+  const primary=make(),recovery=make();
+  const vault=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,primary,recovery,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  await vault.append([{id:'event_lag_00000001',kind:'intake',body:{n:1},tokens:[]}]);
+  await vault.sync();
+  await vault.append([{id:'event_lag_00000002',kind:'correction',body:{n:2},tokens:[]}]);
+  const advanced=await api.deliverUnifiedGeneration({vaultId,generation:2,commitmentKey,
+   primary,recovery:{...recovery,compareAndSwapHead:async()=>{throw Error('Replica outage');}}})
+   .then(()=>false,()=>true);
+  const repaired=await vault.sync();
+  const head=await primary.getHead();
+  const after=await recovery.getHead();
+  return {advanced,repaired:repaired.processed,primary:head.generation,recovery:after.generation};
+ });
+ expect(result).toEqual({advanced:true,repaired:1,primary:2,recovery:2});
+});
