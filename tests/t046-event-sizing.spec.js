@@ -289,7 +289,7 @@ test('A01 compare physical IndexedDB growth at 1000 and 3000 intake events',asyn
      await page.evaluate(async({start,target})=>{
       const j=window.MedControlT046Journal,owner='a01-scale-owner';
       const raw=new Uint8Array(32).fill(7);
-      const key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt']);
+      const key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']);
       const hmac=await crypto.subtle.importKey('raw',new Uint8Array(32).fill(9),{name:'HMAC',hash:'SHA-256'},false,['sign']);
       const tokens=[];
       for(let i=0;i<4;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
