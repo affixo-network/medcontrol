@@ -5,6 +5,9 @@
 (function(root){
 'use strict';
 const enc=new TextEncoder();
+const MAX_SEGMENT_BYTES=64*1024*1024;
+function segmentBytes(core){return enc.encode(canonical(core)).byteLength;}
+function assertSegmentSize(core){if(segmentBytes(core)>MAX_SEGMENT_BYTES)throw Error('Segment exceeds 64 MiB');}
 const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
 const canonical=x=>{
  if(x===null||typeof x==='string'||typeof x==='boolean')return JSON.stringify(x);
@@ -37,6 +40,7 @@ async function buildSegment({vaultId,frames}){
   prev=f.sequence;seen.add(f.eventId);
  }
  const core={format:'mc.segment',version:1,vaultId,firstSequence:frames[0].sequence,lastSequence:prev,eventCount:frames.length,frames:structuredClone(frames)};
+ assertSegmentSize(core);
  return Object.freeze({...core,commitment:await hash(core)});
 }
 async function verifySegment(s){
@@ -47,6 +51,7 @@ async function verifySegment(s){
   for(const f of s.frames){frameCheck(f);if(prev&&f.sequence!==prev+1||seen.has(f.eventId))return false;prev=f.sequence;seen.add(f.eventId);}
   if(s.firstSequence!==s.frames[0].sequence||s.lastSequence!==prev||!digest(s.commitment))return false;
   const {commitment,...core}=s;
+  assertSegmentSize(core);
   return await hash(core)===commitment;
  }catch{return false;}
 }
