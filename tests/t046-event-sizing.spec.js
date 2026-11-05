@@ -231,8 +231,8 @@ test('A01 measure physical IndexedDB growth across intake correction and course 
     const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('medcontrol_t046_journal_v1');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
     const rows=await new Promise((resolve,reject)=>{
      const tx=db.transaction(['events','tokens'],'readonly');
-     const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
-     const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+     const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
+     const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
      let events,indexes;
      e.onsuccess=()=>{events=e.result;};t.onsuccess=()=>{indexes=t.result;};
      tx.oncomplete=()=>resolve({events,indexes});tx.onerror=()=>reject(tx.error);
