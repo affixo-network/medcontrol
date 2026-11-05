@@ -302,3 +302,42 @@ test('A01 measure variable-length correction notes with four index tokens',async
   rows,caveat:'Synthetic note lengths are sensitivity measurements, not a validated maximum medical-event size or physical 500M capacity guarantee'
  }));
 });
+
+
+test('A01 verify UTF-8 encrypted correction sizing and Unicode round-trip',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+ const rows=await page.evaluate(async()=>{
+  const j=window.MedControlT046Journal;
+  const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const size=v=>new TextEncoder().encode(JSON.stringify(v)).length;
+  const results=[];
+  for(const sample of [{label:'ascii',note:'A'.repeat(1024)},{label:'cyrillic',note:'Ж'.repeat(1024)},{label:'emoji',note:'💊'.repeat(1024)}]){
+   const owner='a01-utf8-'+sample.label+'-'+crypto.randomUUID(),id='correction-000001';
+   const tokens=[];
+   for(let i=0;i<4;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+   const body={courseId:'course-01',corrects:'intake-001',reason:'mistake',note:sample.note};
+   await j.append({owner,id,kind:'correction',body,key,tokens});
+   const restored=await j.get({owner,id,key});
+   const record=await j.encrypted({owner,id});
+   const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('medcontrol_t046_journal_v1');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+   const indexRows=await new Promise((resolve,reject)=>{
+    const tx=db.transaction('tokens','readonly'),req=tx.objectStore('tokens').getAll();
+    req.onsuccess=()=>resolve(req.result.filter(v=>v.owner===owner&&v.id===id));
+    req.onerror=()=>reject(req.error);
+   });
+   db.close();
+   results.push({label:sample.label,utf8NoteBytes:new TextEncoder().encode(sample.note).length,
+    serializedEventBytes:size(record),serializedIndexBytes:indexRows.reduce((sum,r)=>sum+size(r),0),
+    indexCount:indexRows.length,roundTripExact:restored.body.note===sample.note});
+  }
+  return results;
+ });
+ for(const row of rows){expect(row.roundTripExact).toBe(true);expect(row.indexCount).toBe(4);}
+ expect(rows[1].utf8NoteBytes).toBeGreaterThan(rows[0].utf8NoteBytes);
+ expect(rows[2].utf8NoteBytes).toBeGreaterThan(rows[1].utf8NoteBytes);
+ expect(rows[1].serializedEventBytes).toBeGreaterThan(rows[0].serializedEventBytes);
+ expect(rows[2].serializedEventBytes).toBeGreaterThan(rows[1].serializedEventBytes);
+ console.log('T046_A01_UNICODE_SIZE_SAMPLE '+JSON.stringify(rows));
+});
