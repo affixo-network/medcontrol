@@ -4,7 +4,7 @@
  */
 (function(root){
 'use strict';
-const NAME='medcontrol_t046_journal_v1', VERSION=1, EVENTS='events', TOKENS='tokens';
+const NAME='medcontrol_t046_journal_v1', VERSION=2, EVENTS='events', TOKENS='tokens', POSITIONS='positions';
 const te=new TextEncoder(),td=new TextDecoder();
 const assertId=(v,n)=>{if(typeof v!=='string'||!v||v.length>256)throw Error('Invalid '+n);};
 const req=(r)=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||Error('IndexedDB request failed'));});
@@ -14,8 +14,9 @@ function open(){
   const r=root.indexedDB.open(NAME,VERSION);
   r.onupgradeneeded=()=>{
    const db=r.result;
-   db.createObjectStore(EVENTS,{keyPath:['owner','id']});
-   db.createObjectStore(TOKENS,{keyPath:['owner','token','id']});
+   if(!db.objectStoreNames.contains(EVENTS))db.createObjectStore(EVENTS,{keyPath:['owner','id']});
+   if(!db.objectStoreNames.contains(TOKENS))db.createObjectStore(TOKENS,{keyPath:['owner','token','id']});
+   if(!db.objectStoreNames.contains(POSITIONS))db.createObjectStore(POSITIONS,{keyPath:['owner','position']});
   };
   r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||Error('Open failed'));
   r.onblocked=()=>reject(Error('Database upgrade blocked'));
@@ -54,16 +55,18 @@ function validateTokens(tokens){
  for(const t of tokens){if(typeof t!=='string'||!/^[0-9a-f]{64}$/.test(t)||s.has(t))throw Error('Invalid or duplicate opaque token');s.add(t);}
  return [...s].sort();
 }
-async function append({owner,id,kind,body,key,tokens=[]}){
+async function append({owner,id,kind,body,key,tokens=[],position}){
  assertId(owner,'owner');assertId(id,'id');assertId(kind,'kind');
+ if(position!==undefined&&(!Number.isSafeInteger(position)||position<0||position>=500_000_000))throw Error('Invalid event position');
  const index=validateTokens(tokens);
  const envelope=await encrypt(key,owner,id,kind,body);
  const db=await open();
  try{
-  const tx=db.transaction([EVENTS,TOKENS],'readwrite');
+  const tx=db.transaction([EVENTS,TOKENS,POSITIONS],'readwrite');
   const finished=txDone(tx);
   tx.objectStore(EVENTS).add({owner,id,kind,envelope,tokens:index});
   for(const token of index)tx.objectStore(TOKENS).add({owner,token,id});
+  if(position!==undefined)tx.objectStore(POSITIONS).add({owner,position,id});
   await finished;
   return {id,committed:true};
  }finally{db.close();}
@@ -108,6 +111,20 @@ async function page({owner,token,after='',limit=100,key}){
   return {rows,next:records.length===limit?records[records.length-1].id:null};
  }finally{db.close();}
 }
+async function getAt({owner,position,key}){
+ assertId(owner,'owner');
+ if(!Number.isSafeInteger(position)||position<0||position>=500_000_000)throw Error('Invalid event position');
+ const db=await open();
+ try{
+  const tx=db.transaction([POSITIONS,EVENTS],'readonly'),finished=txDone(tx);
+  const ref=await req(tx.objectStore(POSITIONS).get([owner,position]));
+  const record=ref?await req(tx.objectStore(EVENTS).get([owner,ref.id])):null;
+  await finished;
+  if(!ref)return null;
+  if(!record)throw Error('Position refers to missing encrypted event');
+  return {position,id:record.id,kind:record.kind,body:await decrypt(key,owner,record.id,record.kind,record.envelope)};
+ }finally{db.close();}
+}
 async function encrypted({owner,id}){
  assertId(owner,'owner');assertId(id,'id');
  const db=await open();
@@ -119,5 +136,5 @@ async function encrypted({owner,id}){
   return structuredClone({owner:record.owner,id:record.id,kind:record.kind,envelope:record.envelope});
  }finally{db.close();}
 }
-root.MedControlT046Journal=Object.freeze({append,get,page,tokenFor,encrypted});
+root.MedControlT046Journal=Object.freeze({append,get,getAt,page,tokenFor,encrypted});
 })(typeof window!=='undefined'?window:globalThis);
