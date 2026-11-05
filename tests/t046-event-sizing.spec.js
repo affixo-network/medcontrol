@@ -560,3 +560,42 @@ test('A01 prove segment addressing round trip at boundaries without bulk writes'
   caveat:'Pure arithmetic model verification, not an implemented segment store or storage endurance test'
  }));
 });
+
+
+test('A01 persist encrypted events at real boundary positions across reopen',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+ const result=await page.evaluate(async()=>{
+  const j=window.MedControlT046Journal,owner='a01-physical-position-'+crypto.randomUUID();
+  const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const positions=[0,1023,1024,499999999];
+  for(const position of positions){
+   await j.append({owner,id:'event-'+position,position,kind:'intake',body:{position,courseId:'test-course',status:'accepted'},key});
+  }
+  const db=await new Promise((resolve,reject)=>{
+   const req=indexedDB.open('medcontrol_t046_journal_v1');
+   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+  const count=await new Promise((resolve,reject)=>{
+   const tx=db.transaction('positions','readonly'),r=tx.objectStore('positions').count();
+   r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+  });
+  db.close();
+  const results=[];
+  for(const position of positions){
+   const event=await j.getAt({owner,position,key});
+   results.push({position,id:event.id,matched:event.body.position===position});
+  }
+  let duplicateRejected=false;
+  try{await j.append({owner,id:'duplicate-id',position:1024,kind:'intake',body:{status:'duplicate'},key});}
+  catch(e){duplicateRejected=true;}
+  const absent=await j.getAt({owner,position:499999998,key});
+  return {results,count,duplicateRejected,absent:absent===null};
+ });
+ expect(result.count).toBeGreaterThanOrEqual(4);
+ expect(result.results).toHaveLength(4);
+ expect(result.results.every(x=>x.matched)).toBe(true);
+ expect(result.duplicateRejected).toBe(true);
+ expect(result.absent).toBe(true);
+ console.log('T046_A01_REAL_POSITION_STORAGE '+JSON.stringify(result));
+});
