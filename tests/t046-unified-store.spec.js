@@ -31,10 +31,14 @@ test('unified encrypted append authenticates ciphertext and rolls back duplicate
   let rejected=false;
   try{await store.appendEncryptedBatch({...args,expectedHead:first,entries:[{id:'event_unified_00000001',kind:'intake',body:{medicine:'duplicate'},tokens:[]}]});}catch{rejected=true;}
   const head=await store.readHead(vaultId),record=await store.readAt(vaultId,0),next=await store.readAt(vaultId,1);
+  const authenticated=await store.readDecryptedAt({vaultId,position:0,encryptionKey});
+  let wrongKeyRejected=false;
+  const wrongKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  try{await store.readDecryptedAt({vaultId,position:0,encryptionKey:wrongKey});}catch{wrongKeyRejected=true;}
   const aad=new TextEncoder().encode(JSON.stringify([1,vaultId,record.id,record.kind]));
   const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
   const plaintext=await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(record.envelope.iv),additionalData:aad},encryptionKey,decode(record.envelope.ciphertext));
-  return {rejected,generation:head.generation,next,body:JSON.parse(new TextDecoder().decode(plaintext)),jobs:(await store.replicaPage(vaultId)).jobs.length};
+  return {rejected,generation:head.generation,next,body:JSON.parse(new TextDecoder().decode(plaintext)),authenticated:authenticated.body,wrongKeyRejected,jobs:(await store.replicaPage(vaultId)).jobs.length};
  });
- expect(result).toEqual({rejected:true,generation:1,next:null,body:{medicine:'private'},jobs:1});
+ expect(result).toEqual({rejected:true,generation:1,next:null,body:{medicine:'private'},authenticated:{medicine:'private'},wrongKeyRejected:true,jobs:1});
 });
