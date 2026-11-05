@@ -72,17 +72,19 @@ test('unified vault commits two generations with contiguous authenticated histor
   const args={vaultId,encryptionKey,commitmentKey,capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000};
   const first=await store.appendEncryptedBatch({...args,entries:[{id:'event_chain_00000001',kind:'intake',body:{step:1},tokens:[]}]});
   const second=await store.appendEncryptedBatch({...args,expectedHead:first,entries:[{id:'event_chain_00000002',kind:'intake',body:{step:2},tokens:[]}]});
-  const one=await store.readDecryptedAt({vaultId,position:0,encryptionKey});
-  const two=await store.readDecryptedAt({vaultId,position:1,encryptionKey});
+  const one=await store.readDecryptedAt({vaultId,position:0,encryptionKey,commitmentKey});
+  const two=await store.readDecryptedAt({vaultId,position:1,encryptionKey,commitmentKey});
   const jobs=await store.replicaPage(vaultId);
   const firstVerified=await store.verifyGeneration({vaultId,generation:1,commitmentKey});
   const secondVerified=await store.verifyGeneration({vaultId,generation:2,commitmentKey});
   const wrongKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
   const wrongKeyRejected=!await store.verifyGeneration({vaultId,generation:2,commitmentKey:wrongKey});
-  return {firstVerified,secondVerified,wrongKeyRejected,generation:(await store.readHead(vaultId)).generation,first:first.generation,second:second.generation,
+  let wrongReadRejected=false;
+  try{await store.readDecryptedAt({vaultId,position:1,encryptionKey,commitmentKey:wrongKey});}catch{wrongReadRejected=true;}
+  return {firstVerified,secondVerified,wrongKeyRejected,wrongReadRejected,generation:(await store.readHead(vaultId)).generation,first:first.generation,second:second.generation,
    one:one.body.step,two:two.body.step,jobs:jobs.jobs.map(x=>x.generation)};
  });
- expect(result).toEqual({firstVerified:true,secondVerified:true,wrongKeyRejected:true,generation:2,first:1,second:2,one:1,two:2,jobs:[1,2]});
+ expect(result).toEqual({firstVerified:true,secondVerified:true,wrongKeyRejected:true,wrongReadRejected:true,generation:2,first:1,second:2,one:1,two:2,jobs:[1,2]});
 });
 
 test('unified vault rejects stale concurrent writer without modifying committed history',async({page})=>{
