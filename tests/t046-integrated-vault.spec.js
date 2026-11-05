@@ -112,12 +112,14 @@ test('T-046 unified vault append links encrypted writes, indexed reads, replica 
    if(!result.localCommitted||result.replicaConfirmed)throw Error('Incorrect local status');
   }
   const pageResult=await journal.page({owner:vaultId,token,key:encryptionKey});
+  const positions=[];for(let i=0;i<3;i++)positions.push((await journal.getAt({owner:vaultId,position:i,key:encryptionKey}))?.body.ordinal);
   const head=await window.MedControlT046ManifestHead.read(vaultId);
   const recovered=await api.recoverReplicaQueue({vaultId,commitmentKey});
   const jobs=(await window.MedControlT046ReplicaQueue.pending()).filter(x=>x.vaultId===vaultId);
-  return {generation:head.generation,ordinals:pageResult.rows.map(x=>x.body.ordinal).sort(),recovered:recovered.recovered,queue:jobs.length,ids:pageResult.rows.map(x=>x.id).sort(),expected:ids.sort()};
+  return {generation:head.generation,positions,ordinals:pageResult.rows.map(x=>x.body.ordinal).sort(),recovered:recovered.recovered,queue:jobs.length,ids:pageResult.rows.map(x=>x.id).sort(),expected:ids.sort()};
  });
  expect(r.generation).toBe(3);
+ expect(r.positions).toEqual([0,1,2]);
  expect(r.ordinals).toEqual([0,1,2]);
  expect(r.recovered).toBe(true);
  expect(r.queue).toBe(3);
