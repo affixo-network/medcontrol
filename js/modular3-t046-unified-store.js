@@ -209,6 +209,49 @@ async function exportVerifiedGeneration({vaultId,generation,commitmentKey}){
   return {vaultId,generation,manifest:stored,segments,intent};
  }finally{db.close();}
 }
+/* Bounded authenticated export page for large generations. The caller must
+ * preserve the returned cursor and verify independent durable readback.
+ * No full-generation ciphertext array is allocated by this interface. */
+async function exportVerifiedGenerationPage({vaultId,generation,commitmentKey,afterSegment=0,limit=4}){
+ if(!Number.isSafeInteger(afterSegment)||afterSegment<0||
+    !Number.isSafeInteger(limit)||limit<1||limit>16)
+  throw Error('Invalid export page');
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!validVault(vaultId)||!Number.isSafeInteger(generation)||generation<1||!codec||!auth||!commitmentKey)
+  throw Error('Invalid authenticated export');
+ const db=await open();
+ try{
+  const tx=db.transaction(['manifests','replicaJobs'],'readonly'),finished=done(tx);
+  const stored=await req(tx.objectStore('manifests').get([vaultId,generation]));
+  const intent=await req(tx.objectStore('replicaJobs').get([vaultId,generation]));
+  await finished;
+  if(!stored||!intent||intent.manifestCommitment!==stored.object.commitment||
+     stored.object.generation!==generation||stored.object.vaultId!==vaultId||
+     !await codec.verifyManifest(stored.object)||
+     !await auth.verify(commitmentKey,vaultId,'manifest',stored.object.commitment,stored.tag))
+   throw Error('Unauthenticated export manifest or intent');
+  const descriptors=stored.object.segments;
+  if(afterSegment>descriptors.length)throw Error('Export cursor out of range');
+  const segments=[];
+  for(let i=afterSegment;i<Math.min(descriptors.length,afterSegment+limit);i++){
+   const descriptor=descriptors[i];
+   const segmentTx=db.transaction('segments','readonly'),segmentDone=done(segmentTx);
+   const item=await req(segmentTx.objectStore('segments').get([vaultId,descriptor.commitment]));
+   await segmentDone;
+   if(!item||item.object.commitment!==descriptor.commitment||
+      item.object.firstSequence!==descriptor.firstSequence||
+      item.object.lastSequence!==descriptor.lastSequence||
+      item.object.eventCount!==descriptor.eventCount||
+      !await codec.verifySegment(item.object)||
+      !await auth.verify(commitmentKey,vaultId,'segment',descriptor.commitment,item.tag))
+    throw Error('Unauthenticated export segment');
+   segments.push(item);
+  }
+  const nextSegment=afterSegment+segments.length;
+  return {vaultId,generation,manifest:stored,intent,segments,nextSegment,
+   hasMore:nextSegment<descriptors.length};
+ }finally{db.close();}
+}
 async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid vault');const db=await open();try{const tx=db.transaction('heads','readonly'),finished=done(tx),head=await req(tx.objectStore('heads').get(vaultId));await finished;return head??null;}finally{db.close();}}
 async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const ref=await req(tx.objectStore('positions').get([vaultId,position]));const id=typeof ref==='string'?ref:ref?.id;const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,generation:ref?.generation??null,...record}:null;}finally{db.close();}}
 /* Bounded authenticated read. Never return medical plaintext if the event
@@ -252,5 +295,5 @@ async function readDecryptedAt({vaultId,position,encryptionKey,commitmentKey=nul
  return {id:record.id,kind:record.kind,body:JSON.parse(new TextDecoder().decode(plain))};
 }
 async function replicaPage(vaultId,afterGeneration=0,limit=100){if(!validVault(vaultId)||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid page');const db=await open();try{const tx=db.transaction('replicaJobs','readonly'),finished=done(tx);const range=IDBKeyRange.bound([vaultId,afterGeneration+1],[vaultId,Number.MAX_SAFE_INTEGER]);const cursor=tx.objectStore('replicaJobs').openCursor(range);const jobs=[];await new Promise((ok,no)=>{cursor.onerror=()=>no(cursor.error);cursor.onsuccess=()=>{const c=cursor.result;if(!c||jobs.length===limit){ok();return;}jobs.push(c.value);c.continue();};});await finished;return {jobs,nextGeneration:jobs.length?jobs[jobs.length-1].generation:afterGeneration};}finally{db.close();}}
-root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,verifyGeneration,exportVerifiedGeneration,readHead,readAt,readDecryptedAt,replicaPage});
+root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,verifyGeneration,exportVerifiedGeneration,exportVerifiedGenerationPage,readHead,readAt,readDecryptedAt,replicaPage});
 })(typeof window!=='undefined'?window:globalThis);
