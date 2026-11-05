@@ -473,6 +473,21 @@ async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primar
  const previous=manifest.previousCommitment??null;
  const canonical=x=>{if(x===null||typeof x!=='object')return JSON.stringify(x);if(Array.isArray(x))return '['+x.map(canonical).join(',')+']';return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';};
  const publish=async adapter=>{
+  const existingHead=await adapter.getHead();
+  if(existingHead?.generation>generation){
+   if(existingHead.vaultId!==vaultId)
+    throw Error('Archive vault identity mismatch');
+   const existing=await adapter.getManifest(commitment);
+   const codec=root.MedControlT046SegmentCodec;
+   const auth=root.MedControlT046AuthenticatedCommitment;
+   if(!existing||existing.manifest?.commitment!==commitment||
+      existing.manifest?.generation!==generation||
+      existing.manifest?.vaultId!==vaultId||
+      !await codec.verifyManifest(existing.manifest)||
+      !await auth.verify(commitmentKey,vaultId,'manifest',commitment,existing.tag))
+    throw Error('Advanced archive missing authenticated historical generation');
+   return;
+  }
   for(const segment of bundle.segments){
    const object={segment:segment.object,tag:segment.tag};
    await adapter.putSegment(segment.object.commitment,object);
