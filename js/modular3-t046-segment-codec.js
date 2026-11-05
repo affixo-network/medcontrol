@@ -43,6 +43,26 @@ async function buildSegment({vaultId,frames}){
  assertSegmentSize(core);
  return Object.freeze({...core,commitment:await hash(core)});
 }
+async function buildSegments({vaultId,frames}){
+ if(!opaque(vaultId)||!Array.isArray(frames)||frames.length<1)throw Error('Invalid frames');
+ const result=[];let batch=[];let previous=0;
+ for(const frame of frames){
+  frameCheck(frame);
+  if(previous&&frame.sequence!==previous+1)throw Error('Noncontiguous sequence');
+  previous=frame.sequence;
+  if(batch.length===1024){result.push(await buildSegment({vaultId,frames:batch}));batch=[];}
+  batch.push(frame);
+  const candidate={format:'mc.segment',version:1,vaultId,firstSequence:batch[0].sequence,lastSequence:frame.sequence,eventCount:batch.length,frames:batch};
+  if(segmentBytes(candidate)>MAX_SEGMENT_BYTES){
+   batch.pop();
+   if(!batch.length)throw Error('Single frame exceeds 64 MiB segment');
+   result.push(await buildSegment({vaultId,frames:batch}));
+   batch=[frame];
+  }
+ }
+ if(batch.length)result.push(await buildSegment({vaultId,frames:batch}));
+ return result;
+}
 async function verifySegment(s){
  if(!s||s.format!=='mc.segment'||s.version!==1||!opaque(s.vaultId)||!Array.isArray(s.frames)||s.eventCount!==s.frames.length)return false;
  try{
@@ -77,5 +97,5 @@ async function verifyManifest(m,previous=null){
    regenerated.eventCount===m.eventCount;
  }catch{return false;}
 }
-root.MedControlT046SegmentCodec=Object.freeze({buildSegment,verifySegment,buildManifest,verifyManifest});
+root.MedControlT046SegmentCodec=Object.freeze({buildSegment,buildSegments,verifySegment,buildManifest,verifyManifest});
 })(typeof window!=='undefined'?window:globalThis);

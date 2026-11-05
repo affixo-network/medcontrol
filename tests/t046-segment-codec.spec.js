@@ -18,3 +18,17 @@ test('T-046 isolated segment and manifest: integrity, gap, predecessor',async({p
  });
  expect(r).toEqual({segment:true,tampered:false,manifest:true,successor:true,gapRejected:true});
 });
+
+
+test('T-046 A01 batches 2050 contiguous encrypted frames into bounded authenticated segments',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:require('node:path').resolve(__dirname,'../js/modular3-t046-segment-codec.js')});
+ const result=await page.evaluate(async()=>{
+  const codec=window.MedControlT046SegmentCodec;
+  const vaultId='vault_0123456789abcdef';
+  const frames=Array.from({length:2050},(_,i)=>({sequence:i+1,eventId:'event_'+String(i+1).padStart(16,'0'),envelope:{v:1,alg:'AES-GCM',iv:'AAAAAAAAAAAAAAAA',ciphertext:'AQIDBAUGBwgJCgsMDQ4PEA=='}}));
+  const segments=await codec.buildSegments({vaultId,frames});
+  return {counts:segments.map(s=>s.eventCount),valid:await Promise.all(segments.map(s=>codec.verifySegment(s))),first:segments[0].firstSequence,last:segments.at(-1).lastSequence};
+ });
+ expect(result).toEqual({counts:[1024,1024,2],valid:[true,true,true],first:1,last:2050});
+});
