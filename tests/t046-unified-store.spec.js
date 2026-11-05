@@ -75,8 +75,12 @@ test('unified vault commits two generations with contiguous authenticated histor
   const one=await store.readDecryptedAt({vaultId,position:0,encryptionKey});
   const two=await store.readDecryptedAt({vaultId,position:1,encryptionKey});
   const jobs=await store.replicaPage(vaultId);
-  return {generation:(await store.readHead(vaultId)).generation,first:first.generation,second:second.generation,
+  const firstVerified=await store.verifyGeneration({vaultId,generation:1,commitmentKey});
+  const secondVerified=await store.verifyGeneration({vaultId,generation:2,commitmentKey});
+  const wrongKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const wrongKeyRejected=!await store.verifyGeneration({vaultId,generation:2,commitmentKey:wrongKey});
+  return {firstVerified,secondVerified,wrongKeyRejected,generation:(await store.readHead(vaultId)).generation,first:first.generation,second:second.generation,
    one:one.body.step,two:two.body.step,jobs:jobs.jobs.map(x=>x.generation)};
  });
- expect(result).toEqual({generation:2,first:1,second:2,one:1,two:2,jobs:[1,2]});
+ expect(result).toEqual({firstVerified:true,secondVerified:true,wrongKeyRejected:true,generation:2,first:1,second:2,one:1,two:2,jobs:[1,2]});
 });
