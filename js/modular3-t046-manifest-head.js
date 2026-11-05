@@ -8,8 +8,8 @@ const NAME='t046-manifest-head-v1';
 const validObject=o=>o&&typeof o==='object'&&digest(o.commitment);
 function open(){
  return new Promise((resolve,reject)=>{
-  const r=root.indexedDB.open(NAME,2);
-  r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('heads'))db.createObjectStore('heads',{keyPath:'vaultId'});if(!db.objectStoreNames.contains('objects'))db.createObjectStore('objects',{keyPath:['vaultId','commitment']});};
+  const r=root.indexedDB.open(NAME,3);
+  r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('heads'))db.createObjectStore('heads',{keyPath:'vaultId'});if(!db.objectStoreNames.contains('objects'))db.createObjectStore('objects',{keyPath:['vaultId','commitment']});if(!db.objectStoreNames.contains('replicaJobs'))db.createObjectStore('replicaJobs',{keyPath:['vaultId','generation']});};
   r.onsuccess=()=>resolve(r.result);
   r.onerror=()=>reject(r.error||Error('Head database open failed'));
   r.onblocked=()=>reject(Error('Head database blocked'));
@@ -72,7 +72,7 @@ async function commitObjects({vaultId,expected=null,segment,segments=null,manife
  }
  const db=await open();
  try{return await new Promise((resolve,reject)=>{
-  const tx=db.transaction(['heads','objects'],'readwrite'),heads=tx.objectStore('heads'),objects=tx.objectStore('objects');
+  const tx=db.transaction(['heads','objects','replicaJobs'],'readwrite'),heads=tx.objectStore('heads'),objects=tx.objectStore('objects');
   let conflict=false;
   tx.oncomplete=()=>resolve({committed:true,generation:manifest.generation});
   tx.onabort=()=>reject(Error(conflict?'Manifest head conflict':'Object transaction aborted'));
@@ -80,6 +80,7 @@ async function commitObjects({vaultId,expected=null,segment,segments=null,manife
    for(let i=0;i<parts.length;i++)objects.put({vaultId,commitment:parts[i].commitment,type:'segment',object:parts[i],tag:tags[i]});
    objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
    heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
+   tx.objectStore('replicaJobs').add({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment,status:'pending'});
   };
   heads.get(vaultId).onsuccess=e=>{
    const old=e.target.result||null;
@@ -109,5 +110,17 @@ async function object(vaultId,commitment){
   r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error);
  });}finally{db.close();}
 }
-root.MedControlT046ManifestHead=Object.freeze({read,advance,commitObjects,object});
+/* Replication intent is committed atomically with the authenticated head.
+ * The external replica queue is a rebuildable delivery projection. */
+async function replicaIntent({vaultId,generation}){
+ if(!validVault(vaultId)||!Number.isSafeInteger(generation)||generation<1)throw Error('Invalid replica intent reference');
+ const db=await open();
+ try{return await new Promise((resolve,reject)=>{
+  const tx=db.transaction('replicaJobs','readonly');
+  const request=tx.objectStore('replicaJobs').get([vaultId,generation]);
+  request.onsuccess=()=>resolve(request.result||null);
+  request.onerror=()=>reject(request.error);
+ });}finally{db.close();}
+}
+root.MedControlT046ManifestHead=Object.freeze({read,advance,commitObjects,object,replicaIntent});
 })(typeof window!=='undefined'?window:globalThis);
