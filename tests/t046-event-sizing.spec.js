@@ -149,7 +149,7 @@ test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
  };
  const rows=[];
  try{
-  for(const tokenCount of [0,1,4]){
+  for(const tokenCount of [4,1,0]){
    const dir=path.join(root,'profile-'+tokenCount);
    let context=await chromium.launchPersistentContext(dir,{headless:true});
    let page=await context.newPage();
