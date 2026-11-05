@@ -39,6 +39,8 @@ on:
       - 'js/modular3-t046-resource-governor.js'
       - 'tests/t046-capacity-remeasurement.spec.js'
       - 'tests/t046-resource-governor.spec.js'
+      - 'js/modular3-t046-unified-store.js'
+      - 'tests/t046-unified-store.spec.js'
       - 'js/modular3-t046-integrated-vault.js'
       - 'js/modular3-t046-segment-codec.js'
       - 'tests/t046-integrated-vault.spec.js'
