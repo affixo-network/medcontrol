@@ -33,6 +33,7 @@ on:
       - 'tests/t046-authenticated-gateway.spec.js'
       - 'tests/t046-authenticated-commitment.spec.js'
       - 'playwright.t046-auth.config.cjs'
+      - 'tests/helpers/t046-postgres-replica.cjs'
       - 'tests/helpers/t046-postgres-capacity.cjs'
       - 'tests/helpers/t046-postgres-capacity.sql'
       - 'tests/t046-postgres-capacity.spec.js'
