@@ -186,6 +186,26 @@ async function verifyGeneration({vaultId,generation,commitmentKey}){
   return true;
  }finally{db.close();}
 }
+/* Export exactly one authenticated immutable generation for provider-neutral
+ * replication. The caller must verify independent durable readback before
+ * reporting remote protection; this method never marks jobs complete. */
+async function exportVerifiedGeneration({vaultId,generation,commitmentKey}){
+ if(!await verifyGeneration({vaultId,generation,commitmentKey}))
+  throw Error('Cannot export unauthenticated generation');
+ const db=await open();
+ try{
+  const tx=db.transaction(['manifests','segments','replicaJobs'],'readonly'),finished=done(tx);
+  const stored=await req(tx.objectStore('manifests').get([vaultId,generation]));
+  const intent=await req(tx.objectStore('replicaJobs').get([vaultId,generation]));
+  if(!stored||!intent||intent.manifestCommitment!==stored.object.commitment)
+   throw Error('Durable replica intent mismatch');
+  const segments=await Promise.all(stored.object.segments.map(d=>req(tx.objectStore('segments').get([vaultId,d.commitment]))));
+  await finished;
+  if(segments.some((s,i)=>!s||s.object.commitment!==stored.object.segments[i].commitment))
+   throw Error('Missing immutable segment');
+  return {vaultId,generation,manifest:stored,segments,intent};
+ }finally{db.close();}
+}
 async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid vault');const db=await open();try{const tx=db.transaction('heads','readonly'),finished=done(tx),head=await req(tx.objectStore('heads').get(vaultId));await finished;return head??null;}finally{db.close();}}
 async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const ref=await req(tx.objectStore('positions').get([vaultId,position]));const id=typeof ref==='string'?ref:ref?.id;const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,generation:ref?.generation??null,...record}:null;}finally{db.close();}}
 /* Bounded authenticated read. Never return medical plaintext if the event
@@ -229,5 +249,5 @@ async function readDecryptedAt({vaultId,position,encryptionKey,commitmentKey=nul
  return {id:record.id,kind:record.kind,body:JSON.parse(new TextDecoder().decode(plain))};
 }
 async function replicaPage(vaultId,afterGeneration=0,limit=100){if(!validVault(vaultId)||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid page');const db=await open();try{const tx=db.transaction('replicaJobs','readonly'),finished=done(tx);const range=IDBKeyRange.bound([vaultId,afterGeneration+1],[vaultId,Number.MAX_SAFE_INTEGER]);const cursor=tx.objectStore('replicaJobs').openCursor(range);const jobs=[];await new Promise((ok,no)=>{cursor.onerror=()=>no(cursor.error);cursor.onsuccess=()=>{const c=cursor.result;if(!c||jobs.length===limit){ok();return;}jobs.push(c.value);c.continue();};});await finished;return {jobs,nextGeneration:jobs.length?jobs[jobs.length-1].generation:afterGeneration};}finally{db.close();}}
-root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,verifyGeneration,readHead,readAt,readDecryptedAt,replicaPage});
+root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,verifyGeneration,exportVerifiedGeneration,readHead,readAt,readDecryptedAt,replicaPage});
 })(typeof window!=='undefined'?window:globalThis);
