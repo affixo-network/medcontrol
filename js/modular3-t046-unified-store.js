@@ -69,6 +69,15 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
       current?.generation===expectedHead.generation&&current?.commitment===expectedHead.commitment&&current?.lastSequence===expectedHead.lastSequence:
       current===undefined;
     if(!same)throw Error('Stale unified vault head');
+    // Read the predecessor's authenticated manifest in the same write transaction.
+    // A forged or orphaned head must never authorize a successor generation.
+    if(current){
+     const prior=await req(tx.objectStore('manifests').get([vaultId,current.generation]));
+     if(!prior||prior.object.commitment!==current.commitment||
+        prior.object.generation!==current.generation||
+        prior.object.segments.at(-1)?.lastSequence!==current.lastSequence)
+      throw Error('Committed predecessor manifest missing or inconsistent');
+    }
     for(let i=0;i<prepared.length;i++){
      const e=prepared[i],position=first+i-1;
      tx.objectStore('events').add({kind:e.kind,envelope:e.envelope},[vaultId,e.id]);
