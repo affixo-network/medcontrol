@@ -84,3 +84,28 @@ test('unified vault commits two generations with contiguous authenticated histor
  });
  expect(result).toEqual({firstVerified:true,secondVerified:true,wrongKeyRejected:true,generation:2,first:1,second:2,one:1,two:2,jobs:[1,2]});
 });
+
+test('unified vault rejects stale concurrent writer without modifying committed history',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store'])await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_race_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const store=window.MedControlT046UnifiedStore;
+  const base={vaultId,encryptionKey,commitmentKey,capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000};
+  const first=await store.appendEncryptedBatch({...base,entries:[{id:'event_race_00000001',kind:'intake',body:{n:1},tokens:[]}]});
+  const results=await Promise.allSettled([2,3].map(n=>store.appendEncryptedBatch({...base,expectedHead:first,
+   entries:[{id:'event_race_0000000'+n,kind:'intake',body:{n},tokens:[]}]})));
+  const head=await store.readHead(vaultId);
+  const present=await store.readDecryptedAt({vaultId,position:1,encryptionKey});
+  const jobs=await store.replicaPage(vaultId);
+  return {fulfilled:results.filter(x=>x.status==='fulfilled').length,rejected:results.filter(x=>x.status==='rejected').length,
+   generation:head.generation,position:present.body.n,jobs:jobs.jobs.length};
+ });
+ expect(result.fulfilled).toBe(1);
+ expect(result.rejected).toBe(1);
+ expect(result.generation).toBe(2);
+ expect([2,3]).toContain(result.position);
+ expect(result.jobs).toBe(2);
+});
