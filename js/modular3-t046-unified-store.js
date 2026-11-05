@@ -29,7 +29,14 @@ async function appendEncryptedBatch({vaultId,entries,encryptionKey,commitmentKey
   const plaintext=encoder.encode(json);
   if(plaintext.byteLength>2*1024*1024)throw Error('Medical event exceeds bounded encryption limit');
   const ciphertext=new Uint8Array(await root.crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},encryptionKey,plaintext));
-  const b64=bytes=>btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''));
+  // Encode in bounded chunks: spreading or mapping a multi-megabyte buffer
+  // into one JavaScript call can exhaust the stack or duplicate large arrays.
+  const b64=bytes=>{
+   let binary='';
+   for(let offset=0;offset<bytes.length;offset+=8192)
+    binary+=String.fromCharCode(...bytes.subarray(offset,offset+8192));
+   return btoa(binary);
+  };
   frames.push({sequence:first+i,eventId:e.id,envelope:{v:1,alg:'AES-GCM',iv:b64(iv),ciphertext:b64(ciphertext)}});
   indexes.push({id:e.id,kind:e.kind,tokens:e.tokens});
  }
