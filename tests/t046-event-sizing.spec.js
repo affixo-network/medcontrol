@@ -375,3 +375,36 @@ test('A01 project 500M-event capacity scenarios with explicit reserves and copie
   exclusions:'Physical IndexedDB/LevelDB overhead, compaction peaks, manifests, recovery logs, quota, device space, metadata growth; 8KiB sample already includes four index tokens',
   status:'Sensitivity projection only; NOT an acceptance proof of 500M-event capacity'}));
 });
+
+
+test('A01 mixed-event 500M capacity sensitivity uses exact integer byte arithmetic',()=>{
+ const total=500_000_000n,GiB=1024n**3n;
+ const samples=[
+  {label:'ascii-1KiB',bytes:2327n},
+  {label:'cyrillic-1KiB',bytes:3706n},
+  {label:'emoji-1KiB',bytes:6423n},
+  {label:'ascii-8KiB',bytes:12213n}
+ ];
+ const mixtures=[
+  {label:'90pct-ascii-10pct-cyrillic',weights:[90n,10n,0n,0n]},
+  {label:'70pct-ascii-20pct-cyrillic-10pct-long',weights:[70n,20n,0n,10n]},
+  {label:'25pct-each',weights:[25n,25n,25n,25n]}
+ ];
+ const rows=mixtures.map(m=>{
+  expect(m.weights.reduce((a,b)=>a+b,0n)).toBe(100n);
+  const counts=m.weights.map(w=>total*w/100n);
+  expect(counts.reduce((a,b)=>a+b,0n)).toBe(total);
+  const baseBytes=counts.reduce((sum,n,i)=>sum+n*samples[i].bytes,0n);
+  const reserveBytes=(baseBytes+4n)/5n;
+  const localBytes=baseBytes+reserveBytes;
+  const twoFullCopiesBytes=localBytes+2n*baseBytes;
+  const toGiB=n=>Number(n*10n/GiB)/10;
+  return {scenario:m.label,baseGiB:toGiB(baseBytes),reserveGiB:toGiB(reserveBytes),
+   localGiB:toGiB(localBytes),withTwoFullCopiesGiB:toGiB(twoFullCopiesBytes),
+   baseBytes:baseBytes.toString()};
+ });
+ for(const row of rows)expect(row.withTwoFullCopiesGiB).toBeGreaterThan(row.localGiB);
+ console.log('T046_A01_MIXED_CAPACITY_SCENARIOS '+JSON.stringify({eventCount:total.toString(),rows,
+  scope:'Exact integer arithmetic for synthetic distribution scenarios using previously measured serialized sample sizes',
+  exclusions:'Physical storage overhead, journal and manifest, compaction, quota and recovery headroom; not a guarantee'}));
+});
