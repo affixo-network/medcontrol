@@ -413,28 +413,30 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
     }else{
      const advanced=(a?.generation??0)>(b?.generation??0)?a:b;
      const behind=advanced===a?b:a;
-     // A one-generation lag can be repaired only when the newer authenticated
-     // manifest names the exact older commitment. Otherwise fail closed.
-     if(behind?.generation){
-      if(advanced.generation!==behind.generation+1)
-       throw Error('Archive divergence requires authenticated ancestry proof');
-      const advancedAdapter=advanced===a?primary:recovery;
-      const stored=await advancedAdapter.getManifest(advanced.commitment);
-      const codec=root.MedControlT046SegmentCodec;
-      const auth=root.MedControlT046AuthenticatedCommitment;
-      if(!stored||stored.manifest?.commitment!==advanced.commitment||
+     // Prove every immutable predecessor before resuming a lagging domain.
+     // Work is bounded; larger gaps must be repaired in checkpointed batches.
+     const target=behind?.generation??0;
+     const gap=advanced.generation-target;
+     if(gap<1||gap>100)
+      throw Error('Archive gap exceeds bounded authenticated recovery window');
+     const source=advanced===a?primary:recovery;
+     const codec=root.MedControlT046SegmentCodec;
+     const auth=root.MedControlT046AuthenticatedCommitment;
+     if(!codec||!auth)throw Error('Archive authentication unavailable');
+     let expected=advanced.commitment;
+     for(let generation=advanced.generation;generation>target;generation--){
+      const stored=await source.getManifest(expected);
+      if(!stored||stored.manifest?.commitment!==expected||
          stored.manifest?.vaultId!==vaultId||
-         stored.manifest?.generation!==advanced.generation||
-         stored.manifest?.previousCommitment!==behind.commitment||
+         stored.manifest?.generation!==generation||
          !await codec.verifyManifest(stored.manifest)||
-         !await auth.verify(commitmentKey,vaultId,'manifest',advanced.commitment,stored.tag))
+         !await auth.verify(commitmentKey,vaultId,'manifest',expected,stored.tag))
        throw Error('Archive ancestry authentication failed');
-      cursor=behind.generation;
-     }else{
-      if(advanced.generation!==1)
-       throw Error('Archive bootstrap lag requires authenticated checkpoint replay');
-      cursor=0;
+      expected=stored.manifest.previousCommitment??null;
      }
+     if(expected!==(behind?.commitment??null))
+      throw Error('Archive ancestry does not match lagging head');
+     cursor=target;
     }
    }
    return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
