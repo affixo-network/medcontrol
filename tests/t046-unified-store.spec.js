@@ -42,3 +42,21 @@ test('unified encrypted append authenticates ciphertext and rolls back duplicate
  });
  expect(result).toEqual({rejected:true,generation:1,next:null,body:{medicine:'private'},authenticated:{medicine:'private'},wrongKeyRejected:true,jobs:1});
 });
+
+test('unified vault rejects insufficient capacity before any durable mutation',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store'])await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_capacity_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const store=window.MedControlT046UnifiedStore;
+  let calls=0,rejected=false;
+  try{await store.appendEncryptedBatch({vaultId,encryptionKey,commitmentKey,
+   entries:[{id:'event_capacity_00000001',kind:'intake',body:{medicine:'confidential'},tokens:[]}],
+   capacityGateway:{reserve:async()=>{calls++;return {reserved:true};}},reservationBytes:1});}
+  catch{rejected=true;}
+  return {rejected,calls,head:await store.readHead(vaultId),event:await store.readAt(vaultId,0),jobs:(await store.replicaPage(vaultId)).jobs.length};
+ });
+ expect(result).toEqual({rejected:true,calls:0,head:null,event:null,jobs:0});
+});
