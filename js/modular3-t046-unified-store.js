@@ -61,10 +61,18 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
     first!==((expectedHead?.lastSequence??0)+1)||last-first+1!==frames.length)
   throw Error('Invalid predecessor sequence');
  const segments=await codec.buildSegments({vaultId,frames});
+ // The segment codec verifies structural integrity; only signed segments may
+ // be admitted to a new atomic generation.
+ if(segments.some(segment=>segment.vaultId!==vaultId||
+    segment.firstSequence<first||segment.lastSequence>last))
+  throw Error('Invalid segment boundary');
  const generation=(expectedHead?.generation??0)+1;
  const manifest=await codec.buildManifest({vaultId,generation,previousCommitment:expectedHead?.commitment??null,segments});
  const segmentTags=await Promise.all(segments.map(s=>auth.sign(commitmentKey,vaultId,'segment',s.commitment)));
  const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+ if(!await codec.verifyManifest(manifest)||
+    !await auth.verify(commitmentKey,vaultId,'manifest',manifest.commitment,manifestTag))
+  throw Error('New manifest failed authentication');
  const actualBytes=new TextEncoder().encode(JSON.stringify({prepared,segments,manifest,segmentTags,manifestTag})).byteLength;
  if(reservationBytes<actualBytes)throw Error('Insufficient capacity reservation');
  const reservation=await capacityGateway.reserve(vaultId+':'+generation,reservationBytes);
