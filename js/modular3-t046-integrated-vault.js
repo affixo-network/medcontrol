@@ -339,5 +339,23 @@ async function recoverReplicaIntentPage({vaultId,afterGeneration=0,limit=100,com
  }
  return {recovered:intents.length,nextGeneration:cursor,hasMore:intents.length===limit};
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Resume replication-intent recovery page by page without unbounded history scans.
+ * This does not delete or rewrite encrypted medical records. */
+async function recoverAllReplicaIntents({vaultId,commitmentKey,pageSize=100,maxPages=1}){
+ if(!Number.isSafeInteger(pageSize)||pageSize<1||pageSize>1000||
+    !Number.isSafeInteger(maxPages)||maxPages<1||maxPages>1000)
+  throw Error('Invalid recovery work budget');
+ let afterGeneration=0,recovered=0,hasMore=false;
+ for(let page=0;page<maxPages;page++){
+  const result=await recoverReplicaIntentPage({vaultId,commitmentKey,afterGeneration,limit:pageSize});
+  if(result.nextGeneration<afterGeneration||result.recovered>pageSize)
+   throw Error('Replica intent recovery cursor regression');
+  recovered+=result.recovered;
+  afterGeneration=result.nextGeneration;
+  hasMore=result.hasMore;
+  if(!hasMore)break;
+ }
+ return {recovered,nextGeneration:afterGeneration,hasMore};
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
