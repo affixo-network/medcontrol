@@ -24,6 +24,7 @@ async function appendEncryptedBatch({vaultId,entries,encryptionKey,commitmentKey
   const iv=root.crypto.getRandomValues(new Uint8Array(12));
   const aad=encoder.encode(JSON.stringify([1,vaultId,e.id,e.kind]));
   const plaintext=encoder.encode(JSON.stringify(e.body));
+  if(plaintext.byteLength>2*1024*1024)throw Error('Medical event exceeds bounded encryption limit');
   const ciphertext=new Uint8Array(await root.crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},encryptionKey,plaintext));
   const b64=bytes=>btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''));
   frames.push({sequence:first+i,eventId:e.id,envelope:{v:1,alg:'AES-GCM',iv:b64(iv),ciphertext:b64(ciphertext)}});
@@ -38,11 +39,17 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
  if(!capacityGateway||typeof capacityGateway.reserve!=='function'||!Number.isSafeInteger(reservationBytes)||reservationBytes<1)
   throw Error('Confirmed capacity reservation required');
  const seen=new Set(),prepared=[];
+ let ciphertextBudget=0;
  for(let i=0;i<frames.length;i++){
   const f=frames[i],e=entries[i];
   if(!e||e.id!==f.eventId||typeof e.kind!=='string'||!e.kind||
      !Array.isArray(e.tokens)||e.tokens.length>16||e.tokens.some(t=>!token(t))||
      new Set(e.tokens).size!==e.tokens.length||seen.has(e.id))throw Error('Invalid event index');
+  if(!f.envelope||typeof f.envelope.ciphertext!=='string'||typeof f.envelope.iv!=='string'||
+     f.envelope.ciphertext.length>4*1024*1024||f.envelope.iv.length!==16)
+   throw Error('Invalid encrypted frame bounds');
+  ciphertextBudget+=f.envelope.ciphertext.length;
+  if(ciphertextBudget>64*1024*1024)throw Error('Encrypted batch exceeds bounded memory budget');
   seen.add(e.id);prepared.push({id:e.id,kind:e.kind,tokens:e.tokens.slice(),envelope:f.envelope});
  }
  const first=frames[0].sequence,last=frames[frames.length-1].sequence;
