@@ -149,3 +149,25 @@ test('T-046 durable journal batch commits two authenticated events and rejects a
  });
  expect(result).toEqual({committed:true,eventCount:2,segments:1,through:2,missingRejected:true,headUnchanged:true});
 });
+
+test('T-046 integrated appendBatch publishes a verified two-event generation',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const name of ['journal','segment-codec','authenticated-commitment','replica-queue','manifest-head','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+name+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_admit_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const entries=[0,1].map(i=>({eventId:'event_admit_000000'+i,kind:'intake',body:{dose:i+1},indexTokens:[]}));
+  const committed=await window.MedControlT046IntegratedVault.appendBatch({vaultId,entries,encryptionKey,commitmentKey,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:100000});
+  const head=await window.MedControlT046ManifestHead.read(vaultId);
+  const manifest=await window.MedControlT046ManifestHead.object(vaultId,head.commitment);
+  const first=await window.MedControlT046Journal.getAt({owner:vaultId,position:0,key:encryptionKey});
+  const second=await window.MedControlT046Journal.getAt({owner:vaultId,position:1,key:encryptionKey});
+  const queued=(await window.MedControlT046ReplicaQueue.pending()).some(j=>j.vaultId===vaultId&&j.manifestCommitment===head.commitment);
+  return {committed:committed.localCommitted,count:committed.eventCount,through:manifest.object.committedThrough,
+   first:first.body.dose,second:second.body.dose,queued};
+ });
+ expect(result).toEqual({committed:true,count:2,through:2,first:1,second:2,queued:true});
+});
