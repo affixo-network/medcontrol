@@ -358,5 +358,22 @@ async function recoverAllReplicaIntents({vaultId,commitmentKey,afterGeneration=0
  }
  return {recovered,nextGeneration:afterGeneration,hasMore};
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Crash recovery for a journal batch committed before its manifest.
+ * Existing ciphertext is never rewritten; a conflicting committed head fails closed.
+ * The caller must supply the original batch sequence and authenticated vault key. */
+async function recoverOrphanBatch({vaultId,startSequence,count,commitmentKey,capacityGateway,reservationBytes}){
+ const journal=root.MedControlT046Journal,head=root.MedControlT046ManifestHead;
+ if(!journal||!head||!Number.isSafeInteger(startSequence)||startSequence<1||
+    !Number.isSafeInteger(count)||count<1||count>1024||
+    !Number.isSafeInteger(startSequence+count-1))throw Error('Invalid orphan batch');
+ const current=await head.read(vaultId);
+ const predecessor=current?await head.object(vaultId,current.commitment):null;
+ if(current&&(!predecessor||predecessor.type!=='manifest'))throw Error('Unresolved committed head');
+ const expected=predecessor?predecessor.object.committedThrough+1:1;
+ if(expected!==startSequence)throw Error('Orphan batch does not follow committed history');
+ // stageJournalRange authenticates and commits a new generation without
+ // modifying any journal ciphertext. It rechecks the head under its write lock.
+ return stageJournalRange({vaultId,startSequence,count,commitmentKey,capacityGateway,reservationBytes});
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
