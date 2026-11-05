@@ -462,5 +462,67 @@ async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primar
   protectionState:independentlyDurable?'DUAL_VERIFIED':'SIMULATED_DUAL_READBACK',
   independentReplicaVerified:independentlyDurable});
 }
-root.MedControlT046IntegratedVault=Object.freeze({openUnifiedVault,deliverUnifiedGeneration,append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Bounded end-to-end reconciliation of local durable outbox into both archive
+ * domains. Resume with the returned cursor; never scan the full medical
+ * history or delete intents as a substitute for independent protection. */
+async function reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
+ afterGeneration=0,maxGenerations=16}){
+ const store=root.MedControlT046UnifiedStore;
+ if(!store||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||
+    !Number.isSafeInteger(maxGenerations)||maxGenerations<1||maxGenerations>100)
+  throw Error('Invalid unified reconciliation work budget');
+ const page=await store.replicaPage(vaultId,afterGeneration,maxGenerations);
+ let nextGeneration=afterGeneration;
+ const receipts=[];
+ for(const job of page.jobs){
+  if(job.generation!==nextGeneration+1)
+   throw Error('Missing contiguous archive generation');
+  const receipt=await deliverUnifiedGeneration({
+   vaultId,generation:job.generation,commitmentKey,primary,recovery
+  });
+  receipts.push(receipt);
+  nextGeneration=job.generation;
+ }
+ return Object.freeze({nextGeneration,processed:receipts.length,
+  hasMore:page.jobs.length===maxGenerations,receipts});
+}
+/* Authenticated restore of one archived generation, with explicit independent
+ * fallback. No source or patient vault mutation; caller controls migration. */
+async function retrieveUnifiedArchiveGeneration({vaultId,generation,commitmentKey,primary,recovery}){
+ const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
+ if(!codec||!auth||!commitmentKey||!Number.isSafeInteger(generation)||generation<1)
+  throw Error('Invalid archive recovery prerequisites');
+ const failures=[];
+ for(const adapter of [primary,recovery]){
+  if(!adapter||typeof adapter.getHead!=='function'||
+     typeof adapter.getManifest!=='function'||typeof adapter.getSegment!=='function')continue;
+  try{
+   const head=await adapter.getHead();
+   if(!head||head.vaultId!==vaultId||head.generation<generation)
+    throw Error('Requested generation unavailable');
+   // Recovering a historical generation requires an authenticated checkpoint
+   // or immutable manifest identifier; never guess it from the latest head.
+   if(head.generation!==generation)throw Error('Historical checkpoint required');
+   const stored=await adapter.getManifest(head.commitment);
+   if(!stored||stored.manifest?.commitment!==head.commitment||
+      stored.manifest?.vaultId!==vaultId||stored.manifest?.generation!==generation||
+      !await codec.verifyManifest(stored.manifest)||
+      !await auth.verify(commitmentKey,vaultId,'manifest',head.commitment,stored.tag))
+    throw Error('Archive manifest authentication failed');
+   const segments=[];
+   for(const descriptor of stored.manifest.segments){
+    const segment=await adapter.getSegment(descriptor.commitment);
+    if(!segment||segment.segment?.commitment!==descriptor.commitment||
+       !await codec.verifySegment(segment.segment)||
+       !await auth.verify(commitmentKey,vaultId,'segment',descriptor.commitment,segment.tag))
+     throw Error('Archive segment authentication failed');
+    segments.push(segment);
+   }
+   return Object.freeze({vaultId,generation,manifest:stored,segments,
+    source:adapter===primary?'primary':'recovery'});
+  }catch(error){failures.push(error);}
+ }
+ throw Error('No authenticated archive recovery source available: '+failures.length+' failed');
+}
+root.MedControlT046IntegratedVault=Object.freeze({openUnifiedVault,deliverUnifiedGeneration,reconcileUnifiedArchive,retrieveUnifiedArchiveGeneration,append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
