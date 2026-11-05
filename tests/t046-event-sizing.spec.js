@@ -252,6 +252,8 @@ test('A01 measure physical IndexedDB growth across intake correction and course 
     physicalBytesPerEvent:(after-before)/1000,
     physicalToSerializedRatio:+((after-before)/serializedTotal).toFixed(4),
     physicalAmplificationPct:+(100*((after-before)/serializedTotal-1)).toFixed(2),
+    physicalAt500MProjectedGiB:+(((after-before)/1000)*500_000_000/(1024**3)).toFixed(1),
+    physicalAt500MPlus20PctReserveGiB:+(((after-before)/1000)*500_000_000*1.2/(1024**3)).toFixed(1),
     caveat:'Physical LevelDB growth includes baseline and compaction variability; ratio is observational, not an upper bound'});
   }
   for(const row of rows){
