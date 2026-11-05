@@ -435,3 +435,31 @@ test('multi-generation archive repair validates entire ancestry and rejects corr
  });
  expect(result).toEqual({lag:3,rejected:true,intact:true,processed:3,recovery:4,local:4});
 });
+
+test('T-046 A01 authenticated paged export preserves immutable ciphertext',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_paged_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const store=window.MedControlT046UnifiedStore;
+  const committed=await store.appendEncryptedBatch({vaultId,encryptionKey,commitmentKey,
+   entries:[{id:'event_paged_00000001',kind:'intake',body:{private:'retained'},tokens:[]}],
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  const first=await store.exportVerifiedGenerationPage({vaultId,generation:1,commitmentKey,limit:1});
+  const end=await store.exportVerifiedGenerationPage({vaultId,generation:1,commitmentKey,
+   afterSegment:first.nextSegment,limit:1});
+  let wrongKeyRejected=false;
+  const wrongKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  try{await store.exportVerifiedGenerationPage({vaultId,generation:1,commitmentKey:wrongKey});}
+  catch{wrongKeyRejected=true;}
+  return {committed:committed.committed,segments:first.segments.length,
+   hasMore:first.hasMore,endSegments:end.segments.length,endHasMore:end.hasMore,
+   sameManifest:first.manifest.object.commitment===end.manifest.object.commitment,
+   wrongKeyRejected};
+ });
+ expect(result).toEqual({committed:true,segments:1,hasMore:false,endSegments:0,
+  endHasMore:false,sameManifest:true,wrongKeyRejected:true});
+});
