@@ -249,5 +249,44 @@ async function stageJournalRange({vaultId,startSequence,count,commitmentKey,capa
  const frames=await journal.encryptedRange({owner:vaultId,start:startSequence-1,limit:count});
  return stageEncryptedBatch({vaultId,frames,commitmentKey,capacityGateway,reservationBytes});
 }
-root.MedControlT046IntegratedVault=Object.freeze({append,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* Admission for bounded batches. Lock covers journal mutation and authenticated
+ * publication; a failed publication leaves durable orphan events for recovery.
+ * Never claim a cross-database atomic commit. */
+async function appendBatch({vaultId,entries,encryptionKey,commitmentKey,capacityGateway,reservationBytes}){
+ const journal=root.MedControlT046Journal,head=root.MedControlT046ManifestHead,
+  locks=root.navigator?.locks,codec=root.MedControlT046SegmentCodec;
+ if(!journal||!head||!codec||!locks||typeof locks.request!=='function'||
+    typeof vaultId!=='string'||!/^vault_[A-Za-z0-9_-]{8,128}$/.test(vaultId)||
+    !Array.isArray(entries)||entries.length<1||entries.length>1024||
+    !capacityGateway||typeof capacityGateway.reserve!=='function'||
+    !Number.isSafeInteger(reservationBytes)||reservationBytes<1)
+  throw Error('Invalid integrated batch prerequisites');
+ return locks.request('medcontrol-t046-chain-'+vaultId,{mode:'exclusive'},async()=>{
+  const current=await head.read(vaultId);
+  const previous=current?await head.object(vaultId,current.commitment):null;
+  if(current&&(!previous||previous.type!=='manifest'||
+     !await codec.verifyManifest(previous.object)))throw Error('Invalid predecessor');
+  const start=previous?previous.object.committedThrough:0;
+  const prepared=entries.map(e=>({id:e.eventId,kind:e.kind,body:e.body,key:encryptionKey,tokens:e.indexTokens||[]}));
+  const reserve=await capacityGateway.reserve(vaultId+':journal-batch:'+start+':'+prepared[0].id,reservationBytes);
+  if(!reserve||reserve.reserved!==true)throw Error('Capacity reservation not committed');
+  await journal.appendBatch({owner:vaultId,entries:prepared,startPosition:start});
+  const frames=await journal.encryptedRange({owner:vaultId,start,limit:prepared.length});
+  // The same cross-tab lock is already held; avoid nested navigator.locks.
+  const auth=root.MedControlT046AuthenticatedCommitment,queue=root.MedControlT046ReplicaQueue;
+  if(!auth||!queue)throw Error('Integrated batch authentication unavailable');
+  const segments=await codec.buildSegments({vaultId,frames});
+  const manifest=await codec.buildManifest({vaultId,generation:current?current.generation+1:1,
+   previousCommitment:current?.commitment||null,segments});
+  const segmentTags=[];
+  for(const part of segments)segmentTags.push(await auth.sign(commitmentKey,vaultId,'segment',part.commitment));
+  const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+  const encodedBytes=new TextEncoder().encode(JSON.stringify({segments,manifest,segmentTags,manifestTag})).byteLength;
+  if(encodedBytes>reservationBytes)throw Error('Insufficient authenticated batch reservation');
+  await head.commitObjects({vaultId,expected:current,segments,segmentTags,manifest,manifestTag,commitmentKey});
+  await queue.enqueue({vaultId,generation:manifest.generation,manifestCommitment:manifest.commitment});
+  return {localCommitted:true,replicaConfirmed:false,eventCount:frames.length,manifestCommitment:manifest.commitment};
+ });
+}
+root.MedControlT046IntegratedVault=Object.freeze({append,appendBatch,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
