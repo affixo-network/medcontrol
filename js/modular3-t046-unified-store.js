@@ -74,6 +74,7 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
     !await auth.verify(commitmentKey,vaultId,'manifest',manifest.commitment,manifestTag))
   throw Error('New manifest failed authentication');
  const actualBytes=new TextEncoder().encode(JSON.stringify({prepared,segments,manifest,segmentTags,manifestTag})).byteLength;
+ if(!Number.isSafeInteger(actualBytes)||actualBytes<1)throw Error('Invalid storage byte accounting');
  if(reservationBytes<actualBytes)throw Error('Insufficient capacity reservation');
  const reservation=await capacityGateway.reserve(vaultId+':'+generation,reservationBytes);
  if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation rejected');
@@ -95,6 +96,14 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
        !await auth.verify(commitmentKey,vaultId,'manifest',prior.object.commitment,prior.tag))
      throw Error('Committed predecessor manifest missing or unauthenticated');
    }finally{priorDb.close();}
+  }
+  // Storage may change after admission; never assume the earlier reservation
+  // proves that this browser still has sufficient free disk capacity.
+  if(root.navigator?.storage?.estimate){
+   const estimate=await root.navigator.storage.estimate();
+   if(Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&
+      estimate.quota-estimate.usage<actualBytes)
+    throw Error('Insufficient currently available browser storage');
   }
   const db=await open();
   try{
