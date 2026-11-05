@@ -404,11 +404,21 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
    let cursor=afterGeneration;
    if(cursor===null){
     const [a,b]=await Promise.all([primary.getHead(),recovery.getHead()]);
-    if((a?.generation??0)===(b?.generation??0)&&
-       (a?.commitment??null)===(b?.commitment??null)&&
-       (!a||a.vaultId===vaultId)&&(!b||b.vaultId===vaultId))
+    if((a&&a.vaultId!==vaultId)||(b&&b.vaultId!==vaultId))
+     throw Error('Archive vault identity mismatch');
+    if((a?.generation??0)===(b?.generation??0)){
+     if((a?.commitment??null)!==(b?.commitment??null))
+      throw Error('Archive split-brain at matching generation');
      cursor=a?.generation??0;
-    else cursor=0;
+    }else{
+     const advanced=(a?.generation??0)>(b?.generation??0)?a:b;
+     const behind=advanced===a?b:a;
+     // The behind archive must be an authenticated ancestor of the advanced
+     // archive. Without proof, stop rather than overwrite or fork history.
+     if(behind?.generation)
+      throw Error('Archive divergence requires authenticated ancestry proof');
+     cursor=0;
+    }
    }
    return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
     afterGeneration:cursor,maxGenerations});
