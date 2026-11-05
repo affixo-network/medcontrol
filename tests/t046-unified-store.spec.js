@@ -416,11 +416,22 @@ test('multi-generation archive repair validates entire ancestry and rejects corr
     .then(()=>{},()=>{});
   }
   const original=primary.snapshot(),behind=recovery.snapshot();
+  const corrupted={...primary,getManifest:async commitment=>{
+   const stored=await primary.getManifest(commitment);
+   if(stored?.manifest?.generation===3)return {...stored,tag:'corrupted-middle-link'};
+   return stored;
+  }};
+  const guarded=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,
+   primary:corrupted,recovery,capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  let rejected=false;
+  try{await guarded.sync();}catch(error){rejected=/authentication failed/.test(error.message);}
+  const intact=(await recovery.getHead()).generation===1&&
+   (await primary.getHead()).commitment===original.commitment;
   const repaired=await vault.sync();
   const recovered=recovery.snapshot();
   const missing=await vault.getByPosition(3);
-  return {lag:original.generation-behind.generation,processed:repaired.processed,
+  return {lag:original.generation-behind.generation,rejected,intact,processed:repaired.processed,
    recovery:recovered.generation,local:missing.body.n};
  });
- expect(result).toEqual({lag:3,processed:3,recovery:4,local:4});
+ expect(result).toEqual({lag:3,rejected:true,intact:true,processed:3,recovery:4,local:4});
 });
