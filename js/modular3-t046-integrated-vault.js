@@ -322,6 +322,18 @@ async function recoverReplicaIntentPage({vaultId,afterGeneration=0,limit=100,com
   if(!await codec.verifyManifest(manifest.object)||
      !await auth.verify(commitmentKey,vaultId,'manifest',manifest.object.commitment,manifest.tag))
    throw Error('Replica intent manifest authentication failed');
+  // Verify every immutable segment before allowing a replica delivery job.
+  // A signed manifest alone does not prove its referenced payload still exists.
+  for(const descriptor of manifest.object.segments){
+   const stored=await head.object(vaultId,descriptor.commitment);
+   if(!stored||stored.type!=='segment'||stored.object.commitment!==descriptor.commitment||
+      stored.object.firstSequence!==descriptor.firstSequence||
+      stored.object.lastSequence!==descriptor.lastSequence||
+      stored.object.eventCount!==descriptor.eventCount||
+      !await codec.verifySegment(stored.object)||
+      !await auth.verify(commitmentKey,vaultId,'segment',stored.object.commitment,stored.tag))
+    throw Error('Replica intent segment authentication failed');
+  }
   await queue.enqueue({vaultId,generation:intent.generation,manifestCommitment:intent.manifestCommitment});
   cursor=intent.generation;
  }
