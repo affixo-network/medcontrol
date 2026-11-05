@@ -20,7 +20,7 @@ async function appendAndStage({vaultId,eventId,kind,body,encryptionKey,indexToke
   if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation not committed');
  }
  if(await head.read(vaultId))throw Error('Existing manifest head requires multi-event append protocol');
- const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens});
+ const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens,position:sequence-1});
  const record=await journal.encrypted({owner:vaultId,id:eventId});
  if(!record)throw Error('Committed event not readable');
  const segment=await codec.buildSegment({vaultId,frames:[{sequence,eventId,envelope:record.envelope}]});
@@ -144,7 +144,7 @@ async function appendNextAndStageLocked({vaultId,eventId,kind,body,encryptionKey
   throw Error('Predecessor manifest authentication failed');
  const sequence=prior.object.committedThrough+1;
  if(!Number.isSafeInteger(sequence))throw Error('Sequence exhausted');
- const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens});
+ const local=await journal.append({owner:vaultId,id:eventId,kind,body,key:encryptionKey,tokens:indexTokens,position:sequence-1});
  const record=await journal.encrypted({owner:vaultId,id:eventId});
  if(!record)throw Error('Committed event not readable');
  const segment=await codec.buildSegment({vaultId,frames:[{sequence,eventId,envelope:record.envelope}]});
