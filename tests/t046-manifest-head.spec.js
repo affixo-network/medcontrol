@@ -28,7 +28,7 @@ test('T-046 manifest head persists and rejects competing generations',async({pag
  expect(result.validWinner).toBe(true);
  await page.reload();
  const persisted=await page.evaluate(async(vaultId)=>{
-  const r=indexedDB.open('t046-manifest-head-v1',2);
+  const r=indexedDB.open('t046-manifest-head-v1',3);
   const db=await new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
   return await new Promise((resolve,reject)=>{
    const tx=db.transaction('heads','readonly'),q=tx.objectStore('heads').get(vaultId);
