@@ -497,3 +497,34 @@ test('A01 account for physical amplification and temporary recovery headroom',()
   excluded:'Manifests, real compaction peaks, filesystem quota, SSD free-space checks and backup deduplication'
  }));
 });
+
+
+test('A01 validate exact 500M event capacity arithmetic and boundary overflow',()=>{
+ const eventCount=500_000_000n;
+ const eventsPerSegment=1024n;
+ const segmentCount=(eventCount+eventsPerSegment-1n)/eventsPerSegment;
+ expect(segmentCount).toBe(488282n);
+ expect((segmentCount-1n)*eventsPerSegment).toBeLessThan(eventCount);
+ expect(segmentCount*eventsPerSegment).toBeGreaterThanOrEqual(eventCount);
+ const maxSegmentId=segmentCount-1n;
+ const finalOffset=(eventCount-1n)%eventsPerSegment;
+ expect(maxSegmentId).toBe(488281n);
+ expect(finalOffset).toBe(255n);
+ const payloadBytesPerEvent=8192n;
+ const indexBytesPerEvent=1024n;
+ const totalBytes=eventCount*(payloadBytesPerEvent+indexBytesPerEvent);
+ const reserveBytes=(totalBytes+4n)/5n;
+ expect(totalBytes).toBe(4608000000000n);
+ expect(totalBytes+reserveBytes).toBe(5529600000000n);
+ const beyondSafeInteger=9007199254740993n;
+ expect(beyondSafeInteger+eventCount).toBe(9007199754740993n);
+ console.log('T046_A01_EXACT_BOUNDARY '+JSON.stringify({
+  eventCount:String(eventCount),eventsPerSegment:String(eventsPerSegment),
+  segmentCount:String(segmentCount),lastSegmentId:String(maxSegmentId),lastOffset:String(finalOffset),
+  assumedPayloadBytesPerEvent:String(payloadBytesPerEvent),
+  assumedIndexBytesPerEvent:String(indexBytesPerEvent),
+  assumedBaseBytes:String(totalBytes),assumedReserveBytes:String(reserveBytes),
+  assumedTotalWithReserveBytes:String(totalBytes+reserveBytes),
+  caveat:'Arithmetic proof only; byte assumptions are scenarios, not enforced record bounds or physical storage guarantees'
+ }));
+});
