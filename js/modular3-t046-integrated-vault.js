@@ -399,9 +399,19 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
   async getHead(){return store.readHead(vaultId);},
   async getReplicaIntentPage(afterGeneration=0,limit=100){return store.replicaPage(vaultId,afterGeneration,limit);},
   async verifyGeneration(generation){return store.verifyGeneration({vaultId,generation,commitmentKey});},
-  async sync({afterGeneration=0,maxGenerations=16}={}){
+  async sync({afterGeneration=null,maxGenerations=16}={}){
    if(!primary||!recovery)throw Error('Managed archive endpoints unavailable');
-   return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,afterGeneration,maxGenerations});
+   let cursor=afterGeneration;
+   if(cursor===null){
+    const [a,b]=await Promise.all([primary.getHead(),recovery.getHead()]);
+    if((a?.generation??0)===(b?.generation??0)&&
+       (a?.commitment??null)===(b?.commitment??null)&&
+       (!a||a.vaultId===vaultId)&&(!b||b.vaultId===vaultId))
+     cursor=a?.generation??0;
+    else cursor=0;
+   }
+   return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
+    afterGeneration:cursor,maxGenerations});
   },
   async restoreGeneration(generation){
    if(!primary||!recovery)throw Error('Managed archive endpoints unavailable');
