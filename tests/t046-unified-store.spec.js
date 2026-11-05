@@ -224,3 +224,36 @@ test('integrated dual archive verifies both independent readbacks and idempotent
  });
  expect(result).toEqual({a:'SIMULATED_DUAL_READBACK',b:'SIMULATED_DUAL_READBACK',verified:false,primary:1,recovery:1});
 });
+
+test('bounded dual archive reconciliation restores authenticated generation from recovery when primary fails',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_recovery_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const vault=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  await vault.append([{id:'event_recovery_00000001',kind:'intake',body:{n:1},tokens:[]}]);
+  await vault.append([{id:'event_recovery_00000002',kind:'correction',body:{n:2},tokens:[]}]);
+  const make=()=>{const segments=new Map(),manifests=new Map();let head=null;return {
+   async putSegment(k,v){segments.set(k,v);},async getSegment(k){return segments.get(k)||null;},
+   async putManifest(k,v){manifests.set(k,v);},async getManifest(k){return manifests.get(k)||null;},
+   async getHead(){return head;},async compareAndSwapHead(g,p,n){
+    if((head?.generation??0)!==g||(head?.commitment??null)!==p)return false;head=n;return true;}
+  };};
+  const primary=make(),recovery=make();
+  const first=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,maxGenerations:1});
+  const second=await api.reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
+   afterGeneration:first.nextGeneration,maxGenerations:1});
+  const broken={getHead:async()=>{throw Error('primary unavailable');},
+   getManifest:primary.getManifest,getSegment:primary.getSegment};
+  const restored=await api.retrieveUnifiedArchiveGeneration({vaultId,generation:2,commitmentKey,
+   primary:broken,recovery});
+  return {first:first.processed,second:second.processed,cursor:second.nextGeneration,
+   source:restored.source,frames:restored.segments[0].segment.frames.length};
+ });
+ expect(result).toEqual({first:1,second:1,cursor:2,source:'recovery',frames:1});
+});
