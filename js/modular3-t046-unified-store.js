@@ -75,8 +75,10 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
      const prior=await req(tx.objectStore('manifests').get([vaultId,current.generation]));
      if(!prior||prior.object.commitment!==current.commitment||
         prior.object.generation!==current.generation||
-        prior.object.segments.at(-1)?.lastSequence!==current.lastSequence)
-      throw Error('Committed predecessor manifest missing or inconsistent');
+        prior.object.segments.at(-1)?.lastSequence!==current.lastSequence||
+        !await codec.verifyManifest(prior.object)||
+        !await auth.verify(commitmentKey,vaultId,'manifest',prior.object.commitment,prior.tag))
+      throw Error('Committed predecessor manifest missing or unauthenticated');
     }
     for(let i=0;i<prepared.length;i++){
      const e=prepared[i],position=first+i-1;
