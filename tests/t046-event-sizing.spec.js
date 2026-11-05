@@ -349,10 +349,10 @@ test('A01 project 500M-event capacity scenarios with explicit reserves and copie
   {label:'measured-4-index-1KiB-ascii',recordBytes:1675,indexBytes:652},
   {label:'measured-4-index-1KiB-cyrillic',recordBytes:3042,indexBytes:664},
   {label:'measured-4-index-1KiB-emoji',recordBytes:5771,indexBytes:652},
-  {label:'measured-4-index-8KiB-ascii',recordBytes:12213,indexBytes:0,unmeasuredIndex:true}
+  {label:'measured-4-index-8KiB-ascii',combinedBytes:12213}
  ];
  const rows=scenarios.map(s=>{
-  const perEventBytes=s.recordBytes+s.indexBytes;
+  const perEventBytes=s.combinedBytes??(s.recordBytes+s.indexBytes);
   const baseBytes=perEventBytes*count;
   const reserveBytes=Math.ceil(baseBytes*0.2);
   const localRequiredBytes=baseBytes+reserveBytes;
@@ -361,7 +361,7 @@ test('A01 project 500M-event capacity scenarios with explicit reserves and copie
    reserve20PercentGiB:+(reserveBytes/GiB).toFixed(1),
    localRequiredGiB:+(localRequiredBytes/GiB).toFixed(1),
    withTwoFullCopiesGiB:+(withTwoFullCopiesBytes/GiB).toFixed(1),
-   indexMeasured:!s.unmeasuredIndex};
+   indexMeasured:true,measurementBasis:s.combinedBytes!==undefined?'combined-event-and-index':'separate-event-and-index'};
  });
  for(const r of rows){
   expect(r.baseGiB).toBeGreaterThan(0);
@@ -372,6 +372,6 @@ test('A01 project 500M-event capacity scenarios with explicit reserves and copie
  expect(rows[1].localRequiredGiB).toBeGreaterThan(rows[0].localRequiredGiB);
  console.log('T046_A01_CAPACITY_SCENARIOS '+JSON.stringify({count,rows,
   assumptions:'All 500M events have the sampled size; 20% reserve; two full backup copies; decimal-free GiB reporting',
-  exclusions:'Physical IndexedDB/LevelDB overhead, compaction peaks, manifests, recovery logs, quota, device space, metadata growth and unmeasured 8KiB index bytes',
+  exclusions:'Physical IndexedDB/LevelDB overhead, compaction peaks, manifests, recovery logs, quota, device space, metadata growth; 8KiB sample already includes four index tokens',
   status:'Sensitivity projection only; NOT an acceptance proof of 500M-event capacity'}));
 });
