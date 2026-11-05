@@ -50,3 +50,25 @@ test('T-046 resource expansion requires measured bytes before admitting medical 
  expect(result.admittedStatus).toBe('LOCAL_CAPACITY_MEASURED');
  expect(result.requested).toBeGreaterThan(0);
 });
+
+test('T-046 concurrent resource requests share one expansion and reject unmeasured admission',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-resource-governor.js')});
+ const result=await page.evaluate(async()=>{
+  let requested=0,release;
+  const gate=new Promise(resolve=>{release=resolve;});
+  const governor=window.MedControlT046ResourceGovernor.create({
+   lowWatermarkBytes:100,
+   requestCapacity:async()=>{requested++;await gate;}
+  });
+  const a=governor.reserve({availableBytes:20,pendingBytes:10,estimatedWriteBytes:30});
+  const b=governor.reserve({availableBytes:20,pendingBytes:10,estimatedWriteBytes:30});
+  await Promise.resolve();await Promise.resolve();
+  release();
+  const [first,second]=await Promise.all([a,b]);
+  return {requested,first:first.status,second:second.status,
+   bothDenied:!first.admitted&&!second.admitted};
+ });
+ expect(result).toEqual({requested:1,first:'CAPACITY_REMEASUREMENT_REQUIRED',
+  second:'CAPACITY_REMEASUREMENT_REQUIRED',bothDenied:true});
+});
