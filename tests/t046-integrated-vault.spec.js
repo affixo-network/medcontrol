@@ -166,8 +166,9 @@ test('T-046 integrated appendBatch publishes a verified two-event generation',as
   const first=await window.MedControlT046Journal.getAt({owner:vaultId,position:0,key:encryptionKey});
   const second=await window.MedControlT046Journal.getAt({owner:vaultId,position:1,key:encryptionKey});
   const queued=(await window.MedControlT046ReplicaQueue.pending()).some(j=>j.vaultId===vaultId&&j.manifestCommitment===head.commitment);
+  const intent=await window.MedControlT046ManifestHead.replicaIntent({vaultId,generation:head.generation});
   return {committed:committed.localCommitted,count:committed.eventCount,through:manifest.object.committedThrough,
-   first:first.body.dose,second:second.body.dose,queued};
+   first:first.body.dose,second:second.body.dose,queued,intentMatches:intent?.manifestCommitment===head.commitment};
  });
- expect(result).toEqual({committed:true,count:2,through:2,first:1,second:2,queued:true});
+ expect(result).toEqual({committed:true,count:2,through:2,first:1,second:2,queued:true,intentMatches:true});
 });
