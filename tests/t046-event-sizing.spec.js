@@ -408,3 +408,38 @@ test('A01 mixed-event 500M capacity sensitivity uses exact integer byte arithmet
   scope:'Exact integer arithmetic for synthetic distribution scenarios using previously measured serialized sample sizes',
   exclusions:'Physical storage overhead, journal and manifest, compaction, quota and recovery headroom; not a guarantee'}));
 });
+
+
+test('A01 account for physical amplification and temporary recovery headroom',()=>{
+ const events=500_000_000n,GiB=1024n**3n;
+ const sizes=[{label:'ascii-1KiB',bytes:2327n},{label:'cyrillic-1KiB',bytes:3706n},
+  {label:'emoji-1KiB',bytes:6423n},{label:'ascii-8KiB',bytes:12213n}];
+ // These are explicit hypothetical factors, NOT measured LevelDB bounds.
+ const factors=[{label:'no-amplification',numerator:100n},
+  {label:'plus-25pct',numerator:125n},{label:'plus-100pct',numerator:200n}];
+ const rows=[];
+ for(const sample of sizes)for(const factor of factors){
+  const logical=events*sample.bytes;
+  const physical=(logical*factor.numerator+99n)/100n;
+  const localReserve=(physical+4n)/5n;
+  const recoveryScratch=physical; // explicit conservative one-full-copy scenario
+  const twoFullCopies=2n*physical;
+  const required=physical+localReserve+recoveryScratch+twoFullCopies;
+  const gib=n=>Number(n*10n/GiB)/10;
+  expect(required).toBeGreaterThan(physical);
+  rows.push({sample:sample.label,physicalAmplification:factor.label,
+   physicalGiB:gib(physical),localReserveGiB:gib(localReserve),
+   recoveryScratchGiB:gib(recoveryScratch),twoFullCopiesGiB:gib(twoFullCopies),
+   totalGiB:gib(required)});
+ }
+ for(const sample of sizes){
+  const values=rows.filter(r=>r.sample===sample.label);
+  expect(values[2].totalGiB).toBeGreaterThan(values[1].totalGiB);
+  expect(values[1].totalGiB).toBeGreaterThan(values[0].totalGiB);
+ }
+ console.log('T046_A01_PHYSICAL_OVERHEAD_SENSITIVITY '+JSON.stringify({
+  eventCount:events.toString(),rows,
+  status:'Hypothetical physical amplification and recovery-scratch sensitivity only, not measured bounds',
+  excluded:'Manifests, real compaction peaks, filesystem quota, SSD free-space checks and backup deduplication'
+ }));
+});
