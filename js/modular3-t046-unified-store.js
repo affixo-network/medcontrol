@@ -167,16 +167,19 @@ async function verifyGeneration({vaultId,generation,commitmentKey}){
   throw Error('Invalid generation verification');
  const db=await open();
  try{
-  const tx=db.transaction(['manifests','segments'],'readonly'),finished=done(tx);
+  const tx=db.transaction('manifests','readonly'),finished=done(tx);
   const stored=await req(tx.objectStore('manifests').get([vaultId,generation]));
-  if(!stored){await finished;return false;}
-  const segments=await Promise.all(stored.object.segments.map(s=>req(tx.objectStore('segments').get([vaultId,s.commitment]))));
   await finished;
+  if(!stored)return false;
   if(stored.object.generation!==generation||stored.object.vaultId!==vaultId||
      !await codec.verifyManifest(stored.object)||
      !await auth.verify(commitmentKey,vaultId,'manifest',stored.object.commitment,stored.tag))return false;
-  for(let i=0;i<segments.length;i++){
-   const item=segments[i],descriptor=stored.object.segments[i];
+  // Authenticate one immutable segment at a time. Never load the entire
+  // generation of encrypted medical events into browser memory.
+  for(const descriptor of stored.object.segments){
+   const segmentTx=db.transaction('segments','readonly'),segmentDone=done(segmentTx);
+   const item=await req(segmentTx.objectStore('segments').get([vaultId,descriptor.commitment]));
+   await segmentDone;
    if(!item||item.object.commitment!==descriptor.commitment||
       item.object.firstSequence!==descriptor.firstSequence||item.object.lastSequence!==descriptor.lastSequence||
       item.object.eventCount!==descriptor.eventCount||
