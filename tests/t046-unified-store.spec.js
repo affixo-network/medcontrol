@@ -463,3 +463,28 @@ test('T-046 A01 authenticated paged export preserves immutable ciphertext',async
  expect(result).toEqual({committed:true,segments:1,hasMore:false,endSegments:0,
   endHasMore:false,sameManifest:true,wrongKeyRejected:true});
 });
+
+test('T-046 A01 appendAndSync retains one medical event when remote archive is absent',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_offline_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const vault=window.MedControlT046IntegratedVault.openUnifiedVault({
+   vaultId,encryptionKey,commitmentKey,capacityGateway:{reserve:async()=>({reserved:true})},
+   reservationBytes:1000000
+  });
+  const receipt=await vault.appendAndSync([{id:'event_offline_00000001',kind:'intake',
+   body:{medicine:'preserved'},tokens:[]}]);
+  const record=await vault.getByPosition(0);
+  const head=await vault.getHead();
+  const jobs=await vault.getReplicaIntentPage(0,10);
+  return {state:receipt.protectionState,pending:receipt.archivePending,
+   verified:receipt.independentReplicaVerified,generation:head.generation,
+   body:record.body.medicine,jobCount:jobs.jobs.length,duplicate:await vault.getByPosition(1)};
+ });
+ expect(result).toEqual({state:'LOCAL_DURABLE',pending:true,verified:false,
+  generation:1,body:'preserved',jobCount:1,duplicate:null});
+});
