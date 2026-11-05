@@ -442,6 +442,28 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
    return reconcileUnifiedArchive({vaultId,commitmentKey,primary,recovery,
     afterGeneration:cursor,maxGenerations});
   },
+  /* Drain the durable local outbox in bounded batches. This never reports
+   * remote protection merely because a local write succeeded. */
+  async syncAll({maxGenerations=16,maxBatches=1000}={}){
+   if(!Number.isSafeInteger(maxBatches)||maxBatches<1||maxBatches>10000)
+    throw Error('Invalid archive sync work budget');
+   let cursor=null,processed=0,batches=0,lastReceipt=null;
+   for(;batches<maxBatches;batches++){
+    const result=await this.sync({afterGeneration:cursor,maxGenerations});
+    if(result.processed===0)
+     return Object.freeze({processed,batches:batches+1,nextGeneration:result.nextGeneration,
+      hasMore:false,lastReceipt});
+    if(cursor!==null&&result.nextGeneration<=cursor)
+     throw Error('Archive reconciliation made no progress');
+    cursor=result.nextGeneration;
+    processed+=result.processed;
+    lastReceipt=result.receipts[result.receipts.length-1];
+    if(!result.hasMore)
+     return Object.freeze({processed,batches:batches+1,nextGeneration:cursor,
+      hasMore:false,lastReceipt});
+   }
+   return Object.freeze({processed,batches,nextGeneration:cursor,hasMore:true,lastReceipt});
+  },
   async restoreGeneration(generation){
    if(!primary||!recovery)throw Error('Managed archive endpoints unavailable');
    return retrieveUnifiedArchiveGeneration({vaultId,generation,commitmentKey,primary,recovery});
