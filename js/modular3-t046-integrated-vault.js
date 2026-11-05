@@ -207,6 +207,18 @@ async function stageEncryptedBatch({vaultId,frames,commitmentKey,capacityGateway
    throw Error('Unauthenticated predecessor');
   const nextSequence=previous?previous.object.committedThrough+1:1;
   if(frames[0].sequence!==nextSequence)throw Error('Batch sequence discontinuity');
+  // Never authenticate a batch that has no matching durable encrypted journal entries.
+  // This is a consistency gate, not a cross-database atomicity guarantee.
+  const journal=root.MedControlT046Journal;
+  if(!journal||typeof journal.encrypted!=='function')throw Error('Encrypted journal unavailable');
+  for(let i=0;i<frames.length;i++){
+   const frame=frames[i];
+   if(!frame||!Number.isSafeInteger(frame.sequence)||frame.sequence!==nextSequence+i||
+      typeof frame.eventId!=='string')throw Error('Invalid batch event sequence');
+   const stored=await journal.encrypted({owner:vaultId,id:frame.eventId});
+   if(!stored||JSON.stringify(stored.envelope)!==JSON.stringify(frame.envelope))
+    throw Error('Batch event not durably committed in encrypted journal');
+  }
   const segments=await codec.buildSegments({vaultId,frames});
   if(segments.length>1024)throw Error('Batch exceeds manifest segment capacity');
   const manifest=await codec.buildManifest({vaultId,generation:first,
