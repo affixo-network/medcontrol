@@ -136,5 +136,26 @@ async function encrypted({owner,id}){
   return structuredClone({owner:record.owner,id:record.id,kind:record.kind,envelope:record.envelope});
  }finally{db.close();}
 }
-root.MedControlT046Journal=Object.freeze({append,get,getAt,page,tokenFor,encrypted});
+/* Read a bounded contiguous range in one consistent IndexedDB snapshot.
+ * Positions and encrypted events must agree; never return partial evidence.
+ */
+async function encryptedRange({owner,start,limit}){
+ assertId(owner,'owner');
+ if(!Number.isSafeInteger(start)||start<0||!Number.isSafeInteger(limit)||limit<1||limit>1024||
+    !Number.isSafeInteger(start+limit-1))throw Error('Invalid encrypted range');
+ const db=await open();
+ try{
+  const tx=db.transaction([EVENTS,POSITIONS],'readonly'),finished=txDone(tx);
+  const positions=tx.objectStore(POSITIONS),events=tx.objectStore(EVENTS),reads=[];
+  for(let i=0;i<limit;i++)reads.push(req(positions.get([owner,start+i])));
+  const refs=await Promise.all(reads);
+  if(refs.some(ref=>!ref)){await finished;throw Error('Encrypted range contains missing position');}
+  const records=await Promise.all(refs.map(ref=>req(events.get([owner,ref.id]))));
+  await finished;
+  if(records.some((record,i)=>!record||record.id!==refs[i].id))
+   throw Error('Encrypted range contains missing event');
+  return records.map((record,i)=>({sequence:start+i+1,eventId:record.id,envelope:record.envelope}));
+ }finally{db.close();}
+}
+root.MedControlT046Journal=Object.freeze({append,get,getAt,page,tokenFor,encrypted,encryptedRange});
 })(typeof window!=='undefined'?window:globalThis);
