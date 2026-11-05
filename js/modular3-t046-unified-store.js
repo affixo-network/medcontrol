@@ -46,7 +46,13 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
   seen.add(e.id);prepared.push({id:e.id,kind:e.kind,tokens:e.tokens.slice(),envelope:f.envelope});
  }
  const first=frames[0].sequence,last=frames[frames.length-1].sequence;
- if(first!==((expectedHead?.lastSequence??0)+1)||!Number.isSafeInteger(last))throw Error('Invalid predecessor sequence');
+ if(expectedHead!==null&&(!Number.isSafeInteger(expectedHead.generation)||expectedHead.generation<1||
+    !Number.isSafeInteger(expectedHead.lastSequence)||expectedHead.lastSequence<1||
+    typeof expectedHead.commitment!=='string'||!/^[0-9a-f]{64}$/.test(expectedHead.commitment)))
+  throw Error('Invalid expected head');
+ if(!Number.isSafeInteger(first)||first<1||!Number.isSafeInteger(last)||
+    first!==((expectedHead?.lastSequence??0)+1)||last-first+1!==frames.length)
+  throw Error('Invalid predecessor sequence');
  const segments=await codec.buildSegments({vaultId,frames});
  const generation=(expectedHead?.generation??0)+1;
  const manifest=await codec.buildManifest({vaultId,generation,previousCommitment:expectedHead?.commitment??null,segments});
