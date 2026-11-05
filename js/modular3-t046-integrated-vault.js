@@ -395,6 +395,30 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
    const receipt=await store.appendEncryptedBatch({...base,entries,expectedHead});
    return Object.freeze({localReceipt:receipt,protectionState:'LOCAL_DURABLE',independentReplicaVerified:false});
   },
+  /* A single user-facing operation that preserves a committed local event even
+   * if either independent archive is temporarily unavailable. Never retry the
+   * medical append after a replica failure: retry only the durable outbox. */
+  async appendAndSync(entries,{maxGenerations=16,maxBatches=1000}={}){
+   const local=await this.append(entries);
+   if(!primary||!recovery)
+    return Object.freeze({...local,archivePending:true,
+     archiveError:'Managed archive endpoints unavailable'});
+   try{
+    const synced=await this.syncAll({maxGenerations,maxBatches});
+    const latest=synced.lastReceipt;
+    const protectedGeneration=latest?.generation??0;
+    const localGeneration=local.localReceipt?.generation??0;
+    const verified=!synced.hasMore&&protectedGeneration>=localGeneration&&
+     latest?.independentReplicaVerified===true;
+    return Object.freeze({...local,
+     protectionState:verified?'DUAL_VERIFIED':'LOCAL_DURABLE',
+     independentReplicaVerified:verified,archivePending:!verified,
+     archiveSync:synced});
+   }catch(error){
+    return Object.freeze({...local,archivePending:true,
+     archiveError:String(error?.message??error)});
+   }
+  },
   async getByPosition(position){return store.readDecryptedAt({vaultId,position,encryptionKey,commitmentKey});},
   async getHead(){return store.readHead(vaultId);},
   async getReplicaIntentPage(afterGeneration=0,limit=100){return store.replicaPage(vaultId,afterGeneration,limit);},
