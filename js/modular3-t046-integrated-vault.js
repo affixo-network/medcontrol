@@ -214,6 +214,9 @@ async function stageEncryptedBatch({vaultId,frames,commitmentKey,capacityGateway
   const segmentTags=[];
   for(const segment of segments)segmentTags.push(await auth.sign(commitmentKey,vaultId,'segment',segment.commitment));
   const manifestTag=await auth.sign(commitmentKey,vaultId,'manifest',manifest.commitment);
+  const encodedBytes=new TextEncoder().encode(JSON.stringify({segments,manifest,segmentTags,manifestTag})).byteLength;
+  if(!Number.isSafeInteger(encodedBytes)||reservationBytes<encodedBytes)
+   throw Error('Capacity reservation understates authenticated batch bytes');
   const reservation=await capacityGateway.reserve(vaultId+':manifest:'+manifest.commitment,reservationBytes);
   if(!reservation||reservation.reserved!==true)throw Error('Capacity reservation not committed');
   await head.commitObjects({vaultId,expected:current,segments,segmentTags,manifest,manifestTag,commitmentKey});
