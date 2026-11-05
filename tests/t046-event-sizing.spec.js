@@ -149,8 +149,9 @@ test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
  };
  const rows=[];
  try{
-  for(const tokenCount of [4,1,0]){
-   const dir=path.join(root,'profile-'+tokenCount);
+  for(const tokenCount of [4,4,4,1,0]){
+   const replicate=rows.filter(x=>x.tokenCount===tokenCount).length;
+   const dir=path.join(root,'profile-'+tokenCount+'-'+replicate);
    let context=await chromium.launchPersistentContext(dir,{headless:true});
    let page=await context.newPage();
    await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
@@ -182,7 +183,7 @@ test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
    await context.close();
    const final=diskBytes(path.join(dir,'Default','IndexedDB'));
    const allocatedFinal=allocatedBytes(path.join(dir,'Default','IndexedDB'));
-   rows.push({tokenCount,baselineBytes:baseline,bytesAt60:at60,bytesAt10000:final,allocatedAt60,allocatedAt10000:allocatedFinal,allocatedMarginalBytesPerEvent:(allocatedFinal-allocatedAt60)/9940,initialBytesPerEvent:(at60-baseline)/60,marginalBytesPerEvent:(final-at60)/9940,deltaBytes:final-baseline});
+   rows.push({tokenCount,replicate,baselineBytes:baseline,bytesAt60:at60,bytesAt10000:final,allocatedAt60,allocatedAt10000:allocatedFinal,allocatedMarginalBytesPerEvent:(allocatedFinal-allocatedAt60)/9940,initialBytesPerEvent:(at60-baseline)/60,marginalBytesPerEvent:(final-at60)/9940,deltaBytes:final-baseline});
   }
   for(const row of rows)expect(row.deltaBytes).toBeGreaterThan(0);
   console.log('T046_INDEXEDDB_DISK_SAMPLE '+JSON.stringify(rows));
