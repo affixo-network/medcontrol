@@ -50,48 +50,54 @@ async function advance({vaultId,expected=null,next}){
  });}finally{db.close();}
 }
 
-async function commitObjects({vaultId,expected=null,segment,manifest,segmentTag,manifestTag,commitmentKey}){
+async function commitObjects({vaultId,expected=null,segment,segments=null,manifest,segmentTag,segmentTags=null,manifestTag,commitmentKey}){
  const codec=root.MedControlT046SegmentCodec,auth=root.MedControlT046AuthenticatedCommitment;
- if(!validVault(vaultId)||!validObject(segment)||!validObject(manifest)||
-    segment.vaultId!==vaultId||manifest.vaultId!==vaultId||
-    !codec||!await codec.verifySegment(segment)||!await codec.verifyManifest(manifest)||
-    (manifest.segments.length!==1||manifest.segments[0].commitment!==segment.commitment||manifest.segments[0].firstSequence!==segment.firstSequence||manifest.segments[0].lastSequence!==segment.lastSequence||manifest.segments[0].eventCount!==segment.eventCount)||
-    !auth||!commitmentKey||!await auth.verify(commitmentKey,vaultId,'segment',segment.commitment,segmentTag)||
-    !await auth.verify(commitmentKey,vaultId,'manifest',manifest.commitment,manifestTag)||
+ const parts=segments===null?[segment]:segments;
+ const tags=segmentTags===null?[segmentTag]:segmentTags;
+ if(!validVault(vaultId)||!validObject(manifest)||!codec||!auth||!commitmentKey||
+    !Array.isArray(parts)||!Array.isArray(tags)||parts.length<1||parts.length>1024||parts.length!==tags.length||
+    manifest.vaultId!==vaultId||!await codec.verifyManifest(manifest)||
+    manifest.segments.length!==parts.length||
     manifest.previousCommitment!==(expected?expected.commitment:null)||
-    manifest.generation!==(expected?expected.generation+1:1))
+    manifest.generation!==(expected?expected.generation+1:1)||
+    !await auth.verify(commitmentKey,vaultId,'manifest',manifest.commitment,manifestTag))
   throw Error('Invalid authenticated object transition');
+ for(let i=0;i<parts.length;i++){
+  const part=parts[i],desc=manifest.segments[i];
+  if(!validObject(part)||part.vaultId!==vaultId||!await codec.verifySegment(part)||
+     desc.commitment!==part.commitment||desc.firstSequence!==part.firstSequence||
+     desc.lastSequence!==part.lastSequence||desc.eventCount!==part.eventCount||
+     !await auth.verify(commitmentKey,vaultId,'segment',part.commitment,tags[i]))
+   throw Error('Invalid authenticated segment transition');
+ }
  const db=await open();
  try{return await new Promise((resolve,reject)=>{
   const tx=db.transaction(['heads','objects'],'readwrite'),heads=tx.objectStore('heads'),objects=tx.objectStore('objects');
   let conflict=false;
   tx.oncomplete=()=>resolve({committed:true,generation:manifest.generation});
   tx.onabort=()=>reject(Error(conflict?'Manifest head conflict':'Object transaction aborted'));
+  const persist=()=>{
+   for(let i=0;i<parts.length;i++)objects.put({vaultId,commitment:parts[i].commitment,type:'segment',object:parts[i],tag:tags[i]});
+   objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
+   heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
+  };
   heads.get(vaultId).onsuccess=e=>{
    const old=e.target.result||null;
    if((old?.commitment||null)!==(expected?.commitment||null)||
       (old?.generation||0)!==(expected?.generation||0)){conflict=true;tx.abort();return;}
-   // Validate continuity against the authenticated predecessor in the SAME transaction.
-   // A valid manifest hash alone does not prove that the chain has no skipped events.
    if(expected){
     objects.get([vaultId,expected.commitment]).onsuccess=prior=>{
      const stored=prior.target.result;
      if(!stored||stored.type!=='manifest'||stored.object.generation!==expected.generation||
         stored.object.commitment!==expected.commitment||
         !Number.isSafeInteger(stored.object.committedThrough)||
-        manifest.segments[0].firstSequence!==stored.object.committedThrough+1){
-      conflict=true;tx.abort();return;
-     }
-     objects.put({vaultId,commitment:segment.commitment,type:'segment',object:segment,tag:segmentTag});
-     objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
-     heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
+        manifest.segments[0].firstSequence!==stored.object.committedThrough+1){conflict=true;tx.abort();return;}
+     persist();
     };
     return;
    }
    if(manifest.segments[0].firstSequence!==1){conflict=true;tx.abort();return;}
-   objects.put({vaultId,commitment:segment.commitment,type:'segment',object:segment,tag:segmentTag});
-   objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
-   heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
+   persist();
   };
  });}finally{db.close();}
 }
