@@ -59,6 +59,22 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
  const locks=root.navigator?.locks;
  if(!locks?.request)throw Error('Cross-tab write lock unavailable');
  return locks.request('medcontrol-t046-unified-'+vaultId,{mode:'exclusive'},async()=>{
+  // Crypto is asynchronous: authenticate the predecessor BEFORE opening the
+  // IndexedDB write transaction, which must stay free of non-IDB awaits.
+  if(expectedHead){
+   const priorDb=await open();
+   try{
+    const priorTx=priorDb.transaction('manifests','readonly'),priorFinished=done(priorTx);
+    const prior=await req(priorTx.objectStore('manifests').get([vaultId,expectedHead.generation]));
+    await priorFinished;
+    if(!prior||prior.object.commitment!==expectedHead.commitment||
+       prior.object.generation!==expectedHead.generation||
+       prior.object.segments.at(-1)?.lastSequence!==expectedHead.lastSequence||
+       !await codec.verifyManifest(prior.object)||
+       !await auth.verify(commitmentKey,vaultId,'manifest',prior.object.commitment,prior.tag))
+     throw Error('Committed predecessor manifest missing or unauthenticated');
+   }finally{priorDb.close();}
+  }
   const db=await open();
   try{
    const tx=db.transaction(['events','tokens','positions','segments','manifests','heads','replicaJobs'],'readwrite');
@@ -75,9 +91,7 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
      const prior=await req(tx.objectStore('manifests').get([vaultId,current.generation]));
      if(!prior||prior.object.commitment!==current.commitment||
         prior.object.generation!==current.generation||
-        prior.object.segments.at(-1)?.lastSequence!==current.lastSequence||
-        !await codec.verifyManifest(prior.object)||
-        !await auth.verify(commitmentKey,vaultId,'manifest',prior.object.commitment,prior.tag))
+        prior.object.segments.at(-1)?.lastSequence!==current.lastSequence)
       throw Error('Committed predecessor manifest missing or unauthenticated');
     }
     for(let i=0;i<prepared.length;i++){
