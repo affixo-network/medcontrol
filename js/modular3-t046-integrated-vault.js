@@ -406,5 +406,52 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
   }
  });
 }
-root.MedControlT046IntegratedVault=Object.freeze({openUnifiedVault,append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
+/* End-to-end archive delivery for one authenticated local generation.
+ * Both adapters must have independent failure domains in a real deployment.
+ * The local receipt is never promoted to dual protection on partial success.
+ * Retry is idempotent: immutable objects are content addressed, head CAS is
+ * accepted only when the already committed head matches exactly. */
+async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primary,recovery}){
+ const store=root.MedControlT046UnifiedStore;
+ if(!store||!primary||!recovery||primary===recovery||
+    !Number.isSafeInteger(generation)||generation<1)
+  throw Error('Two distinct archive adapters and valid generation required');
+ const required=['putSegment','getSegment','putManifest','getManifest','getHead','compareAndSwapHead'];
+ for(const adapter of [primary,recovery])
+  if(required.some(method=>typeof adapter[method]!=='function'))
+   throw Error('Archive adapter missing immutable/CAS protocol');
+ const bundle=await store.exportVerifiedGeneration({vaultId,generation,commitmentKey});
+ const manifest=bundle.manifest.object;
+ const commitment=manifest.commitment;
+ const previous=manifest.previousCommitment??null;
+ const canonical=x=>JSON.stringify(x);
+ const publish=async adapter=>{
+  for(const segment of bundle.segments){
+   const object={segment:segment.object,tag:segment.tag};
+   await adapter.putSegment(segment.object.commitment,object);
+   const back=await adapter.getSegment(segment.object.commitment);
+   if(canonical(back)!==canonical(object))throw Error('Archive segment readback mismatch');
+  }
+  const object={manifest,tag:bundle.manifest.tag};
+  await adapter.putManifest(commitment,object);
+  const back=await adapter.getManifest(commitment);
+  if(canonical(back)!==canonical(object))throw Error('Archive manifest readback mismatch');
+  const current=await adapter.getHead();
+  if(current?.generation===generation&&current?.commitment===commitment&&current?.vaultId===vaultId)
+   return;
+  if((current?.generation??0)!==generation-1||(current?.commitment??null)!==previous)
+   throw Error('Archive head predecessor conflict');
+  const next={vaultId,generation,commitment};
+  if(!await adapter.compareAndSwapHead(generation-1,previous,next))
+   throw Error('Archive head compare-and-swap failed');
+  const confirmed=await adapter.getHead();
+  if(confirmed?.generation!==generation||confirmed?.commitment!==commitment||
+     confirmed?.vaultId!==vaultId)throw Error('Archive head readback mismatch');
+ };
+ await publish(primary);
+ await publish(recovery);
+ return Object.freeze({vaultId,generation,manifestCommitment:commitment,
+  protectionState:'DUAL_VERIFIED',independentReplicaVerified:true});
+}
+root.MedControlT046IntegratedVault=Object.freeze({openUnifiedVault,deliverUnifiedGeneration,append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
