@@ -20,10 +20,13 @@ async function appendEncryptedBatch({vaultId,entries,encryptionKey,commitmentKey
  for(let i=0;i<entries.length;i++){
   const e=entries[i];
   if(!e||typeof e.id!=='string'||!/^event_[A-Za-z0-9_-]{8,128}$/.test(e.id)||
-     typeof e.kind!=='string'||!e.kind||!Array.isArray(e.tokens))throw Error('Invalid event');
+     typeof e.kind!=='string'||!e.kind||!Array.isArray(e.tokens)||
+     e.body===undefined)throw Error('Invalid event');
   const iv=root.crypto.getRandomValues(new Uint8Array(12));
   const aad=encoder.encode(JSON.stringify([1,vaultId,e.id,e.kind]));
-  const plaintext=encoder.encode(JSON.stringify(e.body));
+  const json=JSON.stringify(e.body);
+  if(typeof json!=='string')throw Error('Medical event body is not serializable');
+  const plaintext=encoder.encode(json);
   if(plaintext.byteLength>2*1024*1024)throw Error('Medical event exceeds bounded encryption limit');
   const ciphertext=new Uint8Array(await root.crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},encryptionKey,plaintext));
   const b64=bytes=>btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''));
