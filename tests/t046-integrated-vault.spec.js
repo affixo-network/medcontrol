@@ -135,7 +135,7 @@ test('T-046 durable journal batch commits two authenticated events and rejects a
   const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
   const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
   const journal=window.MedControlT046Journal,integrated=window.MedControlT046IntegratedVault;
-  for(let i=0;i<2;i++)await journal.append({owner:vaultId,id:'batch_'+i,kind:'intake',body:{i},key:encryptionKey,position:i});
+  for(let i=0;i<2;i++)await journal.append({owner:vaultId,id:'event_batch_000000'+i,kind:'intake',body:{i},key:encryptionKey,position:i});
   const capacityGateway={reserve:async()=>({reserved:true})};
   const committed=await integrated.stageJournalRange({vaultId,startSequence:1,count:2,commitmentKey,capacityGateway,reservationBytes:100000});
   const head=await window.MedControlT046ManifestHead.read(vaultId);
