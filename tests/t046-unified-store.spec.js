@@ -111,3 +111,28 @@ test('unified vault rejects stale concurrent writer without modifying committed 
  expect([2,3]).toContain(result.position);
  expect(result.jobs).toBe(2);
 });
+
+test('unified authenticated read fails closed when stored ciphertext is tampered',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store'])await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_tamper_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const store=window.MedControlT046UnifiedStore;
+  await store.appendEncryptedBatch({vaultId,encryptionKey,commitmentKey,
+   entries:[{id:'event_tamper_00000001',kind:'intake',body:{n:1},tokens:[]}],
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  const before=await store.readDecryptedAt({vaultId,position:0,encryptionKey,commitmentKey});
+  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('medcontrol_t046_unified_v1',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+  const tx=db.transaction('events','readwrite');
+  const key=[vaultId,'event_tamper_00000001'];
+  const original=await new Promise((resolve,reject)=>{const r=tx.objectStore('events').get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+  tx.objectStore('events').put({...original,envelope:{...original.envelope,ciphertext:btoa('tampered ciphertext')}},key);
+  await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);});db.close();
+  let rejected=false;
+  try{await store.readDecryptedAt({vaultId,position:0,encryptionKey,commitmentKey});}catch{rejected=true;}
+  return {before:before.body.n,rejected,generation:(await store.readHead(vaultId)).generation};
+ });
+ expect(result).toEqual({before:1,rejected:true,generation:1});
+});
