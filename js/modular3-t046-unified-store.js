@@ -87,6 +87,24 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
 }
 async function readHead(vaultId){if(!validVault(vaultId))throw Error('Invalid vault');const db=await open();try{const tx=db.transaction('heads','readonly'),finished=done(tx),head=await req(tx.objectStore('heads').get(vaultId));await finished;return head??null;}finally{db.close();}}
 async function readAt(vaultId,position){if(!validVault(vaultId)||!Number.isSafeInteger(position)||position<0)throw Error('Invalid position');const db=await open();try{const tx=db.transaction(['positions','events'],'readonly'),finished=done(tx);const id=await req(tx.objectStore('positions').get([vaultId,position]));const record=id?await req(tx.objectStore('events').get([vaultId,id])):null;await finished;if(id&&!record)throw Error('Broken unified index');return record?{id,...record}:null;}finally{db.close();}}
+/* Bounded authenticated read. Never return medical plaintext if the event
+ * identifier, type, vault or ciphertext authentication has been altered. */
+async function readDecryptedAt({vaultId,position,encryptionKey}){
+ if(!encryptionKey||encryptionKey.type!=='secret'||encryptionKey.algorithm?.name!=='AES-GCM'||
+    !encryptionKey.usages.includes('decrypt'))throw Error('AES-GCM decryption key required');
+ const record=await readAt(vaultId,position);
+ if(!record)return null;
+ const envelope=record.envelope;
+ if(!envelope||envelope.v!==1||envelope.alg!=='AES-GCM'||
+    typeof envelope.iv!=='string'||typeof envelope.ciphertext!=='string')throw Error('Invalid encrypted event');
+ const decode=value=>Uint8Array.from(atob(value),c=>c.charCodeAt(0));
+ const iv=decode(envelope.iv),ciphertext=decode(envelope.ciphertext);
+ if(iv.byteLength!==12||ciphertext.byteLength<16||ciphertext.byteLength>3*1024*1024)
+  throw Error('Invalid encrypted event size');
+ const aad=new TextEncoder().encode(JSON.stringify([1,vaultId,record.id,record.kind]));
+ const plain=await root.crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},encryptionKey,ciphertext);
+ return {id:record.id,kind:record.kind,body:JSON.parse(new TextDecoder().decode(plain))};
+}
 async function replicaPage(vaultId,afterGeneration=0,limit=100){if(!validVault(vaultId)||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||!Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid page');const db=await open();try{const tx=db.transaction('replicaJobs','readonly'),finished=done(tx);const range=IDBKeyRange.bound([vaultId,afterGeneration+1],[vaultId,Number.MAX_SAFE_INTEGER]);const cursor=tx.objectStore('replicaJobs').openCursor(range);const jobs=[];await new Promise((ok,no)=>{cursor.onerror=()=>no(cursor.error);cursor.onsuccess=()=>{const c=cursor.result;if(!c||jobs.length===limit){ok();return;}jobs.push(c.value);c.continue();};});await finished;return {jobs,nextGeneration:jobs.length?jobs[jobs.length-1].generation:afterGeneration};}finally{db.close();}}
-root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,readHead,readAt,replicaPage});
+root.MedControlT046UnifiedStore=Object.freeze({appendEncryptedBatch,commitBatch,readHead,readAt,readDecryptedAt,replicaPage});
 })(typeof window!=='undefined'?window:globalThis);
