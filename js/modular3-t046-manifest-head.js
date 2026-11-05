@@ -71,6 +71,24 @@ async function commitObjects({vaultId,expected=null,segment,manifest,segmentTag,
    const old=e.target.result||null;
    if((old?.commitment||null)!==(expected?.commitment||null)||
       (old?.generation||0)!==(expected?.generation||0)){conflict=true;tx.abort();return;}
+   // Validate continuity against the authenticated predecessor in the SAME transaction.
+   // A valid manifest hash alone does not prove that the chain has no skipped events.
+   if(expected){
+    objects.get([vaultId,expected.commitment]).onsuccess=prior=>{
+     const stored=prior.target.result;
+     if(!stored||stored.type!=='manifest'||stored.object.generation!==expected.generation||
+        stored.object.commitment!==expected.commitment||
+        !Number.isSafeInteger(stored.object.committedThrough)||
+        manifest.segments[0].firstSequence!==stored.object.committedThrough+1){
+      conflict=true;tx.abort();return;
+     }
+     objects.put({vaultId,commitment:segment.commitment,type:'segment',object:segment,tag:segmentTag});
+     objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
+     heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
+    };
+    return;
+   }
+   if(manifest.segments[0].firstSequence!==1){conflict=true;tx.abort();return;}
    objects.put({vaultId,commitment:segment.commitment,type:'segment',object:segment,tag:segmentTag});
    objects.put({vaultId,commitment:manifest.commitment,type:'manifest',object:manifest,tag:manifestTag});
    heads.put({vaultId,generation:manifest.generation,commitment:manifest.commitment});
