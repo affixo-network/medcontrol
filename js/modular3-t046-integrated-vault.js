@@ -494,8 +494,43 @@ function openUnifiedVault({vaultId,encryptionKey,commitmentKey,capacityGateway,r
   },
   async getProtectionStatus(){
    const head=await store.readHead(vaultId);
-   return Object.freeze({lastLocalGeneration:head?.generation??0,independentReplicaVerified:false,
-    protectionState:head?'LOCAL_DURABLE':'EMPTY'});
+   const generation=head?.generation??0;
+   if(!head)return Object.freeze({lastLocalGeneration:0,
+    independentReplicaVerified:false,protectionState:'EMPTY'});
+   if(!primary||!recovery||primary===recovery)
+    return Object.freeze({lastLocalGeneration:generation,
+     independentReplicaVerified:false,protectionState:'LOCAL_DURABLE'});
+   try{
+    const [a,b]=await Promise.all([primary.getHead(),recovery.getHead()]);
+    const domains=primary.failureDomain&&recovery.failureDomain&&
+     primary.failureDomain!==recovery.failureDomain;
+    if(!domains||primary.durable!==true||recovery.durable!==true||
+       a?.vaultId!==vaultId||b?.vaultId!==vaultId||
+       a.generation!==generation||b.generation!==generation||
+       a.commitment!==head.commitment||b.commitment!==head.commitment)
+     return Object.freeze({lastLocalGeneration:generation,
+      independentReplicaVerified:false,protectionState:'LOCAL_DURABLE'});
+    // Remote head equality alone is not sufficient. Authenticate the local
+    // immutable generation and both independently readable remote manifests.
+    if(!await store.verifyGeneration({vaultId,generation,commitmentKey}))
+     throw Error('Local authenticated generation verification failed');
+    const [ma,mb]=await Promise.all([
+     primary.getManifest(head.commitment),recovery.getManifest(head.commitment)]);
+    const codec=root.MedControlT046SegmentCodec;
+    const auth=root.MedControlT046AuthenticatedCommitment;
+    for(const item of [ma,mb])
+     if(!item||item.manifest?.commitment!==head.commitment||
+        item.manifest?.vaultId!==vaultId||item.manifest?.generation!==generation||
+        !await codec.verifyManifest(item.manifest)||
+        !await auth.verify(commitmentKey,vaultId,'manifest',head.commitment,item.tag))
+      throw Error('Remote authenticated manifest verification failed');
+    return Object.freeze({lastLocalGeneration:generation,
+     independentReplicaVerified:true,protectionState:'DUAL_VERIFIED'});
+   }catch(error){
+    return Object.freeze({lastLocalGeneration:generation,
+     independentReplicaVerified:false,protectionState:'LOCAL_DURABLE',
+     archiveError:String(error?.message??error)});
+   }
   }
  });
 }
