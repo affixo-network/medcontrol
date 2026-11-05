@@ -247,7 +247,12 @@ test('A01 measure physical IndexedDB growth across intake correction and course 
    },item);
    await context.close();
    const after=diskBytes(path.join(dir,'Default','IndexedDB'));
-   rows.push({kind:item.kind,...stats,physicalDeltaBytes:after-before,physicalBytesPerEvent:(after-before)/1000});
+   const serializedTotal=stats.serializedP50Bytes*stats.eventCount;
+   rows.push({kind:item.kind,...stats,physicalDeltaBytes:after-before,
+    physicalBytesPerEvent:(after-before)/1000,
+    physicalToSerializedRatio:+((after-before)/serializedTotal).toFixed(4),
+    physicalAmplificationPct:+(100*((after-before)/serializedTotal-1)).toFixed(2),
+    caveat:'Physical LevelDB growth includes baseline and compaction variability; ratio is observational, not an upper bound'});
   }
   for(const row of rows){
    expect(row.eventCount).toBe(1000);
