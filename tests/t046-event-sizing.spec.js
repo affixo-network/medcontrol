@@ -608,3 +608,38 @@ test('A01 persist encrypted events at real boundary positions across reopen',asy
  expect(result.absent).toBe(true);
  console.log('T046_A01_REAL_POSITION_STORAGE '+JSON.stringify(result));
 });
+
+
+test('A01 recover encrypted positioned event after full browser profile restart',async()=>{
+ const {chromium}=require('@playwright/test');
+ const fs=require('node:fs'),os=require('node:os');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'t046-a01-restart-'));
+ const owner='a01-restart',id='persistent-499999999',position=499999999;
+ const keyBytes=Array.from({length:32},(_,i)=>i+1);
+ try{
+  let context=await chromium.launchPersistentContext(dir,{headless:true});
+  try{
+   const page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+   await page.evaluate(async({owner,id,position,keyBytes})=>{
+    const key=await crypto.subtle.importKey('raw',new Uint8Array(keyBytes),'AES-GCM',false,['encrypt','decrypt']);
+    await window.MedControlT046Journal.append({owner,id,position,kind:'intake',
+     body:{courseId:'restart-test',position,scheduledAt:'2026-11-05T10:00:00+04:00'},key});
+   },{owner,id,position,keyBytes});
+  }finally{await context.close();}
+  context=await chromium.launchPersistentContext(dir,{headless:true});
+  try{
+   const page=await context.newPage();
+   await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+   await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+   const recovered=await page.evaluate(async({owner,position,keyBytes})=>{
+    const key=await crypto.subtle.importKey('raw',new Uint8Array(keyBytes),'AES-GCM',false,['encrypt','decrypt']);
+    return window.MedControlT046Journal.getAt({owner,position,key});
+   },{owner,position,keyBytes});
+   expect(recovered).toMatchObject({position,id,kind:'intake',
+    body:{courseId:'restart-test',position,scheduledAt:'2026-11-05T10:00:00+04:00'}});
+   console.log('T046_A01_BROWSER_RESTART_RECOVERY '+JSON.stringify({position,id,recovered:true,profileReopened:true}));
+  }finally{await context.close();}
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
