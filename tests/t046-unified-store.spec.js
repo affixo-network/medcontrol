@@ -219,8 +219,8 @@ test('integrated dual archive verifies both independent readbacks and idempotent
   const args={vaultId,generation:1,commitmentKey,primary,recovery};
   const a=await window.MedControlT046IntegratedVault.deliverUnifiedGeneration(args);
   const b=await window.MedControlT046IntegratedVault.deliverUnifiedGeneration(args);
-  return {a:a.protectionState,b:b.protectionState,primary:(await primary.getHead()).generation,
+  return {a:a.protectionState,b:b.protectionState,verified:a.independentReplicaVerified,primary:(await primary.getHead()).generation,
    recovery:(await recovery.getHead()).generation};
  });
- expect(result).toEqual({a:'DUAL_VERIFIED',b:'DUAL_VERIFIED',primary:1,recovery:1});
+ expect(result).toEqual({a:'SIMULATED_DUAL_READBACK',b:'SIMULATED_DUAL_READBACK',verified:false,primary:1,recovery:1});
 });
