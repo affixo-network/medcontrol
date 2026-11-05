@@ -258,3 +258,47 @@ test('A01 measure physical IndexedDB growth across intake correction and course 
   console.log('T046_A01_EVENT_KIND_PHYSICAL_SAMPLE '+JSON.stringify(rows));
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+
+
+test('A01 measure variable-length correction notes with four index tokens',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+ const rows=await page.evaluate(async()=>{
+  const j=window.MedControlT046Journal;
+  const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const hmac=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const size=v=>new TextEncoder().encode(JSON.stringify(v)).length;
+  const results=[];
+  for(const noteLength of [0,128,1024,8192]){
+   const owner='a01-note-'+noteLength+'-'+crypto.randomUUID();
+   const tokens=[];
+   for(let i=0;i<4;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+   for(let i=0;i<100;i++){
+    await j.append({owner,id:'correction-'+String(i).padStart(6,'0'),kind:'correction',
+     body:{courseId:'course-01',corrects:'intake-001',reason:'mistake',
+      correctedAt:'2026-11-04T09:07:00+04:00',note:'x'.repeat(noteLength)},key,tokens});
+   }
+   const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('medcontrol_t046_journal_v1');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+   const records=await new Promise((resolve,reject)=>{
+    const tx=db.transaction(['events','tokens'],'readonly');
+    const e=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
+    const t=tx.objectStore('tokens').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
+    let events,indexes;
+    e.onsuccess=()=>{events=e.result;};t.onsuccess=()=>{indexes=t.result;};
+    tx.oncomplete=()=>resolve({events,indexes});tx.onerror=()=>reject(tx.error);
+   });
+   db.close();
+   const byId=new Map();
+   for(const token of records.indexes)byId.set(token.id,(byId.get(token.id)||0)+size(token));
+   const sizes=records.events.map(event=>size(event)+(byId.get(event.id)||0)).sort((a,b)=>a-b);
+   results.push({noteLength,eventCount:records.events.length,indexCount:records.indexes.length,
+    serializedP50Bytes:sizes[49],serializedP95Bytes:sizes[94],serializedMaxBytes:sizes[99]});
+  }
+  return results;
+ });
+ for(const row of rows){expect(row.eventCount).toBe(100);expect(row.indexCount).toBe(400);}
+ for(let i=1;i<rows.length;i++)expect(rows[i].serializedP95Bytes).toBeGreaterThan(rows[i-1].serializedP95Bytes);
+ console.log('T046_A01_VARIABLE_CORRECTION_SIZE_SAMPLE '+JSON.stringify({
+  rows,caveat:'Synthetic note lengths are sensitivity measurements, not a validated maximum medical-event size or physical 500M capacity guarantee'
+ }));
+});
