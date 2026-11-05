@@ -101,8 +101,12 @@ async function commitBatch({vaultId,frames,entries,commitmentKey,expectedHead=nu
   // proves that this browser still has sufficient free disk capacity.
   if(root.navigator?.storage?.estimate){
    const estimate=await root.navigator.storage.estimate();
-   if(Number.isFinite(estimate.quota)&&Number.isFinite(estimate.usage)&&
-      estimate.quota-estimate.usage<actualBytes)
+   // Browser quota is an estimate, not a physical reservation. Fail closed
+   // when the browser cannot supply finite, internally consistent evidence.
+   if(!Number.isFinite(estimate.quota)||!Number.isFinite(estimate.usage)||
+      estimate.quota<0||estimate.usage<0||estimate.usage>estimate.quota)
+    throw Error('Browser storage capacity cannot be confirmed');
+   if(estimate.quota-estimate.usage<actualBytes)
     throw Error('Insufficient currently available browser storage');
   }
   const db=await open();
