@@ -267,6 +267,53 @@ test('A01 measure physical IndexedDB growth across intake correction and course 
 });
 
 
+
+test('A01 compare physical IndexedDB growth at 1000 and 3000 intake events',async()=>{
+ const {chromium}=require('@playwright/test');
+ const fs=require('node:fs'),os=require('node:os');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'t046-a01-scale-'));
+ const diskBytes=p=>!fs.existsSync(p)?0:fs.readdirSync(p,{withFileTypes:true}).reduce((n,e)=>{
+  const child=path.join(p,e.name);
+  return n+(e.isDirectory()?diskBytes(child):e.isFile()?fs.statSync(child).size:0);
+ },0);
+ const dbDir=path.join(dir,'Default','IndexedDB');
+ const rows=[];
+ try{
+  for(const target of [0,1000,3000]){
+   const context=await chromium.launchPersistentContext(dir,{headless:true});
+   try{
+    const page=await context.newPage();
+    await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+    if(target){
+     await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
+     await page.evaluate(async({start,target})=>{
+      const j=window.MedControlT046Journal,owner='a01-scale-owner';
+      const raw=new Uint8Array(32).fill(7);
+      const key=await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt']);
+      const hmac=await crypto.subtle.importKey('raw',new Uint8Array(32).fill(9),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+      const tokens=[];
+      for(let i=0;i<4;i++)tokens.push(await j.tokenFor(hmac,owner,'index-'+i));
+      for(let i=start;i<target;i++){
+       await j.append({owner,id:'event-'+String(i).padStart(8,'0'),kind:'intake',
+        body:{courseId:'course-01',scheduledAt:'2026-11-04T09:00:00+04:00',takenAt:'2026-11-04T09:03:00+04:00',status:'accepted',dose:{amount:1,unit:'tablet'}},
+        key,tokens});
+      }
+     },{start:target===1000?0:1000,target});
+    }
+   }finally{await context.close();}
+   rows.push({eventCount:target,physicalBytes:diskBytes(dbDir)});
+  }
+  const first=rows[1].physicalBytes-rows[0].physicalBytes;
+  const second=rows[2].physicalBytes-rows[1].physicalBytes;
+  const report={rows,first1000BytesPerEvent:first/1000,next2000BytesPerEvent:second/2000,
+   marginalGrowthRatio:(second/2000)/(first/1000),
+   caveat:'Single IndexedDB profile; LevelDB compaction and file retention make these observed deltas non-monotonic and not a capacity upper bound'};
+  expect(first).toBeGreaterThan(0);
+  expect(rows[2].physicalBytes).toBeGreaterThan(rows[0].physicalBytes);
+  console.log('T046_A01_PHYSICAL_SCALE_SAMPLE '+JSON.stringify(report));
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
 test('A01 measure variable-length correction notes with four index tokens',async({page})=>{
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
