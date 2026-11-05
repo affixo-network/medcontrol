@@ -170,10 +170,10 @@ test('A01.4 measure Chromium IndexedDB files on disk',async()=>{
    page=await context.newPage();
    await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
    await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-journal.js')});
-   await writeBatch(60,2940);
+   await writeBatch(60,9940);
    await context.close();
    const final=diskBytes(path.join(dir,'Default','IndexedDB'));
-   rows.push({tokenCount,baselineBytes:baseline,bytesAt60:at60,bytesAt3000:final,initialBytesPerEvent:(at60-baseline)/60,marginalBytesPerEvent:(final-at60)/2940,deltaBytes:final-baseline});
+   rows.push({tokenCount,baselineBytes:baseline,bytesAt60:at60,bytesAt10000:final,initialBytesPerEvent:(at60-baseline)/60,marginalBytesPerEvent:(final-at60)/9940,deltaBytes:final-baseline});
   }
   for(const row of rows)expect(row.deltaBytes).toBeGreaterThan(0);
   console.log('T046_INDEXEDDB_DISK_SAMPLE '+JSON.stringify(rows));
