@@ -532,3 +532,31 @@ test('A01 validate exact 500M event capacity arithmetic and boundary overflow',(
   caveat:'Arithmetic proof only; byte assumptions are scenarios, not enforced record bounds or physical storage guarantees'
  }));
 });
+
+
+test('A01 prove segment addressing round trip at boundaries without bulk writes',()=>{
+ const segmentSize=1024n;
+ const capacity=500_000_000n;
+ const locate=n=>({segment:n/segmentSize,offset:n%segmentSize});
+ const restore=({segment,offset})=>segment*segmentSize+offset;
+ const boundaries=[0n,1n,1023n,1024n,1025n,2047n,2048n,capacity-1025n,capacity-1024n,capacity-1023n,capacity-2n,capacity-1n];
+ let state=0x12345678n;
+ for(let i=0;i<10000;i++){
+  state=(state*1664525n+1013904223n)%4294967296n;
+  boundaries.push(state%capacity);
+ }
+ for(const n of boundaries){
+  const a=locate(n);
+  expect(a.offset).toBeGreaterThanOrEqual(0n);
+  expect(a.offset).toBeLessThan(segmentSize);
+  expect(restore(a)).toBe(n);
+  expect(a.segment).toBeLessThan(488282n);
+ }
+ expect(locate(capacity-1n)).toEqual({segment:488281n,offset:255n});
+ expect(locate(capacity)).toEqual({segment:488281n,offset:256n});
+ console.log('T046_A01_ADDRESS_INVARIANT '+JSON.stringify({
+  testedAddresses:boundaries.length,capacity:String(capacity),segmentSize:String(segmentSize),
+  lastAddress:String(capacity-1n),lastSegment:'488281',lastOffset:'255',
+  caveat:'Pure arithmetic model verification, not an implemented segment store or storage endurance test'
+ }));
+});
