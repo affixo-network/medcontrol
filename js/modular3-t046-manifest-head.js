@@ -122,5 +122,26 @@ async function replicaIntent({vaultId,generation}){
   request.onerror=()=>reject(request.error);
  });}finally{db.close();}
 }
-root.MedControlT046ManifestHead=Object.freeze({read,advance,commitObjects,object,replicaIntent});
+/* Cursor-based, bounded recovery of durable replica intents. Never load the
+ * complete history into memory, even for very large vaults. */
+async function replicaIntentPage({vaultId,afterGeneration=0,limit=100}){
+ if(!validVault(vaultId)||!Number.isSafeInteger(afterGeneration)||afterGeneration<0||
+    !Number.isSafeInteger(limit)||limit<1||limit>1000)throw Error('Invalid replica intent page');
+ const db=await open();
+ try{return await new Promise((resolve,reject)=>{
+  const rows=[],tx=db.transaction('replicaJobs','readonly');
+  const range=root.IDBKeyRange.bound([vaultId,afterGeneration],[vaultId,Number.MAX_SAFE_INTEGER],true,false);
+  const request=tx.objectStore('replicaJobs').openCursor(range);
+  request.onerror=()=>reject(request.error||Error('Replica intent cursor failed'));
+  request.onsuccess=()=>{
+   const cursor=request.result;
+   if(!cursor||rows.length===limit){resolve(rows);return;}
+   rows.push(cursor.value);
+   if(rows.length===limit){resolve(rows);return;}
+   cursor.continue();
+  };
+  tx.onabort=()=>reject(tx.error||Error('Replica intent transaction aborted'));
+ });}finally{db.close();}
+}
+root.MedControlT046ManifestHead=Object.freeze({read,advance,commitObjects,object,replicaIntent,replicaIntentPage});
 })(typeof window!=='undefined'?window:globalThis);
