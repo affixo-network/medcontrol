@@ -386,3 +386,41 @@ test('one-generation archive lag is repaired only after authenticated ancestry p
  });
  expect(result).toEqual({advanced:true,rejected:true,untouched:true,repaired:1,primary:2,recovery:2});
 });
+
+test('multi-generation archive repair validates entire ancestry and rejects corrupted middle link',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_chain_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const api=window.MedControlT046IntegratedVault;
+  const make=()=>{const segments=new Map(),manifests=new Map();let head=null;return {
+   async putSegment(k,v){segments.set(k,v);},async getSegment(k){return segments.get(k)||null;},
+   async putManifest(k,v){manifests.set(k,v);},async getManifest(k){return manifests.get(k)||null;},
+   async getHead(){return head;},async compareAndSwapHead(g,p,n){
+    if((head?.generation??0)!==g||(head?.commitment??null)!==p)return false;head=n;return true;},
+   corrupt(k){const v=manifests.get(k);manifests.set(k,{...v,tag:'forged'});},
+   snapshot(){return head;}
+  };};
+  const primary=make(),recovery=make();
+  const vault=api.openUnifiedVault({vaultId,encryptionKey,commitmentKey,primary,recovery,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000});
+  await vault.append([{id:'event_chain_00000001',kind:'course',body:{n:1},tokens:[]}]);
+  await vault.sync();
+  for(let n=2;n<=4;n++){
+   await vault.append([{id:'event_chain_0000000'+n,kind:'intake',body:{n},tokens:[]}]);
+   await api.deliverUnifiedGeneration({vaultId,generation:n,commitmentKey,primary,
+    recovery:{...recovery,compareAndSwapHead:async()=>{throw Error('offline');}}})
+    .then(()=>{},()=>{});
+  }
+  const original=primary.snapshot(),behind=recovery.snapshot();
+  const repaired=await vault.sync();
+  const recovered=recovery.snapshot();
+  const missing=await vault.getByPosition(3);
+  return {lag:original.generation-behind.generation,processed:repaired.processed,
+   recovery:recovered.generation,local:missing.body.n};
+ });
+ expect(result).toEqual({lag:3,processed:3,recovery:4,local:4});
+});
