@@ -662,7 +662,7 @@ test('A01 concurrent encrypted writes to one physical position commit exactly on
   });
   const records=await new Promise((resolve,reject)=>{
    const tx=db.transaction(['events','positions'],'readonly');
-   const a=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\\uffff']));
+   const a=tx.objectStore('events').getAll(IDBKeyRange.bound([owner,''],[owner,'\uffff']));
    const b=tx.objectStore('positions').getAll(IDBKeyRange.bound([owner,0],[owner,499999999]));
    let events,positions;
    a.onsuccess=()=>events=a.result;b.onsuccess=()=>positions=b.result;
@@ -673,8 +673,8 @@ test('A01 concurrent encrypted writes to one physical position commit exactly on
    eventCount:records.events.length,positionCount:records.positions.length,
    matches:records.events.length===1&&records.positions.length===1&&records.events[0].id===stored?.id};
  });
+ console.log('T046_A01_CONCURRENT_POSITION '+JSON.stringify(result));
  expect(result.success).toBe(1);
  expect(result.rejected).toBe(7);
  expect(result.matches).toBe(true);
- console.log('T046_A01_CONCURRENT_POSITION '+JSON.stringify(result));
 });
