@@ -450,8 +450,17 @@ async function deliverUnifiedGeneration({vaultId,generation,commitmentKey,primar
  };
  await publish(primary);
  await publish(recovery);
+ /* A pair of in-memory adapters is not an independent durable backup.
+  * Require explicit, distinct, independently certified failure domains before
+  * emitting a real protection receipt. Otherwise expose simulation status. */
+ const primaryDomain=primary.failureDomain,recoveryDomain=recovery.failureDomain;
+ const independentlyDurable=primary.durable===true&&recovery.durable===true&&
+  typeof primaryDomain==='string'&&primaryDomain.length>0&&
+  typeof recoveryDomain==='string'&&recoveryDomain.length>0&&
+  primaryDomain!==recoveryDomain;
  return Object.freeze({vaultId,generation,manifestCommitment:commitment,
-  protectionState:'DUAL_VERIFIED',independentReplicaVerified:true});
+  protectionState:independentlyDurable?'DUAL_VERIFIED':'SIMULATED_DUAL_READBACK',
+  independentReplicaVerified:independentlyDurable});
 }
 root.MedControlT046IntegratedVault=Object.freeze({openUnifiedVault,deliverUnifiedGeneration,append,appendBatch,recoverOrphanBatch,recoverAllReplicaIntents,recoverReplicaIntentPage,stageEncryptedBatch,stageJournalRange,appendAndStage,appendNextAndStage,recoverReplicaQueue,recoverOrphanEvent,recoverNextOrphanEvent});
 })(typeof window!=='undefined'?window:globalThis);
