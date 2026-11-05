@@ -193,3 +193,34 @@ test('versioned integrated vault commits encrypted medical history atomically an
   correction:'event_interface_00000001',jobs:2,status:'LOCAL_DURABLE',
   replicaVerified:false,manifestGeneration:2,segmentCount:1,intentGeneration:2});
 });
+
+test('integrated dual archive verifies both independent readbacks and idempotent retry',async({page})=>{
+ await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
+ for(const n of ['segment-codec','authenticated-commitment','unified-store','integrated-vault'])
+  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-t046-'+n+'.js')});
+ const result=await page.evaluate(async()=>{
+  const vaultId='vault_dual_'+crypto.randomUUID().replaceAll('-','');
+  const encryptionKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const commitmentKey=await crypto.subtle.generateKey({name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+  const vault=window.MedControlT046IntegratedVault.openUnifiedVault({
+   vaultId,encryptionKey,commitmentKey,
+   capacityGateway:{reserve:async()=>({reserved:true})},reservationBytes:1000000
+  });
+  await vault.append([{id:'event_dual_00000001',kind:'intake',body:{n:1},tokens:[]}]);
+  const make=()=>{const segments=new Map(),manifests=new Map();let head=null;return {
+   async putSegment(k,v){if(segments.has(k)&&JSON.stringify(segments.get(k))!==JSON.stringify(v))throw Error('immutable');segments.set(k,v);},
+   async getSegment(k){return segments.get(k)||null;},
+   async putManifest(k,v){if(manifests.has(k)&&JSON.stringify(manifests.get(k))!==JSON.stringify(v))throw Error('immutable');manifests.set(k,v);},
+   async getManifest(k){return manifests.get(k)||null;},
+   async getHead(){return head;},
+   async compareAndSwapHead(g,p,n){if((head?.generation??0)!==g||(head?.commitment??null)!==p)return false;head=n;return true;}
+  };};
+  const primary=make(),recovery=make();
+  const args={vaultId,generation:1,commitmentKey,primary,recovery};
+  const a=await window.MedControlT046IntegratedVault.deliverUnifiedGeneration(args);
+  const b=await window.MedControlT046IntegratedVault.deliverUnifiedGeneration(args);
+  return {a:a.protectionState,b:b.protectionState,primary:(await primary.getHead()).generation,
+   recovery:(await recovery.getHead()).generation};
+ });
+ expect(result).toEqual({a:'DUAL_VERIFIED',b:'DUAL_VERIFIED',primary:1,recovery:1});
+});
