@@ -336,12 +336,12 @@
     "836b5bd39a769497": "Usa ka gikatakda nga oras sa pag-inom nga milabay na karon gidugang: ⟦0⟧.",
     "837a27ec527ef927": "Operating mode",
     "839b2d5c5aa3d81f": "Martes",
-    "83d2d64095edbc64": "Adto sa \"Input\", himoa ang gikinahanglang mga kausaban sa \"Intake time\", ug i-save kini.",
+    "83d2d64095edbc64": "Adto sa \"Pagsulod\", himoa ang gikinahanglang mga kausaban sa \"Oras sa pag-inom og tambal\", ug i-save kini.",
     "840869d0c9564771": "Ang luwas nga pagtipig wala mabuhat sa hingpit. Pilia una ang \"Iuli ang access\".",
     "8442f91497d59803": "Gi-lock ang datos.",
     "8549e7ed5290309a": "Usba ang oras",
     "85e323a663bbb1fb": "Karon: ⟦1⟧",
-    "8618134638c4e671": "Adto sa \"Input\", himoa ang gikinahanglan nga mga pagbag-o sa \"Schedule\", ug i-save kini.",
+    "8618134638c4e671": "Adto sa \"Pagsulod\", himoa ang gikinahanglan nga mga pagbag-o sa \"Iskedyul\", ug i-save kini.",
     "8632db7ece28fa2b": "gipulihan",
     "867738e067f5550c": "Paghimo og encrypted nga kopya",
     "86ade357a5dfac51": ". Ang datos wala mausab.",
@@ -350,7 +350,7 @@
     "8730ed6a8d435643": "Giilisan ang petsa sa pagtapos",
     "874529d3b6a4b0f0": "Walay kompleto nga usa ka higayon nga mga reseta.",
     "87685ab7bdaa7c2d": "Nakompleto ang kurso sa pagtambal",
-    "8797209590eda79d": "Gitugotan na ang mga pagbag-o sa oras sa pag-inom. Ang panahon mismo wala pa mausab. Adto sa \"Input\" ug i-save ang bag-ong oras.",
+    "8797209590eda79d": "Gitugotan na ang mga pagbag-o sa oras sa pag-inom. Ang oras mismo wala pa mausab. Adto sa \"Pagsulod\" ug i-save ang bag-ong oras.",
     "87a2b9ea146d476e": "MedControl — Pagsulod",
     "87ab4ac9484e4e12": "Naulahi ang pagkuha",
     "87da35472e363dfb": "gidugang",
@@ -465,7 +465,7 @@
     "b4e19e462ab3b77f": "Ang pagtul-id magamit lamang sa rekord sa paggamit alang sa pinili nga laray.",
     "b558cb356e9a63df": "Walay paghubad sa interface nga magamit alang sa pinulongan sa device. English ang gigamit.",
     "b5a3a24d55599c92": "Palihug pagsulod ug balido nga oras.",
-    "b5b42a3850217c75": "Sa \"Input\", paghimo usa ka lagda sa pag-inom sa tambal: ngalan, dosis, iskedyul, oras sa pag-inom, petsa sa pagsugod, petsa sa pagtapos, ug kahimtang sa Aktibo / Pasibo.",
+    "b5b42a3850217c75": "Sa \"Pagsulod\", paghimo usa ka lagda sa pag-inom sa tambal: ngalan, dosis, iskedyul, oras sa pag-inom, petsa sa pagsugod, petsa sa pagtapos, ug kahimtang sa Aktibo / Pasibo.",
     "b5d3c6a1c7e407ef": "Ang mga pagtul-id anaa hangtod sa ⟦1⟧. Ang orihinal nga rekord gipabilin sa kasaysayan.",
     "b5dbc53ba1896b4d": "mga ampoules",
     "b688b4c0d7836656": "Karon",
@@ -643,6 +643,6 @@
     "fe3366e0a3b9adde": "Yunit sa sulud *",
     "feedada24dcdf297": "Gitangtang ang petsa sa pagsugod",
     "ffdc6cc67a30cb67": "Matag adlaw — usa ka naka-iskedyul nga pag-inom sa tambal ang gihimo kada adlaw sa gitakdang oras.",
-    "faf8a19de622912d": "Ang tanan nga mga tambal nahuman o nakansela. Ang datos gitipigan ug anaa sa Archive."
+    "faf8a19de622912d": "Ang tanang kurso sa pag-inom og tambal nahuman o gikansela. Ang datos gitipigan ug makita sa Arkibo."
   }
 }
