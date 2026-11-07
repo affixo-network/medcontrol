@@ -16,6 +16,19 @@ const correctionKeys = {
   errorConfirmation: '1340d81906bfec36',
   accidentalConfirmation: '75c6218f9fdec1c4'
 };
+const placeholderTokens = value => [...String(value).matchAll(/⟦\\d+⟧/g)].map(match => match[0]).sort();
+const sameTokens = (a, b) => JSON.stringify(placeholderTokens(a)) === JSON.stringify(placeholderTokens(b));
+const correctionSemanticSignals = messages => {
+  const values = Object.fromEntries(Object.entries(correctionKeys).map(([name, key]) => [name, messages[key]]));
+  const norm = value => String(value || '').normalize('NFC').toLocaleLowerCase();
+  const findings = [];
+  if (!norm(values.choice).includes(norm(values.accidental))) findings.push('CHOICE_ACCIDENTAL_LABEL_MISMATCH');
+  if (!norm(values.choice).includes(norm(values.error))) findings.push('CHOICE_ERROR_LABEL_MISMATCH');
+  if (!norm(values.errorConfirmation).includes(norm(values.error))) findings.push('ERROR_CONFIRMATION_LABEL_MISMATCH');
+  if (!norm(values.accidentalConfirmation).includes(norm(values.accidental))) findings.push('ACCIDENTAL_CONFIRMATION_LABEL_MISMATCH');
+  if (norm(values.accidental) === norm(values.error)) findings.push('CORRECTION_REASONS_NOT_DISTINCT');
+  return findings;
+};
 const rows = [];
 for (const {code, englishName} of manifest) {
   if (code === 'ru') {
@@ -27,13 +40,16 @@ for (const {code, englishName} of manifest) {
   const identical = Object.keys(en).filter(key => typeof messages[key] === 'string' && messages[key].trim() === en[key].trim());
   const missingKeys = expectedKeys.filter(key => !Object.hasOwn(messages, key));
   const extraKeys = Object.keys(messages).filter(key => !Object.hasOwn(source, key));
+  const emptyKeys = expectedKeys.filter(key => typeof messages[key] !== 'string' || !messages[key].trim());
+  const placeholderMismatches = expectedKeys.filter(key => typeof messages[key] === 'string' && !sameTokens(messages[key], source[key]?.source || ''));
+  const correctionSemanticFindings = correctionSemanticSignals(messages);
   const correctionStrings = Object.fromEntries(Object.entries(correctionKeys).map(([label, key]) => [label, messages[key]]));
   const correctionLabelIntegrity = Object.values(correctionStrings).every(value => typeof value === 'string' && value.trim().length > 0) && correctionStrings.accidental.trim().toLocaleLowerCase() !== correctionStrings.error.trim().toLocaleLowerCase();
   const criticalEnglishMatches = criticalKeys.filter(key => typeof messages[key] === 'string' && messages[key].trim() === String(en[key] || '').trim());
   rows.push({
     code, language: englishName, entries: Object.keys(messages).length,
-    automated: missingKeys.length === 0 && extraKeys.length === 0 ? 'PASS' : 'FAIL',
-    missingKeys, extraKeys, correctionLabelIntegrity,
+    automated: missingKeys.length === 0 && extraKeys.length === 0 && emptyKeys.length === 0 && placeholderMismatches.length === 0 && correctionSemanticFindings.length === 0 ? 'PASS' : 'FAIL',
+    missingKeys, extraKeys, emptyKeys, placeholderMismatches, correctionLabelIntegrity, correctionSemanticFindings,
     correctionStringsForReview: correctionStrings,
     correctionSemanticReview: 'PENDING HUMAN CONTEXT REVIEW; both Accidental button press and Error are approved; distinct labels are structurally checked',
     criticalEnglishMatches: criticalEnglishMatches.length,
@@ -52,6 +68,7 @@ const out = {
   correctionLabelIntegrity: rows.filter(x => x.code !== 'ru').every(x => x.correctionLabelIntegrity),
   criticalSourceEntries: criticalKeys.length,
   auditLimitations: ['Matching English may be correct for units and names', 'Automated checks cannot validate medical meaning', 'Clinical and native-speaker review evidence is absent'],
+  semanticConsistency: {checkedCatalogs: rows.filter(x => x.code !== 'ru').length, findings: rows.filter(x => x.code !== 'ru').flatMap(x => (x.correctionSemanticFindings || []).map(reason => ({code:x.code, reason}))), placeholderMismatches: rows.filter(x => x.code !== 'ru').reduce((n,x)=>n+(x.placeholderMismatches || []).length,0), unverifiedMeaning: true},
   commercialReleaseApproved: false,
   blockingReason: 'Independent medical-language review and in-context sign-off not documented for every language.',
   languages: rows
@@ -61,6 +78,8 @@ if (target) fs.writeFileSync(target, JSON.stringify(out, null, 2) + '\n');
 console.log('Language inventory:', rows.length, '/96 (Russian source + 95 translated catalogs)');
 console.log('Structural entries:', rows.every(x => x.automated === 'PASS') ? 'PASS' : 'FAIL');
 console.log('Commercial medical-language sign-off: NOT DOCUMENTED');
+console.log('Cross-message correction inconsistencies:', out.semanticConsistency.findings.length);
+console.log('Placeholder mismatches:', out.semanticConsistency.placeholderMismatches);
 console.log('Approved correction options preserved for human review:', out.correctionLabelIntegrity ? 'PASS' : 'FAIL');
 console.log('Critical entries selected for human review:', criticalKeys.length);
 console.log('Critical matches requiring triage:', rows.filter(x => x.code !== 'en' && x.code !== 'ru').reduce((n,x)=>n+(x.criticalEnglishMatches || 0),0));
