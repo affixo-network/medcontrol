@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "A beviteli idő adatai megváltoztak.",
     "753d46ba118e91ef": "Adjon meg egy új helyi jelszót az átvitelhez.",
     "754ad00b958aebff": "A módosítás nem mentve.",
-    "75c6218f9fdec1c4": "Javítás #⟦0⟧.\n\nOk: Véletlen gombnyomás.\nA „Bevett gyógyszer” jelzés törlődik, és a tényleges idő törlődik.\nAz eredeti rekord a történelemben marad.\n\nMegerősíteni?",
+    "75c6218f9fdec1c4": "Javítás #⟦0⟧.\n\nOk: Véletlen gombnyomás.\nA „Gyógyszer bevéve” jelölés törlődik, és a bevétel tényleges időpontja törlődik.\nAz eredeti bejegyzés megmarad az előzményekben.\n\nMegerősíti?",
     "75f93ccd436a9a91": "— az utolsó befejezetlen gyógyszer az aktuális ciklusban.",
     "7672e2f532ff75c8": "Késleltetés",
     "7697401533120c94": "Ütemezés törölve.",
