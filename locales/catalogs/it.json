@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "i dettagli del tempo di assunzione sono stati modificati.",
     "753d46ba118e91ef": "inserire una nuova password locale per il trasferimento.",
     "754ad00b958aebff": "Modifica non salvata.",
-    "75c6218f9fdec1c4": "Correzione #⟦0⟧.\n\nMotivo: pressione accidentale del pulsante.\nIl contrassegno \"Farmaco assunto\" verrà rimosso e il tempo effettivo verrà cancellato.\nIl record originale rimarrà nella storia.\n\nConfermare?",
+    "75c6218f9fdec1c4": "Correzione #⟦0⟧.\n\nMotivo: pressione accidentale del pulsante.\nIl contrassegno «Farmaco assunto» verrà rimosso e l'orario effettivo dell'assunzione verrà cancellato.\nLa registrazione originale rimarrà nella cronologia.\n\nConfermare?",
     "75f93ccd436a9a91": "— l'ultimo farmaco non completato nel ciclo attuale.",
     "7672e2f532ff75c8": "Ritardo",
     "7697401533120c94": "Programma annullato.",
