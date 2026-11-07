@@ -1,0 +1,26 @@
+name: Modular-3 Localization Semantic Audit
+on:
+  push:
+    branches: [modular-3.000]
+    paths:
+      - 'locales/**'
+      - 'scripts/localization/audit-commercial-readiness.cjs'
+      - '.github/workflows/modular3-localization-semantic-audit.yml'
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Audit all translated catalogs
+        run: node scripts/localization/audit-commercial-readiness.cjs localization-semantic-audit.json
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-semantic-audit
+          path: localization-semantic-audit.json
+          if-no-files-found: warn
