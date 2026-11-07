@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "Les détails du temps d'admission ont été modifiés.",
     "753d46ba118e91ef": "Saisissez un nouveau mot de passe local pour le transfert.",
     "754ad00b958aebff": "Modification non enregistrée.",
-    "75c6218f9fdec1c4": "Correction #⟦0⟧.\n\nMotif : Appui accidentel sur un bouton.\nLa marque « Médicaments pris » sera supprimée et l'heure réelle effacée.\nL'enregistrement original restera dans l'histoire.\n\nConfirmer?",
+    "75c6218f9fdec1c4": "Correction #⟦0⟧.\n\nMotif : Appui accidentel sur un bouton.\nLa mention « Médicament pris » sera retirée et l'heure effective de prise effacée.\nL'enregistrement initial restera conservé dans l'historique.\n\nConfirmer ?",
     "75f93ccd436a9a91": "— le dernier médicament non terminé du cycle en cours.",
     "7672e2f532ff75c8": "Retard",
     "7697401533120c94": "Planification annulée.",
