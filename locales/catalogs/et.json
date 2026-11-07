@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "sissevõtuaja üksikasju on muudetud.",
     "753d46ba118e91ef": "sisestage ülekande jaoks uus kohalik parool.",
     "754ad00b958aebff": "muudatust ei salvestatud.",
-    "75c6218f9fdec1c4": "parandus #⟦0⟧.\n\nPõhjus: juhuslik nupuvajutus.\nMärk \"võetud ravimid\" eemaldatakse ja tegelik aeg kustutatakse.\nAlgne rekord jääb ajalukku.\n\nKas kinnitada?",
+    "75c6218f9fdec1c4": "Parandus #⟦0⟧.\n\nPõhjus: juhuslik nupuvajutus.\nMärge «Ravim võetud» eemaldatakse ja tegelik ravimi võtmise aeg kustutatakse.\nAlgne kirje säilib ajaloos.\n\nKinnitada?",
     "75f93ccd436a9a91": "— viimane lõpetamata ravim praeguses tsüklis.",
     "7672e2f532ff75c8": "viivitus",
     "7697401533120c94": "ajakava tühistatud.",
