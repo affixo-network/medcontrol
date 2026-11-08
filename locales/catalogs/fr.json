@@ -601,7 +601,7 @@
     "ecee1e18a8dea481": "Récupération complète du stockage sécurisé ? La copie cryptée existante et les données originales ne seront pas supprimées.",
     "edc6ec5a6596df8f": "Ne pas supprimer l'heure",
     "eddcce39a9bf721b": "La prise de médicaments du jour a déjà été enregistrée.",
-    "ee5ebc1ac9c8af20": "La réinitialisation supprimera définitivement l'archive des médicaments annulés, l'historique des modifications et le journal des prises. Continuer?",
+    "ee5ebc1ac9c8af20": "La réinitialisation supprimera définitivement les archives des médicaments dont la prise a été annulée, l'historique des modifications et le journal des prises. Continuer ?",
     "eead37caf818d0fa": "et",
     "eef0abe9f43d061f": "Copie chiffrée incomplète introuvable. Rien n'a changé.",
     "ef0b6aca57ab18f5": "Heure ⟦0⟧ ajoutée",
