@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "Se han modificado los datos de la hora de toma.",
     "753d46ba118e91ef": "Ingrese una nueva contraseña local para la transferencia.",
     "754ad00b958aebff": "Cambio no guardado.",
-    "75c6218f9fdec1c4": "Corrección #⟦0⟧.\n\nMotivo: Pulsación accidental de un botón.\nSe eliminará la marca \"Medicación tomada\" y se borrará la hora real.\nEl registro original quedará en la historia.\n\n¿Confirmar?",
+    "75c6218f9fdec1c4": "Corrección #⟦0⟧.\n\nMotivo: Pulsación accidental de un botón.\nSe quitará la marca «Medicamento tomado» y se borrará la hora efectiva de la toma.\nEl registro original se conservará en el historial.\n\n¿Confirmar?",
     "75f93ccd436a9a91": "— la última medicación sin terminar del ciclo actual.",
     "7672e2f532ff75c8": "Retraso",
     "7697401533120c94": "Horario cancelado.",
