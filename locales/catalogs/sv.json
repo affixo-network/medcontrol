@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "Information om intagstid har ändrats.",
     "753d46ba118e91ef": "Ange ett nytt lokalt lösenord för överföringen.",
     "754ad00b958aebff": "Ändringen har inte sparats.",
-    "75c6218f9fdec1c4": "Rättelse #⟦0⟧.\n\nAnledning: Oavsiktlig knapptryckning.\n\"Medicinering tagit\"-märket kommer att tas bort och den faktiska tiden raderas.\nDet ursprungliga rekordet kommer att finnas kvar i historien.\n\nBekräfta?",
+    "75c6218f9fdec1c4": "Korrigering #⟦0⟧.\n\nOrsak: Oavsiktlig knapptryckning.\nMarkeringen ”Läkemedel taget” tas bort och den faktiska tidpunkten för läkemedelsintaget raderas.\nDen ursprungliga posten bevaras i historiken.\n\nBekräfta?",
     "75f93ccd436a9a91": "— den sista oavslutade medicineringen i den aktuella cykeln.",
     "7672e2f532ff75c8": "Försening",
     "7697401533120c94": "Schema inställt.",
