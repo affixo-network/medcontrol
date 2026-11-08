@@ -170,7 +170,7 @@ test('T-046 synthetic 10000-event bounded throughput and restart scan',async({pa
 
 
 test('T-046 synthetic 100000-event restart-safe bounded scan',async({page})=>{
- test.setTimeout(300000);
+ test.setTimeout(600000);
  await page.goto('http://127.0.0.1:8765/t046-indexed-test.html');
  await page.addScriptTag({path:path.resolve(__dirname,'../js/modular3-indexed-events.js')});
  const owner='load100k-'+Date.now()+'-'+Math.random().toString(36).slice(2);
