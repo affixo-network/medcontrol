@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "Inntakstidsdetaljer endret.",
     "753d46ba118e91ef": "Skriv inn et nytt lokalt passord for overføringen.",
     "754ad00b958aebff": "Endringen er ikke lagret.",
-    "75c6218f9fdec1c4": "Korreksjon #⟦0⟧.\n\nÅrsak: Utilsiktet knappetrykk.\n\"Medisiner tatt\"-merket vil bli fjernet og den faktiske tiden slettet.\nDen opprinnelige rekorden vil forbli i historien.\n\nBekrefte?",
+    "75c6218f9fdec1c4": "Korrigering #⟦0⟧.\n\nÅrsak: Utilsiktet knappetrykk.\nMarkeringen «Medisin tatt» blir fjernet, og det faktiske tidspunktet for inntaket blir slettet.\nDen opprinnelige oppføringen blir bevart i historikken.\n\nBekreft?",
     "75f93ccd436a9a91": "— den siste uferdige medisineringen i gjeldende syklus.",
     "7672e2f532ff75c8": "Forsinkelse",
     "7697401533120c94": "Tidsplan kansellert.",
