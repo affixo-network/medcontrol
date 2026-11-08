@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "Zmieniono szczegóły czasu spożycia.",
     "753d46ba118e91ef": "Wprowadź nowe hasło lokalne do transferu.",
     "754ad00b958aebff": "Zmiana nie została zapisana.",
-    "75c6218f9fdec1c4": "Korekta #⟦0⟧.\n\nPowód: Przypadkowe naciśnięcie przycisku.\nZnak „Przyjęte leki” zostanie usunięty, a aktualny czas wyczyszczony.\nOryginalny rekord pozostanie w historii.\n\nPotwierdzać?",
+    "75c6218f9fdec1c4": "Korekta #⟦0⟧.\n\nPowód: Przypadkowe naciśnięcie przycisku.\nOznaczenie „Lek przyjęty” zostanie cofnięte, a faktyczna godzina przyjęcia leku wyczyszczona.\nPierwotny wpis pozostanie w historii.\n\nPotwierdzić?",
     "75f93ccd436a9a91": "— ostatni niedokończony lek w bieżącym cyklu.",
     "7672e2f532ff75c8": "Opóźnienie",
     "7697401533120c94": "Harmonogram anulowany.",
