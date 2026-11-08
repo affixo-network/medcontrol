@@ -16,7 +16,7 @@ const correctionKeys = {
   errorConfirmation: '1340d81906bfec36',
   accidentalConfirmation: '75c6218f9fdec1c4'
 };
-const placeholderTokens = value => [...String(value).matchAll(/⟦\\d+⟧/g)].map(match => match[0]).sort();
+const placeholderTokens = value => [...String(value).matchAll(/⟦\d+⟧/g)].map(match => match[0]).sort();
 const sameTokens = (a, b) => JSON.stringify(placeholderTokens(a)) === JSON.stringify(placeholderTokens(b));
 const correctionSemanticSignals = messages => {
   const values = Object.fromEntries(Object.entries(correctionKeys).map(([name, key]) => [name, messages[key]]));
