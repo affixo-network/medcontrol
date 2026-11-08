@@ -301,7 +301,7 @@
     "74f6dfd22fb99965": "Podrobnosti o čase príjmu sa zmenili.",
     "753d46ba118e91ef": "Zadajte nové lokálne heslo pre prenos.",
     "754ad00b958aebff": "Zmena nebola uložená.",
-    "75c6218f9fdec1c4": "Oprava #⟦0⟧.\n\nDôvod: Náhodné stlačenie tlačidla.\nZnačka „Užívané lieky“ sa odstráni a skutočný čas sa vymaže.\nPôvodný záznam zostane v histórii.\n\npotvrdiť?",
+    "75c6218f9fdec1c4": "Oprava #⟦0⟧.\n\nDôvod: Náhodné stlačenie tlačidla.\nOznačenie „Liek užitý“ sa odstráni a skutočný čas užitia lieku sa vymaže.\nPôvodný záznam zostane zachovaný v histórii.\n\nPotvrdiť?",
     "75f93ccd436a9a91": "— posledný nedokončený liek v aktuálnom cykle.",
     "7672e2f532ff75c8": "Oneskorenie",
     "7697401533120c94": "Plán zrušený.",
