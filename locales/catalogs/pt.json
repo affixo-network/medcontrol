@@ -146,7 +146,7 @@
     "29fcf847e36e927b": "Hora efetiva da toma",
     "2aa328af0d4eb92d": "Aplicar correção",
     "2b289eda0bc1bf2a": "Medicação tomada na hora certa",
-    "2b58828b6759799d": "Nenhum evento de entrada agendado foi salvo para este registro mais antigo.",
+    "2b58828b6759799d": "Não foram guardados eventos de tomas programadas para este registo antigo.",
     "2b68a3d2ced4911d": "As correções estão disponíveis somente até às 23h59 do dia da ingestão do medicamento.",
     "2d5e1dc18067b945": "Após o cancelamento, este registro de medicação não será mais utilizado",
     "2db0c625b694bc0f": "Fuso horário:",
