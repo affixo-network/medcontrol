@@ -567,8 +567,11 @@ async function run(){
   assert.deepEqual(persistedNewCourse.medications.map(m=>m.id),['t046-new-course'],'T-046 new course must persist after password re-unlock');
   console.log('PASS T-046: new synthetic course saved after reset and persists after password re-unlock');
 
+  // Keep synthetic schedules in the future so this regression remains valid over time.
+  const syntheticStartDate=new Date(Date.now()+2*86400000).toISOString().slice(0,10);
+  const syntheticEndDate=new Date(Date.now()+9*86400000).toISOString().slice(0,10);
   // T-046 UI: use the real Input form and both confirmation steps.
-  await resetPage.evaluate(()=>{
+  await resetPage.evaluate(({startDate,endDate})=>{
     const set=(id,value)=>{const el=document.getElementById(id);if(!el)throw Error('Missing form field '+id);el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));};
     set('create_name','Synthetic Form Course After Reset');
     set('create_manufacturer','Synthetic Manufacturer');
@@ -583,13 +586,13 @@ async function run(){
     set('create_details','Synthetic UI test only');
     set('create_scheduleType','daily');
     set('create_times','09:00');
-    set('create_startDate','2026-11-02');
-    set('create_endDate','2026-11-09');
+    set('create_startDate',startDate);
+    set('create_endDate',endDate);
     // Report the precise form validation failure rather than waiting on a hidden dialog.
     try{createMedicationFromForm('create_');}catch(error){throw new Error('T-046 form validation: '+error.message);}
     window.createMedication();
     if(!document.getElementById('medicationConfirmDialog')?.open)throw new Error('T-046 confirmation did not open after valid form');
-  });
+  },{startDate:syntheticStartDate,endDate:syntheticEndDate});
   await resetPage.locator('#medicationConfirmDialog[open]').waitFor();
   await resetPage.evaluate(()=>window.proceedMedicationCreateConfirmation());
   await resetPage.locator('#medicationSaveDialog[open]').waitFor();
@@ -605,7 +608,7 @@ async function run(){
 
   // T-046 repeatability: create two more courses through the same real UI, without another reset.
   for(const [index,name] of ['Synthetic Second Course After Reset','Synthetic Third Course After Reset'].entries()){
-    await resetPage.evaluate(({name,index})=>{
+    await resetPage.evaluate(({name,index,startDate,endDate})=>{
       const set=(id,value)=>{const el=document.getElementById(id);if(!el)throw Error('Missing form field '+id);el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));};
       set('create_name',name);
       set('create_manufacturer','Synthetic Manufacturer');
@@ -618,12 +621,12 @@ async function run(){
       set('create_details','Synthetic repeated UI course');
       set('create_scheduleType','daily');
       set('create_times',index===0?'10:00':'11:00');
-      set('create_startDate','2026-11-02');
-      set('create_endDate','2026-11-09');
+      set('create_startDate',startDate);
+      set('create_endDate',endDate);
       createMedicationFromForm('create_');
       window.createMedication();
       if(!document.getElementById('medicationConfirmDialog')?.open)throw Error('Repeated course confirmation not open');
-    },{name,index});
+    },{name,index,startDate:syntheticStartDate,endDate:syntheticEndDate});
     await resetPage.locator('#medicationConfirmDialog[open]').waitFor();
     await resetPage.evaluate(()=>window.proceedMedicationCreateConfirmation());
     await resetPage.locator('#medicationSaveDialog[open]').waitFor();
