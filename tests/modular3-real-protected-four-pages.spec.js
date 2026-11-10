@@ -64,3 +64,47 @@ test('[' + language + '] real protected four-page shell survives an offline rest
 });
 
 }
+
+test('real protected input persists a new encrypted course across offline restart',async({browser})=>{
+ const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow'});
+ const seed=await context.newPage();
+ await seed.goto(BASE+'/modular3-protected.html?rehearsal=1');
+ await seed.evaluate(()=>localStorage.removeItem(SOURCE));
+ await seed.evaluate(async()=>{
+  const initial={settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],timeHistory:[]};
+  await window.MedControlModular3ProtectedSession.initialize(initial,'Offline-Create-Verify-2026');
+ });
+ await seed.close();
+ const online=await context.newPage();
+ await online.goto(BASE+'/input.html');
+ await online.locator('#localLogin #password').fill('Offline-Create-Verify-2026');
+ await online.locator('#localLogin #unlock').click();
+ await expect(online.locator('#localLogin')).toHaveCount(0);
+ await expect.poll(()=>online.evaluate(()=>window.medcontrolOfflineShellReady),{timeout:45000}).toBe(true);
+ await online.close();
+ await context.setOffline(true);
+ const offline=await context.newPage();
+ await offline.goto(BASE+'/input.html');
+ await offline.locator('#localLogin #password').fill('Offline-Create-Verify-2026');
+ await offline.locator('#localLogin #unlock').click();
+ await expect(offline.locator('#localLogin')).toHaveCount(0);
+ const id='OFFLINE-CREATED-COURSE';
+ await offline.evaluate(async id=>{
+  await window.MedControlModular3ProtectedSession.transact(state=>{
+   state.medications.push({id,name:'Offline created course',active:true,scheduleType:'daily',startDate:'2026-11-10',endDate:'2026-11-12',times:['09:00'],manufacturer:'Synthetic',contentValue:'500',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'Synthetic test course'});
+  });
+ },id);
+ const ciphertext=await offline.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
+ expect(ciphertext).not.toContain('Offline created course');
+ await offline.close();
+ for(const section of ['input','action','dashboard','archive']){
+  const reopened=await context.newPage();
+  await reopened.goto(BASE+'/'+section+'.html');
+  await reopened.locator('#localLogin #password').fill('Offline-Create-Verify-2026');
+  await reopened.locator('#localLogin #unlock').click();
+  await expect(reopened.locator('#localLogin')).toHaveCount(0);
+  await expect.poll(()=>reopened.evaluate(id=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.id===id),id)).toBe(true);
+  await reopened.close();
+ }
+ await context.close();
+});
