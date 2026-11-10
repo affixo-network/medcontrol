@@ -69,7 +69,7 @@ test('real protected input persists a new encrypted course across offline restar
  const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow'});
  const seed=await context.newPage();
  await seed.goto(BASE+'/modular3-protected.html?rehearsal=1');
- await seed.evaluate(()=>localStorage.removeItem(SOURCE));
+ await seed.evaluate(key=>localStorage.removeItem(key),SOURCE);
  await seed.evaluate(async()=>{
   const initial={settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],timeHistory:[]};
   await window.MedControlModular3ProtectedSession.initialize(initial,'Offline-Create-Verify-2026');
