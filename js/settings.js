@@ -58,7 +58,7 @@ window.changeInterfaceLanguage = async function(language) {
     } catch (_) { /* Existing language remains selected. */ }
   }
   if (!TRANSLATIONS[language]) {
-    renderMedControlLanguageSearch(document.getElementById('settingsLanguageSearch')?.value || '');
+    if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
     return false;
   }
   // Cache the selected language before committing encrypted settings.
@@ -86,7 +86,7 @@ window.changeInterfaceLanguage = async function(language) {
       }
     } catch (error) {
       console.warn('Selected language offline cache unavailable.', error);
-      renderMedControlLanguageSearch(document.getElementById('settingsLanguageSearch')?.value || '');
+      if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
       return false;
     }
   }
