@@ -58,6 +58,8 @@ window.changeInterfaceLanguage = async function(language) {
     } catch (_) { /* Existing language remains selected. */ }
   }
   if (!TRANSLATIONS[language]) {
+    const legacySelector = document.getElementById('settingsInterfaceLanguage');
+    if (legacySelector) legacySelector.value = state.settings.interfaceLanguage;
     if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
     return false;
   }
@@ -86,7 +88,9 @@ window.changeInterfaceLanguage = async function(language) {
       }
     } catch (error) {
       console.warn('Selected language offline cache unavailable.', error);
-      if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
+      const legacySelector = document.getElementById('settingsInterfaceLanguage');
+    if (legacySelector) legacySelector.value = state.settings.interfaceLanguage;
+    if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
       return false;
     }
   }
