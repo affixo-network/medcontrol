@@ -8,7 +8,7 @@ function renderSettingsPage() {
       <div class="card"><h2>${escapeHtml(tr('settings_title_1'))}</h2>
         <div class="form-grid">
           <div><label>${escapeHtml(tr('auto_detected_language'))}</label><input readonly value="${escapeHtml(detectedLabel)}"></div>
-          <div><label>${escapeHtml(tr('language'))}</label><select id="settingsInterfaceLanguage" onchange="changeInterfaceLanguage(this.value)">${SUPPORTED_LANGUAGES.filter(([id]) => !!TRANSLATIONS[id] || (window.medcontrolProtectedInterface && id !== 'ru' && id !== 'en') || id === 'ru' || id === 'en').map(([id,label]) => `<option value="${id}" ${state.settings.interfaceLanguage === id ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select></div>
+          <div><label>${escapeHtml(tr('language'))}</label><input id="settingsLanguageSearch" type="search" autocomplete="off" placeholder="Search language / Поиск языка" oninput="filterMedControlLanguages(this.value)" aria-label="Search language"><div id="settingsLanguageMatches" role="listbox" style="max-height:240px;overflow:auto"></div><p id="settingsLanguageSuggestion" class="muted"></p></div>
           <div><label>${escapeHtml(tr('country'))}</label><select id="settingsCountry" onchange="changeCountry(this.value)">${COUNTRY_OPTIONS.map(country => `<option value="${country}" ${state.settings.country === country ? 'selected' : ''}>${escapeHtml(country)}</option>`).join('')}</select></div>
           <div><label>${escapeHtml(tr('timezone'))}</label><input readonly value="${escapeHtml(state.settings.timezone)}"></div>
           <div><label>${escapeHtml(tr('patient_data'))}</label><input readonly value="${escapeHtml(tr('patient_data_value'))}"></div>
@@ -23,6 +23,7 @@ function renderSettingsPage() {
     </section>`;
   document.body.innerHTML = appShell(tr('title_settings'), 'settings', body);
   scheduleClock();
+  renderMedControlLanguageSearch();
 }
 window.changeInterfaceLanguage = async function(language) {
   const state = getState();
@@ -114,3 +115,60 @@ window.changeCountry = async function(country) {
   (await mount('settings'));
   return true;
 };
+const MEDCONTROL_LANGUAGE_ALIASES = Object.freeze({
+  hy: ['Armenian', 'Армянский', 'hayeren', 'hayeren'],
+  ru: ['Russian', 'Русский', 'russkiy'],
+  en: ['English', 'Английский', 'angliyskiy'],
+  fr: ['French', 'Французский', 'francais'],
+  de: ['German', 'Немецкий', 'deutsch'],
+  es: ['Spanish', 'Испанский', 'espanol'],
+  it: ['Italian', 'Итальянский', 'italiano'],
+  pt: ['Portuguese', 'Португальский', 'portugues'],
+  ka: ['Georgian', 'Грузинский', 'kartuli'],
+  el: ['Greek', 'Греческий', 'ellinika'],
+  ar: ['Arabic', 'Арабский', 'arabic']
+});
+function normalizeMedControlLanguageQuery(value) {
+  return String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase().trim();
+}
+function medControlDeviceLanguage() {
+  const candidates = [...(navigator.languages || []), navigator.language].filter(Boolean);
+  for (const candidate of candidates) {
+    const code = String(candidate).toLowerCase().split('-')[0];
+    if (SUPPORTED_LANGUAGES.some(([id]) => id === code)) return code;
+  }
+  return 'en';
+}
+function renderMedControlLanguageSearch(query = '') {
+  const target = document.getElementById('settingsLanguageMatches');
+  if (!target) return;
+  const current = getState().settings.interfaceLanguage;
+  const device = medControlDeviceLanguage();
+  const normalized = normalizeMedControlLanguageQuery(query);
+  const matches = SUPPORTED_LANGUAGES.filter(([code, name]) =>
+    !normalized || [name, code, ...(MEDCONTROL_LANGUAGE_ALIASES[code] || [])]
+      .some(alias => normalizeMedControlLanguageQuery(alias).includes(normalized)));
+  const suggested = document.getElementById('settingsLanguageSuggestion');
+  if (suggested) {
+    const label = SUPPORTED_LANGUAGES.find(([code]) => code === device)?.[1] || 'English';
+    suggested.textContent = 'Device language / Язык устройства: ' + label;
+  }
+  const ordered = normalized ? matches : [
+    ...matches.filter(([code]) => code === device),
+    ...matches.filter(([code]) => code === current && code !== device),
+    ...matches.filter(([code]) => code !== device && code !== current)
+  ];
+  target.replaceChildren();
+  for (const [code, name] of ordered.slice(0, normalized ? 20 : 8)) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('role', 'option');
+    button.setAttribute('aria-selected', String(code === current));
+    button.textContent = name + (code === current ? ' ✓' : '');
+    button.style.margin = '3px';
+    button.onclick = () => { window.changeInterfaceLanguage(code); };
+    target.appendChild(button);
+  }
+  if (!ordered.length) target.textContent = 'No matching language / Язык не найден';
+}
+window.filterMedControlLanguages = renderMedControlLanguageSearch;
