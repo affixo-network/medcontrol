@@ -104,13 +104,17 @@ window.changeInterfaceLanguage = async function(language) {
 
   const previousLanguage = state.settings.interfaceLanguage;
   const previousConfirmation = state.settings.languageChoiceConfirmed;
+  const previousConfirmationVersion = state.settings.languageConfirmationVersion;
   state.settings.interfaceLanguage = language;
   state.settings.languageChoiceConfirmed = true;
+  state.settings.languageConfirmationVersion = 1;
   try {
     if (!(await saveStateAsync(state))) {
       state.settings.interfaceLanguage = previousLanguage;
       if (previousConfirmation === undefined) delete state.settings.languageChoiceConfirmed;
       else state.settings.languageChoiceConfirmed = previousConfirmation;
+      if (previousConfirmationVersion === undefined) delete state.settings.languageConfirmationVersion;
+      else state.settings.languageConfirmationVersion = previousConfirmationVersion;
       await mount('settings');
       return false;
     }
