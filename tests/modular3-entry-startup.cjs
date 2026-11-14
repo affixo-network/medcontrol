@@ -58,9 +58,12 @@ async function run(){
    assert.equal(await page.evaluate(()=>typeof document.getElementById('unlock').onclick),'function');
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before,'Startup recovery changed medical vault');
    await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
-   await page.locator('#workspace').waitFor({state:'visible',timeout:10000});
-   assert.equal(new URL(page.url()).pathname,'/modular3-protected.html');
-   assert.equal(await page.locator('#workspace [data-tab]').count(),4);
+   await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
+   assert.equal(new URL(page.url()).pathname,'/input.html');
+   assert.equal(await page.locator('.topbar .nav a').count(),4);
+   assert.equal(await page.locator('#topCurrentDate').isVisible(),true);
+   assert.equal(await page.locator('#topCurrentTime').isVisible(),true);
+   assert.equal(await page.locator('#medcontrolFirstLanguageDialog').isVisible(),true);
    assert.equal(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications[0].id),'synthetic-startup');
    console.log('PASS interrupted '+module+' recovers and opens existing encrypted data');
    await context.close();
