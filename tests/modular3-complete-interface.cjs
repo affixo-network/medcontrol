@@ -468,10 +468,12 @@ async function run(){
   await fresh.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin!==BASE){external.push(u.origin);return route.abort();}return route.continue();});
   const entry=await fresh.newPage();entry.on('pageerror',e=>errors.push(e.message));
   await entry.goto(BASE+'/modular3-protected.html');await entry.locator('#password').fill(PASS);await entry.locator('#enroll').click();
-  await entry.locator('#create_name').waitFor({timeout:15000});
-  assert.equal(new URL(entry.url()).pathname,'/input.html');
-  assert.ok((await entry.locator('body').innerText()).includes('VERSION 3'));
-  console.log('PASS default protected entry opens complete original program without second password');
+  await entry.locator('#workspace').waitFor({state:'visible',timeout:15000});
+  await entry.locator('#screen h2').first().waitFor({state:'visible'});
+  assert.equal(await entry.locator('#screen h2').first().innerText(),'Ввод');
+  assert.equal(new URL(entry.url()).pathname,'/modular3-protected.html');
+  assert.equal(await entry.locator('#workspace [data-tab]').count(),4);
+  console.log('PASS default protected entry opens Modular-3 four-section workspace without second password');
   await fresh.close();
   // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
   const resetContext=await browser.newContext({timezoneId:'Asia/Yerevan'});
