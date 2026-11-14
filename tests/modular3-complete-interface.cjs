@@ -470,7 +470,9 @@ async function run(){
   await entry.goto(BASE+'/modular3-protected.html');await entry.locator('#password').fill(PASS);await entry.locator('#enroll').click();
   await entry.locator('#workspace').waitFor({state:'visible',timeout:15000});
   await entry.locator('#screen h2').first().waitFor({state:'visible'});
-  assert.equal(await entry.locator('#screen h2').first().innerText(),'Ввод');
+  assert.equal(await entry.locator('#screen h2').first().innerText(),'Input');
+   assert.equal(await entry.locator('#protected-language-choice').isVisible(),true);
+   assert.equal(await entry.locator('#protected-language-select option').count(),95);
   assert.equal(new URL(entry.url()).pathname,'/modular3-protected.html');
   assert.equal(await entry.locator('#workspace [data-tab]').count(),4);
   console.log('PASS default protected entry opens Modular-3 four-section workspace without second password');
