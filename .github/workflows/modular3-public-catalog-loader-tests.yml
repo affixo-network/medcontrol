@@ -13,6 +13,7 @@ on:
       - 'js/settings.js'
       - 'js/auth-guard.js'
       - 'scripts/localization/test-protected-language-selector.cjs'
+      - 'scripts/localization/test-first-run-language-choice.cjs'
       - 'scripts/localization/test-public-catalog-loader.cjs'
       - 'scripts/localization/test-legacy-locale-adapter.cjs'
       - 'scripts/localization/test-real-legacy-catalog.cjs'
@@ -39,7 +40,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run isolated catalog validation tests
-        run: node --test scripts/localization/test-public-catalog-loader.cjs scripts/localization/test-legacy-locale-adapter.cjs scripts/localization/test-real-legacy-catalog.cjs scripts/localization/test-locale-preparation.cjs scripts/localization/test-language-registration.cjs scripts/localization/test-locale-activation.cjs scripts/localization/test-locale-bootstrap.cjs scripts/localization/test-manifest-coverage.cjs scripts/localization/test-protected-language-selector.cjs
+        run: node --test scripts/localization/test-public-catalog-loader.cjs scripts/localization/test-legacy-locale-adapter.cjs scripts/localization/test-real-legacy-catalog.cjs scripts/localization/test-locale-preparation.cjs scripts/localization/test-language-registration.cjs scripts/localization/test-locale-activation.cjs scripts/localization/test-locale-bootstrap.cjs scripts/localization/test-manifest-coverage.cjs scripts/localization/test-protected-language-selector.cjs scripts/localization/test-first-run-language-choice.cjs
 
       - name: Audit commercial translation readiness (read-only)
         run: node scripts/localization/audit-commercial-readiness.cjs commercial-readiness-report.json
