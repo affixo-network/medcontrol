@@ -482,6 +482,53 @@ async function run(){
   }
 
 
+  // Real browser: encrypted language confirmation must persist after restart and offline unlock.
+  await context.setOffline(false);
+  await page.goto('http://127.0.0.1:'+ports.protected+'/input.html',{waitUntil:'load'});
+  await page.locator('#password').fill(TEST_PASSWORD);
+  await page.locator('#unlock').click();
+  const languageDialog=page.locator('#medcontrolFirstLanguageDialog');
+  await languageDialog.waitFor({state:'visible',timeout:30000});
+  const beforeLanguage=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
+  assert.equal(beforeLanguage.settings.languageChoiceConfirmed,undefined,
+    'First launch must not silently confirm language');
+  await languageDialog.locator('input[type=search]').fill('Русский');
+  await languageDialog.getByRole('button',{name:/№1 · русский/}).click();
+  await page.waitForLoadState('load');
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession?.isUnlocked()===true,
+    null,{timeout:30000}).catch(()=>{});
+  // A reload locks the vault: use the local password rather than bypassing the protection.
+  if(await page.locator('#password').count()){
+    await page.locator('#password').fill(TEST_PASSWORD);
+    await page.locator('#unlock').click();
+  }
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession?.isUnlocked()===true,
+    null,{timeout:30000});
+  const afterLanguage=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
+  assert.equal(afterLanguage.settings.interfaceLanguage,'ru');
+  assert.equal(afterLanguage.settings.languageChoiceConfirmed,true);
+  assert.deepEqual(afterLanguage.medications,beforeLanguage.medications,
+    'Language confirmation must preserve all encrypted medical courses');
+  assert.deepEqual(afterLanguage.intakeLogs,beforeLanguage.intakeLogs,
+    'Language confirmation must preserve all encrypted intake records');
+  assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0,
+    'Language must not be requested again after explicit confirmation');
+  console.log('PASS language 1: real first-run selection persisted encrypted and preserved medical records');
+  await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
+  await context.setOffline(true);
+  await page.reload({waitUntil:'domcontentloaded',timeout:15000});
+  await page.locator('#password').fill(TEST_PASSWORD);
+  await page.locator('#unlock').click();
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession?.isUnlocked()===true,
+    null,{timeout:30000});
+  const offlineLanguage=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
+  assert.equal(offlineLanguage.settings.interfaceLanguage,'ru');
+  assert.equal(offlineLanguage.settings.languageChoiceConfirmed,true);
+  assert.deepEqual(offlineLanguage.medications,afterLanguage.medications);
+  assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0);
+  console.log('PASS language 2: offline restart and protected unlock preserve confirmed language');
+
+
 
  }finally{
   if(browser)await browser.close();
