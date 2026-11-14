@@ -266,7 +266,7 @@ test('preexisting plaintext source is never changed by protected activation',asy
  await page.evaluate(async()=>MedControlModular3CopyMigration.commitExistingImport(window.importPlan));
  const after=await snapshot(page);expect(after.affixo_medcontrol_standard_v3).toBe(before.affixo_medcontrol_standard_v3);
 });
-test('UI imports seven courses and 35 events, downloads the old copy, and opens the full original interface',async({page,context})=>{
+test('UI imports seven courses and 35 events, preserves the old copy, and stays in protected Modular-3',async({page,context})=>{
  await fillImport(page);page.once('dialog',d=>d.accept());await page.locator('#import-backup').click();
  await expect(page.locator('#message')).toContainText('Препаратов: 7; приёмов: 35');
  await expect(page.locator('#message')).toContainText('Пароль входа остался прежним');
@@ -275,11 +275,15 @@ test('UI imports seven courses and 35 events, downloads the old copy, and opens 
  const old=await page.evaluate(async({raw,OLD_PASS})=>MedControlModular3EncryptedVault.open(JSON.parse(raw).encrypted,OLD_PASS),{raw,OLD_PASS});
  expect(old).toEqual(OLD);
  await page.locator('#open-imported').click();
- await expect(page.locator('#create_name')).toBeVisible();
+ await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#screen h2').first()).toHaveText('Ввод');
+  await expect(page).toHaveURL(BASE+'/modular3-protected.html');
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(INCOMING);
  await page.waitForFunction(()=>window.medcontrolOfflineShellReady===true);
  await context.setOffline(true);await page.reload();
  await page.locator('#password').fill(OLD_PASS);await page.locator('#unlock').click();
- await expect(page.locator('#create_name')).toBeVisible();
+ await expect(page.locator('#workspace')).toBeVisible();
+  await expect(page.locator('#screen h2').first()).toHaveText('Ввод');
+  await expect(page).toHaveURL(BASE+'/modular3-protected.html');
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(INCOMING);
 });
