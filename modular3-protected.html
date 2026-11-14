@@ -214,6 +214,46 @@ label button{vertical-align:middle}
 })();
 </script>
 <main id="screen"></main></div><p id="message" role="status"></p><button id="retry-entry" type="button" hidden>Повторить загрузку</button>
+<script>
+/* Entry screen language is a browser-language proposal, not a saved choice.
+   The protected vault is never read or modified by this presentation layer. */
+(function(){
+ 'use strict';
+ const preferred=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language])
+   .map(value=>String(value||'').toLowerCase().split('-')[0]);
+ if(preferred[0]!=='en')return;
+ const labels={
+  'MedControl — защищённый режим':'MedControl — Protected mode',
+  'Отдельное хранилище. Действующие записи не изменяются.':'Separate vault. Existing records remain unchanged.',
+  'Локальный пароль':'Local password',
+  'Войти':'Sign in',
+  'Восстановить доступ':'Recover access',
+  'Создать хранилище':'Create vault',
+  'Проверить готовность переноса':'Check transfer readiness',
+  'Перенести защищённую копию':'Transfer encrypted backup',
+  'Резервная копия MedControl (.json)':'MedControl backup (.json)',
+  'Импортировать защищённую копию':'Import encrypted backup',
+  'Хранилище уже существует. В поле «Локальный пароль» введите прежний пароль входа. Новый пароль, заданный при создании файла, введите ниже. Для сверки выбранного файла без изменений нажмите «Проверить готовность переноса». До переноса прежнее хранилище будет сохранено отдельной зашифрованной копией.':'A vault already exists. Enter your previous sign-in password in Local password. Enter the password used when creating the backup file below. To check the file without making changes, select Check transfer readiness. Before transfer, the existing vault will be preserved as a separate encrypted backup.',
+  'Пароль файла переноса':'Transfer file password',
+  'Сохранённые хранилища до переноса':'Vaults preserved before transfer',
+  'Скачать сохранённую защищённую копию':'Download preserved encrypted backup',
+  'Эти копии открываются паролем, действовавшим до соответствующего переноса.':'These backups use the password that was valid before the respective transfer.',
+  'Открыть MedControl':'Open MedControl',
+  'Ввод':'Input','Приём препаратов':'Medication intake','Табло':'Dashboard','Архив':'Archive','Выйти':'Sign out'
+ };
+ const root=document.body;
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ const nodes=[];
+ while(walker.nextNode())nodes.push(walker.currentNode);
+ for(const node of nodes){
+  if(node.parentElement?.closest('script,style'))continue;
+  const raw=node.nodeValue;
+  const trimmed=raw.trim();
+  if(labels[trimmed])node.nodeValue=raw.replace(trimmed,labels[trimmed]);
+ }
+ document.documentElement.lang='en';
+})();
+</script>
 <script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-final-intake.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
 (function(){
  'use strict';
