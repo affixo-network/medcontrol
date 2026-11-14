@@ -9,6 +9,83 @@
  const login=document.getElementById('login');
  const screen=document.getElementById('screen');
  let section='input';
+
+ // Canonical 95-language registry; Filipino (#96) is intentionally excluded.
+ const languageRegistry=[["ru","русский","Russian"],["en","English","English"],["fr","français","French"],["de","Deutsch","German"],["es","español","Spanish"],["it","italiano","Italian"],["pt","português","Portuguese"],["af","Afrikaans","Afrikaans"],["am","አማርኛ","Amharic"],["ar","العربية","Arabic"],["az","azərbaycan","Azerbaijani"],["be","беларуская","Belarusian"],["bg","български","Bulgarian"],["bn","বাংলা","Bangla"],["bs","bosanski","Bosnian"],["ca","català","Catalan"],["cs","čeština","Czech"],["da","dansk","Danish"],["nl","Nederlands","Dutch"],["et","eesti","Estonian"],["fi","suomi","Finnish"],["fy","Frysk","Western Frisian"],["el","Ελληνικά","Greek"],["gu","ગુજરાતી","Gujarati"],["he","עברית","Hebrew"],["hi","हिन्दी","Hindi"],["gl","galego","Galician"],["ka","ქართული","Georgian"],["sq","shqip","Albanian"],["hy","հայերեն","Armenian"],["eu","euskara","Basque"],["ceb","Cebuano","Cebuano"],["zh","中文","Chinese"],["co","Corsican","Corsican"],["hr","hrvatski","Croatian"],["eo","Esperanto","Esperanto"],["ht","Haitian Creole","Haitian Creole"],["ha","Hausa","Hausa"],["hmn","Hmong","Hmong"],["hu","magyar","Hungarian"],["is","íslenska","Icelandic"],["ig","Igbo","Igbo"],["id","Indonesia","Indonesian"],["ga","Gaeilge","Irish"],["ja","日本語","Japanese"],["jv","Jawa","Javanese"],["kn","ಕನ್ನಡ","Kannada"],["kk","қазақ тілі","Kazakh"],["km","ខ្មែរ","Khmer"],["ko","한국어","Korean"],["ku","kurdî (kurmancî)","Kurdish"],["ky","кыргызча","Kyrgyz"],["lo","ລາວ","Lao"],["lv","latviešu","Latvian"],["lt","lietuvių","Lithuanian"],["lb","Lëtzebuergesch","Luxembourgish"],["mk","македонски","Macedonian"],["mg","Malagasy","Malagasy"],["ms","Melayu","Malay"],["ml","മലയാളം","Malayalam"],["mt","Malti","Maltese"],["mr","मराठी","Marathi"],["mn","монгол","Mongolian"],["my","မြန်မာ","Burmese"],["ne","नेपाली","Nepali"],["no","norsk","Norwegian"],["ps","پښتو","Pashto"],["fa","فارسی","Persian"],["pl","polski","Polish"],["pa","ਪੰਜਾਬੀ","Punjabi"],["ro","română","Romanian"],["gd","Gàidhlig","Scottish Gaelic"],["sr","српски","Serbian"],["sd","سنڌي","Sindhi"],["si","සිංහල","Sinhala"],["sk","slovenčina","Slovak"],["sl","slovenščina","Slovenian"],["so","Soomaali","Somali"],["su","Basa Sunda","Sundanese"],["sw","Kiswahili","Swahili"],["sv","svenska","Swedish"],["tg","тоҷикӣ","Tajik"],["ta","தமிழ்","Tamil"],["te","తెలుగు","Telugu"],["th","ไทย","Thai"],["tr","Türkçe","Turkish"],["uk","українська","Ukrainian"],["ur","اردو","Urdu"],["uz","o‘zbek","Uzbek"],["vi","Tiếng Việt","Vietnamese"],["cy","Cymraeg","Welsh"],["xh","IsiXhosa","Xhosa"],["yi","ייִדיש","Yiddish"],["yo","Èdè Yorùbá","Yoruba"],["zu","isiZulu","Zulu"]];
+ const languageLabels={
+  ru:['Ввод','Приём препаратов','Табло','Архив','Выйти','Язык интерфейса','Подтвердить язык','Изменить язык','Предлагаемый язык браузера','Язык сохранён'],
+  en:['Input','Medication intake','Dashboard','Archive','Log out','Interface language','Confirm language','Change language','Browser language suggestion','Language saved'],
+  hy:['Մուտքագրում','Դեղերի ընդունում','Վահանակ','Արխիվ','Դուրս գալ','Միջերեսի լեզու','Հաստատել լեզուն','Փոխել լեզուն','Բրաուզերի առաջարկած լեզուն','Լեզուն պահպանված է']
+ };
+ let currentLanguage='ru';
+ const languagePanel=document.createElement('section');
+ languagePanel.id='protected-language-choice';
+ languagePanel.style.cssText='padding:12px;margin:12px 0;border:1px solid #cbd5e1;border-radius:8px;background:#fff';
+ const languageTitle=document.createElement('label');
+ languageTitle.htmlFor='protected-language-select';
+ const languageSelect=document.createElement('select');
+ languageSelect.id='protected-language-select';
+ languageSelect.style.cssText='max-width:100%;margin:0 8px;padding:7px';
+ for(const [code,native,english] of languageRegistry){
+  const option=document.createElement('option');option.value=code;option.textContent=native+' / '+english;
+  languageSelect.append(option);
+ }
+ const languageConfirm=document.createElement('button');
+ languageConfirm.type='button';languageConfirm.id='protected-language-confirm';
+ const languageHint=document.createElement('span');
+ languageHint.style.marginLeft='8px';
+ languagePanel.append(languageTitle,languageSelect,languageConfirm,languageHint);
+ workspace.insertBefore(languagePanel,workspace.firstChild);
+ function deviceLanguage(){
+  const candidates=Array.isArray(navigator.languages)?navigator.languages:[navigator.language];
+  for(const raw of candidates){const code=String(raw||'').toLowerCase().split('-')[0];if(languageRegistry.some(item=>item[0]===code))return code;}
+  return 'en';
+ }
+ function applyLanguage(code){
+  currentLanguage=languageRegistry.some(item=>item[0]===code)?code:'ru';
+  const labels=languageLabels[currentLanguage]||languageLabels.en;
+  document.documentElement.lang=currentLanguage;
+  document.documentElement.dir=['ar','fa','he','ur'].includes(currentLanguage)?'rtl':'ltr';
+  document.querySelectorAll('#workspace nav [data-tab]').forEach((button,index)=>button.textContent=labels[index]);
+  document.getElementById('lock').textContent=labels[4];
+  languageTitle.textContent=labels[5]+': ';
+  languageConfirm.textContent=labels[6];
+  const heading=screen.querySelector('h2');
+  if(heading)heading.textContent=labels[['input','action','dashboard','archive'].indexOf(section)];
+ }
+ function offerLanguage(){
+  if(!session.isUnlocked())return;
+  const settings=session.read().settings||{};
+  const confirmed=settings.languageChoiceConfirmed===true;
+  const proposed=confirmed?settings.interfaceLanguage:deviceLanguage();
+  applyLanguage(proposed);
+  languageSelect.value=currentLanguage;
+  languagePanel.hidden=confirmed;
+  languageHint.textContent=confirmed?'':(languageLabels[currentLanguage]||languageLabels.en)[8]+': '+currentLanguage;
+  if(confirmed)render();
+ }
+ languageConfirm.onclick=async()=>{
+  if(!session.isUnlocked())return;
+  const code=languageSelect.value;
+  languageConfirm.disabled=true;
+  try{
+   await session.transact(state=>{
+    state.settings=state.settings||{};
+    state.settings.interfaceLanguage=code;
+    state.settings.languageChoiceConfirmed=true;
+   });
+   applyLanguage(code);languagePanel.hidden=true;render();
+   notice((languageLabels[currentLanguage]||languageLabels.en)[9]+'.');
+  }catch(error){notice('Language confirmation failed: '+error.message);}
+  finally{languageConfirm.disabled=false;}
+ };
+ const changeLanguage=document.createElement('button');
+ changeLanguage.id='protected-language-change';
+ changeLanguage.type='button';
+ changeLanguage.onclick=()=>{if(session.isUnlocked()){languagePanel.hidden=false;languageSelect.value=currentLanguage;languageSelect.focus();}};
+ workspace.querySelector('nav').append(changeLanguage);
+ function updateLanguageChange(){changeLanguage.textContent=(languageLabels[currentLanguage]||languageLabels.en)[7];}
+
  function plannedTimes(med,day){
   const changes=(med.rowHistory||[]).filter(x=>x.action==='times_changed'&&Array.isArray(x.previousTimes)&&Array.isArray(x.newTimes)&&Number.isFinite(Date.parse(x.at))).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
   const candidates=new Set([...(med.times||[]),...changes.flatMap(x=>[...x.previousTimes,...x.newTimes])]);
@@ -67,12 +144,15 @@
   login.hidden=true;
   workspace.hidden=false;
   render();
+  offerLanguage();
+  updateLanguageChange();
  }
  function render(){
   if(!session.isUnlocked()){workspace.hidden=true;login.hidden=false;screen.replaceChildren();return;}
   const state=pages.read(section);
   screen.replaceChildren();
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
+  if(session.read().settings?.languageChoiceConfirmed)applyLanguage(currentLanguage);
   if(section==='archive'){
    const controls=document.createElement('section');controls.className='card';
    const heading=document.createElement('h2');heading.textContent='История приёмов';controls.append(heading);
