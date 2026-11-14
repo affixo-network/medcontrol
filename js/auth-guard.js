@@ -123,6 +123,70 @@
     populateProtectedLanguageSelector();
     window.MedControlActionHelp?.render();
   }
+  function offerFirstRunLanguage() {
+    if (!window.medcontrolProtectedInterface || typeof getState !== 'function' ||
+        typeof medControlDeviceLanguage !== 'function' ||
+        typeof MEDCONTROL_CANONICAL_LANGUAGES === 'undefined') return;
+    const state = getState();
+    if (state?.settings?.languageChoiceConfirmed) return;
+    if (document.getElementById('medcontrolFirstLanguageDialog')) return;
+    const device = medControlDeviceLanguage();
+    const entry = MEDCONTROL_CANONICAL_LANGUAGES.find(item => item.code === device && item.id <= 95);
+    const dialog = document.createElement('section');
+    dialog.id = 'medcontrolFirstLanguageDialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-label', 'Confirm language / Подтвердите язык');
+    dialog.style.cssText = 'position:fixed;inset:5vh 5vw auto;max-width:620px;max-height:85vh;overflow:auto;margin:auto;z-index:2147483646;padding:24px;background:white;color:#111;border:2px solid #555;border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.55);font:16px Arial,sans-serif';
+    const title = document.createElement('h2');
+    title.textContent = 'Confirm language / Подтвердите язык';
+    dialog.appendChild(title);
+    const proposed = document.createElement('p');
+    proposed.textContent = 'Device language / Язык устройства: ' + (entry?.name || 'English');
+    dialog.appendChild(proposed);
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.placeholder = 'Search language / Поиск языка';
+    search.setAttribute('aria-label', 'Search language');
+    search.style.cssText = 'box-sizing:border-box;width:100%;padding:10px;margin:8px 0';
+    dialog.appendChild(search);
+    const results = document.createElement('div');
+    results.style.cssText = 'max-height:40vh;overflow:auto';
+    dialog.appendChild(results);
+    const message = document.createElement('p');
+    message.setAttribute('role', 'status');
+    dialog.appendChild(message);
+    const draw = () => {
+      const query = normalizeMedControlLanguageQuery(search.value);
+      results.replaceChildren();
+      const matches = MEDCONTROL_CANONICAL_LANGUAGES.filter(item => item.id <= 95 &&
+        (!query || medControlLanguageSearchAliases(item).some(alias => alias.includes(query))));
+      for (const item of matches) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = '№' + item.id + ' · ' + item.name;
+        button.style.cssText = 'display:block;margin:4px 0;padding:8px;max-width:100%;cursor:pointer';
+        button.onclick = async () => {
+          message.textContent = 'Saving / Сохранение…';
+          try {
+            const ok = await window.changeInterfaceLanguage(item.code);
+            if (!ok) message.textContent = 'Could not save language / Не удалось сохранить язык';
+          } catch (_) { message.textContent = 'Could not save language / Не удалось сохранить язык'; }
+        };
+        results.appendChild(button);
+      }
+      if (!matches.length) results.textContent = 'No matching language / Язык не найден';
+    };
+    search.oninput = draw;
+    draw();
+    const suggested = results.querySelector('button');
+    if (entry && suggested) {
+      search.value = entry.name;
+      draw();
+    }
+    document.body.appendChild(dialog);
+    search.focus();
+  }
   function currentDeploymentId(){
     return document.querySelector('script[data-deployment-id]')?.dataset?.deploymentId||'';
   }
@@ -285,6 +349,7 @@
       await loader.ensureScripts(scriptsByPage.input);
       await ensurePageScripts(page);
       await renderPage(page);
+      offerFirstRunLanguage();
       window.medcontrolOfflineShellReady=await registerStaticOfflineCache();
       return;
     }
