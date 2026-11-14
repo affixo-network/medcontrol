@@ -144,6 +144,24 @@ const MEDCONTROL_LANGUAGE_ALIASES = Object.freeze({
   el: ['Greek', 'Греческий', 'ellinika'],
   ar: ['Arabic', 'Арабский', 'arabic']
 });
+// Stable Russian search names are indexed by the permanent registry ID, not array position.
+const MEDCONTROL_RUSSIAN_LANGUAGE_NAMES = Object.freeze(["Русский","Английский","Французский","Немецкий","Испанский","Итальянский","Португальский","Африкаанс","Амхарский","Арабский","Азербайджанский","Белорусский","Болгарский","Бенгальский","Боснийский","Каталанский","Чешский","Датский","Нидерландский","Эстонский","Финский","Фризский","Греческий","Гуджарати","Иврит","Хинди","Галисийский","Грузинский","Албанский","Армянский","Баскский","Себуанский","Китайский","Корсиканский","Хорватский","Эсперанто","Гаитянский креольский","Хауса","Хмонг","Венгерский","Исландский","Игбо","Индонезийский","Ирландский","Японский","Яванский","Каннада","Казахский","Кхмерский","Корейский","Курдский","Киргизский","Лаосский","Латышский","Литовский","Люксембургский","Македонский","Малагасийский","Малайский","Малаялам","Мальтийский","Маратхи","Монгольский","Бирманский","Непальский","Норвежский","Пушту","Персидский","Польский","Панджаби","Румынский","Шотландский гэльский","Сербский","Синдхи","Сингальский","Словацкий","Словенский","Сомалийский","Сунданский","Суахили","Шведский","Таджикский","Тамильский","Телугу","Тайский","Турецкий","Украинский","Урду","Узбекский","Вьетнамский","Валлийский","Коса","Идиш","Йоруба","Зулусский"]);
+const MEDCONTROL_ROMANIZATION_MAP = Object.freeze({
+  а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',
+  α:'a',β:'v',γ:'g',δ:'d',ε:'e',ζ:'z',η:'i',θ:'th',ι:'i',κ:'k',λ:'l',μ:'m',ν:'n',ξ:'x',ο:'o',π:'p',ρ:'r',σ:'s',ς:'s',τ:'t',υ:'y',φ:'f',χ:'ch',ψ:'ps',ω:'o',
+  հ:'h',ա:'a',յ:'y',ե:'e',ր:'r',ն:'n',վ:'v',ք:'k',ի:'i',ս:'s',տ:'t',ո:'o',ւ:'u',մ:'m',լ:'l',կ:'k',գ:'g',դ:'d',բ:'b',պ:'p',շ:'sh',չ:'ch',ճ:'ch',ց:'ts',ձ:'dz',ղ:'gh',խ:'kh',ծ:'ts',ջ:'j',զ:'z',թ:'t',փ:'p',ֆ:'f',է:'e',ը:'y',օ:'o',և:'ev',
+  ქ:'k',ა:'a',რ:'r',თ:'t',უ:'u',ლ:'l',ი:'i',გ:'g',ე:'e',ბ:'b',დ:'d',ვ:'v',ზ:'z',კ:'k',მ:'m',ნ:'n',ო:'o',პ:'p',ჟ:'zh',ს:'s',ტ:'t',ფ:'p',ღ:'gh',ყ:'q',შ:'sh',ჩ:'ch',ც:'ts',ძ:'dz',წ:'ts',ჭ:'ch',ხ:'kh',ჯ:'j',ჰ:'h'
+});
+function romanizeMedControlLanguage(value) {
+  return normalizeMedControlLanguageQuery(value).replace(/./gu, char => MEDCONTROL_ROMANIZATION_MAP[char] ?? char)
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function medControlLanguageSearchAliases(entry) {
+  const russian = MEDCONTROL_RUSSIAN_LANGUAGE_NAMES[entry.id - 1] || '';
+  const names = [entry.name, entry.englishName, entry.code, String(entry.id), russian,
+    ...(MEDCONTROL_LANGUAGE_ALIASES[entry.code] || [])];
+  return names.flatMap(value => [normalizeMedControlLanguageQuery(value), romanizeMedControlLanguage(value)]);
+}
 function normalizeMedControlLanguageQuery(value) {
   return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
 }
@@ -162,8 +180,8 @@ function renderMedControlLanguageSearch(query = '') {
   const device = medControlDeviceLanguage();
   const normalized = normalizeMedControlLanguageQuery(query);
   const matches = MEDCONTROL_CANONICAL_LANGUAGES.filter(({id, code, name, englishName}) =>
-    id <= 95 && (!normalized || [name, englishName, code, String(id), ...(MEDCONTROL_LANGUAGE_ALIASES[code] || [])]
-      .some(alias => normalizeMedControlLanguageQuery(alias).includes(normalized))));
+    id <= 95 && (!normalized || medControlLanguageSearchAliases({id, code, name, englishName})
+      .some(alias => alias.includes(normalized))));
   const suggested = document.getElementById('settingsLanguageSuggestion');
   if (suggested) {
     const entry = MEDCONTROL_CANONICAL_LANGUAGES.find(({code}) => code === device);
