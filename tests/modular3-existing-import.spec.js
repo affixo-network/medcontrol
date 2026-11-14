@@ -279,7 +279,7 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
   await expect(page.locator('#screen h2').first()).toHaveText('Ввод');
   await expect(page).toHaveURL(BASE+'/modular3-protected.html');
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(INCOMING);
- await page.waitForFunction(()=>window.medcontrolOfflineShellReady===true);
+ await page.waitForFunction(()=>navigator.serviceWorker.controller !== null && document.getElementById('message').textContent.includes('Автономные файлы подготовлены'));
  await context.setOffline(true);await page.reload();
  await page.locator('#password').fill(OLD_PASS);await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
