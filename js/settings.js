@@ -24,6 +24,13 @@ function renderSettingsPage() {
   document.body.innerHTML = appShell(tr('title_settings'), 'settings', body);
   scheduleClock();
   renderMedControlLanguageSearch();
+  // First-use recommendation is explicit: no language or medical data is changed until confirmation.
+  if (!state.settings.languageChoiceConfirmed) {
+    const suggestion = document.getElementById('settingsLanguageSuggestion');
+    if (suggestion) suggestion.setAttribute('role', 'status');
+    const search = document.getElementById('settingsLanguageSearch');
+    if (search) search.focus();
+  }
 }
 window.changeInterfaceLanguage = async function(language) {
   const state = getState();
@@ -96,15 +103,21 @@ window.changeInterfaceLanguage = async function(language) {
   }
 
   const previousLanguage = state.settings.interfaceLanguage;
+  const previousConfirmation = state.settings.languageChoiceConfirmed;
   state.settings.interfaceLanguage = language;
+  state.settings.languageChoiceConfirmed = true;
   try {
     if (!(await saveStateAsync(state))) {
       state.settings.interfaceLanguage = previousLanguage;
+      if (previousConfirmation === undefined) delete state.settings.languageChoiceConfirmed;
+      else state.settings.languageChoiceConfirmed = previousConfirmation;
       await mount('settings');
       return false;
     }
   } catch (error) {
     state.settings.interfaceLanguage = previousLanguage;
+    if (previousConfirmation === undefined) delete state.settings.languageChoiceConfirmed;
+    else state.settings.languageChoiceConfirmed = previousConfirmation;
     throw error;
   }
   window.location.reload();
@@ -135,10 +148,10 @@ function normalizeMedControlLanguageQuery(value) {
   return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
 }
 function medControlDeviceLanguage() {
-  const candidates = [...(navigator.languages || []), navigator.language].filter(Boolean);
+  const candidates = [...(Array.isArray(navigator.languages) ? navigator.languages : []), navigator.language].filter(Boolean);
   for (const candidate of candidates) {
     const code = String(candidate).toLowerCase().split('-')[0];
-    if (SUPPORTED_LANGUAGES.some(([id]) => id === code)) return code;
+    if (MEDCONTROL_CANONICAL_LANGUAGES.some(entry => entry.id <= 95 && entry.code === code)) return code;
   }
   return 'en';
 }
@@ -158,7 +171,12 @@ function renderMedControlLanguageSearch(query = '') {
     const label = document.createElement('span');
     label.textContent = 'Device language / Язык устройства: ' + (entry?.name || 'English') + ' ';
     suggested.appendChild(label);
-    if (entry && entry.code !== current && entry.id <= 95) {
+    if (!getState().settings.languageChoiceConfirmed) {
+      const instruction = document.createElement('strong');
+      instruction.textContent = ' Confirm your language / Подтвердите язык: ';
+      suggested.appendChild(instruction);
+    }
+    if (entry && entry.id <= 95 && (entry.code !== current || !getState().settings.languageChoiceConfirmed)) {
       const confirm = document.createElement('button');
       confirm.type = 'button';
       confirm.textContent = 'Confirm / Подтвердить';
