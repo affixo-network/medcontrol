@@ -31,6 +31,11 @@ async function run(){
   page.on('pageerror',e=>errors.push(e.message));
   page.on('dialog',d=>d.accept());
   await page.goto(BASE+'/modular3-protected.html');
+  assert.equal(await page.locator('body > h1').innerText(),'MedControl — Protected mode','English browser must show English protected entry heading');
+  assert.equal(await page.locator('#unlock').innerText(),'Sign in','English browser must show English sign-in button');
+  assert.equal(await page.locator('#existing-import').innerText().then(t=>t.includes('A vault already exists.')),true,'Existing vault transfer instructions must be in English');
+  assert.equal(await page.locator('html').getAttribute('lang'),'en');
+  console.log('PASS English browser displays English protected entry without touching encrypted records');
   await page.evaluate(async password=>{
    await window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[]},password);
   },PASS);
