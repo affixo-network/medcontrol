@@ -152,8 +152,6 @@
   script.src='/js/auth-guard.js';script.dataset.page='input';
   script.onerror=()=>{document.getElementById('app').textContent='Не удалось загрузить защищённый интерфейс. Медицинские записи не изменены.';};
   document.head.appendChild(script);
-  offerLanguage();
-  updateLanguageChange();
  }
  function render(){
   if(!session.isUnlocked()){workspace.hidden=true;login.hidden=false;screen.replaceChildren();return;}
