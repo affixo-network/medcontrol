@@ -477,6 +477,10 @@ async function run(){
   assert.equal(await entry.locator('.topbar .nav a').count(),4);
   assert.equal(await entry.locator('.topbar select[onchange*="changeInterfaceLanguage"]').isVisible(),true);
   await entry.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:10000});
+  const browserLanguages=await entry.evaluate(()=>navigator.languages);
+  assert.equal(browserLanguages[0].toLowerCase().startsWith('en'),true);
+  assert.match(await entry.locator('#medcontrolFirstLanguageDialog').innerText(),/Device language.*English/);
+  assert.equal(await entry.locator('#medcontrolFirstLanguageDialog input[type=search]').inputValue(),'English');
   await entry.locator('#medcontrolFirstLanguageDialog input[type=search]').fill('');
   assert.equal(await entry.locator('#medcontrolFirstLanguageDialog button').count(),95);
   console.log('PASS protected entry restores dated four-section Modular-3 with 95-language confirmation without second password');
