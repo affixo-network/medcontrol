@@ -140,10 +140,18 @@
  }
  function notice(text){message.textContent=text;}
  function show(){
-  // Keep the unlocked protected workspace on Modular-3; never navigate to Modular-2.
-  login.hidden=true;
-  workspace.hidden=false;
-  render();
+  // Enter the established four-page Modular-3 interface after protected unlock.
+  // Its auth guard retains the unlocked encrypted session and offers first-run language selection.
+  if(new URLSearchParams(window.location.search).get('rehearsal')==='1'){
+   login.hidden=true;workspace.hidden=false;render();offerLanguage();updateLanguageChange();return;
+  }
+  document.head.querySelectorAll('style').forEach(style=>style.remove());
+  document.body.innerHTML='<div id="app">MedControl</div>';
+  window.history.replaceState({medcontrolPage:'input'},'','/input.html');
+  const script=document.createElement('script');
+  script.src='/js/auth-guard.js';script.dataset.page='input';
+  script.onerror=()=>{document.getElementById('app').textContent='Не удалось загрузить защищённый интерфейс. Медицинские записи не изменены.';};
+  document.head.appendChild(script);
   offerLanguage();
   updateLanguageChange();
  }
