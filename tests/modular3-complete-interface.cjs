@@ -468,14 +468,17 @@ async function run(){
   await fresh.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin!==BASE){external.push(u.origin);return route.abort();}return route.continue();});
   const entry=await fresh.newPage();entry.on('pageerror',e=>errors.push(e.message));
   await entry.goto(BASE+'/modular3-protected.html');await entry.locator('#password').fill(PASS);await entry.locator('#enroll').click();
-  await entry.locator('#workspace').waitFor({state:'visible',timeout:15000});
-  await entry.locator('#screen h2').first().waitFor({state:'visible'});
-  assert.equal(await entry.locator('#screen h2').first().innerText(),'Input');
-   assert.equal(await entry.locator('#protected-language-choice').isVisible(),true);
-   assert.equal(await entry.locator('#protected-language-select option').count(),95);
-  assert.equal(new URL(entry.url()).pathname,'/modular3-protected.html');
-  assert.equal(await entry.locator('#workspace [data-tab]').count(),4);
-  console.log('PASS default protected entry opens Modular-3 four-section workspace without second password');
+  await entry.locator('.topbar').waitFor({state:'visible',timeout:20000});
+  await entry.locator('#topCurrentDate').waitFor({state:'visible'});
+  await entry.locator('#topCurrentTime').waitFor({state:'visible'});
+  assert.notEqual(await entry.locator('#topCurrentDate').innerText(),'');
+  assert.notEqual(await entry.locator('#topCurrentTime').innerText(),'');
+  assert.equal(new URL(entry.url()).pathname,'/input.html');
+  assert.equal(await entry.locator('.topbar .nav a').count(),4);
+  assert.equal(await entry.locator('.topbar select[onchange*="changeInterfaceLanguage"]').isVisible(),true);
+  await entry.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:10000});
+  assert.equal(await entry.locator('#medcontrolFirstLanguageDialog button').count(),95);
+  console.log('PASS protected entry restores dated four-section Modular-3 with 95-language confirmation without second password');
   await fresh.close();
   // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
   const resetContext=await browser.newContext({timezoneId:'Asia/Yerevan'});
