@@ -484,6 +484,32 @@ async function run(){
   await entry.locator('#medcontrolFirstLanguageDialog input[type=search]').fill('');
   assert.equal(await entry.locator('#medcontrolFirstLanguageDialog button').count(),95);
   console.log('PASS protected entry restores dated four-section Modular-3 with 95-language confirmation without second password');
+  // Existing vault inherited RU without a user confirmation: browser English
+  // must still be proposed, and opening the dialog must not rewrite the vault.
+  const inheritedVault=await entry.evaluate(()=>{
+    const before=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+    return {before,stored:Object.fromEntries(Object.entries(localStorage))};
+  });
+  const inherited=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'en-US'});
+  await inherited.addInitScript(stored=>{
+    for(const [key,value] of Object.entries(stored))localStorage.setItem(key,value);
+  },inheritedVault.stored);
+  await inherited.route('**/*',route=>{
+    const u=new URL(route.request().url());
+    if(u.origin!==BASE){external.push(u.origin);return route.abort();}
+    return route.continue();
+  });
+  const inheritedPage=await inherited.newPage();
+  await inheritedPage.goto(BASE+'/modular3-protected.html');
+  await inheritedPage.locator('#password').fill(PASS);
+  await inheritedPage.locator('#unlock').click();
+  await inheritedPage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:20000});
+  assert.match(await inheritedPage.locator('#medcontrolFirstLanguageDialog').innerText(),/Device language.*English/);
+  assert.equal(await inheritedPage.locator('#medcontrolFirstLanguageDialog input[type=search]').inputValue(),'English');
+  assert.equal(await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),inheritedVault.before,
+    'Showing browser language proposal must not rewrite inherited medical vault');
+  console.log('PASS existing unconfirmed Russian vault proposes English browser language without modifying encrypted data');
+  await inherited.close();
   await fresh.close();
   // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
   const resetContext=await browser.newContext({timezoneId:'Asia/Yerevan'});
