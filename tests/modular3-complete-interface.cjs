@@ -36,6 +36,16 @@ async function run(){
   assert.equal(await page.locator('#existing-import').innerText().then(t=>t.includes('A vault already exists.')),true,'Existing vault transfer instructions must be in English');
   assert.equal(await page.locator('html').getAttribute('lang'),'en');
   console.log('PASS English browser displays English protected entry without touching encrypted records');
+  const russianContext=await browser.newContext({locale:'ru-RU'});
+  try{
+   const russianPage=await russianContext.newPage();
+   await russianPage.goto(BASE+'/modular3-protected.html');
+   assert.equal(await russianPage.locator('body > h1').innerText(),'MedControl — защищённый режим','Russian browser must retain approved Russian protected entry');
+   assert.equal(await russianPage.locator('#unlock').innerText(),'Войти','Russian sign-in label must remain unchanged');
+   assert.equal(await russianPage.locator('html').getAttribute('lang'),'ru');
+   console.log('PASS Russian browser retains unchanged Russian protected entry');
+  }finally{await russianContext.close();}
+
   await page.evaluate(async password=>{
    await window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[]},password);
   },PASS);
