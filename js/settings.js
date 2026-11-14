@@ -122,6 +122,8 @@ window.changeInterfaceLanguage = async function(language) {
     state.settings.interfaceLanguage = previousLanguage;
     if (previousConfirmation === undefined) delete state.settings.languageChoiceConfirmed;
     else state.settings.languageChoiceConfirmed = previousConfirmation;
+    if (previousConfirmationVersion === undefined) delete state.settings.languageConfirmationVersion;
+    else state.settings.languageConfirmationVersion = previousConfirmationVersion;
     throw error;
   }
   window.location.reload();
