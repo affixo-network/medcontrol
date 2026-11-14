@@ -125,13 +125,19 @@
   }
   function offerFirstRunLanguage() {
     if (!window.medcontrolProtectedInterface || typeof getState !== 'function' ||
-        typeof medControlDeviceLanguage !== 'function' ||
         typeof MEDCONTROL_CANONICAL_LANGUAGES === 'undefined') return;
     const state = getState();
     if (state?.settings?.languageChoiceConfirmed) return;
     if (document.getElementById('medcontrolFirstLanguageDialog')) return;
-    const device = medControlDeviceLanguage();
-    const entry = MEDCONTROL_CANONICAL_LANGUAGES.find(item => item.code === device && item.id <= 95);
+    // Detect the browser's ordered language preferences independently of the
+    // rehearsal-only protected workspace. Do not infer a confirmed choice from
+    // the language inherited from an existing vault.
+    const supported = MEDCONTROL_CANONICAL_LANGUAGES.filter(item => item.id <= 95);
+    const preferences = Array.isArray(navigator.languages) && navigator.languages.length
+      ? navigator.languages : [navigator.language];
+    const entry = preferences.map(raw => String(raw || '').toLowerCase().split('-')[0])
+      .map(code => supported.find(item => item.code === code)).find(Boolean)
+      || supported.find(item => item.code === 'en');
     const dialog = document.createElement('section');
     dialog.id = 'medcontrolFirstLanguageDialog';
     dialog.setAttribute('role', 'dialog');
