@@ -127,7 +127,10 @@
     if (!window.medcontrolProtectedInterface || typeof getState !== 'function' ||
         typeof MEDCONTROL_CANONICAL_LANGUAGES === 'undefined') return;
     const state = getState();
-    if (state?.settings?.languageChoiceConfirmed) return;
+    // Legacy vaults may contain languageChoiceConfirmed=true without proof of an
+    // explicit choice. Require the versioned confirmation marker once; never
+    // rewrite encrypted records merely to display the prompt.
+    if (state?.settings?.languageChoiceConfirmed && state?.settings?.languageConfirmationVersion === 1) return;
     if (document.getElementById('medcontrolFirstLanguageDialog')) return;
     // Detect the browser's ordered language preferences independently of the
     // rehearsal-only protected workspace. Do not infer a confirmed choice from
