@@ -94,7 +94,11 @@ test('first protected launch asks confirmation without changing saved language',
   state.settings.languageChoiceConfirmed = true;
   dialog = null;
   vm.runInContext('offerFirstRunLanguage();', context);
-  assert.equal(dialog, null, 'confirmed language must not prompt again');
+  assert.ok(dialog, 'legacy confirmed flag without explicit provenance must prompt once');
+  state.settings.languageConfirmationVersion = 1;
+  dialog = null;
+  vm.runInContext('offerFirstRunLanguage();', context);
+  assert.equal(dialog, null, 'explicitly confirmed language must not prompt again');
 });
 test('unprotected UI does not show protected first-run dialog', () => {
   const { context } = executeSettings();
