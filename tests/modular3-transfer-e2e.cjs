@@ -493,17 +493,14 @@ async function run(){
   assert.equal(beforeLanguage.settings.languageChoiceConfirmed,undefined,
     'First launch must not silently confirm language');
   await languageDialog.locator('input[type=search]').fill('Русский');
-  // A language selection saves asynchronously and only then reloads. Waiting for
-  // loadState('load') without a navigation event can incorrectly read the old page.
-  await Promise.all([
-    page.waitForEvent('load',{timeout:30000}),
-    languageDialog.getByRole('button',{name:/№1 · русский/}).click()
-  ]);
-  // A reload locks the vault: use the local password rather than bypassing the protection.
-  if(await page.locator('#password').count()){
-    await page.locator('#password').fill(TEST_PASSWORD);
-    await page.locator('#unlock').click();
-  }
+  // Language confirmation must preserve the unlocked page and encrypted vault.
+  await page.evaluate(()=>{window.__languagePageIdentity='retained';});
+  await languageDialog.getByRole('button',{name:/№1 · русский/}).click();
+  await languageDialog.waitFor({state:'detached',timeout:30000});
+  assert.equal(await page.evaluate(()=>window.__languagePageIdentity),'retained',
+    'Language confirmation must not reload the protected page');
+  assert.equal(await page.locator('#password').count(),0,
+    'Language confirmation must not request a second password');
   await page.waitForFunction(()=>window.MedControlModular3ProtectedSession?.isUnlocked()===true,
     null,{timeout:30000});
   const afterLanguage=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
