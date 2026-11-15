@@ -180,7 +180,6 @@
     for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
       if(protectedEnglishLabels[input.placeholder])input.placeholder=protectedEnglishLabels[input.placeholder];
     }
-    if(page==='archive'||window.location.pathname==='/archive.html')document.title='MedControl — Archive';
     document.documentElement.lang='en';
   }
   function watchProtectedLegacyUi(){
@@ -204,6 +203,7 @@
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
       populateProtectedLanguageSelector();
       localizeProtectedLegacyUi();
+      if(window.medcontrolProtectedInterface&&getState()?.settings?.interfaceLanguage==='en')document.title='MedControl — Archive';
       window.MedControlActionHelp?.render();
       return;
     }
@@ -318,6 +318,7 @@
     window.medcontrolShellNavigationLoading=true;
     try{await ensurePageScripts(targetPage);}finally{window.medcontrolShellNavigationLoading=false;}
     (await renderPage(targetPage));
+    if(window.medcontrolProtectedInterface&&getState()?.settings?.interfaceLanguage==='en'&&targetPage==='archive')document.title='MedControl — Archive';
     if(options.history!==false){
       if(window.location.pathname!==target)window.history.pushState({medcontrolPage:targetPage},'',target);
     }
