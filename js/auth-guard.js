@@ -116,6 +116,8 @@
       'All medication courses are completed or cancelled. Records are preserved in Archive.',
     'Сначала проверьте Архив. После проверки можно начать новый цикл.':
       'Review Archive before starting a new cycle.',
+    'Сначала проверьте Архив.':'First check the Archive.',
+    'После проверки можно начать новый цикл.':'After reviewing it, you can start a new cycle.',
     'Начать заново':'Start new cycle',
     'Производитель':'Manufacturer','Название производителя':'Manufacturer name',
     'Данные производителя':'Manufacturer information',
@@ -156,7 +158,8 @@
     const nodes=document.querySelectorAll(
       '.topbar a,.topbar button,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
       '.wrap label,.wrap button,.wrap th,.wrap option,.wrap summary,'+
-      '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p'
+      '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p,'+
+      '.wrap #medControlCycleReady strong'
     );
     for(const element of nodes){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
