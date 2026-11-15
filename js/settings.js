@@ -126,6 +126,21 @@ window.changeInterfaceLanguage = async function(language) {
     else state.settings.languageConfirmationVersion = previousConfirmationVersion;
     throw error;
   }
+  // Protected language confirmation must not reload the document: a reload
+  // locks the in-memory vault and exposes the pre-unlock legacy page shell.
+  if (window.medcontrolProtectedInterface && typeof window.medcontrolNavigateTo === 'function') {
+    const currentPage = window.location.pathname.split('/').pop().replace(/\.html$/, '');
+    const targetPage = ['input', 'action', 'dashboard', 'archive'].includes(currentPage) ? currentPage : 'input';
+    try {
+      await window.medcontrolNavigateTo(targetPage, { history: false });
+      document.getElementById('medcontrolFirstLanguageDialog')?.remove();
+      return true;
+    } catch (error) {
+      console.error('Language saved, but protected interface refresh failed.', error);
+      // Do not reload or clear the unlocked session. Leave the dialog open for recovery.
+      throw error;
+    }
+  }
   window.location.reload();
   return true;
 };
