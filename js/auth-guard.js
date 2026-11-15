@@ -154,9 +154,9 @@
        getState()?.settings?.interfaceLanguage!=='en')return;
     // Translate UI controls, never medical table cells, free text, or form values.
     const nodes=document.querySelectorAll(
-      '.topbar a,.topbar button,#app h1,#app h2,#app h3,#app h4,'+
-      '#app label,#app button,#app th,#app option,#app summary,'+
-      '#app .muted,#app .help p,#app .help li,#app .card > p'
+      '.topbar a,.topbar button,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
+      '.wrap label,.wrap button,.wrap th,.wrap option,.wrap summary,'+
+      '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p'
     );
     for(const element of nodes){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
@@ -174,7 +174,7 @@
          protectedEnglishLabels[element.placeholder])
         element.placeholder=protectedEnglishLabels[element.placeholder];
     }
-    for(const input of document.querySelectorAll('#app input[placeholder],#app textarea[placeholder]')){
+    for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
       if(protectedEnglishLabels[input.placeholder])input.placeholder=protectedEnglishLabels[input.placeholder];
     }
     document.documentElement.lang='en';
