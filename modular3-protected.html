@@ -238,7 +238,7 @@ label button{vertical-align:middle}
   'Сохранённые хранилища до переноса':'Vaults preserved before transfer',
   'Скачать сохранённую защищённую копию':'Download preserved encrypted backup',
   'Эти копии открываются паролем, действовавшим до соответствующего переноса.':'These backups use the password that was valid before the respective transfer.',
-  'Открыть MedControl':'Open MedControl',
+  'Открыть MedControl':'Open MedControl','Повторить загрузку':'Retry loading',
   'Ввод':'Input','Приём препаратов':'Medication intake','Табло':'Dashboard','Архив':'Archive','Выйти':'Sign out'
  };
  const root=document.body;
@@ -257,6 +257,8 @@ label button{vertical-align:middle}
 <script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-final-intake.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
 (function(){
  'use strict';
+ const entryEnglish=document.documentElement.lang==='en';
+ const entryText=(ru,en)=>entryEnglish?en:ru;
  const status=document.getElementById('message');
  const controls=[...document.querySelectorAll('#login button')];
  const retry=document.getElementById('retry-entry');
@@ -292,13 +294,13 @@ label button{vertical-align:middle}
   }catch(error){
    console.error('MedControl protected entry failed.',error);
    controls.forEach(button=>{button.disabled=true;});
-   status.textContent='Не удалось подготовить вход. Проверьте соединение и нажмите «Повторить загрузку». Данные не изменены.';
+   status.textContent=entryText('Не удалось подготовить вход. Проверьте соединение и нажмите «Повторить загрузку». Данные не изменены.','Unable to prepare sign-in. Check your connection and select Retry loading. No data was changed.');
    retry.hidden=false;
    return false;
   }
  })();
  if(!('serviceWorker' in navigator)||!('caches' in window)){
-  status.textContent='Этот браузер не поддерживает автономную загрузку.';
+  status.textContent=entryText('Этот браузер не поддерживает автономную загрузку.','This browser does not support offline loading.');
   return;
  }
  window.addEventListener('load',async function(){
@@ -336,10 +338,10 @@ label button{vertical-align:middle}
    const missing=paths.filter((path,index)=>!cached[index]);
    if(missing.length)throw Error('Offline files missing: '+missing.join(', '));
    if(!status.textContent){
-    status.textContent=navigator.serviceWorker.controller?'Автономные файлы подготовлены и проверены.':'Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.';
+    status.textContent=navigator.serviceWorker.controller?entryText('Автономные файлы подготовлены и проверены.','Offline files are ready and verified.'):entryText('Автономные файлы подготовлены. Обновите страницу один раз при включённом интернете, затем проверяйте без сети.','Offline files are ready. Refresh once while online, then test without a connection.');
    }
   }catch(error){
-   status.textContent='Автономная загрузка не готова: '+error.message;
+   status.textContent=entryText('Автономная загрузка не готова: ','Offline loading is not ready: ')+error.message;
   }
  });
 })();
