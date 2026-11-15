@@ -541,6 +541,19 @@ async function run(){
   assert.equal(new URL(inheritedPage.url()).pathname,new URL(pageLoads).pathname);
   console.log('PASS English confirmation updates protected UI without reload or second password');
 
+  assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
+    'Protected Archive navigation must be English');
+  assert.equal(await inheritedPage.locator('label').filter({has:inheritedPage.locator('#create_manufacturer')}).innerText(),'Manufacturer',
+    'Protected manufacturer form label must be English');
+  assert.equal(await inheritedPage.locator('#create_contentUnit option[value="other"]').innerText(),'Other');
+  assert.equal(await inheritedPage.locator('#create_intakeUnit option[value="tablet"]').innerText(),'tablet');
+  assert.equal(await inheritedPage.locator('.card h2').filter({hasText:'Removed and replaced times'}).count(),1,
+    'Removed-time heading must be English');
+  assert.equal(await inheritedPage.locator('#create_name').inputValue(),'',
+    'Interface language adapter must not alter entered medication fields');
+  console.log('PASS English protected Input localizes legacy manufacturer, units, Archive and removed-time labels');
+
+
   await inherited.close();
   await fresh.close();
   // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
