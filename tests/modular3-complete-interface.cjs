@@ -552,6 +552,30 @@ async function run(){
   assert.equal(await inheritedPage.locator('#create_name').inputValue(),'',
     'Interface language adapter must not alter entered medication fields');
   console.log('PASS English protected Input localizes legacy manufacturer, units, Archive and removed-time labels');
+  // Regression: completed-cycle notice has a strong child and a separate text node.
+  // Verify the protected English adapter translates both without touching stored records.
+  const cycleVaultBefore=await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
+  await inheritedPage.evaluate(()=>{
+    const topbar=document.querySelector('.topbar');
+    topbar.insertAdjacentHTML('afterend',
+      '<section id="medControlCycleReady" class="card"><h2>Цикл завершён</h2>'+
+      '<p>Все курсы применения препаратов завершены или отменены. Данные сохранены и доступны в Архиве.</p>'+
+      '<p><strong>Сначала проверьте Архив.</strong> После проверки можно начать новый цикл.</p>'+
+      '<button type="button">Начать заново</button></section>');
+  });
+  await inheritedPage.waitForFunction(()=>
+    document.querySelector('#medControlCycleReady strong')?.textContent==='First check the Archive.' &&
+    document.querySelector('#medControlCycleReady p:nth-of-type(2)')?.textContent===
+      'First check the Archive. After reviewing it, you can start a new cycle.'
+  );
+  assert.equal(await inheritedPage.locator('#medControlCycleReady h2').innerText(),'Cycle completed');
+  assert.equal(await inheritedPage.locator('#medControlCycleReady button').innerText(),'Start new cycle');
+  assert.equal(await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),cycleVaultBefore,
+    'Cycle notice localization must not change encrypted records');
+  await inheritedPage.locator('#medControlCycleReady').evaluate(element=>element.remove());
+  console.log('PASS completed-cycle warning is entirely English and encrypted vault remains unchanged');
+
+
 
 
   await inherited.close();
