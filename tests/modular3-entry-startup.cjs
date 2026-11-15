@@ -80,7 +80,7 @@ async function run(){
   assert.equal(await page.evaluate(()=>window.medcontrolProtectedEntryReady),false);
   assert.equal(await page.locator('#unlock').isDisabled(),true);
   assert.equal(await page.locator('#retry-entry').isVisible(),true);
-  assert.match(await page.locator('#message').innerText(),/Не удалось подготовить вход/);
+  assert.match(await page.locator('#message').innerText(),/Unable to prepare sign-in/);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before);
   console.log('PASS persistent entry failure gives retry and preserves encrypted data');
   await context.close();
