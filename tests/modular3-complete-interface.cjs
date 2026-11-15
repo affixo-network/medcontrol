@@ -574,6 +574,15 @@ async function run(){
     'Cycle notice localization must not change encrypted records');
   await inheritedPage.locator('#medControlCycleReady').evaluate(element=>element.remove());
   console.log('PASS completed-cycle warning is entirely English and encrypted vault remains unchanged');
+  // Archive title must follow protected English on in-app navigation, not only on a full reload.
+  await inheritedPage.evaluate(()=>window.medcontrolNavigateTo('archive'));
+  await inheritedPage.waitForURL('**/archive.html');
+  assert.equal(await inheritedPage.title(),'MedControl — Archive',
+    'Protected English Archive browser title must be translated after in-app navigation');
+  assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en');
+  assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
+  console.log('PASS protected English Archive browser title after navigation without relocking');
+
 
 
 
