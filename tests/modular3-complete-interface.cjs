@@ -583,6 +583,22 @@ async function run(){
   assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
   console.log('PASS protected English Archive browser title after navigation without relocking');
 
+  // Exercise the remaining protected sections with the confirmed English locale.
+  for(const [section,label] of [['action','Intake'],['dashboard','Board']]){
+    await inheritedPage.evaluate(section=>window.medcontrolNavigateTo(section),section);
+    await inheritedPage.waitForURL('**/'+section+'.html');
+    assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en',
+      'English locale must persist after navigating to '+section);
+    assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true,
+      'Protected vault must stay unlocked in '+section);
+    assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
+      'English Archive navigation must remain translated in '+section);
+    assert.equal(await inheritedPage.locator('.topbar .nav a').count(),4,
+      'All four protected navigation links must remain available in '+section);
+    console.log('PASS protected English '+label+' navigation and unlocked session');
+  }
+
+
 
 
 
