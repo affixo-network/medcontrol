@@ -35,6 +35,9 @@ async function run(){
   assert.equal(await page.locator('#unlock').innerText(),'Sign in','English browser must show English sign-in button');
   assert.equal(await page.locator('#existing-import').innerText().then(t=>t.includes('A vault already exists.')),true,'Existing vault transfer instructions must be in English');
   assert.equal(await page.locator('html').getAttribute('lang'),'en');
+  await page.waitForFunction(()=>document.getElementById('message').textContent.length>0);
+  assert.match(await page.locator('#message').innerText(),/Offline files are ready|Offline loading is not ready/,'English browser must display English offline status');
+  assert.equal(await page.locator('#retry-entry').innerText(),'Retry loading','English browser must display English retry action');
   console.log('PASS English browser displays English protected entry without touching encrypted records');
   const russianContext=await browser.newContext({locale:'ru-RU'});
   try{
