@@ -107,6 +107,90 @@
     }
     if(selected&&known.has(selected))selector.value=selected;
   }
+  // Modular-3 presentation adapter for literal legacy labels. Never changes
+  // the immutable Modular-2 renderer, saved state, or user-entered records.
+  const protectedEnglishLabels = Object.freeze({
+    'Архив':'Archive','Выйти':'Sign out',
+    'Цикл завершён':'Cycle completed',
+    'Все курсы применения препаратов завершены или отменены. Данные сохранены и доступны в Архиве.':
+      'All medication courses are completed or cancelled. Records are preserved in Archive.',
+    'Сначала проверьте Архив. После проверки можно начать новый цикл.':
+      'Review Archive before starting a new cycle.',
+    'Начать заново':'Start new cycle',
+    'Производитель':'Manufacturer','Название производителя':'Manufacturer name',
+    'Данные производителя':'Manufacturer information',
+    'Количественное содержание':'Medication content (as stated by manufacturer)',
+    'Единица содержания':'Content unit',
+    'Другая единица содержания':'Other content unit',
+    'Доза':'Dose','Количество приёма':'Quantity per intake',
+    'Единица приёма':'Intake unit','Другая единица приёма':'Other intake unit',
+    'Выберите':'Select',
+    'Другое':'Other','таблетка':'tablet','капсула':'capsule',
+    'капля':'drop','чайная ложка':'teaspoon','столовая ложка':'tablespoon',
+    'доза':'dose','впрыск':'puff','ампула':'ampoule','флакон':'vial',
+    'пакет':'packet','саше':'sachet','суппозиторий':'suppository',
+    'пластырь':'patch','инъекция':'injection','единица':'unit',
+    'мкг':'mcg','мг':'mg','г':'g','кг':'kg','мл':'ml','л':'l',
+    'мг/мл':'mg/ml','мкг/мл':'mcg/ml','мг/г':'mg/g','МЕ':'IU','ед.':'units',
+    'Препараты':'Medications','Параметры расписания':'Schedule parameters',
+    'Удалённые и заменённые времена':'Removed and replaced times',
+    'Нет удалённых или заменённых времён.':'No removed or replaced times.',
+    'Управление данными':'Data management',
+    'Все препараты отменены. При необходимости можно полностью очистить данные MedControl и начать заново.':
+      'All medications are cancelled. If necessary, MedControl data may be reset to start again.',
+    'Полный сброс доступен только когда все препараты отменены.':
+      'Full reset is available only after all medications are cancelled.',
+    'Сделать пассивным':'Set passive','Активировать':'Activate','Отменить':'Cancel',
+    'История приёмов':'Intake history','Принято':'Taken','Не принято':'Not taken',
+    'Период':'Period','Вчера':'Yesterday','7 дней':'7 days',
+    '30 дней':'30 days','Весь период':'Entire period','Свернуть':'Collapse',
+    'Изменение временного назначения':'Change of scheduled time',
+    'Сохранить':'Save','Закрыть':'Close',
+    'Ежедневно':'Every day','Нет данных':'No data',
+    'Например: 500':'Example: 500','Например: 1':'Example: 1'
+  });
+  function localizeProtectedLegacyUi(){
+    if(!window.medcontrolProtectedInterface ||
+       getState()?.settings?.interfaceLanguage!=='en')return;
+    // Translate UI controls, never medical table cells, free text, or form values.
+    const nodes=document.querySelectorAll(
+      '.topbar a,.topbar button,#app h1,#app h2,#app h3,#app h4,'+
+      '#app label,#app button,#app th,#app option,#app summary,'+
+      '#app .muted,#app .help p,#app .help li,#app .card > p'
+    );
+    for(const element of nodes){
+      if(element.closest('#medcontrolFirstLanguageDialog'))continue;
+      for(const child of element.childNodes){
+        if(child.nodeType!==Node.TEXT_NODE)continue;
+        const original=child.nodeValue;
+        const value=original.trim();
+        const required=value.endsWith('*');
+        const lookup=required?value.slice(0,-1).trim():value;
+        const translation=protectedEnglishLabels[lookup];
+        if(!translation)continue;
+        child.nodeValue=original.replace(value,translation+(required?' *':''));
+      }
+      if(element.matches('input[placeholder],textarea[placeholder]') &&
+         protectedEnglishLabels[element.placeholder])
+        element.placeholder=protectedEnglishLabels[element.placeholder];
+    }
+    for(const input of document.querySelectorAll('#app input[placeholder],#app textarea[placeholder]')){
+      if(protectedEnglishLabels[input.placeholder])input.placeholder=protectedEnglishLabels[input.placeholder];
+    }
+    document.documentElement.lang='en';
+  }
+  function watchProtectedLegacyUi(){
+    if(window.medcontrolProtectedLegacyUiObserver)return;
+    let scheduled=false;
+    const observer=new MutationObserver(()=>{
+      if(scheduled)return;
+      scheduled=true;
+      queueMicrotask(()=>{scheduled=false;localizeProtectedLegacyUi();});
+    });
+    observer.observe(document.documentElement,{subtree:true,childList:true});
+    window.medcontrolProtectedLegacyUiObserver=observer;
+    localizeProtectedLegacyUi();
+  }
   async function renderPage(targetPage){
     if(targetPage==='archive'){
       if(window.medcontrolProtectedInterface&&window.reconcileMedControlCompletedCourses)await window.reconcileMedControlCompletedCourses(getState());
@@ -115,12 +199,14 @@
       if(typeof fixPreviewNavigation==='function')fixPreviewNavigation();
       if(window.patchMedControlResetUi)window.patchMedControlResetUi();
       populateProtectedLanguageSelector();
+      localizeProtectedLegacyUi();
       window.MedControlActionHelp?.render();
       return;
     }
     if(typeof mount!=='function')throw new Error('mount() не загружен');
     (await mount(targetPage));
     populateProtectedLanguageSelector();
+    localizeProtectedLegacyUi();
     window.MedControlActionHelp?.render();
   }
   function offerFirstRunLanguage() {
@@ -358,6 +444,7 @@
       await loader.ensureScripts(scriptsByPage.input);
       await ensurePageScripts(page);
       await renderPage(page);
+      watchProtectedLegacyUi();
       offerFirstRunLanguage();
       window.medcontrolOfflineShellReady=await registerStaticOfflineCache();
       return;
