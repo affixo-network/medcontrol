@@ -543,7 +543,7 @@ async function run(){
 
   assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
     'Protected Archive navigation must be English');
-  assert.equal(await inheritedPage.locator('label').filter({has:inheritedPage.locator('#create_manufacturer')}).innerText(),'Manufacturer',
+  assert.equal(await inheritedPage.locator('#create_manufacturer').locator('xpath=preceding-sibling::label[1]').innerText(),'Manufacturer',
     'Protected manufacturer form label must be English');
   assert.equal(await inheritedPage.locator('#create_contentUnit option[value="other"]').innerText(),'Other');
   assert.equal(await inheritedPage.locator('#create_intakeUnit option[value="tablet"]').innerText(),'tablet');
