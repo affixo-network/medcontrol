@@ -527,6 +527,20 @@ async function run(){
   assert.equal(await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),inheritedVault.before,
     'Showing browser language proposal must not rewrite inherited medical vault');
   console.log('PASS existing unconfirmed Russian vault proposes English browser language without modifying encrypted data');
+  const pageLoads=await inheritedPage.evaluate(()=>{
+    window.__languageConfirmationPageMarker='kept-alive';
+    return window.location.href;
+  });
+  await inheritedPage.locator('#medcontrolFirstLanguageDialog button').first().click();
+  await inheritedPage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'detached',timeout:15000});
+  assert.equal(await inheritedPage.evaluate(()=>window.__languageConfirmationPageMarker),'kept-alive',
+    'Language confirmation must not reload or relock the protected document');
+  assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en');
+  assert.equal(await inheritedPage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
+  assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
+  assert.equal(new URL(inheritedPage.url()).pathname,new URL(pageLoads).pathname);
+  console.log('PASS English confirmation updates protected UI without reload or second password');
+
   await inherited.close();
   await fresh.close();
   // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
