@@ -180,7 +180,7 @@
     for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
       if(protectedEnglishLabels[input.placeholder])input.placeholder=protectedEnglishLabels[input.placeholder];
     }
-    if(window.location.pathname==='/archive.html')document.title='MedControl — Archive';
+    if(page==='archive'||window.location.pathname==='/archive.html')document.title='MedControl — Archive';
     document.documentElement.lang='en';
   }
   function watchProtectedLegacyUi(){
