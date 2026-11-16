@@ -202,6 +202,12 @@
     );
     // Diagnostic counts for static UI text only; no patient values or storage.
     let inspected=0,translatedCount=0,unmappedRussian=0;
+    const recordCoverage=(original,translation)=>{
+      if(typeof original!=='string'||!/[А-Яа-яЁё]/.test(original))return;
+      inspected++;
+      if(typeof translation==='string'&&translation!==original)translatedCount++;
+      else if(language!=='ru')unmappedRussian++;
+    };
     for(const element of nodes){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
       for(const child of element.childNodes){
@@ -212,11 +218,7 @@
         const required=value.endsWith('*');
         const lookup=required?value.slice(0,-1).trim():value;
         const translation=labels[lookup];
-        if(lookup && /[А-Яа-яЁё]/.test(lookup)){
-          inspected++;
-          if(translation && translation!==lookup)translatedCount++;
-          else if(language!=='ru')unmappedRussian++;
-        }
+        recordCoverage(lookup,translation);
         const updated=translation?original.replace(value,translation+(required?' *':'')):original;
         if(updated!==child.nodeValue)child.nodeValue=updated;
         if(updated!==original)protectedOriginalText.set(child,{original,localized:updated});
@@ -226,6 +228,7 @@
     for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
       const previous=protectedOriginalPlaceholders.get(input);
       const original=previous&&previous.localized===input.placeholder?previous.original:input.placeholder;
+      recordCoverage(original,labels[original]);
       const updated=labels[original]||original;
       if(updated!==input.placeholder)input.placeholder=updated;
       if(updated!==original)protectedOriginalPlaceholders.set(input,{original,localized:updated});
@@ -238,6 +241,7 @@
       const previous=protectedOriginalAriaLabels.get(element);
       const current=element.getAttribute('aria-label');
       const original=previous&&previous.localized===current?previous.original:current;
+      recordCoverage(original,labels[original]);
       const updated=labels[original]||original;
       if(updated!==current)element.setAttribute('aria-label',updated);
       if(updated!==original)protectedOriginalAriaLabels.set(element,{original,localized:updated});
@@ -250,6 +254,7 @@
       const current=element.getAttribute('title');
       const previous=protectedOriginalTitles.get(element);
       const original=previous&&previous.localized===current?previous.original:current;
+      recordCoverage(original,labels[original]);
       const updated=labels[original]||original;
       if(updated!==current)element.setAttribute('title',updated);
       if(updated!==original)protectedOriginalTitles.set(element,{original,localized:updated});
