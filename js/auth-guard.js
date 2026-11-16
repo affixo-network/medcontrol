@@ -168,7 +168,12 @@
           labels[russian]=translated;
       }
     }
-    if(language==='en')Object.assign(labels,protectedEnglishLabels);
+    if(language==='en'){
+      // Catalog-backed labels take precedence over the older English-only map.
+      for(const [russian,english] of Object.entries(protectedEnglishLabels)){
+        if(!Object.prototype.hasOwnProperty.call(labels,russian))labels[russian]=english;
+      }
+    }
     // Translate UI controls, never medical table cells, free text, or form values.
     const nodes=document.querySelectorAll(
       '.topbar a,.topbar button,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
