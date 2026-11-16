@@ -34,6 +34,16 @@ function renderSettingsPage() {
 }
 window.changeInterfaceLanguage = async function(language) {
   const state = getState();
+  // Keep both legacy Settings and protected topbar selectors consistent on failure.
+  const restoreLanguageSelection = () => {
+    const previous = state.settings.interfaceLanguage;
+    for (const selector of [document.getElementById('settingsInterfaceLanguage'),
+      document.querySelector('.topbar select[onchange*="changeInterfaceLanguage"]')]) {
+      if (selector) selector.value = previous;
+    }
+    if (typeof window.filterMedControlLanguages === 'function')
+      window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
+  };
   // Prepare a catalog before changing encrypted settings; failed loads preserve the old language.
   if (!TRANSLATIONS[language] && window.medcontrolProtectedInterface &&
       SUPPORTED_LANGUAGES.some(([code]) => code === language)) {
@@ -65,9 +75,7 @@ window.changeInterfaceLanguage = async function(language) {
     } catch (_) { /* Existing language remains selected. */ }
   }
   if (!TRANSLATIONS[language]) {
-    const legacySelector = document.getElementById('settingsInterfaceLanguage');
-    if (legacySelector) legacySelector.value = state.settings.interfaceLanguage;
-    if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
+    restoreLanguageSelection();
     return false;
   }
   // Cache the selected language before committing encrypted settings.
@@ -95,9 +103,7 @@ window.changeInterfaceLanguage = async function(language) {
       }
     } catch (error) {
       console.warn('Selected language offline cache unavailable.', error);
-      const legacySelector = document.getElementById('settingsInterfaceLanguage');
-    if (legacySelector) legacySelector.value = state.settings.interfaceLanguage;
-    if (typeof window.filterMedControlLanguages === 'function') window.filterMedControlLanguages(document.getElementById('settingsLanguageSearch')?.value || '');
+      restoreLanguageSelection();
       return false;
     }
   }
@@ -118,10 +124,7 @@ window.changeInterfaceLanguage = async function(language) {
       // The protected shell has only four medical sections; mounting legacy
       // Settings here can replace the unlocked interface after a failed write.
       if (!window.medcontrolProtectedInterface) await mount('settings');
-      else {
-        const selector = document.querySelector('.topbar select[onchange*="changeInterfaceLanguage"]');
-        if (selector) selector.value = previousLanguage;
-      }
+      restoreLanguageSelection();
       return false;
     }
   } catch (error) {
