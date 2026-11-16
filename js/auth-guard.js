@@ -318,7 +318,14 @@
     // own writes to prevent observer feedback and repeated full-page scans.
     observer.observe(document.documentElement,observeOptions);
     window.medcontrolProtectedLegacyUiObserver=observer;
-    localizeProtectedLegacyUi();
+    // Initial localization also mutates the observed DOM. Discard those
+    // records so startup does not schedule a redundant full-page pass.
+    observer.disconnect();
+    try{
+      localizeProtectedLegacyUi();
+    }finally{
+      observer.observe(document.documentElement,observeOptions);
+    }
   }
   async function renderPage(targetPage){
     if(targetPage==='archive'){
