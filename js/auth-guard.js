@@ -179,8 +179,9 @@
       // A catalog entry identical to Russian is not evidence of localization.
       // Do not let it erase a distinct translation already resolved by key.
       for(const [russian,translated] of Object.entries(catalogLabels)){
-        if(translated!==russian || !Object.prototype.hasOwnProperty.call(labels,russian))
-          labels[russian]=translated;
+        // An unchanged Russian string must not mask a missing translation or
+        // block a later, explicitly translated fallback.
+        if(translated!==russian)labels[russian]=translated;
       }
     }
     if(language==='en'){
