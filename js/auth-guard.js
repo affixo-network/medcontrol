@@ -343,6 +343,9 @@
     if(options.history!==false){
       if(window.location.pathname!==target)window.history.pushState({medcontrolPage:targetPage},'',target);
     }
+    // Navigation changes the URL after rendering. Apply the selected locale
+    // once more against the destination route, including its browser title.
+    if(window.medcontrolProtectedInterface)localizeProtectedLegacyUi();
     prefetchOtherPageScripts(targetPage);
     return true;
   };
