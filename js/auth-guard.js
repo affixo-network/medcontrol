@@ -197,8 +197,11 @@
     const currentPage=window.location.pathname.split('/').pop().replace(/\.html$/,'');
     const titleKey={input:'title_input',action:'title_action',dashboard:'title_dashboard',archive:'title_archive'}[currentPage];
     const localizedTitle=titleKey&&typeof TRANSLATIONS!=='undefined'&&TRANSLATIONS[language]?.[titleKey];
-    if(typeof localizedTitle==='string'&&localizedTitle.trim()&&document.title!==localizedTitle)document.title=localizedTitle;
-    else if(language==='en'&&currentPage==='archive'&&document.title!=='MedControl — Archive')document.title='MedControl — Archive';
+    if(typeof localizedTitle==='string'&&localizedTitle.trim()){
+      if(document.title!==localizedTitle)document.title=localizedTitle;
+    }else if(language==='en'&&currentPage==='archive'&&document.title!=='MedControl — Archive'){
+      document.title='MedControl — Archive';
+    }
   }
   function watchProtectedLegacyUi(){
     if(window.medcontrolProtectedLegacyUiObserver)return;
