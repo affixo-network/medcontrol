@@ -212,8 +212,8 @@
       ? localizedTitle
       : typeof archiveLabel==='string'&&archiveLabel.trim()
         ? 'MedControl — '+archiveLabel
-        : currentPage==='archive'&&labels['Архив']
-          ? 'MedControl — '+labels['Архив'] : '';
+        : currentPage==='archive'
+          ? 'MedControl — '+(labels['Архив']||'Архив') : '';
     if(resolvedTitle&&document.title!==resolvedTitle)document.title=resolvedTitle;
   }
   function watchProtectedLegacyUi(){
