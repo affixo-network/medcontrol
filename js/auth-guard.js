@@ -154,6 +154,7 @@
   const protectedOriginalText=new WeakMap();
   const protectedOriginalPlaceholders=new WeakMap();
   const protectedOriginalAriaLabels=new WeakMap();
+  const protectedOriginalTitles=new WeakMap();
   function localizeProtectedLegacyUi(){
     if(!window.medcontrolProtectedInterface)return;
     const language=getState()?.settings?.interfaceLanguage;
@@ -216,6 +217,18 @@
       if(updated!==current)element.setAttribute('aria-label',updated);
       if(updated!==original)protectedOriginalAriaLabels.set(element,{original,localized:updated});
       else protectedOriginalAriaLabels.delete(element);
+    }
+    // Native title tooltips are UI copy as well; preserve their Russian source
+    // across language switches, without modifying entered medication data.
+    for(const element of document.querySelectorAll('.topbar [title],.wrap [title]')){
+      if(element.closest('#medcontrolFirstLanguageDialog'))continue;
+      const current=element.getAttribute('title');
+      const previous=protectedOriginalTitles.get(element);
+      const original=previous&&previous.localized===current?previous.original:current;
+      const updated=labels[original]||original;
+      if(updated!==current)element.setAttribute('title',updated);
+      if(updated!==original)protectedOriginalTitles.set(element,{original,localized:updated});
+      else protectedOriginalTitles.delete(element);
     }
     document.documentElement.lang=language;
     // Keep the browser title in the selected language after protected renders.
