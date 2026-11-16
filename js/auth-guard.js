@@ -262,10 +262,21 @@
     }
     // Observable, privacy-safe coverage for the currently rendered section.
     // This is not a claim that the entire 639-message catalog is semantically correct.
-    window.medcontrolProtectedLocaleCoverage=Object.freeze({
-      language, page:window.location.pathname.split('/').pop(),
-      inspected, translated:translatedCount, unmappedRussian
+    const coveragePage=window.location.pathname.split('/').pop().replace(/\.html$/,'');
+    const coverageSnapshot=Object.freeze({
+      language, page:coveragePage, inspected, translated:translatedCount, unmappedRussian
     });
+    window.medcontrolProtectedLocaleCoverage=coverageSnapshot;
+    // Preserve only aggregate counts by language and section. No text, patient
+    // values, medical records or persistent storage enter this diagnostic.
+    if(['input','action','dashboard','archive'].includes(coveragePage)){
+      const prior=window.medcontrolProtectedLocaleCoverageByPage||{};
+      const languagePages=prior[language]||{};
+      window.medcontrolProtectedLocaleCoverageByPage=Object.freeze({
+        ...prior,
+        [language]:Object.freeze({...languagePages,[coveragePage]:coverageSnapshot})
+      });
+    }
     document.documentElement.lang=language;
     // Keep the browser title in the selected language after protected renders.
     const currentPage=window.location.pathname.split('/').pop().replace(/\.html$/,'');
