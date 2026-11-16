@@ -6,7 +6,7 @@
   'use strict';
   async function install(options) {
     const { language, fallback, fetcher, loadScript, register } = options || {};
-    if (!language || language === 'ru' || language === 'en') return false;
+    if (!language || language === 'ru') return false;
     if (!/^[a-z]{2,3}(?:-[a-z]{2,4})?$/.test(language) ||
         typeof fetcher !== 'function' || typeof loadScript !== 'function' ||
         typeof register !== 'function' || !fallback) return false;
