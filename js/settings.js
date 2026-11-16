@@ -38,7 +38,8 @@ window.changeInterfaceLanguage = async function(language) {
   const restoreLanguageSelection = () => {
     const previous = state.settings.interfaceLanguage;
     for (const selector of [document.getElementById('settingsInterfaceLanguage'),
-      document.querySelector('.topbar select[onchange*="changeInterfaceLanguage"]')]) {
+      typeof document.querySelector === 'function'
+        ? document.querySelector('.topbar select[onchange*="changeInterfaceLanguage"]') : null]) {
       if (selector) selector.value = previous;
     }
     if (typeof window.filterMedControlLanguages === 'function')
