@@ -175,7 +175,14 @@
     // Full public catalog covers static UI copy beyond the legacy key subset.
     // Apply only to the explicitly selected UI nodes below, never patient data.
     const catalogLabels=window.MedControlProtectedUiCatalogs?.[language];
-    if(catalogLabels)Object.assign(labels,catalogLabels);
+    if(catalogLabels){
+      // A catalog entry identical to Russian is not evidence of localization.
+      // Do not let it erase a distinct translation already resolved by key.
+      for(const [russian,translated] of Object.entries(catalogLabels)){
+        if(translated!==russian || !Object.prototype.hasOwnProperty.call(labels,russian))
+          labels[russian]=translated;
+      }
+    }
     if(language==='en'){
       // Catalog-backed labels take precedence over the older English-only map.
       for(const [russian,english] of Object.entries(protectedEnglishLabels)){
