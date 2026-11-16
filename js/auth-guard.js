@@ -151,10 +151,12 @@
     'Ежедневно':'Every day','Нет данных':'No data',
     'Например: 500':'Example: 500','Например: 1':'Example: 1'
   });
+  const protectedOriginalText=new WeakMap();
+  const protectedOriginalPlaceholders=new WeakMap();
   function localizeProtectedLegacyUi(){
     if(!window.medcontrolProtectedInterface)return;
     const language=getState()?.settings?.interfaceLanguage;
-    if(!language||language==='ru')return;
+    if(!language)return;
     // Use the selected public catalog for the same legacy keys in every section.
     // Only UI labels are eligible: never rewrite patient text or medical table cells.
     const labels=Object.create(null);
@@ -177,20 +179,25 @@
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
       for(const child of element.childNodes){
         if(child.nodeType!==Node.TEXT_NODE)continue;
-        const original=child.nodeValue;
+        const previous=protectedOriginalText.get(child);
+        const original=previous&&previous.localized===child.nodeValue?previous.original:child.nodeValue;
         const value=original.trim();
         const required=value.endsWith('*');
         const lookup=required?value.slice(0,-1).trim():value;
         const translation=labels[lookup];
-        if(!translation)continue;
-        child.nodeValue=original.replace(value,translation+(required?' *':''));
+        const updated=translation?original.replace(value,translation+(required?' *':'')):original;
+        if(updated!==child.nodeValue)child.nodeValue=updated;
+        if(updated!==original)protectedOriginalText.set(child,{original,localized:updated});
+        else protectedOriginalText.delete(child);
       }
-      if(element.matches('input[placeholder],textarea[placeholder]') &&
-         labels[element.placeholder])
-        element.placeholder=labels[element.placeholder];
     }
     for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
-      if(labels[input.placeholder])input.placeholder=labels[input.placeholder];
+      const previous=protectedOriginalPlaceholders.get(input);
+      const original=previous&&previous.localized===input.placeholder?previous.original:input.placeholder;
+      const updated=labels[original]||original;
+      if(updated!==input.placeholder)input.placeholder=updated;
+      if(updated!==original)protectedOriginalPlaceholders.set(input,{original,localized:updated});
+      else protectedOriginalPlaceholders.delete(input);
     }
     document.documentElement.lang=language;
     // Keep the browser title in the selected language after protected renders.
