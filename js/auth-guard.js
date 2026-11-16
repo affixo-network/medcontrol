@@ -185,7 +185,7 @@
     // Translate UI controls, never medical table cells, free text, or form values.
     const nodes=document.querySelectorAll(
       '.topbar a,.topbar button,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
-      '.wrap label,.wrap button,.wrap th,.wrap option,.wrap summary,'+
+      '.wrap label,.wrap legend,.wrap caption,.wrap button,.wrap th,.wrap option,.wrap summary,'+
       '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p,'+
       '.wrap .card > ul > li,.wrap .card > ol > li,'+
       '.wrap #medControlCycleReady strong'
