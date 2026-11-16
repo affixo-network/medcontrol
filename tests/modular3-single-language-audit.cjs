@@ -22,11 +22,18 @@ for(const item of languages){
   const missing=ids.filter(id=>typeof messages[id]!=='string'||!messages[id].trim());
   const untranslated=ids.filter(id=>/[А-Яа-яЁё]/.test(source[id].source)&&messages[id]===source[id].source);
   const extra=Object.keys(messages).filter(id=>!Object.prototype.hasOwnProperty.call(source,id));
+  // These locales use non-Cyrillic writing systems. A Cyrillic character in
+  // their translated UI copy is a separate language-mixing warning even when
+  // the string is not identical to the Russian source. Avoid asserting this
+  // for Cyrillic-script languages, where identical words can be legitimate.
+  const cyrillicLocales=new Set(['ru','be','bg','kk','ky','mk','mn','sr','tg','uk']);
+  const unexpectedCyrillic=cyrillicLocales.has(item.code)?[]:
+    ids.filter(id=>typeof messages[id]==='string'&&/[А-Яа-яЁё]/.test(messages[id]));
   console.log(item.code+': '+(ids.length-missing.length)+'/'+ids.length+
     ' present; '+untranslated.length+' unchanged Russian; '+extra.length+' extra');
-  if(missing.length||untranslated.length||extra.length){
+  if(missing.length||untranslated.length||extra.length||unexpectedCyrillic.length){
     failures.push(item.code+': missing='+missing.length+' unchangedRussian='+untranslated.length+
-      ' extra='+extra.length);
+      ' extra='+extra.length+' unexpectedCyrillic='+unexpectedCyrillic.length);
     // Print every unresolved source string for a single reviewed correction
     // batch. Exact equality alone is not proof of a wrong translation.
     for(const id of missing)
@@ -35,6 +42,8 @@ for(const item of languages){
       console.error('REVIEW_UNCHANGED '+item.code+' '+id+' '+JSON.stringify(source[id].source));
     for(const id of extra)
       console.error('EXTRA '+item.code+' '+id);
+    for(const id of unexpectedCyrillic)
+      console.error('UNEXPECTED_CYRILLIC '+item.code+' '+id+' '+JSON.stringify(messages[id]));
   }
 }
 if(failures.length){
