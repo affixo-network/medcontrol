@@ -189,6 +189,7 @@
       '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p,'+
       '.wrap .card > ul > li,.wrap .card > ol > li,'+
       '.wrap .card > div > p,.wrap .card > section > p,'+
+      '.wrap fieldset > p,.wrap fieldset > div > p,'+
       '.wrap #medControlCycleReady strong'
     );
     for(const element of nodes){
