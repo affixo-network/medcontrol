@@ -82,7 +82,10 @@ window.changeInterfaceLanguage = async function(language) {
   // Cache the selected language before committing encrypted settings.
   // Failure must preserve the existing language and medical state.
   if (window.medcontrolProtectedInterface && language !== 'ru' && language !== 'en') {
-    if (!('serviceWorker' in navigator)) return false;
+    if (!('serviceWorker' in navigator)) {
+      restoreLanguageSelection();
+      return false;
+    }
     try {
       const ready = await navigator.serviceWorker.ready;
       const worker = ready.active;
