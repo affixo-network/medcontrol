@@ -297,18 +297,26 @@
   function watchProtectedLegacyUi(){
     if(window.medcontrolProtectedLegacyUiObserver)return;
     let scheduled=false;
+    const observeOptions={
+      subtree:true,childList:true,characterData:true,attributes:true,
+      attributeFilter:['placeholder','aria-label','title']
+    };
     const observer=new MutationObserver(()=>{
       if(scheduled)return;
       scheduled=true;
-      queueMicrotask(()=>{scheduled=false;localizeProtectedLegacyUi();});
+      queueMicrotask(()=>{
+        observer.disconnect();
+        try{
+          localizeProtectedLegacyUi();
+        }finally{
+          observer.observe(document.documentElement,observeOptions);
+          scheduled=false;
+        }
+      });
     });
-    // Dynamic controls can update placeholders and accessibility labels without
-    // adding DOM nodes. Observe those UI attributes as well; assignments above
-    // are equality-guarded so unchanged translations do not trigger a loop.
-    observer.observe(document.documentElement,{
-      subtree:true,childList:true,characterData:true,attributes:true,
-      attributeFilter:['placeholder','aria-label','title']
-    });
+    // Translation itself changes text and attributes. Disconnect during our
+    // own writes to prevent observer feedback and repeated full-page scans.
+    observer.observe(document.documentElement,observeOptions);
     window.medcontrolProtectedLegacyUiObserver=observer;
     localizeProtectedLegacyUi();
   }
