@@ -11,6 +11,14 @@ const languages=manifest.filter(item=>item.id<=95);
 assert.equal(languages.length,95,'Expected exactly 95 commercial languages');
 const ids=Object.keys(source);
 assert.equal(ids.length,639,'Russian reference must contain 639 messages');
+const sectionTitleIds={
+  input:'87a2b9ea146d476e',
+  action:'f45170df6a0828f5',
+  dashboard:'0fe132872b85f083',
+  archive:'78aca0cace982b30'
+};
+for(const [page,id] of Object.entries(sectionTitleIds))
+  assert.equal(typeof source[id]?.source,'string','Russian section title missing: '+page);
 const failures=[];
 const review=[];
 for(const item of languages){
@@ -21,6 +29,11 @@ for(const item of languages){
   if(catalog.language!==item.code)failures.push(item.code+': catalog language mismatch');
   const messages=catalog.messages||{};
   const missing=ids.filter(id=>typeof messages[id]!=='string'||!messages[id].trim());
+  const sectionTitleMissing=Object.entries(sectionTitleIds).filter(([page,id])=>
+    typeof messages[id]!=='string'||!messages[id].trim()||
+    (item.code!=='ru'&&messages[id]===source[id].source));
+  for(const [page,id] of sectionTitleMissing)
+    console.error('SECTION_TITLE_REVIEW '+item.code+' '+page+' '+id+' '+JSON.stringify(messages[id]));
   const untranslated=ids.filter(id=>/[А-Яа-яЁё]/.test(source[id].source)&&messages[id]===source[id].source);
   const extra=Object.keys(messages).filter(id=>!Object.prototype.hasOwnProperty.call(source,id));
   // These locales use non-Cyrillic writing systems. A Cyrillic character in
@@ -30,8 +43,9 @@ for(const item of languages){
   const cyrillicLocales=new Set(['ru','be','bg','kk','ky','mk','mn','sr','tg','uk']);
   const unexpectedCyrillic=cyrillicLocales.has(item.code)?[]:
     ids.filter(id=>typeof messages[id]==='string'&&/[А-Яа-яЁё]/.test(messages[id]));
-  console.log(item.code+': '+(ids.length-missing.length)+'/'+ids.length+
+  console.log(item.code+': 4 section titles audited; '+(ids.length-missing.length)+'/'+ids.length+
     ' present; '+untranslated.length+' unchanged Russian; '+extra.length+' extra');
+  if(sectionTitleMissing.length)review.push(item.code+': '+sectionTitleMissing.length+' section titles require review');
   if(untranslated.length)review.push(item.code+': '+untranslated.length+' exact Russian matches require linguistic review');
   if(missing.length||extra.length||unexpectedCyrillic.length){
     failures.push(item.code+': missing='+missing.length+' unchangedRussian='+untranslated.length+
