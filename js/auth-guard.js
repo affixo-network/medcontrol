@@ -85,7 +85,7 @@
     const language=getState()?.settings?.interfaceLanguage;
     // A legacy translation registration alone does not mean the full 639-entry
     // static UI dictionary was installed for this protected session.
-    if(!language || language==='ru' || language==='en' ||
+    if(!language || language==='ru' ||
        (TRANSLATIONS[language] && window.MedControlProtectedUiCatalogs?.[language]))return false;
     try{
       await loadScript('js/modular3-locale-bootstrap.js');
