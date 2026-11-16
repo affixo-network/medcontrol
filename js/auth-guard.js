@@ -302,7 +302,13 @@
       scheduled=true;
       queueMicrotask(()=>{scheduled=false;localizeProtectedLegacyUi();});
     });
-    observer.observe(document.documentElement,{subtree:true,childList:true});
+    // Dynamic controls can update placeholders and accessibility labels without
+    // adding DOM nodes. Observe those UI attributes as well; assignments above
+    // are equality-guarded so unchanged translations do not trigger a loop.
+    observer.observe(document.documentElement,{
+      subtree:true,childList:true,attributes:true,
+      attributeFilter:['placeholder','aria-label','title']
+    });
     window.medcontrolProtectedLegacyUiObserver=observer;
     localizeProtectedLegacyUi();
   }
