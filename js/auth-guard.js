@@ -264,7 +264,12 @@
     // This is not a claim that the entire 639-message catalog is semantically correct.
     const coveragePage=window.location.pathname.split('/').pop().replace(/\.html$/,'');
     const coverageSnapshot=Object.freeze({
-      language, page:coveragePage, inspected, translated:translatedCount, unmappedRussian
+      language, page:coveragePage, inspected, translated:translatedCount, unmappedRussian,
+      // The snapshot is a partial UI audit, not proof of full catalog coverage.
+      catalogInstalled:language==='ru' ||
+        Boolean(window.MedControlProtectedUiCatalogs?.[language]),
+      complete:language!=='ru' && unmappedRussian===0 &&
+        Boolean(window.MedControlProtectedUiCatalogs?.[language])
     });
     window.medcontrolProtectedLocaleCoverage=coverageSnapshot;
     // Preserve only aggregate counts by language and section. No text, patient
