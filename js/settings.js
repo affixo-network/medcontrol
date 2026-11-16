@@ -119,7 +119,7 @@ window.changeInterfaceLanguage = async function(language) {
       // Settings here can replace the unlocked interface after a failed write.
       if (!window.medcontrolProtectedInterface) await mount('settings');
       else {
-        const selector = document.getElementById('settingsInterfaceLanguage');
+        const selector = document.querySelector('.topbar select[onchange*="changeInterfaceLanguage"]');
         if (selector) selector.value = previousLanguage;
       }
       return false;
