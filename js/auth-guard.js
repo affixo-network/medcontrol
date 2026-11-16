@@ -268,8 +268,12 @@
       // The snapshot is a partial UI audit, not proof of full catalog coverage.
       catalogInstalled:language==='ru' ||
         Boolean(window.MedControlProtectedUiCatalogs?.[language]),
-      complete:language!=='ru' && unmappedRussian===0 &&
-        Boolean(window.MedControlProtectedUiCatalogs?.[language])
+      // A single rendered section cannot certify all four sections.
+      // This flag only describes the current observed section.
+      sectionHasNoUnmappedRussian:language!=='ru' && inspected>0 &&
+        unmappedRussian===0 && (language==='en' ||
+        Boolean(window.MedControlProtectedUiCatalogs?.[language])),
+      complete:false
     });
     window.medcontrolProtectedLocaleCoverage=coverageSnapshot;
     // Preserve only aggregate counts by language and section. No text, patient
