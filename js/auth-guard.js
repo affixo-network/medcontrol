@@ -152,8 +152,20 @@
     'Например: 500':'Example: 500','Например: 1':'Example: 1'
   });
   function localizeProtectedLegacyUi(){
-    if(!window.medcontrolProtectedInterface ||
-       getState()?.settings?.interfaceLanguage!=='en')return;
+    if(!window.medcontrolProtectedInterface)return;
+    const language=getState()?.settings?.interfaceLanguage;
+    if(!language||language==='ru')return;
+    // Use the selected public catalog for the same legacy keys in every section.
+    // Only UI labels are eligible: never rewrite patient text or medical table cells.
+    const labels=Object.create(null);
+    if(typeof TRANSLATIONS!=='undefined'&&TRANSLATIONS.ru&&TRANSLATIONS[language]){
+      for(const [key,russian] of Object.entries(TRANSLATIONS.ru)){
+        const translated=TRANSLATIONS[language][key];
+        if(typeof russian==='string'&&typeof translated==='string'&&russian!==translated)
+          labels[russian]=translated;
+      }
+    }
+    if(language==='en')Object.assign(labels,protectedEnglishLabels);
     // Translate UI controls, never medical table cells, free text, or form values.
     const nodes=document.querySelectorAll(
       '.topbar a,.topbar button,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
@@ -169,18 +181,18 @@
         const value=original.trim();
         const required=value.endsWith('*');
         const lookup=required?value.slice(0,-1).trim():value;
-        const translation=protectedEnglishLabels[lookup];
+        const translation=labels[lookup];
         if(!translation)continue;
         child.nodeValue=original.replace(value,translation+(required?' *':''));
       }
       if(element.matches('input[placeholder],textarea[placeholder]') &&
-         protectedEnglishLabels[element.placeholder])
+         labels[element.placeholder])
         element.placeholder=protectedEnglishLabels[element.placeholder];
     }
     for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
-      if(protectedEnglishLabels[input.placeholder])input.placeholder=protectedEnglishLabels[input.placeholder];
+      if(labels[input.placeholder])input.placeholder=protectedEnglishLabels[input.placeholder];
     }
-    document.documentElement.lang='en';
+    document.documentElement.lang=language;
   }
   function watchProtectedLegacyUi(){
     if(window.medcontrolProtectedLegacyUiObserver)return;
