@@ -24,9 +24,18 @@ for(const item of languages){
   const extra=Object.keys(messages).filter(id=>!Object.prototype.hasOwnProperty.call(source,id));
   console.log(item.code+': '+(ids.length-missing.length)+'/'+ids.length+
     ' present; '+untranslated.length+' unchanged Russian; '+extra.length+' extra');
-  if(missing.length||untranslated.length||extra.length)
+  if(missing.length||untranslated.length||extra.length){
     failures.push(item.code+': missing='+missing.length+' unchangedRussian='+untranslated.length+
-      ' extra='+extra.length+' examples='+[...missing,...untranslated].slice(0,5).join(','));
+      ' extra='+extra.length);
+    // Print every unresolved source string for a single reviewed correction
+    // batch. Exact equality alone is not proof of a wrong translation.
+    for(const id of missing)
+      console.error('MISSING '+item.code+' '+id+' '+JSON.stringify(source[id].source));
+    for(const id of untranslated)
+      console.error('REVIEW_UNCHANGED '+item.code+' '+id+' '+JSON.stringify(source[id].source));
+    for(const id of extra)
+      console.error('EXTRA '+item.code+' '+id);
+  }
 }
 if(failures.length){
   console.error('SINGLE-LANGUAGE GUARANTEE NOT VERIFIED: '+failures.length+' catalogs need review');
