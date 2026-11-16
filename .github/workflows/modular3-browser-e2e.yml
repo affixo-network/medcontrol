@@ -43,6 +43,7 @@ on:
       - 'archive.html'
       - 'tests/modular3-browser.spec.js'
       - 'tests/modular3-complete-interface.cjs'
+      - 'tests/modular3-single-language-audit.cjs'
       - 'tests/modular3-single-course-acceptance.spec.js'
       - 'tests/modular3-protected-workspace.spec.js'
       - 'tests/modular3-real-modules.spec.js'
@@ -125,6 +126,8 @@ jobs:
         run: |
           npm install --no-save --no-package-lock @playwright/test@1.58.2
           npx playwright install chromium
+      - name: Audit 95 catalogs for untranslated Russian fallbacks
+        run: node tests/modular3-single-language-audit.cjs
       - name: Run isolated browser tests
         run: npx playwright test --config=playwright.modular3.config.cjs
       - name: Verify complete protected interface and English cycle notice
