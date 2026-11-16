@@ -15,6 +15,26 @@
         [language]: Object.freeze({ messages: prepared.correctionMessages })
       });
     }
+    if (registered !== false && source && prepared.correctionMessages) {
+      // Full validated catalog for exact static UI strings, not patient content.
+      // Ambiguous duplicate Russian source strings are excluded unless translations agree.
+      const mapped = Object.create(null);
+      const ambiguous = new Set();
+      for (const [id, entry] of Object.entries(source)) {
+        const russian = entry && entry.source;
+        const translated = prepared.correctionMessages[id];
+        if (typeof russian !== 'string' || !russian.trim() ||
+            typeof translated !== 'string' || !translated.trim() || ambiguous.has(russian)) continue;
+        if (Object.prototype.hasOwnProperty.call(mapped, russian) && mapped[russian] !== translated) {
+          delete mapped[russian];
+          ambiguous.add(russian);
+        } else mapped[russian] = translated;
+      }
+      const previous = root.MedControlProtectedUiCatalogs || {};
+      root.MedControlProtectedUiCatalogs = Object.freeze({
+        ...previous, [language]: Object.freeze({ ...mapped })
+      });
+    }
     return registered;
   }
   const api = Object.freeze({ activate });
