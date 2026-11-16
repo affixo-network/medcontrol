@@ -169,6 +169,10 @@
           labels[russian]=translated;
       }
     }
+    // Full public catalog covers static UI copy beyond the legacy key subset.
+    // Apply only to the explicitly selected UI nodes below, never patient data.
+    const catalogLabels=window.MedControlProtectedUiCatalogs?.[language];
+    if(catalogLabels)Object.assign(labels,catalogLabels);
     if(language==='en'){
       // Catalog-backed labels take precedence over the older English-only map.
       for(const [russian,english] of Object.entries(protectedEnglishLabels)){
