@@ -153,6 +153,7 @@
   });
   const protectedOriginalText=new WeakMap();
   const protectedOriginalPlaceholders=new WeakMap();
+  const protectedOriginalAriaLabels=new WeakMap();
   function localizeProtectedLegacyUi(){
     if(!window.medcontrolProtectedInterface)return;
     const language=getState()?.settings?.interfaceLanguage;
@@ -198,6 +199,18 @@
       if(updated!==input.placeholder)input.placeholder=updated;
       if(updated!==original)protectedOriginalPlaceholders.set(input,{original,localized:updated});
       else protectedOriginalPlaceholders.delete(input);
+    }
+    // Accessible control names must switch languages too, without touching
+    // medication values or other user-entered text.
+    for(const element of document.querySelectorAll('.topbar [aria-label],.wrap [aria-label]')){
+      if(element.closest('#medcontrolFirstLanguageDialog'))continue;
+      const previous=protectedOriginalAriaLabels.get(element);
+      const current=element.getAttribute('aria-label');
+      const original=previous&&previous.localized===current?previous.original:current;
+      const updated=labels[original]||original;
+      if(updated!==current)element.setAttribute('aria-label',updated);
+      if(updated!==original)protectedOriginalAriaLabels.set(element,{original,localized:updated});
+      else protectedOriginalAriaLabels.delete(element);
     }
     document.documentElement.lang=language;
     // Keep the browser title in the selected language after protected renders.
