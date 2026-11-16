@@ -134,6 +134,7 @@ window.changeInterfaceLanguage = async function(language) {
     else state.settings.languageChoiceConfirmed = previousConfirmation;
     if (previousConfirmationVersion === undefined) delete state.settings.languageConfirmationVersion;
     else state.settings.languageConfirmationVersion = previousConfirmationVersion;
+    restoreLanguageSelection();
     throw error;
   }
   // Protected language confirmation must not reload the document: a reload
