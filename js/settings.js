@@ -115,7 +115,13 @@ window.changeInterfaceLanguage = async function(language) {
       else state.settings.languageChoiceConfirmed = previousConfirmation;
       if (previousConfirmationVersion === undefined) delete state.settings.languageConfirmationVersion;
       else state.settings.languageConfirmationVersion = previousConfirmationVersion;
-      await mount('settings');
+      // The protected shell has only four medical sections; mounting legacy
+      // Settings here can replace the unlocked interface after a failed write.
+      if (!window.medcontrolProtectedInterface) await mount('settings');
+      else {
+        const selector = document.getElementById('settingsInterfaceLanguage');
+        if (selector) selector.value = previousLanguage;
+      }
       return false;
     }
   } catch (error) {
