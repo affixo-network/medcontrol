@@ -138,7 +138,19 @@
   if(p.year+'-'+p.month+'-'+p.day!==day||p.hour+':'+p.minute!==time)throw Error('Nonexistent time in configured timezone');
   return new Date(stamp).toISOString();
  }
- function notice(text){message.textContent=text;}
+ const entryMessagesEn=Object.freeze({
+  'Введите локальный пароль.':'Enter your local password.',
+  'На этом адресе защищённое хранилище не найдено. Для существующих записей требуется перенос защищённой копии.':'No protected vault was found at this address. To access existing records, transfer an encrypted backup.',
+  'Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.':'Protected vault setup is incomplete. Select Recover access using your previous password.',
+  'Защищённая копия данных на этом адресе не найдена. Ничего не изменено.':'No encrypted vault data was found at this address. Nothing was changed.',
+  'Автономный вход выполнен.':'Offline sign-in succeeded.',
+  'Неверный пароль.':'Incorrect password.'
+ });
+ function notice(text){
+  const english=document.documentElement.lang==='en';
+  const translated=english?entryMessagesEn[text]:undefined;
+  message.textContent=translated||text;
+ }
  function show(){
   // Enter the established four-page Modular-3 interface after protected unlock.
   // Its auth guard retains the unlocked encrypted session and offers first-run language selection.
