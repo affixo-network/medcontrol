@@ -200,6 +200,8 @@
       '.wrap fieldset > p,.wrap fieldset > div > p,'+
       '.wrap #medControlCycleReady strong'
     );
+    // Diagnostic counts for static UI text only; no patient values or storage.
+    let inspected=0,translatedCount=0,unmappedRussian=0;
     for(const element of nodes){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
       for(const child of element.childNodes){
@@ -210,6 +212,11 @@
         const required=value.endsWith('*');
         const lookup=required?value.slice(0,-1).trim():value;
         const translation=labels[lookup];
+        if(lookup && /[А-Яа-яЁё]/.test(lookup)){
+          inspected++;
+          if(translation && translation!==lookup)translatedCount++;
+          else if(language!=='ru')unmappedRussian++;
+        }
         const updated=translation?original.replace(value,translation+(required?' *':'')):original;
         if(updated!==child.nodeValue)child.nodeValue=updated;
         if(updated!==original)protectedOriginalText.set(child,{original,localized:updated});
@@ -248,6 +255,12 @@
       if(updated!==original)protectedOriginalTitles.set(element,{original,localized:updated});
       else protectedOriginalTitles.delete(element);
     }
+    // Observable, privacy-safe coverage for the currently rendered section.
+    // This is not a claim that the entire 639-message catalog is semantically correct.
+    window.medcontrolProtectedLocaleCoverage=Object.freeze({
+      language, page:window.location.pathname.split('/').pop(),
+      inspected, translated:translatedCount, unmappedRussian
+    });
     document.documentElement.lang=language;
     // Keep the browser title in the selected language after protected renders.
     const currentPage=window.location.pathname.split('/').pop().replace(/\.html$/,'');
