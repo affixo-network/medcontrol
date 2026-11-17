@@ -88,10 +88,10 @@ async function run(){
   await context.route('**/*',route=>new URL(route.request().url()).origin===BASE?route.continue():route.abort());
   await page.goto(BASE+'/modular3-protected.html');
   await page.locator('#unlock').click();
-  assert.match(await page.locator('#message').innerText(),/Введите локальный пароль/);
+  assert.match(await page.locator('#message').innerText(),/Enter your local password\./);
   console.log('PASS empty password gives visible response');
   await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
-  assert.match(await page.locator('#message').innerText(),/На этом адресе защищённое хранилище не найдено/);
+  assert.match(await page.locator('#message').innerText(),/No protected vault was found at this address/);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),null);
   console.log('PASS new address reports missing vault without creating or deleting data');
   await page.evaluate(()=>{
