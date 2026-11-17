@@ -313,10 +313,17 @@
     const observer=new MutationObserver(()=>{
       if(scheduled)return;
       scheduled=true;
-      queueMicrotask(()=>{
+      queueMicrotask(async()=>{
         observer.disconnect();
         try{
+          // Language can change after initial boot. Install the newly selected
+          // 639-key catalog before translating the newly rendered section.
+          // This changes presentation assets only, never encrypted records.
+          await ensureSelectedPublicLocale();
           localizeProtectedLegacyUi();
+        }catch(error){
+          console.error('Protected locale refresh failed',error);
+          window.medcontrolProtectedLocaleRefreshError=String(error?.message||error);
         }finally{
           observer.observe(document.documentElement,observeOptions);
           scheduled=false;
