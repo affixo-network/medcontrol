@@ -373,21 +373,25 @@
     const entry = preferences.map(raw => String(raw || '').toLowerCase().split('-')[0])
       .map(code => supported.find(item => item.code === code)).find(Boolean)
       || supported.find(item => item.code === 'en');
+    // The language-confirmation dialog must not mix Russian and English.
+    // Before a choice is confirmed, use the browser's Russian UI or English UI.
+    const promptRu = entry?.code === 'ru';
+    const promptText = (ru, en) => promptRu ? ru : en;
     const dialog = document.createElement('section');
     dialog.id = 'medcontrolFirstLanguageDialog';
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
-    dialog.setAttribute('aria-label', 'Confirm language / Подтвердите язык');
+    dialog.setAttribute('aria-label', promptText('Подтвердите язык', 'Confirm language'));
     dialog.style.cssText = 'position:fixed;inset:5vh 5vw auto;max-width:620px;max-height:85vh;overflow:auto;margin:auto;z-index:2147483646;padding:24px;background:white;color:#111;border:2px solid #555;border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.55);font:16px Arial,sans-serif';
     const title = document.createElement('h2');
-    title.textContent = 'Confirm language / Подтвердите язык';
+    title.textContent = promptText('Подтвердите язык', 'Confirm language');
     dialog.appendChild(title);
     const proposed = document.createElement('p');
-    proposed.textContent = 'Device language / Язык устройства: ' + (entry?.name || 'English');
+    proposed.textContent = promptText('Язык устройства: ', 'Device language: ') + (entry?.name || 'English');
     dialog.appendChild(proposed);
     const search = document.createElement('input');
     search.type = 'search';
-    search.placeholder = 'Search language / Поиск языка';
+    search.placeholder = promptText('Поиск языка', 'Search language');
     search.setAttribute('aria-label', 'Search language');
     search.style.cssText = 'box-sizing:border-box;width:100%;padding:10px;margin:8px 0';
     dialog.appendChild(search);
@@ -408,15 +412,15 @@
         button.textContent = '№' + item.id + ' · ' + item.name;
         button.style.cssText = 'display:block;margin:4px 0;padding:8px;max-width:100%;cursor:pointer';
         button.onclick = async () => {
-          message.textContent = 'Saving / Сохранение…';
+          message.textContent = promptText('Сохранение…', 'Saving…');
           try {
             const ok = await window.changeInterfaceLanguage(item.code);
-            if (!ok) message.textContent = 'Could not save language / Не удалось сохранить язык';
-          } catch (_) { message.textContent = 'Could not save language / Не удалось сохранить язык'; }
+            if (!ok) message.textContent = promptText('Не удалось сохранить язык', 'Could not save language');
+          } catch (_) { message.textContent = promptText('Не удалось сохранить язык', 'Could not save language'); }
         };
         results.appendChild(button);
       }
-      if (!matches.length) results.textContent = 'No matching language / Язык не найден';
+      if (!matches.length) results.textContent = promptText('Язык не найден', 'No matching language');
     };
     search.oninput = draw;
     draw();
