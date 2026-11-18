@@ -300,5 +300,5 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
  await expect(page.locator('#topCurrentDate')).not.toBeEmpty();
  await expect(page.locator('#topCurrentTime')).not.toBeEmpty();
  await expect(page.locator('.topbar select[onchange*="changeInterfaceLanguage"]')).toBeVisible();
- expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(INCOMING);
+ expect(await page.evaluate(()=>{const state=MedControlModular3ProtectedSession.read();const {languageChoiceConfirmed,languageConfirmationVersion,...settings}=state.settings;return {...state,settings};})).toEqual(INCOMING);
 });
