@@ -633,6 +633,26 @@ async function run(){
     assert.equal(await russianChoicePage.locator('.topbar .nav a').count(),4);
     assert.equal(await russianChoicePage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Архив');
   }
+  // Non-RU/EN selection must install and offline-cache its full catalog.
+  // This exercises the service-worker-dependent path, unlike RU/EN.
+  const frenchSelected=await russianChoicePage.evaluate(async()=>{
+    return await window.changeInterfaceLanguage('fr');
+  });
+  assert.equal(frenchSelected,true,'French selection must succeed with offline catalog cached');
+  assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'fr');
+  for(const section of ['input','action','dashboard','archive']){
+    await russianChoicePage.evaluate(section=>window.medcontrolNavigateTo(section),section);
+    await russianChoicePage.waitForURL('**/'+section+'.html');
+    assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'fr');
+    assert.equal(await russianChoicePage.evaluate(()=>document.documentElement.lang),'fr');
+    assert.equal(await russianChoicePage.locator('.topbar .nav a').count(),4);
+    assert.equal(await russianChoicePage.evaluate(()=>
+      window.medcontrolProtectedLocaleCoverage?.catalogInstalled),true,
+      'French catalog must be installed in '+section);
+  }
+  console.log('PASS French selection installs offline catalog and persists across four protected sections');
+  assert.equal(await russianChoicePage.evaluate(()=>window.changeInterfaceLanguage('ru')),true);
+  assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
   const confirmedRussianVault=await russianChoicePage.evaluate(()=>
     Object.fromEntries(Object.entries(localStorage)));
   await russianChoice.close();
