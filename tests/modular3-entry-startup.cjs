@@ -35,6 +35,13 @@ async function run(){
    return route.continue();
   });
   await page.goto(BASE+'/modular3-protected.html');
+  await page.locator('#entry-language option').first().waitFor();
+  assert.equal(await page.locator('#entry-language option').count(),95,
+   'Protected sign-in must offer all 95 languages before unlocking');
+  assert.equal(await page.locator('#entry-language').inputValue(),'en',
+   'English browser must receive English language proposal before unlocking');
+  assert.equal(await page.locator('#password').isVisible(),true);
+  console.log('PASS protected sign-in offers 95 languages and proposes browser language before password');
   await page.evaluate(async password=>window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru'},medications:[{id:'synthetic-startup',name:'Synthetic Startup',active:false,times:['13:00'],startDate:'2026-10-23',endDate:'2026-10-24'}],intakeLogs:[]},password),PASS);
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
