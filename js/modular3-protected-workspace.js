@@ -149,18 +149,43 @@
  // Device language is proposed before sign-in; explicit changes are
  // committed only after the password has unlocked the protected vault.
  const entryLanguage=document.getElementById('entry-language');
- let entryLanguageManuallyChosen=false;
- if(entryLanguage){
-  const preferences=Array.isArray(navigator.languages)&&navigator.languages.length
-   ? navigator.languages:[navigator.language];
-  const suggested=preferences.map(value=>String(value||'').toLowerCase().split('-')[0])
-   .find(code=>languageRegistry.some(item=>item[0]===code))||'en';
-  for(const [code,native,english] of languageRegistry)
-   entryLanguage.add(new Option(native+' — '+english,code));
-  entryLanguage.value=suggested;
-  entryLanguage.onchange=()=>{entryLanguageManuallyChosen=true;document.documentElement.lang=entryLanguage.value;};
-  document.documentElement.lang=suggested;
+ const languageStep=document.getElementById('entry-language-step');
+ const confirmEntryLanguage=document.getElementById('confirm-entry-language');
+ const confirmPasswordLabel=document.getElementById('confirm-password-label');
+ const confirmPassword=document.getElementById('confirm-password');
+ let languagePending=false;
+ let languageConfirmed=false;
+ const preferences=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language];
+ const suggested=preferences.map(value=>String(value||'').toLowerCase().split('-')[0])
+  .find(code=>languageRegistry.some(item=>item[0]===code))||'en';
+ for(const [code,native,english] of languageRegistry)entryLanguage.add(new Option(native+' — '+english,code));
+ entryLanguage.value=suggested;
+ function beginLanguageStep(){
+  languagePending=true;languageConfirmed=false;languageStep.hidden=false;
+  password.closest('label').hidden=true;confirmPasswordLabel.hidden=true;
+  document.getElementById('unlock').hidden=true;
+  document.getElementById('enroll').hidden=true;
+  notice('Подтвердите язык интерфейса.');
  }
+ confirmEntryLanguage.onclick=async()=>{
+  if(!languagePending||!session.isUnlocked())return;
+  confirmEntryLanguage.disabled=true;
+  try{
+   await session.transact(state=>{
+    state.settings=state.settings||{};
+    state.settings.interfaceLanguage=entryLanguage.value;
+    state.settings.languageChoiceConfirmed=true;
+    state.settings.languageConfirmationVersion=1;
+   });
+   languagePending=false;languageConfirmed=true;languageStep.hidden=true;
+   document.getElementById('unlock').hidden=false;
+   document.getElementById('unlock').disabled=false;
+   document.getElementById('unlock').textContent='Войти';
+   notice('Язык сохранён. Нажмите «Войти».');
+  }catch(error){notice('Не удалось сохранить язык: '+error.message);}
+  finally{confirmEntryLanguage.disabled=false;}
+ };
+ document.getElementById('enroll').addEventListener('click',()=>{confirmPasswordLabel.hidden=false;},{capture:true});
  function notice(text){
   const english=document.documentElement.lang==='en';
   const translated=english?entryMessagesEn[text]:undefined;
@@ -838,32 +863,35 @@
  };
  document.getElementById('unlock').onclick=async()=>{
   const button=document.getElementById('unlock');
-  try{
+  if(languageConfirmed){languageConfirmed=false;password.value='';show();return;}
   if(!password.value){notice('Введите локальный пароль.');return;}
-  const vault=localStorage.getItem('medcontrol_modular3_protected_state_v1');
-  const credential=localStorage.getItem('medcontrol_modular3_local_credential_v1');
-  if(vault===null&&credential===null){notice('На этом адресе защищённое хранилище не найдено. Для существующих записей требуется перенос защищённой копии.');return;}
-  if(vault!==null&&credential===null){notice('Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.');return;}
-  if(vault===null){notice('Защищённая копия данных на этом адресе не найдена. Ничего не изменено.');return;}
-  button.disabled=true;
+  try{
+   const vault=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+   const credential=localStorage.getItem('medcontrol_modular3_local_credential_v1');
+   if(vault===null&&credential===null){notice('На этом адресе защищённое хранилище не найдено. Для существующих записей требуется перенос защищённой копии.');return;}
+   if(vault!==null&&credential===null){notice('Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.');return;}
+   if(vault===null){notice('Защищённая копия данных на этом адресе не найдена. Ничего не изменено.');return;}
+   button.disabled=true;
    if(await session.unlock(password.value)){
-    if(entryLanguageManuallyChosen){
-     try{
-      await session.transact(state=>{
-       state.settings=state.settings||{};
-       state.settings.interfaceLanguage=entryLanguage.value;
-       state.settings.languageChoiceConfirmed=true;
-       state.settings.languageConfirmationVersion=1;
-      });
-     }catch(error){notice('Не удалось сохранить язык: '+error.message);return;}
-    }
-    password.value='';notice('Автономный вход выполнен.');show();
-   }
-   else notice('Неверный пароль.');
+    password.value='';
+    const settings=session.read().settings||{};
+    if(settings.languageChoiceConfirmed===true&&settings.languageConfirmationVersion===1){
+     notice('Автономный вход выполнен.');show();
+    }else beginLanguageStep();
+   }else notice('Неверный пароль.');
   }catch(error){notice('Ошибка входа: '+error.message);}
   finally{button.disabled=false;}
  };
- document.getElementById('enroll').onclick=async()=>{try{await session.initialize({settings:{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},medications:[],intakeLogs:[]},password.value);password.value='';notice('Защищённое хранилище создано.');show();}catch(error){notice('Не удалось создать хранилище: '+error.message);}};
+ document.getElementById('enroll').onclick=async()=>{
+  if(!confirmPassword.value){confirmPasswordLabel.hidden=false;notice('Повторите новый пароль.');return;}
+  if(password.value!==confirmPassword.value){notice('Пароли не совпадают.');return;}
+  const button=document.getElementById('enroll');button.disabled=true;
+  try{
+   await session.initialize({settings:{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},medications:[],intakeLogs:[]},password.value);
+   password.value='';confirmPassword.value='';beginLanguageStep();
+  }catch(error){notice('Не удалось создать хранилище: '+error.message);}
+  finally{button.disabled=false;}
+ };
  document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{section=button.dataset.tab;render();});
  document.getElementById('lock').onclick=async()=>{await session.lock();notice('Данные заблокированы.');render();};
  render();
