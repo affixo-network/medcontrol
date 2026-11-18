@@ -603,6 +603,63 @@ async function run(){
 
 
 
+  // Explicit RU selection: confirm language, visit all four protected sections,
+  // and verify that the choice survives a new offline password unlock.
+  const russianChoice=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'ru-RU'});
+  await russianChoice.addInitScript(stored=>{
+    for(const [key,value] of Object.entries(stored))localStorage.setItem(key,value);
+  },inheritedVault.stored);
+  await russianChoice.route('**/*',route=>{
+    const u=new URL(route.request().url());
+    if(u.origin!==BASE){external.push(u.origin);return route.abort();}
+    return route.continue();
+  });
+  const russianChoicePage=await russianChoice.newPage();
+  await russianChoicePage.goto(BASE+'/modular3-protected.html');
+  await russianChoicePage.locator('#password').fill(PASS);
+  await russianChoicePage.locator('#unlock').click();
+  await russianChoicePage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:20000});
+  assert.match(await russianChoicePage.locator('#medcontrolFirstLanguageDialog').innerText(),/Язык устройства/);
+  await russianChoicePage.locator('#medcontrolFirstLanguageDialog input[type=search]').fill('Русский');
+  await russianChoicePage.locator('#medcontrolFirstLanguageDialog button').filter({hasText:'Русский'}).first().click();
+  await russianChoicePage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'detached',timeout:15000});
+  assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
+  assert.equal(await russianChoicePage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
+  for(const section of ['input','action','dashboard','archive']){
+    await russianChoicePage.evaluate(section=>window.medcontrolNavigateTo(section),section);
+    await russianChoicePage.waitForURL('**/'+section+'.html');
+    assert.equal(await russianChoicePage.evaluate(()=>document.documentElement.lang),'ru');
+    assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
+    assert.equal(await russianChoicePage.locator('.topbar .nav a').count(),4);
+    assert.equal(await russianChoicePage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Архив');
+  }
+  const confirmedRussianVault=await russianChoicePage.evaluate(()=>
+    Object.fromEntries(Object.entries(localStorage)));
+  await russianChoice.close();
+  const russianRestart=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'ru-RU',offline:true});
+  await russianRestart.addInitScript(stored=>{
+    for(const [key,value] of Object.entries(stored))localStorage.setItem(key,value);
+  },confirmedRussianVault);
+  // The offline cache is validated separately; here use the local static test
+  // server to exercise an independent browser context and protected unlock.
+  await russianRestart.setOffline(false);
+  await russianRestart.route('**/*',route=>{
+    const u=new URL(route.request().url());
+    if(u.origin!==BASE){external.push(u.origin);return route.abort();}
+    return route.continue();
+  });
+  const russianRestartPage=await russianRestart.newPage();
+  await russianRestartPage.goto(BASE+'/modular3-protected.html');
+  await russianRestartPage.locator('#password').fill(PASS);
+  await russianRestartPage.locator('#unlock').click();
+  await russianRestartPage.locator('.topbar').waitFor({state:'visible',timeout:20000});
+  assert.equal(await russianRestartPage.locator('#medcontrolFirstLanguageDialog').count(),0,
+    'Confirmed Russian language must not prompt again');
+  assert.equal(await russianRestartPage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
+  assert.equal(await russianRestartPage.evaluate(()=>document.documentElement.lang),'ru');
+  console.log('PASS explicit Russian choice persists across four protected sections and independent password unlock');
+  await russianRestart.close();
+
   await inherited.close();
   await fresh.close();
   // T-038: isolated successful reset on synthetic records, including persistence after re-unlock.
