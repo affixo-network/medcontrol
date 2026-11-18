@@ -275,13 +275,18 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
  const old=await page.evaluate(async({raw,OLD_PASS})=>MedControlModular3EncryptedVault.open(JSON.parse(raw).encrypted,OLD_PASS),{raw,OLD_PASS});
  expect(old).toEqual(OLD);
  await page.locator('#open-imported').click();
+ await expect(page.locator('#entry-language-step')).toBeVisible();
+ await expect(page).toHaveURL(BASE+'/modular3-protected.html');
+ await page.locator('#entry-language').selectOption('ru');
+ await page.locator('#confirm-entry-language').click();
+ await page.locator('#unlock').click();
  await expect(page).toHaveURL(BASE+'/input.html');
  await expect(page.locator('.topbar')).toBeVisible();
  await expect(page.locator('#topCurrentDate')).not.toBeEmpty();
  await expect(page.locator('#topCurrentTime')).not.toBeEmpty();
  await expect(page.locator('.topbar select[onchange*="changeInterfaceLanguage"]')).toBeVisible();
- await expect(page.locator('#medcontrolFirstLanguageDialog')).toBeVisible();
- expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read())).toEqual(INCOMING);
+ await expect(page.locator('#medcontrolFirstLanguageDialog')).toHaveCount(0);
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications)).toEqual(INCOMING.medications);
  await page.waitForFunction(async()=>{
   if(!navigator.serviceWorker.controller)return false;
   const cache=await caches.open('medcontrol-static-modular3-v15');
