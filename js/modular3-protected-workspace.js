@@ -146,6 +146,21 @@
   'Автономный вход выполнен.':'Offline sign-in succeeded.',
   'Неверный пароль.':'Incorrect password.'
  });
+ // Device language is proposed before sign-in; explicit changes are
+ // committed only after the password has unlocked the protected vault.
+ const entryLanguage=document.getElementById('entry-language');
+ let entryLanguageManuallyChosen=false;
+ if(entryLanguage){
+  const preferences=Array.isArray(navigator.languages)&&navigator.languages.length
+   ? navigator.languages:[navigator.language];
+  const suggested=preferences.map(value=>String(value||'').toLowerCase().split('-')[0])
+   .find(code=>languageRegistry.some(item=>item[0]===code))||'en';
+  for(const [code,native,english] of languageRegistry)
+   entryLanguage.add(new Option(native+' — '+english,code));
+  entryLanguage.value=suggested;
+  entryLanguage.onchange=()=>{entryLanguageManuallyChosen=true;document.documentElement.lang=entryLanguage.value;};
+  document.documentElement.lang=suggested;
+ }
  function notice(text){
   const english=document.documentElement.lang==='en';
   const translated=english?entryMessagesEn[text]:undefined;
@@ -831,7 +846,19 @@
   if(vault!==null&&credential===null){notice('Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.');return;}
   if(vault===null){notice('Защищённая копия данных на этом адресе не найдена. Ничего не изменено.');return;}
   button.disabled=true;
-   if(await session.unlock(password.value)){password.value='';notice('Автономный вход выполнен.');show();}
+   if(await session.unlock(password.value)){
+    if(entryLanguageManuallyChosen){
+     try{
+      await session.transact(state=>{
+       state.settings=state.settings||{};
+       state.settings.interfaceLanguage=entryLanguage.value;
+       state.settings.languageChoiceConfirmed=true;
+       state.settings.languageConfirmationVersion=1;
+      });
+     }catch(error){notice('Не удалось сохранить язык: '+error.message);return;}
+    }
+    password.value='';notice('Автономный вход выполнен.');show();
+   }
    else notice('Неверный пароль.');
   }catch(error){notice('Ошибка входа: '+error.message);}
   finally{button.disabled=false;}
