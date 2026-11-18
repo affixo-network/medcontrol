@@ -83,9 +83,14 @@ async function run(){
   await page.locator('#password').fill(TEST_PASSWORD);
   page.once('dialog',dialog=>dialog.accept());
   await page.locator('#import-backup').click();
-  await page.locator('#workspace').waitFor({state:'visible',timeout:30000});
+  await page.locator('#entry-language-step').waitFor({state:'visible',timeout:30000});
+  assert.equal(await page.locator('#workspace').isVisible(),false,'Imported records must remain locked behind language confirmation');
   const restored=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.deepEqual(restored,original);
+  await page.locator('#entry-language').selectOption('ru');
+  await page.locator('#confirm-entry-language').click();
+  await page.locator('#unlock').click();
+  await page.locator('#workspace').waitFor({state:'visible',timeout:30000});
   console.log('PASS 3: seven courses, intake, history and corrections restored exactly');
   // A protected account must never silently fall back to the legacy, synchronous UI.
   const cipherBefore=await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
@@ -137,7 +142,7 @@ async function run(){
   await page.locator('#password').fill(TEST_PASSWORD);
   await page.locator('#unlock').click();
   await page.locator('#workspace').waitFor({state:'visible'});
-  assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read()),original);
+  assert.deepEqual(await page.evaluate(()=>{const state=window.MedControlModular3ProtectedSession.read();const {languageChoiceConfirmed,languageConfirmationVersion,...settings}=state.settings;return {...state,settings};}),original);
   console.log('PASS 4: protected re-login retains all records');
   // Fail explicitly if the service worker cannot control the app before disconnecting.
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
@@ -159,7 +164,7 @@ async function run(){
   await page.locator('#password').fill(TEST_PASSWORD);
   await page.locator('#unlock').click();
   await page.locator('#workspace').waitFor({state:'visible'});
-  assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read()),original);
+  assert.deepEqual(await page.evaluate(()=>{const state=window.MedControlModular3ProtectedSession.read();const {languageChoiceConfirmed,languageConfirmationVersion,...settings}=state.settings;return {...state,settings};}),original);
   const offlineFiles=await page.evaluate(async()=>{
    const cache=await caches.open('medcontrol-static-modular3-v15');
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
@@ -175,7 +180,7 @@ async function run(){
   await page.locator('#password').fill(TEST_PASSWORD);
   await page.locator('#unlock').click();
   await page.locator('#workspace').waitFor({state:'visible'});
-  assert.deepEqual(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read()),original);
+  assert.deepEqual(await page.evaluate(()=>{const state=window.MedControlModular3ProtectedSession.read();const {languageChoiceConfirmed,languageConfirmationVersion,...settings}=state.settings;return {...state,settings};}),original);
   console.log('PASS 5: offline reload and local-password unlock');
   await context.setOffline(false);
   const noSource=await context.newPage();
