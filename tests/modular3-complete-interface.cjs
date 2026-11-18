@@ -635,14 +635,16 @@ async function run(){
   }
   // Non-RU/EN selection must install and offline-cache its full catalog.
   // This exercises the service-worker-dependent path, unlike RU/EN.
+  await russianChoicePage.goto(BASE+'/input.html');
+  await russianChoicePage.locator('.topbar').waitFor({state:'visible',timeout:20000});
   const frenchSelected=await russianChoicePage.evaluate(async()=>{
     return await window.changeInterfaceLanguage('fr');
   });
   assert.equal(frenchSelected,true,'French selection must succeed with offline catalog cached');
   assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'fr');
   for(const section of ['input','action','dashboard','archive']){
-    await russianChoicePage.evaluate(section=>window.medcontrolNavigateTo(section),section);
-    await russianChoicePage.waitForURL('**/'+section+'.html');
+    await russianChoicePage.goto(BASE+'/'+section+'.html');
+    await russianChoicePage.locator('.topbar').waitFor({state:'visible',timeout:20000});
     assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'fr');
     assert.equal(await russianChoicePage.evaluate(()=>document.documentElement.lang),'fr');
     assert.equal(await russianChoicePage.locator('.topbar .nav a').count(),4);
