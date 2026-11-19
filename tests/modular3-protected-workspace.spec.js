@@ -46,6 +46,9 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await page.locator('#password').fill('Synthetic-Local-Password-2026');
  await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
+ await expect(page.locator('#entry-language-step')).toBeHidden();
+ await expect(page.locator('#entry-language')).toHaveValue('ru');
+ await expect.poll(()=>page.evaluate(()=>MedControlModular3ProtectedSession.read().settings.interfaceLanguage)).toBe('ru');
  await page.locator('[data-tab="archive"]').click();
  await expect(page.locator('#screen')).toContainText('История приёмов');
  await expect(page.locator('#screen')).not.toContainText('Synthetic Course');
