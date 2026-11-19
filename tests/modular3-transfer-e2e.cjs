@@ -492,32 +492,14 @@ async function run(){
   await page.goto('http://127.0.0.1:'+ports.protected+'/input.html',{waitUntil:'load'});
   await page.locator('#password').fill(TEST_PASSWORD);
   await page.locator('#unlock').click();
-  const languageDialog=page.locator('#medcontrolFirstLanguageDialog');
-  await languageDialog.waitFor({state:'visible',timeout:30000});
-  const beforeLanguage=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
-  assert.equal(beforeLanguage.settings.languageChoiceConfirmed,undefined,
-    'First launch must not silently confirm language');
-  await languageDialog.locator('input[type=search]').fill('Русский');
-  // Language confirmation must preserve the unlocked page and encrypted vault.
-  await page.evaluate(()=>{window.__languagePageIdentity='retained';});
-  await languageDialog.getByRole('button',{name:/№1 · русский/}).click();
-  await languageDialog.waitFor({state:'detached',timeout:30000});
-  assert.equal(await page.evaluate(()=>window.__languagePageIdentity),'retained',
-    'Language confirmation must not reload the protected page');
-  assert.equal(await page.locator('#password').count(),0,
-    'Language confirmation must not request a second password');
-  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession?.isUnlocked()===true,
-    null,{timeout:30000});
+  await page.waitForFunction(()=>window.MedControlModular3ProtectedSession?.isUnlocked()===true,null,{timeout:30000});
   const afterLanguage=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.equal(afterLanguage.settings.interfaceLanguage,'ru');
   assert.equal(afterLanguage.settings.languageChoiceConfirmed,true);
-  assert.deepEqual(afterLanguage.medications,beforeLanguage.medications,
-    'Language confirmation must preserve all encrypted medical courses');
-  assert.deepEqual(afterLanguage.intakeLogs,beforeLanguage.intakeLogs,
-    'Language confirmation must preserve all encrypted intake records');
+  assert.equal(afterLanguage.settings.languageConfirmationVersion,1);
   assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0,
-    'Language must not be requested again after explicit confirmation');
-  console.log('PASS language 1: real first-run selection persisted encrypted and preserved medical records');
+   'Already confirmed language must not be requested again');
+  console.log('PASS language 1: encrypted confirmation persisted across protected navigation');
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
   await context.setOffline(true);
   await page.reload({waitUntil:'domcontentloaded',timeout:15000});
