@@ -43,17 +43,6 @@ async function run(){
   assert.equal(await page.locator('#password').isVisible(),true);
   console.log('PASS protected entry has 95 registered languages and browser language proposal');
   await page.evaluate(async password=>window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru'},medications:[{id:'synthetic-startup',name:'Synthetic Startup',active:false,times:['13:00'],startDate:'2026-10-23',endDate:'2026-10-24'}],intakeLogs:[]},password),PASS);
-  // One shared sign-in mechanism must accept every registered language, not
-  // merely English and Russian. Synthetic vault only; no real medical data.
-  const allEntryLanguages=await page.locator('#entry-language option').evaluateAll(options=>
-   options.map(option=>option.value));
-  assert.equal(new Set(allEntryLanguages).size,95,'All 95 entry language codes must be unique');
-  for(const code of allEntryLanguages){
-   await page.locator('#entry-language').selectOption(code);
-   assert.equal(await page.locator('#entry-language').inputValue(),code,
-    'Language selector must accept '+code);
-  }
-  console.log('PASS language selector accepts 95/95 registered language codes');
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
   await context.close();
@@ -77,6 +66,18 @@ async function run(){
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before,'Startup recovery changed medical vault');
    await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
    await page.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
+   // One shared sign-in mechanism must accept every registered language, not
+   // merely English and Russian. Synthetic vault only; no real medical data.
+   const allEntryLanguages=await page.locator('#entry-language option').evaluateAll(options=>
+    options.map(option=>option.value));
+   assert.equal(new Set(allEntryLanguages).size,95,'All 95 entry language codes must be unique');
+   for(const code of allEntryLanguages){
+    await page.locator('#entry-language').selectOption(code);
+    assert.equal(await page.locator('#entry-language').inputValue(),code,
+     'Language selector must accept '+code);
+   }
+   console.log('PASS language selector accepts 95/95 registered language codes');
+ 
    const registered=await page.locator('#entry-language option').evaluateAll(options=>options.map(option=>option.value));
    assert.equal(registered.length,95,'Language confirmation must retain all 95 registered languages');
    assert.equal(registered.includes('fil'),false,'Filipino #96 must not be offered in the 95-language registry');
