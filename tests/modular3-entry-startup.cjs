@@ -95,6 +95,21 @@ async function run(){
    assert.equal(await page.locator('#topCurrentTime').isVisible(),true);
    assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0,'Confirmed language must not prompt again after entry');
    assert.equal(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications[0].id),'synthetic-startup');
+   if(module==='protected-workspace'){
+    await page.evaluate(()=>window.MedControlModular3ProtectedSession.lock());
+    await page.goto(BASE+'/modular3-protected.html');
+    await page.waitForFunction(()=>window.medcontrolProtectedEntryReady===true);
+    assert.equal(await page.locator('#entry-language-step').isVisible(),false,
+     'Returning user must not confirm language before password');
+    await page.locator('#password').fill(PASS);
+    await page.locator('#unlock').click();
+    await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
+    assert.equal(await page.locator('#entry-language-step').count(),0,
+     'Returning user must enter without another language confirmation');
+    assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().settings.interfaceLanguage),'ru',
+     'Returning user must restore confirmed language');
+    console.log('PASS returning user restores protected language without re-confirmation');
+   }
    console.log('PASS interrupted '+module+' recovers and opens existing encrypted data');
    await context.close();
   }
