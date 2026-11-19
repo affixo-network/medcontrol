@@ -193,7 +193,7 @@
  }
  function show(){
   // No protected interface may open before first-run language confirmation.
-  if(session.isUnlocked()&&session.read().settings?.languageConfirmationVersion!==1){beginLanguageStep();return;}
+  if(session.isUnlocked()&&(session.read().settings?.languageChoiceConfirmed!==true||session.read().settings?.languageConfirmationVersion!==1)){beginLanguageStep();return;}
   // Enter the established four-page Modular-3 interface after protected unlock.
   // Its auth guard retains the unlocked encrypted session and offers first-run language selection.
   if(new URLSearchParams(window.location.search).get('rehearsal')==='1'){
