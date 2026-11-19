@@ -85,6 +85,8 @@ async function run(){
    await page.locator('#confirm-entry-language').click();
    await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().settings?.languageConfirmationVersion===1);
    assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().settings.interfaceLanguage),'ru','Confirmed language must be stored in encrypted vault');
+   assert.equal(await page.locator('#entry-language-step').isVisible(),false,'Language confirmation must close after saving');
+   assert.equal(await page.locator('#unlock').isVisible(),true,'Enter button must appear only after language confirmation');
    await page.locator('#unlock').click();
    await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
    assert.equal(new URL(page.url()).pathname,'/input.html');
