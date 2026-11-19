@@ -22,6 +22,11 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  await page.locator('#password').fill(PASS);
  page.once('dialog',dialog=>dialog.accept());
  await page.locator('#commit-migration').click();
+ await expect(page.locator('#entry-language-step')).toBeVisible();
+ await expect(page.locator('#workspace')).toBeHidden();
+ await page.locator('#entry-language').selectOption(language);
+ await page.locator('#confirm-entry-language').click();
+ await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
  expect(await page.evaluate(key=>localStorage.getItem(key),DEST)).not.toContain('Synthetic Four Sections');
  await page.close();
