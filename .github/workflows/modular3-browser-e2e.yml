@@ -133,6 +133,8 @@ jobs:
         run: npx playwright test --config=playwright.modular3.config.cjs
       - name: Verify complete protected interface and English cycle notice
         run: node tests/modular3-complete-interface.cjs
+      - name: Verify password-first language confirmation and offline re-entry
+        run: node tests/modular3-entry-startup.cjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
