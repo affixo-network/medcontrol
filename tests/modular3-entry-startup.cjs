@@ -83,6 +83,8 @@ async function run(){
    assert.equal(registered.includes('fil'),false,'Filipino #96 must not be offered in the 95-language registry');
    await page.locator('#entry-language').selectOption('ru');
    await page.locator('#confirm-entry-language').click();
+   await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().settings?.languageConfirmationVersion===1);
+   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().settings.interfaceLanguage),'ru','Confirmed language must be stored in encrypted vault');
    await page.locator('#unlock').click();
    await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
    assert.equal(new URL(page.url()).pathname,'/input.html');
