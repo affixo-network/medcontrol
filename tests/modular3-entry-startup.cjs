@@ -96,7 +96,7 @@ async function run(){
    assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0,'Confirmed language must not prompt again after entry');
    assert.equal(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications[0].id),'synthetic-startup');
    if(module==='protected-workspace'){
-    await page.evaluate(()=>window.MedControlModular3ProtectedSession.lock());
+    await page.evaluate(async()=>{await window.MedControlModular3ProtectedSession.lock();});
     await page.goto(BASE+'/modular3-protected.html');
     await page.waitForFunction(()=>window.medcontrolProtectedEntryReady===true);
     assert.equal(await page.locator('#entry-language-step').isVisible(),false,
