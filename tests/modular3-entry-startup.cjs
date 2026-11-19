@@ -39,9 +39,9 @@ async function run(){
   assert.equal(await page.locator('#entry-language option').count(),95,
    'Protected sign-in must offer all 95 languages before unlocking');
   assert.equal(await page.locator('#entry-language').inputValue(),'en',
-   'English browser must receive English language proposal before unlocking');
+   'English browser must receive English language proposal');
   assert.equal(await page.locator('#password').isVisible(),true);
-  console.log('PASS protected sign-in offers 95 languages and proposes browser language before password');
+  console.log('PASS protected entry has 95 registered languages and browser language proposal');
   await page.evaluate(async password=>window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru'},medications:[{id:'synthetic-startup',name:'Synthetic Startup',active:false,times:['13:00'],startDate:'2026-10-23',endDate:'2026-10-24'}],intakeLogs:[]},password),PASS);
   // One shared sign-in mechanism must accept every registered language, not
   // merely English and Russian. Synthetic vault only; no real medical data.
@@ -51,9 +51,9 @@ async function run(){
   for(const code of allEntryLanguages){
    await page.locator('#entry-language').selectOption(code);
    assert.equal(await page.locator('#entry-language').inputValue(),code,
-    'Manual pre-login selection must accept '+code);
+    'Language selector must accept '+code);
   }
-  console.log('PASS manual pre-login selection accepts 95/95 registered language codes');
+  console.log('PASS language selector accepts 95/95 registered language codes');
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
   await context.close();
