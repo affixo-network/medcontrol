@@ -46,6 +46,17 @@ async function run(){
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
   await context.close();
+  context=await browser.newContext();page=await context.newPage();
+  await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);
+  await context.route('**/*',route=>new URL(route.request().url()).origin===BASE?route.continue():route.abort());
+  await page.goto(BASE+'/input.html');
+  await page.waitForURL('**/modular3-protected.html',{timeout:20000});
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before);
+  await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
+  await page.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
+  assert.equal(await page.locator('.topbar').count(),0);
+  console.log('PASS direct input route requires password and language before opening medical UI');
+  await context.close();
   const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','final-intake','copy-migration','protected-workspace'];
   for(const module of modules){
    context=await browser.newContext();page=await context.newPage();
