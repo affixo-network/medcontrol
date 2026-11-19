@@ -73,6 +73,7 @@
     state.settings=state.settings||{};
     state.settings.interfaceLanguage=code;
     state.settings.languageChoiceConfirmed=true;
+    state.settings.languageConfirmationVersion=1;
    });
    applyLanguage(code);languagePanel.hidden=true;render();
    notice((languageLabels[currentLanguage]||languageLabels.en)[9]+'.');
