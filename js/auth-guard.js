@@ -598,7 +598,18 @@
       const loader=await ensureModular3Loader();
       if(window.MedControlModular3ProtectedSession?.isUnlocked()&&window.MedControlModular3ProtectedPages)protectedModules.forEach(src=>loadedScriptPaths.add(scriptKey(src)));
       await loader.ensureScripts(protectedModules);
-      if(!window.MedControlModular3ProtectedSession.isUnlocked())await unlockLocalWorkspace();
+      // A direct medical-page visit must use the canonical password -> language -> Enter flow.
+      // Redirect before unlocking: navigating after unlock would discard the in-memory key
+      // and force a second password prompt. No encrypted state is modified here.
+      if(!window.MedControlModular3ProtectedSession.isUnlocked()){
+        window.location.replace('/modular3-protected.html');
+        return;
+      }
+      const entrySettings=window.MedControlModular3ProtectedSession.read()?.settings||{};
+      if(entrySettings.languageChoiceConfirmed!==true||entrySettings.languageConfirmationVersion!==1){
+        window.location.replace('/modular3-protected.html');
+        return;
+      }
       window.medcontrolProtectedInterface=true;
       document.head.querySelectorAll('style').forEach(style=>{style.textContent=style.textContent.replaceAll('VERSION 2 · modular-2.000','VERSION 3 · modular-3.000');});
       // Load the complete Input wrappers first so completion/archive rules are shared.
