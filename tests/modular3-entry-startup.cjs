@@ -83,7 +83,7 @@ async function run(){
    assert.equal(registered.includes('fil'),false,'Filipino #96 must not be offered in the 95-language registry');
    await page.locator('#entry-language').selectOption('ru');
    await page.locator('#confirm-entry-language').click();
-   await page.waitForFunction(()=>window.MedControlModular3ProtectedSession.read().settings?.languageConfirmationVersion===1);
+   await page.waitForFunction(()=>{const s=window.MedControlModular3ProtectedSession.read().settings;return s?.languageChoiceConfirmed===true&&s.languageConfirmationVersion===1;});
    assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().settings.interfaceLanguage),'ru','Confirmed language must be stored in encrypted vault');
    assert.equal(await page.locator('#entry-language-step').isVisible(),false,'Language confirmation must close after saving');
    assert.equal(await page.locator('#unlock').isVisible(),true,'Enter button must appear only after language confirmation');
