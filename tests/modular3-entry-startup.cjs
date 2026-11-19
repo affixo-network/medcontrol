@@ -104,7 +104,7 @@ async function run(){
     await page.locator('#password').fill(PASS);
     await page.locator('#unlock').click();
     await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
-    assert.equal(await page.locator('#entry-language-step').count(),0,
+    assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0,
      'Returning user must enter without another language confirmation');
     assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().settings.interfaceLanguage),'ru',
      'Returning user must restore confirmed language');
