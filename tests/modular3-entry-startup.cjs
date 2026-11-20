@@ -49,13 +49,22 @@ async function run(){
   context=await browser.newContext();page=await context.newPage();
   await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);
   await context.route('**/*',route=>new URL(route.request().url()).origin===BASE?route.continue():route.abort());
-  await page.goto(BASE+'/input.html');
-  await page.waitForURL('**/modular3-protected.html',{timeout:20000});
-  assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before);
+  for(const directPath of ['/input.html','/action.html','/dashboard.html','/archive.html']){
+   await page.goto(BASE+directPath);
+   await page.waitForURL('**/modular3-protected.html',{timeout:20000});
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before,
+    'Direct route must not change encrypted vault: '+directPath);
+   assert.equal(await page.locator('#password').isVisible(),true,
+    'Direct route must require protected password: '+directPath);
+   assert.equal(await page.locator('.topbar').count(),0,
+    'Direct route must not render medical UI: '+directPath);
+  }
   await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
   await page.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
   assert.equal(await page.locator('.topbar').count(),0);
-  console.log('PASS direct input route requires password and language before opening medical UI');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before,
+   'Language confirmation step must not alter encrypted vault');
+  console.log('PASS four direct medical routes require password and language before opening medical UI');
   await context.close();
   const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','final-intake','copy-migration','protected-workspace'];
   for(const module of modules){
