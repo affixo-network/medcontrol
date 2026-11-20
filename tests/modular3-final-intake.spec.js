@@ -29,6 +29,20 @@ async function open(page,override={},section='action'){
  }
  await expect(page).toHaveURL(BASE+'/'+section+'.html');
 }
+test('returning user opens protected input without language prompt',async({page})=>{
+ await page.goto(BASE+'/modular3-protected.html');
+ await page.waitForFunction(()=>window.medcontrolProtectedWorkspaceReady===true);
+ await page.evaluate(async()=>{
+  await MedControlModular3ProtectedSession.initialize({settings:{interfaceLanguage:'ru',languageChoiceConfirmed:true,languageConfirmationVersion:1},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[]},'Synthetic-Final-Intake-Password-2026');
+  await MedControlModular3ProtectedSession.lock();
+ });
+ await page.reload();
+ await page.locator('#password').fill(PASS);
+ await page.locator('#unlock').click();
+ await expect(page).toHaveURL(BASE+'/input.html');
+ await expect(page.locator('.topbar .nav')).toBeVisible();
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(true);
+});
 async function current(page){return page.evaluate(()=>getState());}
 async function clickFinal(page){await page.locator('button[onclick^="markTaken(\'offline-final\'"]').last().click();await expect(page.locator('#finalIntakeDialog')).toBeVisible();}
 test('last-dose hint precedes all writes and cancel preserves the complete encrypted state',async({page})=>{
