@@ -22,7 +22,10 @@ async function open(page,override={},section='action'){
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
  await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
- if(section!=='input')await page.evaluate(section=>window.medcontrolNavigateTo(section),section);
+ if(section!=='input'){
+  const navigated=await page.evaluate(section=>window.medcontrolNavigateTo(section),section);
+  expect(navigated).toBe(true);
+ }
  await expect(page).toHaveURL(BASE+'/'+section+'.html');
 }
 async function current(page){return page.evaluate(()=>getState());}
