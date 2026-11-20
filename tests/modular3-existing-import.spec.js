@@ -295,9 +295,10 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
   return !!(await cache.match('/input.html')) && !!(await cache.match('/js/auth-guard.js'));
  });
  await context.setOffline(true);await page.reload();
- await page.locator('#localLogin #password').fill(OLD_PASS);
- await page.locator('#localLogin #unlock').click();
- await expect(page.locator('#localLogin')).toHaveCount(0);
+ await expect(page).toHaveURL(BASE+'/modular3-protected.html');
+ await page.locator('#password').fill(OLD_PASS);
+ await page.locator('#unlock').click();
+ await expect(page).toHaveURL(BASE+'/input.html');
  await expect(page.locator('.topbar')).toBeVisible();
  await expect(page.locator('#topCurrentDate')).not.toBeEmpty();
  await expect(page.locator('#topCurrentTime')).not.toBeEmpty();
