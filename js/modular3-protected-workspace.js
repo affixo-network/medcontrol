@@ -182,7 +182,9 @@
    document.getElementById('unlock').hidden=false;
    document.getElementById('unlock').disabled=false;
    document.getElementById('unlock').textContent='Войти';
-   notice('Язык сохранён. Нажмите «Войти».');
+   notice('Язык сохранён. Открывается MedControl.');
+   languageConfirmed=false;
+   show();
   }catch(error){notice('Не удалось сохранить язык: '+error.message);}
   finally{confirmEntryLanguage.disabled=false;}
  };
