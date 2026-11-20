@@ -181,11 +181,16 @@ async function unlockRealPage(page){
  await expect(page).toHaveURL(URL);
  await page.locator('#password').fill(PASSWORD);
  await page.locator('#unlock').click();
+ // Wait for asynchronous unlock before deciding whether language confirmation is required.
+ await page.waitForFunction(()=>{
+  const step=document.getElementById('entry-language-step');
+  return (step&&!step.hidden)||!!document.querySelector('.topbar .nav');
+ },{timeout:15000});
  if(await page.locator('#entry-language-step').isVisible()){
   await page.locator('#entry-language').selectOption('ru');
   await page.locator('#confirm-entry-language').click();
  }
- await expect(page.locator('.topbar .nav')).toBeVisible();
+ await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
  await expect.poll(()=>page.evaluate(()=>window.medcontrolOfflineShellReady)).toBe(true);
 }
 
