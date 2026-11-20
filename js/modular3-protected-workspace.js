@@ -215,7 +215,7 @@
   const state=pages.read(section);
   screen.replaceChildren();
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
-  if(session.read().settings?.languageChoiceConfirmed)applyLanguage(currentLanguage);
+  if(session.read().settings?.languageChoiceConfirmed)applyLanguage(session.read().settings.interfaceLanguage||currentLanguage);
   if(section==='archive'){
    const controls=document.createElement('section');controls.className='card';
    const heading=document.createElement('h2');heading.textContent='История приёмов';controls.append(heading);
