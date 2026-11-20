@@ -279,6 +279,9 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
  await expect(page).toHaveURL(BASE+'/modular3-protected.html');
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
+ await expect(page).toHaveURL(BASE+'/modular3-protected.html');
+ await expect(page.locator('#unlock')).toBeVisible();
+ await page.locator('#unlock').click();
  await expect(page).toHaveURL(BASE+'/input.html');
  await expect(page.locator('.topbar')).toBeVisible();
  await expect(page.locator('#topCurrentDate')).not.toBeEmpty();
