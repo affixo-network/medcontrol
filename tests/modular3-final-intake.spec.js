@@ -14,8 +14,17 @@ async function open(page,override={},section='action'){
  await page.evaluate(async({PASS,med,existing,override})=>{
   await MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},medications:[existing,{...med,...override}],intakeLogs:[{id:'prior-log',medicationId:existing.id,plannedAt:'2026-10-12T08:30:00Z',actualAt:'2026-10-12T08:30:03Z',action:'taken'}],intakeCorrections:[],archiveHistory:[{id:'preserved-archive-event'}],archivedCourses:[],unknownMetadata:{preserve:true}},PASS);
  },{PASS,med,existing,override});
- await page.goto(BASE+'/'+section+'.html');await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
- await expect(page.locator('.nav')).toBeVisible({timeout:15000});
+ await page.evaluate(async()=>MedControlModular3ProtectedSession.lock());
+ await page.reload();
+ await page.locator('#password').fill(PASS);
+ await page.locator('#unlock').click();
+ await expect(page.locator('#entry-language-step')).toBeVisible();
+ await page.locator('#entry-language').selectOption('ru');
+ await page.locator('#confirm-entry-language').click();
+ await page.locator('#unlock').click();
+ await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
+ if(section!=='input')await page.evaluate(section=>window.medcontrolNavigateTo(section),section);
+ await expect(page).toHaveURL(BASE+'/'+section+'.html');
 }
 async function current(page){return page.evaluate(()=>getState());}
 async function clickFinal(page){await page.locator('button[onclick^="markTaken(\'offline-final\'"]').last().click();await expect(page.locator('#finalIntakeDialog')).toBeVisible();}
