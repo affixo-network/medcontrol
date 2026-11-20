@@ -9,6 +9,9 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await page.locator('#confirm-password').fill('Synthetic-Local-Password-2026');
  await page.locator('#enroll').click();
  await expect(page.locator('#entry-language-step')).toBeVisible();
+ await expect(page.locator('#entry-language option')).toHaveCount(95);
+ await expect(page.locator('#entry-language option[value="fil"]')).toHaveCount(0);
+ await expect(page.locator('#entry-language')).toHaveValue('ru');
  await expect(page.locator('#workspace')).toBeHidden();
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
