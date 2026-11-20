@@ -64,7 +64,18 @@ async function run(){
   assert.equal(await page.locator('.topbar').count(),0);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before,
    'Language confirmation step must not alter encrypted vault');
-  console.log('PASS four direct medical routes require password and language before opening medical UI');
+  await page.locator('#entry-language').selectOption('ru');
+  await page.locator('#confirm-entry-language').click();
+  await page.waitForFunction(()=>{const s=window.MedControlModular3ProtectedSession.read().settings;return s?.languageChoiceConfirmed===true&&s.languageConfirmationVersion===1;});
+  await page.locator('#unlock').click();
+  await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
+  assert.equal(new URL(page.url()).pathname,'/input.html',
+   'Canonical entry must open input after direct-route redirect');
+  assert.equal(await page.locator('.topbar .nav a').count(),4,
+   'All four medical sections must be accessible after canonical entry');
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications[0].id),'synthetic-startup',
+   'Encrypted medical course must survive direct-route entry');
+  console.log('PASS four direct routes redirect and canonical entry opens all sections without another password');
   await context.close();
   const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','final-intake','copy-migration','protected-workspace'];
   for(const module of modules){
