@@ -106,6 +106,12 @@ test('confirmed final dose waits for encryption then archives in the same write 
  await page.evaluate(()=>showArchiveMedicationHistory('offline-final'));await expect(page.locator('#archiveHistoryContent')).toContainText('Курс завершён');
  await page.waitForFunction(()=>window.medcontrolOfflineShellReady===true);
  await context.setOffline(true);await page.reload();await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
+ // Offline password re-entry intentionally opens Input, not the previous medical section.
+ await expect(page).toHaveURL(BASE+'/input.html',{timeout:15000});
+ await expect(page.locator('.topbar .nav')).toBeVisible();
+ const offlineArchive=await page.evaluate(()=>window.medcontrolNavigateTo('archive'));
+ expect(offlineArchive).toBe(true);
+ await expect(page).toHaveURL(BASE+'/archive.html',{timeout:15000});
  await expect(page.locator('body')).toContainText(med.name,{timeout:15000});
  const restored=await current(page);expect(restored.intakeLogs).toEqual(after.intakeLogs);expect(restored.medications.find(x=>x.id===med.id).archivedCompleted).toBe(true);
 });
