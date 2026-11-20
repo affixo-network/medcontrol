@@ -21,7 +21,10 @@ async function open(page,override={},section='action'){
  await expect(page.locator('#entry-language-step')).toBeVisible();
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
+ // First-use confirmation saves language but must not enter the medical interface.
  await expect(page.locator('#unlock')).toBeVisible();
+ await expect(page).toHaveURL(BASE+'/modular3-protected.html');
+ await expect(page.locator('.topbar .nav')).toHaveCount(0);
  await page.locator('#unlock').click();
  await expect(page).toHaveURL(BASE+'/input.html',{timeout:15000});
  await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
