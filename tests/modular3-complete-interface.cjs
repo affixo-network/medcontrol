@@ -52,8 +52,12 @@ async function run(){
   await page.evaluate(async password=>{
    await window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[]},password);
   },PASS);
-  await page.goto(BASE+'/input.html');
+  await page.reload();
   await page.locator('#password').fill(PASS);
+  await page.locator('#unlock').click();
+  await page.locator('#entry-language-step').waitFor({state:'visible',timeout:10000});
+  await page.locator('#entry-language').selectOption('ru');
+  await page.locator('#confirm-entry-language').click();
   await page.locator('#unlock').click();
   await page.locator('#create_name').waitFor({timeout:10000});
   assert.equal(new URL(page.url()).pathname,'/input.html','Original Input must open after local unlock');
