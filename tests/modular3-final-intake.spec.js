@@ -34,11 +34,11 @@ async function open(page,override={},section='action'){
  }
  await expect(page).toHaveURL(BASE+'/'+section+'.html');
 }
-test('returning user opens protected input without language prompt',async({page})=>{
+test('returning user restores saved language and opens protected input without language prompt',async({page})=>{
  await page.goto(BASE+'/modular3-protected.html');
  await page.waitForFunction(()=>window.medcontrolProtectedWorkspaceReady===true);
  await page.evaluate(async()=>{
-  await MedControlModular3ProtectedSession.initialize({settings:{interfaceLanguage:'ru',languageChoiceConfirmed:true,languageConfirmationVersion:1},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[]},'Synthetic-Final-Intake-Password-2026');
+  await MedControlModular3ProtectedSession.initialize({settings:{interfaceLanguage:'de',languageChoiceConfirmed:true,languageConfirmationVersion:1},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[]},'Synthetic-Final-Intake-Password-2026');
   await MedControlModular3ProtectedSession.lock();
  });
  await page.reload();
@@ -46,6 +46,9 @@ test('returning user opens protected input without language prompt',async({page}
  await page.locator('#unlock').click();
  await expect(page).toHaveURL(BASE+'/input.html');
  await expect(page.locator('.topbar .nav')).toBeVisible();
+ await expect(page.locator('#entry-language-step')).toBeHidden();
+ await expect(page.locator('html')).toHaveAttribute('lang','de');
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read().settings.interfaceLanguage)).toBe('de');
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(true);
 });
 async function current(page){return page.evaluate(()=>getState());}
