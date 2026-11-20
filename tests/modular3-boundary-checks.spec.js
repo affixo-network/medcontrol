@@ -189,6 +189,8 @@ async function unlockRealPage(page){
  if(await page.locator('#entry-language-step').isVisible()){
   await page.locator('#entry-language').selectOption('ru');
   await page.locator('#confirm-entry-language').click();
+ await expect(page.locator('#unlock')).toBeVisible();
+ await page.locator('#unlock').click();
  }
  await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
  await expect.poll(()=>page.evaluate(()=>window.medcontrolOfflineShellReady)).toBe(true);
