@@ -21,7 +21,6 @@ async function open(page,override={},section='action'){
  await expect(page.locator('#entry-language-step')).toBeVisible();
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
- await page.locator('#unlock').click();
  await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
  if(section!=='input')await page.evaluate(section=>window.medcontrolNavigateTo(section),section);
  await expect(page).toHaveURL(BASE+'/'+section+'.html');
