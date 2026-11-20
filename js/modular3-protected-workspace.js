@@ -182,9 +182,9 @@
    document.getElementById('unlock').hidden=false;
    document.getElementById('unlock').disabled=false;
    document.getElementById('unlock').textContent='Войти';
-   notice('Язык сохранён. Открывается MedControl.');
-   languageConfirmed=false;
-   show();
+   notice('Язык сохранён. Нажмите «Войти», чтобы открыть MedControl.');
+   // Keep the unlocked session in memory; the user explicitly enters with the button.
+   // languageConfirmed remains true until that click.
   }catch(error){notice('Не удалось сохранить язык: '+error.message);}
   finally{confirmEntryLanguage.disabled=false;}
  };
