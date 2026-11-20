@@ -85,7 +85,24 @@ test('confirmed final dose waits for encryption then archives in the same write 
  const snapshots=await page.evaluate(async PASS=>Promise.all(window.finalWrites.map(v=>MedControlModular3EncryptedVault.open(JSON.parse(v),PASS))),PASS);
  expect(snapshots.length).toBeGreaterThan(0);
  for(const snapshot of snapshots.filter(s=>s.intakeLogs.some(x=>x.medicationId==='offline-final')))expect(snapshot.medications.find(x=>x.id==='offline-final').archivedCompleted).toBe(true);
- await page.locator('.nav a[href="archive.html"]').click();await expect(page.locator('body')).toContainText(med.name);
+ const archiveErrors=[];
+ page.on('pageerror',error=>archiveErrors.push(String(error.stack||error)));
+ page.on('console',message=>{if(message.type()==='error')archiveErrors.push(message.text());});
+ await page.locator('.nav a[href="archive.html"]').click();
+ try{
+  await expect(page).toHaveURL(BASE+'/archive.html',{timeout:15000});
+  await expect(page.locator('body')).toContainText(med.name);
+ }catch(error){
+  const diagnostic=await page.evaluate(()=>({
+   pathname:location.pathname,
+   loading:window.medcontrolShellNavigationLoading,
+   archiveRenderer:typeof window.renderArchivePage,
+   archiveScript:!!document.querySelector('script[src*="archive-page.js"]'),
+   offlineCacheReady:window.medcontrolOfflineShellReady,
+   archived:typeof getState==='function'&&getState().medications.some(m=>m.id==='offline-final'&&m.archivedCompleted===true)
+  }));
+  throw new Error('Offline archive navigation failure: '+JSON.stringify({diagnostic,archiveErrors})+'\n'+error.message);
+ }
  await page.evaluate(()=>showArchiveMedicationHistory('offline-final'));await expect(page.locator('#archiveHistoryContent')).toContainText('Курс завершён');
  await page.waitForFunction(()=>window.medcontrolOfflineShellReady===true);
  await context.setOffline(true);await page.reload();await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
