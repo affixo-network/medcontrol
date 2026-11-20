@@ -20,6 +20,7 @@ on:
       - 'js/*.js'
       - 'tests/modular3-complete-interface.cjs'
       - 'tests/modular3-entry-startup.cjs'
+      - 'js/auth-guard.js'
       - 'tests/modular3-protected-workspace.spec.js'
       - 'tests/modular3-boundary-checks.spec.js'
       - 'tests/modular3-copy-migration.spec.js'
