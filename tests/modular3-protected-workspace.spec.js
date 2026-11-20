@@ -12,7 +12,6 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await expect(page.locator('#workspace')).toBeHidden();
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
- await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
  await page.locator('input[name="name"]').fill('Synthetic Course');
  await page.locator('input[name="date"]').fill('2026-10-14');
