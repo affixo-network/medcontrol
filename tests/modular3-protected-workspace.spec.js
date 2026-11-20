@@ -13,6 +13,8 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
  await expect(page.locator('#workspace')).toBeVisible();
+ await expect(page.locator('#login')).toBeHidden();
+ await expect.poll(()=>page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(true);
  await page.locator('input[name="name"]').fill('Synthetic Course');
  await page.locator('input[name="date"]').fill('2026-10-14');
  await page.locator('input[name="endDate"]').fill('2026-10-15');
