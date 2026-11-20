@@ -96,7 +96,8 @@ async function run(){
   const cipherBefore=await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
   await page.goto('http://127.0.0.1:'+ports.protected+'/input.html',{waitUntil:'load'});
   await page.locator('#password').waitFor({state:'visible'});
-  assert.equal(new URL(page.url()).pathname,'/input.html');
+  assert.equal(new URL(page.url()).pathname,'/modular3-protected.html','Locked medical route must redirect to canonical protected entry');
+  assert.equal(await page.locator('#workspace').isVisible(),false,'Locked medical workspace must remain hidden');
   assert.equal(await page.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),cipherBefore,
    'Locked navigation must not rewrite encrypted data');
   assert.equal(await page.evaluate(()=>localStorage.getItem('affixo_medcontrol_standard_v3')),null,
