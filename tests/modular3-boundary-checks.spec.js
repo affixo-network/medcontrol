@@ -178,8 +178,15 @@ test('missing encrypted vault with enrolled local password never falls back to p
 });
 
 async function unlockRealPage(page){
- await page.locator('#password').fill(PASSWORD);await page.locator('#unlock').click();
- await expect(page.locator('.nav')).toBeVisible();
+ await expect(page).toHaveURL(URL);
+ await page.locator('#password').fill(PASSWORD);
+ await page.locator('#unlock').click();
+ if(await page.locator('#entry-language-step').isVisible()){
+  await page.locator('#entry-language').selectOption('ru');
+  await page.locator('#confirm-entry-language').click();
+  await page.locator('#unlock').click();
+ }
+ await expect(page.locator('.topbar .nav')).toBeVisible();
  await expect.poll(()=>page.evaluate(()=>window.medcontrolOfflineShellReady)).toBe(true);
 }
 
