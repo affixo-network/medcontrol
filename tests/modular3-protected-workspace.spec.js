@@ -12,6 +12,9 @@ test('protected workspace: two slots, encrypted intake, offline unlock, four sec
  await expect(page.locator('#workspace')).toBeHidden();
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
+ await expect(page.locator('#workspace')).toBeHidden();
+ await expect(page.locator('#unlock')).toBeVisible();
+ await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
  await expect(page.locator('#login')).toBeHidden();
  await expect.poll(()=>page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(true);
