@@ -159,6 +159,7 @@
  const preferences=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language];
  const suggested=preferences.map(value=>String(value||'').toLowerCase().split('-')[0])
   .find(code=>languageRegistry.some(item=>item[0]===code))||'en';
+ entryLanguage.replaceChildren();
  for(const [code,native,english] of languageRegistry)entryLanguage.add(new Option(native+' — '+english,code));
  entryLanguage.value=suggested;
  function beginLanguageStep(){
