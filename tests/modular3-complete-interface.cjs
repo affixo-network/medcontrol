@@ -682,7 +682,7 @@ async function run(){
   await resetPage.goto(BASE+'/modular3-protected.html');
   await resetPage.evaluate(async password=>{
     await window.MedControlModular3ProtectedSession.initialize({
-      settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},
+      settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',languageChoiceConfirmed:true,languageConfirmationVersion:1,country:'Armenia',infoDismissed:true},
       medications:[{id:'synthetic-reset-course',name:'Synthetic Archived Course',archivedCompleted:true}],
       intakeLogs:[{id:'synthetic-intake',medicationId:'synthetic-reset-course'}],
       intakeCorrections:[{id:'synthetic-correction',medicationId:'synthetic-reset-course'}],
