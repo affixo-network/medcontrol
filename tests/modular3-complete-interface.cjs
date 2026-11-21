@@ -155,7 +155,14 @@ async function run(){
    await p.goto(BASE+'/'+section+'.html');
    assert.equal(await p.locator('body').innerText().then(t=>t.includes('Synthetic Edited Course')),false,'Locked page exposed medical data');
    await p.locator('#password').fill(PASS);await p.locator('#unlock').click();
-   await p.waitForFunction(()=>!!document.querySelector('.nav'));
+   await p.locator('#create_name').waitFor({state:'visible',timeout:15000});
+   await p.waitForFunction(()=>typeof window.getState==='function',{timeout:15000});
+   if(section!=='input'){
+    const navigated=await p.evaluate(target=>window.medcontrolNavigateTo(target),section);
+    assert.equal(navigated,true,'Offline navigation to '+section+' must succeed');
+    await p.waitForURL(BASE+'/'+section+'.html');
+    await p.waitForFunction(()=>typeof window.getState==='function',{timeout:15000});
+   }
    assert.deepEqual(await p.evaluate(()=>getState()),expected,'Offline '+section+' changed saved history');
    await p.close();
   }
