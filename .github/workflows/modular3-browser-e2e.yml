@@ -115,6 +115,11 @@ jobs:
   chromium:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    name: chromium-shard-${{ matrix.shard }}-of-4
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -130,15 +135,17 @@ jobs:
       - name: Audit 95 catalogs for untranslated Russian fallbacks
         run: node tests/modular3-single-language-audit.cjs
       - name: Run isolated browser tests
-        run: npx playwright test --config=playwright.modular3.config.cjs
+        run: npx playwright test --config=playwright.modular3.config.cjs --shard=${{ matrix.shard }}/4
       - name: Verify complete protected interface and English cycle notice
+        if: matrix.shard == 1
         run: node tests/modular3-complete-interface.cjs
       - name: Verify password-first language confirmation and offline re-entry
+        if: matrix.shard == 1
         run: node tests/modular3-entry-startup.cjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: modular3-browser-traces
+          name: modular3-browser-traces-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
 
