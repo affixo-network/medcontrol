@@ -496,30 +496,32 @@ async function run(){
   const fresh=await browser.newContext({timezoneId:'Asia/Yerevan'});
   await fresh.route('**/*',route=>{const u=new URL(route.request().url());if(u.origin!==BASE){external.push(u.origin);return route.abort();}return route.continue();});
   const entry=await fresh.newPage();entry.on('pageerror',e=>errors.push(e.message));
-  await entry.goto(BASE+'/modular3-protected.html');await entry.locator('#password').fill(PASS);await entry.locator('#enroll').click();
-  await entry.locator('.topbar').waitFor({state:'visible',timeout:20000});
-  await entry.locator('#topCurrentDate').waitFor({state:'visible'});
-  await entry.locator('#topCurrentTime').waitFor({state:'visible'});
-  assert.notEqual(await entry.locator('#topCurrentDate').innerText(),'');
-  assert.notEqual(await entry.locator('#topCurrentTime').innerText(),'');
-  assert.equal(new URL(entry.url()).pathname,'/input.html');
-  assert.equal(await entry.locator('.topbar .nav a').count(),4);
-  assert.equal(await entry.locator('.topbar select[onchange*="changeInterfaceLanguage"]').isVisible(),true);
-  await entry.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:10000});
-  const browserLanguages=await entry.evaluate(()=>navigator.languages);
-  assert.equal(browserLanguages[0].toLowerCase().startsWith('en'),true);
-  assert.match(await entry.locator('#medcontrolFirstLanguageDialog').innerText(),/Device language.*English/);
-  assert.equal(await entry.locator('#medcontrolFirstLanguageDialog input[type=search]').inputValue(),'English');
-  await entry.locator('#medcontrolFirstLanguageDialog input[type=search]').fill('');
-  assert.equal(await entry.locator('#medcontrolFirstLanguageDialog button').count(),95);
-  console.log('PASS protected entry restores dated four-section Modular-3 with 95-language confirmation without second password');
-  // Existing vault inherited RU without a user confirmation: browser English
-  // must still be proposed, and opening the dialog must not rewrite the vault.
-  const inheritedVault=await entry.evaluate(()=>{
-    const before=localStorage.getItem('medcontrol_modular3_protected_state_v1');
-    return {before,stored:Object.fromEntries(Object.entries(localStorage))};
-  });
-  const inherited=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'en-US'});
+  await entry.goto(BASE+'/modular3-protected.html');
+   await entry.locator('#password').fill(PASS);
+   await entry.locator('#enroll').click();
+   await entry.locator('#confirm-password').fill(PASS);
+   await entry.locator('#enroll').click();
+   await entry.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
+   assert.equal(await entry.locator('#entry-language option').count(),95);
+   assert.equal(await entry.locator('#entry-language').inputValue(),'en');
+   assert.equal(await entry.locator('.topbar').count(),0,'Medical interface must remain locked before explicit entry');
+   const inheritedVault=await entry.evaluate(()=>{
+     const before=localStorage.getItem('medcontrol_modular3_protected_state_v1');
+     return {before,stored:Object.fromEntries(Object.entries(localStorage))};
+   });
+   await entry.locator('#confirm-entry-language').click();
+   await entry.locator('#entry-language-step').waitFor({state:'hidden'});
+   assert.equal(await entry.locator('.topbar').count(),0,'Language confirmation must not open medical interface');
+   await entry.locator('#unlock').click();
+   await entry.locator('.topbar').waitFor({state:'visible',timeout:20000});
+   await entry.locator('#topCurrentDate').waitFor({state:'visible'});
+   await entry.locator('#topCurrentTime').waitFor({state:'visible'});
+   assert.notEqual(await entry.locator('#topCurrentDate').innerText(),'');
+   assert.notEqual(await entry.locator('#topCurrentTime').innerText(),'');
+   assert.equal(new URL(entry.url()).pathname,'/input.html');
+   assert.equal(await entry.locator('.topbar .nav a').count(),4);
+   console.log('PASS password-first 95-language confirmation and explicit entry open four sections');
+   const inherited=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'en-US'});
   await inherited.addInitScript(stored=>{
     for(const [key,value] of Object.entries(stored))localStorage.setItem(key,value);
   },inheritedVault.stored);
@@ -532,27 +534,20 @@ async function run(){
   await inheritedPage.goto(BASE+'/modular3-protected.html');
   await inheritedPage.locator('#password').fill(PASS);
   await inheritedPage.locator('#unlock').click();
-  await inheritedPage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:20000});
-  assert.match(await inheritedPage.locator('#medcontrolFirstLanguageDialog').innerText(),/Device language.*English/);
-  assert.equal(await inheritedPage.locator('#medcontrolFirstLanguageDialog input[type=search]').inputValue(),'English');
-  assert.equal(await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),inheritedVault.before,
-    'Showing browser language proposal must not rewrite inherited medical vault');
-  console.log('PASS existing unconfirmed Russian vault proposes English browser language without modifying encrypted data');
-  const pageLoads=await inheritedPage.evaluate(()=>{
-    window.__languageConfirmationPageMarker='kept-alive';
-    return window.location.href;
-  });
-  await inheritedPage.locator('#medcontrolFirstLanguageDialog button').first().click();
-  await inheritedPage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'detached',timeout:15000});
-  assert.equal(await inheritedPage.evaluate(()=>window.__languageConfirmationPageMarker),'kept-alive',
-    'Language confirmation must not reload or relock the protected document');
-  assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en');
-  assert.equal(await inheritedPage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
-  assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
-  assert.equal(new URL(inheritedPage.url()).pathname,new URL(pageLoads).pathname);
-  console.log('PASS English confirmation updates protected UI without reload or second password');
-
-  assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
+  await inheritedPage.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
+   assert.equal(await inheritedPage.locator('#entry-language').inputValue(),'en');
+   assert.equal(await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),inheritedVault.before,
+     'Language proposal must not rewrite inherited medical vault');
+   await inheritedPage.locator('#confirm-entry-language').click();
+   await inheritedPage.locator('#entry-language-step').waitFor({state:'hidden'});
+   assert.equal(await inheritedPage.locator('.topbar').count(),0,'Confirmation must not enter medical interface');
+   await inheritedPage.locator('#unlock').click();
+   await inheritedPage.locator('.topbar').waitFor({state:'visible',timeout:20000});
+   assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en');
+   assert.equal(await inheritedPage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
+   assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
+   console.log('PASS inherited English confirmation and explicit entry');
+   assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
     'Protected Archive navigation must be English');
   assert.equal(await inheritedPage.locator('#create_manufacturer').locator('xpath=preceding-sibling::label[1]').innerText(),'Manufacturer',
     'Protected manufacturer form label must be English');
@@ -629,14 +624,15 @@ async function run(){
   await russianChoicePage.goto(BASE+'/modular3-protected.html');
   await russianChoicePage.locator('#password').fill(PASS);
   await russianChoicePage.locator('#unlock').click();
-  await russianChoicePage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'visible',timeout:20000});
-  assert.match(await russianChoicePage.locator('#medcontrolFirstLanguageDialog').innerText(),/Язык устройства/);
-  await russianChoicePage.locator('#medcontrolFirstLanguageDialog input[type=search]').fill('Русский');
-  await russianChoicePage.locator('#medcontrolFirstLanguageDialog button').filter({hasText:'Русский'}).first().click();
-  await russianChoicePage.locator('#medcontrolFirstLanguageDialog').waitFor({state:'detached',timeout:15000});
-  assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
-  assert.equal(await russianChoicePage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
-  for(const section of ['input','action','dashboard','archive']){
+  await russianChoicePage.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
+   await russianChoicePage.locator('#entry-language').selectOption('ru');
+   await russianChoicePage.locator('#confirm-entry-language').click();
+   await russianChoicePage.locator('#entry-language-step').waitFor({state:'hidden'});
+   await russianChoicePage.locator('#unlock').click();
+   await russianChoicePage.locator('.topbar').waitFor({state:'visible',timeout:20000});
+   assert.equal(await russianChoicePage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
+   assert.equal(await russianChoicePage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
+   for(const section of ['input','action','dashboard','archive']){
     await russianChoicePage.evaluate(section=>window.medcontrolNavigateTo(section),section);
     await russianChoicePage.waitForURL('**/'+section+'.html');
     assert.equal(await russianChoicePage.evaluate(()=>document.documentElement.lang),'ru');
@@ -664,7 +660,7 @@ async function run(){
   await russianRestartPage.locator('#password').fill(PASS);
   await russianRestartPage.locator('#unlock').click();
   await russianRestartPage.locator('.topbar').waitFor({state:'visible',timeout:20000});
-  assert.equal(await russianRestartPage.locator('#medcontrolFirstLanguageDialog').count(),0,
+  assert.equal(await russianRestartPage.locator('#entry-language-step').isVisible(),0,
     'Confirmed Russian language must not prompt again');
   assert.equal(await russianRestartPage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
   assert.equal(await russianRestartPage.evaluate(()=>document.documentElement.lang),'ru');
