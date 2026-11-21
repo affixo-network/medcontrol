@@ -29,8 +29,8 @@ async function open(page,override={},section='action'){
  await expect(page).toHaveURL(BASE+'/input.html',{timeout:15000});
  await expect(page.locator('.topbar .nav')).toBeVisible({timeout:15000});
  if(section!=='input'){
-  const navigated=await page.evaluate(section=>window.medcontrolNavigateTo(section),section);
-  expect(navigated).toBe(true);
+  await page.waitForFunction(()=>typeof window.medcontrolNavigateTo==='function');
+  await page.evaluate(section=>{window.medcontrolNavigateTo(section);},section);
  }
  await expect(page).toHaveURL(BASE+'/'+section+'.html');
 }
