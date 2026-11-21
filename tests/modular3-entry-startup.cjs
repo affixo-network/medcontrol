@@ -129,8 +129,26 @@ async function run(){
    assert.equal(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications[0].id),'synthetic-startup');
    if(module==='protected-workspace'){
     await page.evaluate(async()=>{await window.MedControlModular3ProtectedSession.lock();});
+    const reloadErrors=[];
+    page.on('pageerror',error=>reloadErrors.push(error.message));
+    page.on('console',message=>{if(message.type()==='error')reloadErrors.push(message.text());});
     await page.goto(BASE+'/modular3-protected.html');
-    await page.waitForFunction(()=>window.medcontrolProtectedEntryReady===true);
+    const entryResult=await page.evaluate(async()=>{
+     const settled=await Promise.race([
+      Promise.resolve(window.medcontrolProtectedEntryReady).then(value=>({settled:true,value}),error=>({settled:true,error:String(error)})),
+      new Promise(resolve=>setTimeout(()=>resolve({settled:false}),16000))
+     ]);
+     return {
+      url:location.href,settled,
+      workspaceReady:window.medcontrolProtectedWorkspaceReady,
+      unlockHandler:typeof document.getElementById('unlock')?.onclick,
+      retryVisible:!!document.getElementById('retry-entry')?.offsetParent,
+      message:document.getElementById('message')?.textContent,
+      options:document.querySelectorAll('#entry-language option').length
+     };
+    });
+    console.log('DIAGNOSTIC protected-workspace second entry',JSON.stringify({entryResult,reloadErrors}));
+    assert.equal(entryResult.settled.value,true,'Returning user entry initialization failed: '+JSON.stringify({entryResult,reloadErrors}));
     assert.equal(await page.locator('#entry-language-step').isVisible(),false,
      'Returning user must not confirm language before password');
     await page.locator('#password').fill(PASS);
