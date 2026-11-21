@@ -35,7 +35,7 @@ async function run(){
    return route.continue();
   });
   await page.goto(BASE+'/modular3-protected.html');
-  await page.locator('#entry-language option').first().waitFor();
+  await page.locator('#entry-language option').first().waitFor({state:'attached'});
   assert.equal(await page.locator('#entry-language option').count(),95,
    'Protected sign-in must offer all 95 languages before unlocking');
   assert.equal(await page.locator('#entry-language').inputValue(),'en',
