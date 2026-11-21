@@ -79,7 +79,8 @@ async function run(){
   await context.close();
   const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','final-intake','copy-migration','protected-workspace'];
   for(const module of modules){
-   context=await browser.newContext();page=await context.newPage();
+   // Route-controlled fault injection must not be bypassed or replayed by the service worker.
+   context=await browser.newContext({serviceWorkers:'block'});page=await context.newPage();
    await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);
    let failed=false;
    await context.route('**/*',route=>{
