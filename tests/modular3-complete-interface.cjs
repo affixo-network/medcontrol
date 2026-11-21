@@ -660,7 +660,7 @@ async function run(){
   await russianRestartPage.locator('#password').fill(PASS);
   await russianRestartPage.locator('#unlock').click();
   await russianRestartPage.locator('.topbar').waitFor({state:'visible',timeout:20000});
-  assert.equal(await russianRestartPage.locator('#entry-language-step').isVisible(),0,
+  assert.equal(await russianRestartPage.locator('#entry-language-step').isVisible(),false,
     'Confirmed Russian language must not prompt again');
   assert.equal(await russianRestartPage.evaluate(()=>getState().settings.interfaceLanguage),'ru');
   assert.equal(await russianRestartPage.evaluate(()=>document.documentElement.lang),'ru');
