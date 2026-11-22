@@ -153,6 +153,15 @@ async function run(){
      'Returning user must not confirm language before password');
     await page.locator('#password').fill(PASS);
     await page.locator('#unlock').click();
+    const afterUnlock=await page.evaluate(()=>({
+     url:location.href,
+     message:document.getElementById('message')?.textContent,
+     languageStepVisible:!!document.getElementById('entry-language-step')?.offsetParent,
+     unlocked:window.MedControlModular3ProtectedSession?.isUnlocked(),
+     settings:window.MedControlModular3ProtectedSession?.isUnlocked()?window.MedControlModular3ProtectedSession.read().settings:null,
+     topbarPresent:!!document.querySelector('.topbar')
+    }));
+    console.log('DIAGNOSTIC protected-workspace returning unlock',JSON.stringify({afterUnlock,reloadErrors}));
     await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
     assert.equal(await page.locator('#medcontrolFirstLanguageDialog').count(),0,
      'Returning user must enter without another language confirmation');
