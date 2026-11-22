@@ -31,42 +31,32 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  await page.locator('#unlock').click();
  await expect(page.locator('#workspace')).toBeVisible();
  expect(await page.evaluate(key=>localStorage.getItem(key),DEST)).not.toContain('Synthetic Four Sections');
+ // The canonical Modular-3 workspace owns all four sections; medical pages
+ // redirect to this entry rather than presenting a second local-login form.
+ for(const section of ['input','action','dashboard','archive']){
+  await page.locator('[data-tab="'+section+'"]').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  expect(await page.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.id==='synthetic-four'))).toBe(true);
+ }
+ // Verify the real medical-page guard redirects instead of waiting for a removed form.
+ const guarded=await context.newPage();
+ await guarded.goto(BASE+'/input.html');
+ await expect(guarded).toHaveURL(/\\/modular3-protected\\.html/);
+ await guarded.close();
+ // Offline restart uses the same canonical entry and four section tabs.
  await page.close();
- for(const section of ['input','action','dashboard','archive']){
-  const p=await context.newPage();
-  p.on('dialog',dialog=>dialog.accept(PASS));
-  await p.goto(BASE+'/'+section+'.html');
-  await p.locator('#localLogin #password').fill(PASS);
-  await p.locator('#localLogin #unlock').click();
-  await expect(p.locator('#localLogin')).toHaveCount(0,{timeout:20000});
-  await expect(p.locator('body')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
-  await expect.poll(()=>p.evaluate(()=>{try{return Boolean(window.MedControlModular3ProtectedSession?.read?.()?.medications?.some(m=>m.id==='synthetic-four'));}catch{return false;}}),{timeout:20000}).toBe(true);
-  await p.close();
- }
- // Require a positive acknowledgement from the real service worker before going offline.
- const readiness=await context.newPage();
- readiness.on('dialog',dialog=>dialog.accept(PASS));
- await readiness.goto(BASE+'/input.html');
- await readiness.locator('#localLogin #password').fill(PASS);
- await readiness.locator('#localLogin #unlock').click();
- await expect(readiness.locator('#localLogin')).toHaveCount(0,{timeout:20000});
- await expect.poll(()=>readiness.evaluate(()=>window.medcontrolOfflineShellReady),{timeout:45000}).toBe(true);
- await readiness.close();
  await context.setOffline(true);
+ const offline=await context.newPage();
+ await offline.goto(BASE+'/modular3-protected.html');
+ await offline.locator('#password').fill(PASS);
+ await offline.locator('#unlock').click();
+ await expect(offline.locator('#workspace')).toBeVisible();
  for(const section of ['input','action','dashboard','archive']){
-  const p=await context.newPage();
-  p.on('dialog',dialog=>dialog.accept(PASS));
-  await p.goto(BASE+'/'+section+'.html');
-  await p.locator('#localLogin #password').fill(PASS);
-  await p.locator('#localLogin #unlock').click();
-  await expect(p.locator('#localLogin')).toHaveCount(0,{timeout:20000});
-  await expect(p.locator('body')).not.toContainText('Ошибка запуска MedControl',{timeout:20000});
-  await expect.poll(async()=>p.evaluate(()=>{try{return !!window.MedControlModular3ProtectedSession.read().medications.find(m=>m.id==='synthetic-four');}catch(e){return false;}}),{timeout:20000}).toBe(true);
-  const result=await p.evaluate(({dest,source})=>({state:window.MedControlModular3ProtectedSession.read(),cipher:localStorage.getItem(dest),plaintext:localStorage.getItem(source)}),{dest:DEST,source:SOURCE});
-  expect(result.state?.medications?.some(m=>m.id==='synthetic-four')).toBe(true);
-  expect(result.cipher).not.toContain('Synthetic Four Sections');
-  await p.close();
+  await offline.locator('[data-tab="'+section+'"]').click();
+  expect(await offline.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.id==='synthetic-four'))).toBe(true);
  }
+ expect(await offline.evaluate(key=>localStorage.getItem(key),DEST)).not.toContain('Synthetic Four Sections');
+ await offline.close();
  await context.close();
 });
 
