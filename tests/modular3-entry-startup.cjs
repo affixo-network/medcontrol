@@ -81,7 +81,14 @@ async function run(){
   for(const module of modules){
    // Route-controlled fault injection must not be bypassed or replayed by the service worker.
    context=await browser.newContext({serviceWorkers:'block'});page=await context.newPage();
-   await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);
+   await page.addInitScript(stored=>{
+    // Seed the synthetic vault only on the first navigation in this context.
+    // Re-seeding on the return visit would overwrite the confirmed language.
+    const marker='medcontrol_startup_fixture_seeded';
+    if(sessionStorage.getItem(marker))return;
+    for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);
+    sessionStorage.setItem(marker,'1');
+   },stored);
    let failed=false;
    await context.route('**/*',route=>{
     const url=new URL(route.request().url());
