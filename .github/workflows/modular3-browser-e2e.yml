@@ -118,8 +118,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: chromium-shard-${{ matrix.shard }}-of-4
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    name: chromium-shard-${{ matrix.shard }}-of-8
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -135,7 +135,7 @@ jobs:
       - name: Audit 95 catalogs for untranslated Russian fallbacks
         run: node tests/modular3-single-language-audit.cjs
       - name: Run isolated browser tests
-        run: npx playwright test --config=playwright.modular3.config.cjs --shard=${{ matrix.shard }}/4
+        run: npx playwright test --config=playwright.modular3.config.cjs --shard=${{ matrix.shard }}/8
       - name: Verify complete protected interface and English cycle notice
         if: matrix.shard == 1
         run: node tests/modular3-complete-interface.cjs
