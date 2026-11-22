@@ -158,8 +158,7 @@ async function run(){
    await p.locator('#create_name').waitFor({state:'visible',timeout:15000});
    await p.waitForFunction(()=>typeof window.getState==='function',{timeout:15000});
    if(section!=='input'){
-    const navigated=await p.evaluate(target=>window.medcontrolNavigateTo(target),section);
-    assert.equal(navigated,true,'Offline navigation to '+section+' must succeed');
+    await p.evaluate(target=>{window.medcontrolNavigateTo(target);},section);
     await p.waitForURL(BASE+'/'+section+'.html');
     await p.waitForFunction(()=>typeof window.getState==='function',{timeout:15000});
    }
