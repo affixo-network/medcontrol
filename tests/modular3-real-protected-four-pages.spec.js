@@ -1,5 +1,7 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
+// Full online/offline four-section journeys require more than the default 45s.
+test.setTimeout(180000);
 const BASE='http://127.0.0.1:8765';
 const PASS='Synthetic-Four-Sections-2026';
 const SOURCE='affixo_medcontrol_standard_v3';
