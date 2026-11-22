@@ -41,7 +41,7 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  // Verify the real medical-page guard redirects instead of waiting for a removed form.
  const guarded=await context.newPage();
  await guarded.goto(BASE+'/input.html');
- await expect(guarded).toHaveURL(/\\/modular3-protected\\.html/);
+ await expect(guarded).toHaveURL(/\/modular3-protected\.html/);
  await guarded.close();
  // Offline restart uses the same canonical entry and four section tabs.
  await page.close();
