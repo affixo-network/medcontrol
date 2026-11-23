@@ -36,12 +36,12 @@ async function run(){
   });
   await page.goto(BASE+'/modular3-protected.html');
   await page.locator('#entry-language option').first().waitFor({state:'attached'});
-  assert.equal(await page.locator('#entry-language option').count(),95,
-   'Protected sign-in must offer all 95 languages before unlocking');
+  assert.equal(await page.locator('#entry-language option').count(),96,
+   'Protected sign-in must offer all 96 languages before unlocking');
   assert.equal(await page.locator('#entry-language').inputValue(),'en',
    'English browser must receive English language proposal');
   assert.equal(await page.locator('#password').isVisible(),true);
-  console.log('PASS protected entry has 95 registered languages and browser language proposal');
+  console.log('PASS protected entry has 96 registered languages and browser language proposal');
   await page.evaluate(async password=>window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru'},medications:[{id:'synthetic-startup',name:'Synthetic Startup',active:false,times:['13:00'],startDate:'2026-10-23',endDate:'2026-10-24'}],intakeLogs:[]},password),PASS);
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
@@ -109,17 +109,17 @@ async function run(){
    // merely English and Russian. Synthetic vault only; no real medical data.
    const allEntryLanguages=await page.locator('#entry-language option').evaluateAll(options=>
     options.map(option=>option.value));
-   assert.equal(new Set(allEntryLanguages).size,95,'All 95 entry language codes must be unique');
+   assert.equal(new Set(allEntryLanguages).size,96,'All 96 entry language codes must be unique');
    for(const code of allEntryLanguages){
     await page.locator('#entry-language').selectOption(code);
     assert.equal(await page.locator('#entry-language').inputValue(),code,
      'Language selector must accept '+code);
    }
-   console.log('PASS language selector accepts 95/95 registered language codes');
+   console.log('PASS language selector accepts 96/96 registered language codes');
  
    const registered=await page.locator('#entry-language option').evaluateAll(options=>options.map(option=>option.value));
-   assert.equal(registered.length,95,'Language confirmation must retain all 95 registered languages');
-   assert.equal(registered.includes('fil'),false,'Filipino #96 must not be offered in the 95-language registry');
+   assert.equal(registered.length,96,'Language confirmation must retain all 96 registered languages');
+   assert.equal(registered.includes('fil'),true,'Filipino must be offered in the 96-language registry');
    await page.locator('#entry-language').selectOption('ru');
    await page.locator('#confirm-entry-language').click();
    await page.waitForFunction(()=>{const s=window.MedControlModular3ProtectedSession.read().settings;return s?.languageChoiceConfirmed===true&&s.languageConfirmationVersion===1;});
