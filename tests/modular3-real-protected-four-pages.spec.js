@@ -48,7 +48,7 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  await page.close();
  await context.setOffline(true);
  const offline=await context.newPage();
- await offline.goto(BASE+'/modular3-protected.html');
+ await offline.goto(BASE+'/modular3-protected.html?rehearsal=1');
  await offline.locator('#password').fill(PASS);
  await offline.locator('#unlock').click();
  await expect(offline.locator('#workspace')).toBeVisible({timeout:20000});
@@ -87,7 +87,7 @@ test('real protected input persists a new encrypted course across offline restar
  await seed.close();
  await context.setOffline(true);
  const offline=await context.newPage();
- await offline.goto(BASE+'/modular3-protected.html');
+ await offline.goto(BASE+'/modular3-protected.html?rehearsal=1');
  await offline.locator('#password').fill(pass);
  await offline.locator('#unlock').click();
  await expect(offline.locator('#workspace')).toBeVisible({timeout:20000});
@@ -100,7 +100,7 @@ test('real protected input persists a new encrypted course across offline restar
  expect(await offline.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'))).not.toContain('Offline created course');
  await offline.close();
  const reopened=await context.newPage();
- await reopened.goto(BASE+'/modular3-protected.html');
+ await reopened.goto(BASE+'/modular3-protected.html?rehearsal=1');
  await reopened.locator('#password').fill(pass);
  await reopened.locator('#unlock').click();
  await expect(reopened.locator('#workspace')).toBeVisible({timeout:20000});
