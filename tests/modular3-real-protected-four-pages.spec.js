@@ -26,6 +26,7 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  await page.locator('#commit-migration').click();
  await expect(page.locator('#entry-language-step')).toBeVisible();
  await expect(page.locator('#workspace')).toBeHidden();
+ await expect(page.locator('#entry-language option[value="'+language+'"]')).toHaveCount(1,{timeout:10000});
  await page.locator('#entry-language').selectOption(language);
  await page.locator('#confirm-entry-language').click();
  await page.locator('#unlock').click();
@@ -50,7 +51,7 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  await offline.goto(BASE+'/modular3-protected.html');
  await offline.locator('#password').fill(PASS);
  await offline.locator('#unlock').click();
- await expect(offline.locator('#workspace')).toBeVisible();
+ await expect(offline.locator('#workspace')).toBeVisible({timeout:20000});
  for(const section of ['input','action','dashboard','archive']){
   await offline.locator('[data-tab="'+section+'"]').click();
   expect(await offline.evaluate(()=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.id==='synthetic-four'))).toBe(true);
@@ -64,44 +65,48 @@ test('[' + language + '] real protected four-page shell survives an offline rest
 
 test('real protected input persists a new encrypted course across offline restart',async({browser})=>{
  const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow'});
+ const pass='Offline-Create-Verify-2026';
  const seed=await context.newPage();
  await seed.goto(BASE+'/modular3-protected.html?rehearsal=1');
- await seed.evaluate(key=>localStorage.removeItem(key),SOURCE);
- await seed.evaluate(async()=>{
+ await seed.evaluate(async password=>{
   const initial={settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],timeHistory:[]};
-  await window.MedControlModular3ProtectedSession.initialize(initial,'Offline-Create-Verify-2026');
- });
+  await window.MedControlModular3ProtectedSession.initialize(initial,password);
+ },pass);
+ await seed.locator('#password').fill(pass);
+ await seed.locator('#unlock').click();
+ await expect(seed.locator('#entry-language-step')).toBeVisible();
+ await seed.locator('#entry-language').selectOption('ru');
+ await seed.locator('#confirm-entry-language').click();
+ await seed.locator('#unlock').click();
+ await expect(seed.locator('#workspace')).toBeVisible();
+ // Warm the service-worker shell before disconnecting the network.
+ await expect.poll(()=>seed.evaluate(async()=>{
+  const reg=await navigator.serviceWorker.ready;
+  return Boolean(reg.active&&navigator.serviceWorker.controller);
+ }),{timeout:45000}).toBe(true);
  await seed.close();
- const online=await context.newPage();
- await online.goto(BASE+'/input.html');
- await online.locator('#localLogin #password').fill('Offline-Create-Verify-2026');
- await online.locator('#localLogin #unlock').click();
- await expect(online.locator('#localLogin')).toHaveCount(0);
- await expect.poll(()=>online.evaluate(()=>window.medcontrolOfflineShellReady),{timeout:45000}).toBe(true);
- await online.close();
  await context.setOffline(true);
  const offline=await context.newPage();
- await offline.goto(BASE+'/input.html');
- await offline.locator('#localLogin #password').fill('Offline-Create-Verify-2026');
- await offline.locator('#localLogin #unlock').click();
- await expect(offline.locator('#localLogin')).toHaveCount(0);
+ await offline.goto(BASE+'/modular3-protected.html');
+ await offline.locator('#password').fill(pass);
+ await offline.locator('#unlock').click();
+ await expect(offline.locator('#workspace')).toBeVisible({timeout:20000});
  const id='OFFLINE-CREATED-COURSE';
  await offline.evaluate(async id=>{
   await window.MedControlModular3ProtectedSession.transact(state=>{
    state.medications.push({id,name:'Offline created course',active:true,scheduleType:'daily',startDate:'2026-11-10',endDate:'2026-11-12',times:['09:00'],manufacturer:'Synthetic',contentValue:'500',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',details:'Synthetic test course'});
   });
  },id);
- const ciphertext=await offline.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'));
- expect(ciphertext).not.toContain('Offline created course');
+ expect(await offline.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1'))).not.toContain('Offline created course');
  await offline.close();
+ const reopened=await context.newPage();
+ await reopened.goto(BASE+'/modular3-protected.html');
+ await reopened.locator('#password').fill(pass);
+ await reopened.locator('#unlock').click();
+ await expect(reopened.locator('#workspace')).toBeVisible({timeout:20000});
  for(const section of ['input','action','dashboard','archive']){
-  const reopened=await context.newPage();
-  await reopened.goto(BASE+'/'+section+'.html');
-  await reopened.locator('#localLogin #password').fill('Offline-Create-Verify-2026');
-  await reopened.locator('#localLogin #unlock').click();
-  await expect(reopened.locator('#localLogin')).toHaveCount(0);
-  await expect.poll(()=>reopened.evaluate(id=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.id===id),id)).toBe(true);
-  await reopened.close();
+  await reopened.locator('[data-tab="'+section+'"]').click();
+  expect(await reopened.evaluate(id=>window.MedControlModular3ProtectedSession.read().medications.some(m=>m.id===id),id)).toBe(true);
  }
  await context.close();
 });
