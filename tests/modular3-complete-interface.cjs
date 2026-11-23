@@ -501,7 +501,8 @@ async function run(){
    await entry.locator('#confirm-password').fill(PASS);
    await entry.locator('#enroll').click();
    await entry.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
-   assert.equal(await entry.locator('#entry-language option').count(),95);
+   assert.equal(await entry.locator('#entry-language option').count(),96);
+   assert.equal(await entry.locator('#entry-language option[value="fil"]').count(),1);
    assert.equal(await entry.locator('#entry-language').inputValue(),'en');
    assert.equal(await entry.locator('.topbar').count(),0,'Medical interface must remain locked before explicit entry');
    const inheritedVault=await entry.evaluate(()=>{
@@ -519,7 +520,7 @@ async function run(){
    assert.notEqual(await entry.locator('#topCurrentTime').innerText(),'');
    assert.equal(new URL(entry.url()).pathname,'/input.html');
    assert.equal(await entry.locator('.topbar .nav a').count(),4);
-   console.log('PASS password-first 95-language confirmation and explicit entry open four sections');
+   console.log('PASS password-first 96-language confirmation and explicit entry open four sections');
    const inherited=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'en-US'});
   await inherited.addInitScript(stored=>{
     for(const [key,value] of Object.entries(stored))localStorage.setItem(key,value);
