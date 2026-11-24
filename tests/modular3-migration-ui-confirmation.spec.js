@@ -16,7 +16,9 @@ const SAMPLE={
 };
 async function setup(browser,failWrites=false){
  const oidcToken=process.env.VERCEL_OIDC_TOKEN;
- const context=await browser.newContext({timezoneId:'Asia/Yerevan',serviceWorkers:'allow',...(oidcToken?{extraHTTPHeaders:{'x-vercel-trusted-oidc-idp-token':oidcToken}}:{})});
+ // This suite asserts exact approved Russian status messages. Do not inherit
+ // the runner's device language, which is legitimately proposed after unlock.
+ const context=await browser.newContext({locale:'ru-RU',timezoneId:'Asia/Yerevan',serviceWorkers:'allow',...(oidcToken?{extraHTTPHeaders:{'x-vercel-trusted-oidc-idp-token':oidcToken}}:{})});
  const page=await context.newPage();
  await page.addInitScript(({source,sample,dest,failWrites})=>{
    localStorage.setItem(source,JSON.stringify(sample));

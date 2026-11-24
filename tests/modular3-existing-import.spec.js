@@ -1,5 +1,7 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
+// Exact Russian UI messages below are tested independently of CI host locale.
+test.use({locale:'ru-RU'});
 const BASE='http://127.0.0.1:8765';
 const DATA='medcontrol_modular3_protected_state_v1';
 const CRED='medcontrol_modular3_local_credential_v1';
