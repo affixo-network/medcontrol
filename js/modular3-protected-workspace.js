@@ -198,7 +198,7 @@
   password.closest('label').hidden=true;confirmPasswordLabel.hidden=true;
   document.getElementById('unlock').hidden=true;
   document.getElementById('enroll').hidden=true;
-  notice('MedControl');
+  notice('Подтвердите язык интерфейса.');
  }
  confirmEntryLanguage.onclick=async()=>{
   if(!languagePending||!session.isUnlocked())return;
