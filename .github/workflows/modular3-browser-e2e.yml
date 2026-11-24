@@ -4,6 +4,9 @@ on:
     branches: [modular-3.000]
     paths:
       - 'js/auth-guard.js'
+      - 'js/modular3-entry-languages.js'
+      - 'tests/modular3-entry-policy.test.cjs'
+      - 'modular3-static-cache-sw.js'
       - 'js/modular3-action-help.js'
       - 'js/settings.js'
       - 'js/modular3-locale-bootstrap.js'
@@ -134,6 +137,8 @@ jobs:
           npx playwright install chromium
       - name: Audit 95 catalogs for untranslated Russian fallbacks
         run: node tests/modular3-single-language-audit.cjs
+      - name: Validate all 96 protected entry locales and canonical IDs
+        run: node tests/modular3-entry-policy.test.cjs
       - name: Run isolated browser tests
         run: npx playwright test --config=playwright.modular3.config.cjs --shard=${{ matrix.shard }}/8
       - name: Verify complete protected interface and English cycle notice

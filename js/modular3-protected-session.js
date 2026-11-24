@@ -8,7 +8,7 @@
  if(!CREDENTIAL||!VAULT)throw Error('Modular-3 protected dependencies unavailable');
  const DATA_KEY='medcontrol_modular3_protected_state_v1';
  const WRITE_LOCK='medcontrol-modular3-protected-write';
- let secret=null,state=null,checkpoint=null,chain=Promise.resolve();
+ let secret=null,state=null,checkpoint=null,entryAuthorized=false,chain=Promise.resolve();
  const clone=x=>structuredClone(x);
  function requireOpen(){if(!secret||!state||!CREDENTIAL.isUnlocked())throw Error('Protected session locked');}
  const api={
@@ -30,7 +30,7 @@
      if(!await CREDENTIAL.unlock(password))throw Error('Initial credential verification failed');
      const restored=await VAULT.open(JSON.parse(saved),password);
      if(JSON.stringify(restored)!==JSON.stringify(initial))throw Error('Initial encrypted checkpoint mismatch');
-     secret=password;state=restored;checkpoint=saved;
+     secret=password;state=restored;checkpoint=saved;entryAuthorized=false;
      return true;
     }catch(error){
      // Never delete a vault when a credential exists: the pair can be usable,
@@ -42,7 +42,7 @@
    });
   },
   async unlock(password){
-   secret=null;state=null;checkpoint=null;
+   secret=null;state=null;checkpoint=null;entryAuthorized=false;
    if(!await CREDENTIAL.unlock(password))return false;
    try{
     const raw=localStorage.getItem(DATA_KEY);
@@ -76,6 +76,7 @@
      const verified=await VAULT.open(JSON.parse(stored),secret);
      if(JSON.stringify(verified)!==JSON.stringify(next))throw Error('Encrypted checkpoint content mismatch');
      state=verified;checkpoint=encoded;
+     if(!root.MedControlEntryLanguages?.confirmed(state.settings))entryAuthorized=false;
      return clone(state);
     }catch(error){
      // Preserve the last verified encrypted snapshot when a new write fails.
@@ -97,8 +98,16 @@
    chain=task.catch(()=>{});
    return task;
   },
-  async lock(){await chain;secret=null;state=null;checkpoint=null;CREDENTIAL.lock();},
+  async lock(){await chain;secret=null;state=null;checkpoint=null;entryAuthorized=false;CREDENTIAL.lock();},
   isUnlocked(){return Boolean(secret&&state&&CREDENTIAL.isUnlocked());},
+  authorizeEntry(){
+   requireOpen();
+   if(!root.MedControlEntryLanguages?.confirmed(state.settings))throw Error('Canonical language confirmation required');
+   entryAuthorized=true;
+   return true;
+  },
+  isEntryAuthorized(){return entryAuthorized&&Boolean(secret&&state&&CREDENTIAL.isUnlocked())&&
+   root.MedControlEntryLanguages?.confirmed(state.settings)===true;},
   storageKey:DATA_KEY
  };
  root.MedControlModular3ProtectedSession=Object.freeze(api);

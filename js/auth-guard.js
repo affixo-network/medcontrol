@@ -4,7 +4,7 @@
   const SUPABASE_URL='https://lewdbjjaohqxbirzhrbm.supabase.co';
   const SUPABASE_ANON_KEY='sb_publishable_AKV7EBBgChuoMpGJlwxwig_OYo4bzKZ';
   const SUPABASE_STORAGE_KEY='sb-lewdbjjaohqxbirzhrbm-auth-token';
-  const protectedModules=['js/modular3-encrypted-vault.js','js/modular3-offline-credential.js','js/modular3-protected-session.js','js/modular3-write-boundary.js','js/modular3-course-lifecycle-browser.js','js/modular3-protected-pages.js','js/modular3-final-intake.js'];
+  const protectedModules=['js/modular3-entry-languages.js','js/modular3-encrypted-vault.js','js/modular3-offline-credential.js','js/modular3-protected-session.js','js/modular3-write-boundary.js','js/modular3-course-lifecycle-browser.js','js/modular3-protected-pages.js','js/modular3-final-intake.js'];
   const common=['js/translations.js','js/storage.js?v=force-majeure-20260918-2','js/cloud-snapshot.js?v=force-majeure-20260918-2'];
   const reset='js/archive-reset-policy.js?v=manual-reset-recovery-1';
   const loadedScriptPaths=new Set(Array.from(document.scripts||[]).filter(script=>script.src&&script!==currentScript).map(script=>new URL(script.src,window.location.href).pathname));
@@ -80,20 +80,20 @@
     }
   }
   async function ensureSelectedPublicLocale(){
-    // Optional only: the built-in RU/EN UI remains available without network.
-    if(!window.medcontrolProtectedInterface || typeof getState!=='function')return false;
-    const language=getState()?.settings?.interfaceLanguage;
-    // A legacy translation registration alone does not mean the full 639-entry
-    // static UI dictionary was installed for this protected session.
-    if(!language || language==='ru' ||
-       (TRANSLATIONS[language] && window.MedControlProtectedUiCatalogs?.[language]))return false;
-    try{
-      await loadScript('js/modular3-locale-bootstrap.js');
-      return await window.MedControlLocaleBootstrap.install({
-        language, fallback:TRANSLATIONS.en, fetcher:window.fetch.bind(window),
-        loadScript, register:registerPreparedLanguage
-      });
-    }catch(_){return false;}
+    if(!window.medcontrolProtectedInterface||typeof getState!=='function')return false;
+    const settings=getState()?.settings,language=settings?.interfaceLanguage;
+    if(!window.MedControlEntryLanguages?.confirmed(settings))throw Error('Unconfirmed entry language');
+    if(language==='ru')return true;
+    if(TRANSLATIONS[language]&&window.MedControlProtectedUiCatalogs?.[language])return true;
+    await window.MedControlEntryLanguages.prepare(language);
+    await loadScript('js/modular3-locale-bootstrap.js');
+    const installed=await window.MedControlLocaleBootstrap.install({
+      language,fallback:TRANSLATIONS.en,fetcher:window.fetch.bind(window),
+      loadScript,register:prepared=>language==='en'?true:registerPreparedLanguage(prepared)
+    });
+    if(installed===false||!window.MedControlProtectedUiCatalogs?.[language])
+      throw Error('Selected language catalog activation failed: '+language);
+    return true;
   }
   function populateProtectedLanguageSelector(){
     // Modular-3 enhancement only: never modify the immutable Modular-2 renderer.
@@ -159,7 +159,7 @@
   const protectedOriginalAriaLabels=new WeakMap();
   const protectedOriginalTitles=new WeakMap();
   function localizeProtectedLegacyUi(){
-    if(!window.medcontrolProtectedInterface)return;
+    if(!window.medcontrolProtectedInterface||!window.MedControlModular3ProtectedSession?.isEntryAuthorized())return;
     const language=getState()?.settings?.interfaceLanguage;
     if(!language)return;
     // Use the selected public catalog for the same legacy keys in every section.
@@ -374,7 +374,7 @@
     // Detect the browser's ordered language preferences independently of the
     // rehearsal-only protected workspace. Do not infer a confirmed choice from
     // the language inherited from an existing vault.
-    const supported = MEDCONTROL_CANONICAL_LANGUAGES.filter(item => item.id <= 95);
+    const supported = MEDCONTROL_CANONICAL_LANGUAGES.filter(item => item.id <= 96);
     const preferences = Array.isArray(navigator.languages) && navigator.languages.length
       ? navigator.languages : [navigator.language];
     const entry = preferences.map(raw => String(raw || '').toLowerCase().split('-')[0])
@@ -399,7 +399,7 @@
     const search = document.createElement('input');
     search.type = 'search';
     search.placeholder = promptText('Поиск языка', 'Search language');
-    search.setAttribute('aria-label', 'Search language');
+    search.setAttribute('aria-label', promptText('Поиск языка', 'Search language'));
     search.style.cssText = 'box-sizing:border-box;width:100%;padding:10px;margin:8px 0';
     dialog.appendChild(search);
     const results = document.createElement('div');
@@ -411,7 +411,7 @@
     const draw = () => {
       const query = normalizeMedControlLanguageQuery(search.value);
       results.replaceChildren();
-      const matches = MEDCONTROL_CANONICAL_LANGUAGES.filter(item => item.id <= 95 &&
+      const matches = MEDCONTROL_CANONICAL_LANGUAGES.filter(item => item.id <= 96 &&
         (!query || medControlLanguageSearchAliases(item).some(alias => alias.includes(query))));
       for (const item of matches) {
         const button = document.createElement('button');
@@ -452,6 +452,7 @@
   }
   window.medcontrolNavigateTo=async function(targetPage,options={}){
     if(!scriptsByPage[targetPage])return false;
+    if(window.medcontrolProtectedInterface&&!window.MedControlModular3ProtectedSession?.isEntryAuthorized())return false;
     // Input uses layered render wrappers; a fresh page guarantees they initialize in order.
     if(!window.medcontrolProtectedInterface && targetPage==='input' && window.location.pathname!=='/input.html'){
       window.location.assign('/input.html');
@@ -601,12 +602,12 @@
       // A direct medical-page visit must use the canonical password -> language -> Enter flow.
       // Redirect before unlocking: navigating after unlock would discard the in-memory key
       // and force a second password prompt. No encrypted state is modified here.
-      if(!window.MedControlModular3ProtectedSession.isUnlocked()){
+      if(!window.MedControlModular3ProtectedSession.isEntryAuthorized()){
         window.location.replace('/modular3-protected.html');
         return;
       }
       const entrySettings=window.MedControlModular3ProtectedSession.read()?.settings||{};
-      if(entrySettings.languageChoiceConfirmed!==true||entrySettings.languageConfirmationVersion!==1){
+      if(!window.MedControlEntryLanguages.confirmed(entrySettings)){
         window.location.replace('/modular3-protected.html');
         return;
       }
@@ -621,11 +622,8 @@
       window.medcontrolOfflineShellReady=await registerStaticOfflineCache();
       return;
     }
-    const verified=await createVerifiedSupabase();
-    if(!attachVerifiedSupabase(verified))return;
-    await restoreCloudBeforeOpeningPage();
-    await startPage(list);
-    registerStaticOfflineCache();
-    prefetchOtherPageScripts(page);
+    // No Modular-3 fallback to a different authorization system.
+    window.location.replace('/modular3-protected.html');
+    return;
   }catch(error){console.error('MedControl Auth Guard failed.',error);showStartupError('Не удалось запустить MedControl. Локальные данные не удалялись.\n\n'+(error&&error.message?error.message:error));}
 })();

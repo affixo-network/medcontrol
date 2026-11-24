@@ -10,7 +10,7 @@
  const screen=document.getElementById('screen');
  let section='input';
 
- // Canonical 95-language registry; Filipino (#96) is intentionally excluded.
+ // Canonical 96-language registry including Filipino (#96).
  const languageRegistry=[["ru","русский","Russian"],["en","English","English"],["fr","français","French"],["de","Deutsch","German"],["es","español","Spanish"],["it","italiano","Italian"],["pt","português","Portuguese"],["af","Afrikaans","Afrikaans"],["am","አማርኛ","Amharic"],["ar","العربية","Arabic"],["az","azərbaycan","Azerbaijani"],["be","беларуская","Belarusian"],["bg","български","Bulgarian"],["bn","বাংলা","Bangla"],["bs","bosanski","Bosnian"],["ca","català","Catalan"],["cs","čeština","Czech"],["da","dansk","Danish"],["nl","Nederlands","Dutch"],["et","eesti","Estonian"],["fi","suomi","Finnish"],["fy","Frysk","Western Frisian"],["el","Ελληνικά","Greek"],["gu","ગુજરાતી","Gujarati"],["he","עברית","Hebrew"],["hi","हिन्दी","Hindi"],["gl","galego","Galician"],["ka","ქართული","Georgian"],["sq","shqip","Albanian"],["hy","հայերեն","Armenian"],["eu","euskara","Basque"],["ceb","Cebuano","Cebuano"],["zh","中文","Chinese"],["co","Corsican","Corsican"],["hr","hrvatski","Croatian"],["eo","Esperanto","Esperanto"],["ht","Haitian Creole","Haitian Creole"],["ha","Hausa","Hausa"],["hmn","Hmong","Hmong"],["hu","magyar","Hungarian"],["is","íslenska","Icelandic"],["ig","Igbo","Igbo"],["id","Indonesia","Indonesian"],["ga","Gaeilge","Irish"],["ja","日本語","Japanese"],["jv","Jawa","Javanese"],["kn","ಕನ್ನಡ","Kannada"],["kk","қазақ тілі","Kazakh"],["km","ខ្មែរ","Khmer"],["ko","한국어","Korean"],["ku","kurdî (kurmancî)","Kurdish"],["ky","кыргызча","Kyrgyz"],["lo","ລາວ","Lao"],["lv","latviešu","Latvian"],["lt","lietuvių","Lithuanian"],["lb","Lëtzebuergesch","Luxembourgish"],["mk","македонски","Macedonian"],["mg","Malagasy","Malagasy"],["ms","Melayu","Malay"],["ml","മലയാളം","Malayalam"],["mt","Malti","Maltese"],["mr","मराठी","Marathi"],["mn","монгол","Mongolian"],["my","မြန်မာ","Burmese"],["ne","नेपाली","Nepali"],["no","norsk","Norwegian"],["ps","پښتو","Pashto"],["fa","فارسی","Persian"],["pl","polski","Polish"],["pa","ਪੰਜਾਬੀ","Punjabi"],["ro","română","Romanian"],["gd","Gàidhlig","Scottish Gaelic"],["sr","српски","Serbian"],["sd","سنڌي","Sindhi"],["si","සිංහල","Sinhala"],["sk","slovenčina","Slovak"],["sl","slovenščina","Slovenian"],["so","Soomaali","Somali"],["su","Basa Sunda","Sundanese"],["sw","Kiswahili","Swahili"],["sv","svenska","Swedish"],["tg","тоҷикӣ","Tajik"],["ta","தமிழ்","Tamil"],["te","తెలుగు","Telugu"],["th","ไทย","Thai"],["tr","Türkçe","Turkish"],["uk","українська","Ukrainian"],["ur","اردو","Urdu"],["uz","o‘zbek","Uzbek"],["vi","Tiếng Việt","Vietnamese"],["cy","Cymraeg","Welsh"],["xh","IsiXhosa","Xhosa"],["yi","ייִדיש","Yiddish"],["yo","Èdè Yorùbá","Yoruba"],["zu","isiZulu","Zulu"],["fil","Filipino","Filipino"]];
  const languageLabels={
   ru:['Ввод','Приём препаратов','Табло','Архив','Выйти','Язык интерфейса','Подтвердить язык','Изменить язык','Предлагаемый язык браузера','Язык сохранён'],
@@ -27,7 +27,7 @@
  languageSelect.id='protected-language-select';
  languageSelect.style.cssText='max-width:100%;margin:0 8px;padding:7px';
  for(const [code,native,english] of languageRegistry){
-  const option=document.createElement('option');option.value=code;option.textContent=native+' / '+english;
+  const option=document.createElement('option');option.value=code;option.textContent=native;
   languageSelect.append(option);
  }
  const languageConfirm=document.createElement('button');
@@ -38,14 +38,14 @@
  workspace.insertBefore(languagePanel,workspace.firstChild);
  function deviceLanguage(){
   const candidates=Array.isArray(navigator.languages)?navigator.languages:[navigator.language];
-  for(const raw of candidates){const code=String(raw||'').toLowerCase().split('-')[0];if(languageRegistry.some(item=>item[0]===code))return code;}
+  return window.MedControlEntryLanguages.propose(candidates);
   return 'en';
  }
  function applyLanguage(code){
-  currentLanguage=languageRegistry.some(item=>item[0]===code)?code:'ru';
+  currentLanguage=window.MedControlEntryLanguages.resolve(code)||'ru';
   const labels=languageLabels[currentLanguage]||languageLabels.en;
   document.documentElement.lang=currentLanguage;
-  document.documentElement.dir=['ar','fa','he','ur'].includes(currentLanguage)?'rtl':'ltr';
+  document.documentElement.dir=window.MedControlEntryLanguages.registry.find(item=>item.code===currentLanguage)?.direction||'ltr';
   document.querySelectorAll('#workspace nav [data-tab]').forEach((button,index)=>button.textContent=labels[index]);
   document.getElementById('lock').textContent=labels[4];
   languageTitle.textContent=labels[5]+': ';
@@ -56,7 +56,7 @@
  function offerLanguage(){
   if(!session.isUnlocked())return;
   const settings=session.read().settings||{};
-  const confirmed=settings.languageChoiceConfirmed===true;
+  const confirmed=window.MedControlEntryLanguages.confirmed(settings);
   const proposed=confirmed?settings.interfaceLanguage:deviceLanguage();
   applyLanguage(proposed);
   languageSelect.value=currentLanguage;
@@ -65,10 +65,11 @@
   if(confirmed)render();
  }
  languageConfirm.onclick=async()=>{
-  if(!session.isUnlocked())return;
+  if(!session.isEntryAuthorized())return;
   const code=languageSelect.value;
   languageConfirm.disabled=true;
   try{
+   await window.MedControlEntryLanguages.prepare(code);
    await session.transact(state=>{
     state.settings=state.settings||{};
     state.settings.interfaceLanguage=code;
@@ -83,7 +84,7 @@
  const changeLanguage=document.createElement('button');
  changeLanguage.id='protected-language-change';
  changeLanguage.type='button';
- changeLanguage.onclick=()=>{if(session.isUnlocked()){languagePanel.hidden=false;languageSelect.value=currentLanguage;languageSelect.focus();}};
+ changeLanguage.onclick=()=>{if(session.isEntryAuthorized()){languagePanel.hidden=false;languageSelect.value=currentLanguage;languageSelect.focus();}};
  workspace.querySelector('nav').append(changeLanguage);
  function updateLanguageChange(){changeLanguage.textContent=(languageLabels[currentLanguage]||languageLabels.en)[7];}
 
@@ -157,22 +158,53 @@
  let languagePending=false;
  let languageConfirmed=false;
  const preferences=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language];
- const suggested=preferences.map(value=>String(value||'').toLowerCase().split('-')[0])
-  .find(code=>languageRegistry.some(item=>item[0]===code))||'en';
+ const suggested='ru';
+ let entryLocaleVersion=0;
+ async function renderEntryLanguage(){
+  const ticket=++entryLocaleVersion;
+  const code=entryLanguage.value||'en',policy=window.MedControlEntryLanguages;
+  confirmEntryLanguage.disabled=true;
+  document.documentElement.lang=code;
+  document.documentElement.dir=policy.registry.find(item=>item.code===code)?.direction||'ltr';
+  document.getElementById('entry-language-label').firstChild.textContent='MedControl ';
+  document.getElementById('entry-language-hint').textContent='';
+  try{
+   const prepared=await policy.prepare(code);
+   if(ticket!==entryLocaleVersion)return;
+   const localized=value=>code==='ru'?value:policy.translate(prepared,value);
+   const language=localized('Язык интерфейса');
+   const confirm=localized('Подтвердить');
+   const enter=localized('Войти');
+   if(!language||!confirm||!enter)throw Error('Mandatory entry labels are missing for '+code);
+   document.getElementById('entry-language-label').firstChild.textContent=language+' ';
+   entryLanguage.setAttribute('aria-label',language);
+   confirmEntryLanguage.textContent=confirm;
+   document.getElementById('unlock').textContent=enter;
+   confirmEntryLanguage.disabled=false;
+  }catch(error){
+   if(ticket!==entryLocaleVersion)return;
+   document.getElementById('entry-language-hint').textContent='MedControl: '+error.message;
+  }
+ }
+ entryLanguage.addEventListener('change',renderEntryLanguage);
  entryLanguage.replaceChildren();
- for(const [code,native,english] of languageRegistry)entryLanguage.add(new Option(native+' — '+english,code));
+ for(const [code,native,english] of languageRegistry)entryLanguage.add(new Option(native,code));
  entryLanguage.value=suggested;
  function beginLanguageStep(){
-  languagePending=true;languageConfirmed=false;languageStep.hidden=false;
+  languagePending=true;languageConfirmed=false;
+  for(const child of login.children)if(child!==languageStep&&child.id!=='unlock')child.hidden=true;
+  entryLanguage.value=window.MedControlEntryLanguages.propose(preferences);
+  renderEntryLanguage();languageStep.hidden=false;
   password.closest('label').hidden=true;confirmPasswordLabel.hidden=true;
   document.getElementById('unlock').hidden=true;
   document.getElementById('enroll').hidden=true;
-  notice('Подтвердите язык интерфейса.');
+  notice('MedControl');
  }
  confirmEntryLanguage.onclick=async()=>{
   if(!languagePending||!session.isUnlocked())return;
   confirmEntryLanguage.disabled=true;
   try{
+   await window.MedControlEntryLanguages.prepare(entryLanguage.value);
    await session.transact(state=>{
     state.settings=state.settings||{};
     state.settings.interfaceLanguage=entryLanguage.value;
@@ -182,8 +214,8 @@
    languagePending=false;languageConfirmed=true;languageStep.hidden=true;
    document.getElementById('unlock').hidden=false;
    document.getElementById('unlock').disabled=false;
-   document.getElementById('unlock').textContent='Войти';
-   notice('Язык сохранён. Нажмите «Войти», чтобы открыть MedControl.');
+   renderEntryLanguage();
+   notice('MedControl');
    // Keep the unlocked session in memory; the user explicitly enters with the button.
    // languageConfirmed remains true until that click.
   }catch(error){notice('Не удалось сохранить язык: '+error.message);}
@@ -197,7 +229,8 @@
  }
  function show(){
   // No protected interface may open before first-run language confirmation.
-  if(session.isUnlocked()&&(session.read().settings?.languageChoiceConfirmed!==true||session.read().settings?.languageConfirmationVersion!==1)){beginLanguageStep();return;}
+  if(session.isUnlocked()&&!window.MedControlEntryLanguages.confirmed(session.read().settings)){beginLanguageStep();return;}
+  if(!session.isEntryAuthorized())throw Error('Explicit Enter authorization required');
   // Enter the established four-page Modular-3 interface after protected unlock.
   // Its auth guard retains the unlocked encrypted session and offers first-run language selection.
   if(new URLSearchParams(window.location.search).get('rehearsal')==='1'){
@@ -212,7 +245,7 @@
   document.head.appendChild(script);
  }
  function render(){
-  if(!session.isUnlocked()){workspace.hidden=true;login.hidden=false;screen.replaceChildren();return;}
+  if(!session.isEntryAuthorized()){workspace.hidden=true;login.hidden=false;screen.replaceChildren();return;}
   const state=pages.read(section);
   screen.replaceChildren();
   const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
@@ -782,7 +815,7 @@
    setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){notice('Не удалось скачать сохранённую копию: '+error.message);}
  };
- document.getElementById('open-imported').onclick=()=>{if(session.isUnlocked())show();};
+ document.getElementById('open-imported').onclick=()=>{if(session.isEntryAuthorized())show();};
  refreshImportControls();
  document.getElementById('import-backup').onclick=async()=>{
   const selected=document.getElementById('legacy-backup').files?.[0];
@@ -869,7 +902,11 @@
  };
  document.getElementById('unlock').onclick=async()=>{
   const button=document.getElementById('unlock');
-  if(languageConfirmed){languageConfirmed=false;password.value='';show();return;}
+  if(languageConfirmed){
+   try{await window.MedControlEntryLanguages.prepare(session.read().settings.interfaceLanguage);session.authorizeEntry();languageConfirmed=false;password.value='';show();}
+   catch(error){notice('Выбранный языковой каталог недоступен: '+error.message);}
+   return;
+  }
   if(!password.value){notice('Введите локальный пароль.');return;}
   try{
    const vault=localStorage.getItem('medcontrol_modular3_protected_state_v1');
@@ -881,8 +918,9 @@
    if(await session.unlock(password.value)){
     password.value='';
     const settings=session.read().settings||{};
-    if(settings.languageChoiceConfirmed===true&&settings.languageConfirmationVersion===1){
-     notice('Автономный вход выполнен.');show();
+    if(window.MedControlEntryLanguages.confirmed(settings)){
+     try{await window.MedControlEntryLanguages.prepare(settings.interfaceLanguage);session.authorizeEntry();notice('Автономный вход выполнен.');show();}
+     catch(error){await session.lock();notice('Языковой каталог недоступен: '+error.message);}
     }else beginLanguageStep();
    }else notice('Неверный пароль.');
   }catch(error){notice('Ошибка входа: '+error.message);}
@@ -898,7 +936,7 @@
   }catch(error){notice('Не удалось создать хранилище: '+error.message);}
   finally{button.disabled=false;}
  };
- document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{section=button.dataset.tab;render();});
+ document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{if(!session.isEntryAuthorized())return;section=button.dataset.tab;render();});
  document.getElementById('lock').onclick=async()=>{await session.lock();notice('Данные заблокированы.');render();};
  render();
  window.medcontrolProtectedWorkspaceReady=true;

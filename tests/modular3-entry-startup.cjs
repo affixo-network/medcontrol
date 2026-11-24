@@ -38,8 +38,8 @@ async function run(){
   await page.locator('#entry-language option').first().waitFor({state:'attached'});
   assert.equal(await page.locator('#entry-language option').count(),96,
    'Protected sign-in must offer all 96 languages before unlocking');
-  assert.equal(await page.locator('#entry-language').inputValue(),'en',
-   'English browser must receive English language proposal');
+  assert.equal(await page.locator('#entry-language').inputValue(),'ru',
+   'Language proposal must not be computed before the first successful password unlock');
   assert.equal(await page.locator('#password').isVisible(),true);
   console.log('PASS protected entry has 96 registered languages and browser language proposal');
   await page.evaluate(async password=>window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru'},medications:[{id:'synthetic-startup',name:'Synthetic Startup',active:false,times:['13:00'],startDate:'2026-10-23',endDate:'2026-10-24'}],intakeLogs:[]},password),PASS);
@@ -61,12 +61,17 @@ async function run(){
   }
   await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
   await page.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
+  assert.equal(await page.locator('#entry-language').inputValue(),'en',
+   'Device language must be proposed only after successful password unlock');
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.isEntryAuthorized()),false,
+   'Decrypting the vault must not authorize application entry');
   assert.equal(await page.locator('.topbar').count(),0);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before,
    'Language confirmation step must not alter encrypted vault');
   await page.locator('#entry-language').selectOption('ru');
   await page.locator('#confirm-entry-language').click();
   await page.waitForFunction(()=>{const s=window.MedControlModular3ProtectedSession.read().settings;return s?.languageChoiceConfirmed===true&&s.languageConfirmationVersion===1;});
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.isEntryAuthorized()),false);
   await page.locator('#unlock').click();
   await page.locator('.topbar').waitFor({state:'visible',timeout:20000});
   assert.equal(new URL(page.url()).pathname,'/input.html',
