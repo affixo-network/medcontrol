@@ -79,21 +79,71 @@
       window.MedControlModular3FinalIntake?.install();
     }
   }
-  async function ensureSelectedPublicLocale(){
-    if(!window.medcontrolProtectedInterface||typeof getState!=='function')return false;
-    const settings=getState()?.settings,language=settings?.interfaceLanguage;
-    if(!window.MedControlEntryLanguages?.confirmed(settings))throw Error('Unconfirmed entry language');
+  async function stagePublicLocale(language){
+    if(!window.MedControlEntryLanguages.registry.some(entry=>entry.code===language))throw Error('Unsupported interface language');
     if(language==='ru')return true;
-    if(TRANSLATIONS[language]&&window.MedControlProtectedUiCatalogs?.[language])return true;
-    await window.MedControlEntryLanguages.prepare(language);
+    if(TRANSLATIONS[language]&&window.MedControlProtectedUiCatalogs?.[language]&&
+       (language!=='en'||window.MedControlProtectedRuntimeLabels?.en))return true;
     await loadScript('js/modular3-locale-bootstrap.js');
     const installed=await window.MedControlLocaleBootstrap.install({
       language,fallback:TRANSLATIONS.en,fetcher:window.fetch.bind(window),
-      loadScript,register:prepared=>language==='en'?true:registerPreparedLanguage(prepared)
+      loadScript,register:prepared=>{
+        if(language==='en'){
+          window.MedControlProtectedRuntimeLabels=Object.freeze({
+            ...window.MedControlProtectedRuntimeLabels,en:prepared.labels
+          });
+          return true;
+        }
+        return TRANSLATIONS[language]?true:registerPreparedLanguage(prepared);
+      }
     });
-    if(installed===false||!window.MedControlProtectedUiCatalogs?.[language])
+    if(installed===false||!TRANSLATIONS[language]||!window.MedControlProtectedUiCatalogs?.[language])
       throw Error('Selected language catalog activation failed: '+language);
     return true;
+  }
+  window.medcontrolPrepareProtectedLocale=stagePublicLocale;
+  let validatedActiveLanguage=null;
+  async function ensureSelectedPublicLocale(){
+    if(!window.medcontrolProtectedInterface||typeof getState!=='function')return false;
+    const session=window.MedControlModular3ProtectedSession;
+    const settings=session.read()?.settings;
+    if(!window.MedControlEntryLanguages.confirmed(settings))throw Error('Unconfirmed entry language');
+    if(validatedActiveLanguage===settings.interfaceLanguage)return true;
+    validatedActiveLanguage=null;
+    await window.MedControlEntryLanguages.restore(session,{stage:prepared=>stagePublicLocale(prepared.code)});
+    validatedActiveLanguage=settings.interfaceLanguage;
+    return true;
+  }
+  function applyProtectedLocaleDirection(language){
+    const entry=window.MedControlEntryLanguages.registry.find(item=>item.code===language);
+    if(!entry)throw Error('Unsupported interface language');
+    document.documentElement.lang=language;
+    document.documentElement.dir=entry.direction;
+  }
+  async function closeProtectedLocaleFailure(error,options={}){
+    const session=window.MedControlModular3ProtectedSession;
+    const expected=options.expectedEntryEpoch??error?.expectedEntryEpoch;
+    const stale=expected!==undefined&&session.entryEpoch?.()!==expected;
+    if(stale&&session.isEntryAuthorized?.()===true)return;
+    validatedActiveLanguage=null;
+    window.medcontrolProtectedLocaleRefreshError=String(error?.message||error);
+    const app=document.getElementById('app');
+    if(app)app.textContent=window.medcontrolProtectedLocaleFailureLabel||'MedControl';
+    if(!stale)await session.lock();
+  }
+  async function installProtectedLocaleController(){
+    await loadScript('js/modular3-protected-locale-controller.js');
+    window.MedControlProtectedLocaleController.install({
+      session:window.MedControlModular3ProtectedSession,
+      policy:window.MedControlEntryLanguages,stage:stagePublicLocale,
+      render:async()=>{
+        const current=window.location.pathname.split('/').pop().replace(/\.html$/,'');
+        const result=await window.medcontrolNavigateTo(['input','action','dashboard','archive'].includes(current)?current:'input',{history:false});
+        await refreshStaticOfflineCache();
+        return result;
+      },
+      failClosed:closeProtectedLocaleFailure
+    });
   }
   function populateProtectedLanguageSelector(){
     // Modular-3 enhancement only: never modify the immutable Modular-2 renderer.
@@ -102,7 +152,7 @@
     if(!selector)return;
     const selected=getState()?.settings?.interfaceLanguage;
     const known=new Set(Array.from(selector.options,option=>option.value));
-    for(const [code,label] of SUPPORTED_LANGUAGES){
+    for(const {code,name:label} of window.MedControlEntryLanguages.registry){
       if(!known.has(code)){
         selector.add(new Option(label,code));
         known.add(code);
@@ -161,13 +211,16 @@
   function localizeProtectedLegacyUi(){
     if(!window.medcontrolProtectedInterface||!window.MedControlModular3ProtectedSession?.isEntryAuthorized())return;
     const language=getState()?.settings?.interfaceLanguage;
-    if(!language)return;
+    if(!language)throw Error('Confirmed interface language missing');
+    applyProtectedLocaleDirection(language);
+    window.MedControlProtectedLocaleController?.applyLayout(document);
     // Use the selected public catalog for the same legacy keys in every section.
     // Only UI labels are eligible: never rewrite patient text or medical table cells.
     const labels=Object.create(null);
+    const selectedLabels=window.MedControlProtectedRuntimeLabels?.[language]||TRANSLATIONS[language];
     if(typeof TRANSLATIONS!=='undefined'&&TRANSLATIONS.ru&&TRANSLATIONS[language]){
       for(const [key,russian] of Object.entries(TRANSLATIONS.ru)){
-        const translated=TRANSLATIONS[language][key];
+        const translated=selectedLabels[key];
         if(typeof russian==='string'&&typeof translated==='string'&&russian!==translated)
           labels[russian]=translated;
       }
@@ -290,12 +343,14 @@
     // Keep the browser title in the selected language after protected renders.
     const currentPage=window.location.pathname.split('/').pop().replace(/\.html$/,'');
     const titleKey={input:'title_input',action:'title_action',dashboard:'title_dashboard',archive:'title_archive'}[currentPage];
-    const localizedTitle=titleKey&&typeof TRANSLATIONS!=='undefined'&&TRANSLATIONS[language]?.[titleKey];
+    const localizedTitle=titleKey&&typeof TRANSLATIONS!=='undefined'&&selectedLabels?.[titleKey];
     // Archive has no title_archive key in the legacy translation schema.
     // Its visible navigation label is the translated fallback for every language.
     const archiveLabel=currentPage==='archive'&&typeof TRANSLATIONS!=='undefined'
-      ? TRANSLATIONS[language]?.nav_archive : null;
-    const resolvedTitle=typeof localizedTitle==='string'&&localizedTitle.trim()
+      ? selectedLabels?.nav_archive : null;
+    const completeArchiveTitle=currentPage==='archive'?catalogLabels?.['MedControl — Архив']:null;
+    const resolvedTitle=typeof completeArchiveTitle==='string'&&completeArchiveTitle.trim()?completeArchiveTitle
+      : typeof localizedTitle==='string'&&localizedTitle.trim()
       ? localizedTitle
       : typeof archiveLabel==='string'&&archiveLabel.trim()
         ? 'MedControl — '+archiveLabel
@@ -323,7 +378,7 @@
           localizeProtectedLegacyUi();
         }catch(error){
           console.error('Protected locale refresh failed',error);
-          window.medcontrolProtectedLocaleRefreshError=String(error?.message||error);
+          await closeProtectedLocaleFailure(error);
         }finally{
           observer.observe(document.documentElement,observeOptions);
           scheduled=false;
@@ -506,10 +561,10 @@
       const worker=ready.active;
       if(!worker)return false;
       // Cache the active public language and its loader modules for an offline restart.
-      // Do not prefetch all 94 catalogs or access medical records for caching.
+      // Cache only the selected catalog, never medical records or all catalogs.
       const selectedLanguage=window.medcontrolProtectedInterface&&typeof getState==='function'
         ? getState()?.settings?.interfaceLanguage : null;
-      const localeAssets=selectedLanguage&&selectedLanguage!=='ru'&&selectedLanguage!=='en'&&
+      const localeAssets=selectedLanguage&&selectedLanguage!=='ru'&&
         typeof SUPPORTED_LANGUAGES!=='undefined'&&SUPPORTED_LANGUAGES.some(([code])=>code===selectedLanguage)
         ? ['/locales/source-ru.json','/locales/catalogs/'+selectedLanguage+'.json',
            '/js/modular3-locale-bootstrap.js','/js/modular3-public-catalog-loader.js',
@@ -524,6 +579,20 @@
       });
     }catch(error){console.warn('Static offline cache unavailable.',error);return false;}
   }
+  let offlineRefreshGeneration=0;
+  async function refreshStaticOfflineCache(){
+    const ticket=++offlineRefreshGeneration;
+    const session=window.MedControlModular3ProtectedSession;
+    if(!window.medcontrolProtectedInterface||!session?.isEntryAuthorized())return false;
+    const code=session.read().settings.interfaceLanguage;
+    window.medcontrolOfflineShellReady=false;
+    const ready=await registerStaticOfflineCache();
+    const current=ticket===offlineRefreshGeneration&&session.isEntryAuthorized()&&session.read().settings.interfaceLanguage===code;
+    if(current)window.medcontrolOfflineShellReady=ready;
+    return current&&ready;
+  }
+  window.medcontrolRefreshOfflineShell=refreshStaticOfflineCache;
+  window.addEventListener?.('online',()=>{if(window.medcontrolProtectedInterface)refreshStaticOfflineCache().catch(()=>{});});
   async function unlockLocalWorkspace(){
     document.getElementById('app').innerHTML='<form id="localLogin" style="max-width:420px;margin:60px auto;font-family:Arial"><h1>MedControl</h1><label for="password">Локальный пароль</label><input id="password" type="password" autocomplete="current-password" required><button id="unlock" type="submit">Войти</button><p id="loginMessage" role="status"></p><a href="/modular3-protected.html">Восстановить доступ</a></form>';
     await new Promise(resolve=>{
@@ -615,15 +684,28 @@
       document.head.querySelectorAll('style').forEach(style=>{style.textContent=style.textContent.replaceAll('VERSION 2 · modular-2.000','VERSION 3 · modular-3.000');});
       // Load the complete Input wrappers first so completion/archive rules are shared.
       await loader.ensureScripts(scriptsByPage.input);
+      await installProtectedLocaleController();
       await ensurePageScripts(page);
       await renderPage(page);
       watchProtectedLegacyUi();
-      offerFirstRunLanguage();
-      window.medcontrolOfflineShellReady=await registerStaticOfflineCache();
+      // Canonical entry has already confirmed the saved language.
+      await refreshStaticOfflineCache();
       return;
     }
     // No Modular-3 fallback to a different authorization system.
     window.location.replace('/modular3-protected.html');
     return;
-  }catch(error){console.error('MedControl Auth Guard failed.',error);showStartupError('Не удалось запустить MedControl. Локальные данные не удалялись.\n\n'+(error&&error.message?error.message:error));}
+  }catch(error){
+    console.error('MedControl Auth Guard failed.',error);
+    if(window.medcontrolProtectedInterface){
+      const source='Не удалось запустить MedControl. Локальные данные не удалялись.';
+      let language;
+      try{language=window.MedControlModular3ProtectedSession.read()?.settings?.interfaceLanguage;}catch(_){}
+      window.medcontrolProtectedLocaleFailureLabel=language==='ru'?source:
+        window.MedControlProtectedUiCatalogs?.[language]?.[source]||'MedControl';
+      await closeProtectedLocaleFailure(error);
+      return;
+    }
+    showStartupError('Не удалось запустить MedControl. Локальные данные не удалялись.\n\n'+(error&&error.message?error.message:error));
+  }
 })();

@@ -5,6 +5,12 @@ const assert=require('node:assert/strict');
 const BASE='http://127.0.0.1:8794';
 const PASS='Synthetic-Startup-Password-2026';
 const DATA='medcontrol_modular3_protected_state_v1';
+const SOURCE=require('../locales/source-ru.json'),EN=require('../locales/catalogs/en.json');
+function english(text){
+ const entry=Object.entries(SOURCE).find(([,row])=>row.source===text);
+ assert.ok(entry,'Expected immutable source phrase: '+text);
+ return EN.messages[entry[0]];
+}
 async function run(){
  const server=spawn('python3',['-m','http.server','8794','--bind','127.0.0.1'],{stdio:'ignore'});
  let browser;
@@ -22,7 +28,20 @@ async function run(){
    await new Promise(resolve=>setTimeout(resolve,50));
   }
   browser=await chromium.launch({headless:true,...(process.env.MEDCONTROL_CHROMIUM?{executablePath:process.env.MEDCONTROL_CHROMIUM,args:['--no-sandbox']}:{} )});
-  let context=await browser.newContext();
+  async function newContext(options={}){
+   const context=await browser.newContext({locale:'en-US',...options});
+   // A pre-password English browser is still fixed RU. Only successful unlock
+   // may inspect navigator language and propose a prepared English catalog.
+   await context.addInitScript(()=>{
+    window.entryLanguageReads=[];
+    for(const key of ['language','languages'])Object.defineProperty(navigator,key,{configurable:true,get(){
+     window.entryLanguageReads.push({key,unlocked:window.MedControlModular3ProtectedSession?.isUnlocked()===true});
+     return key==='language'?'en-US':['en-US','en'];
+    }});
+   });
+   return context;
+  }
+  let context=await newContext();
   let page=await context.newPage();
   const external=[];
   let failWorkspace=false;
@@ -37,16 +56,21 @@ async function run(){
   await page.goto(BASE+'/modular3-protected.html');
   await page.locator('#entry-language option').first().waitFor({state:'attached'});
   assert.equal(await page.locator('#entry-language option').count(),96,
-   'Protected sign-in must offer all 96 languages before unlocking');
+   'Canonical registry must contain all 96 codes while the language choice remains hidden');
   assert.equal(await page.locator('#entry-language').inputValue(),'ru',
    'Language proposal must not be computed before the first successful password unlock');
   assert.equal(await page.locator('#password').isVisible(),true);
-  console.log('PASS protected entry has 96 registered languages and browser language proposal');
+  assert.equal(await page.locator('#entry-language-step').isVisible(),false);
+  assert.equal(await page.locator('html').getAttribute('lang'),'ru');
+  assert.equal(await page.locator('body > h1').innerText(),'MedControl — защищённый режим');
+  assert.deepEqual(await page.evaluate(()=>window.entryLanguageReads),[],
+   'Neither navigator language property may be inspected before a verified password');
+  console.log('PASS fixed Russian protected entry has hidden canonical registry and zero pre-password language reads');
   await page.evaluate(async password=>window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru'},medications:[{id:'synthetic-startup',name:'Synthetic Startup',active:false,times:['13:00'],startDate:'2026-10-23',endDate:'2026-10-24'}],intakeLogs:[]},password),PASS);
   const before=await page.evaluate(key=>localStorage.getItem(key),DATA);
   const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));
   await context.close();
-  context=await browser.newContext();page=await context.newPage();
+  context=await newContext();page=await context.newPage();
   await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);
   await context.route('**/*',route=>new URL(route.request().url()).origin===BASE?route.continue():route.abort());
   for(const directPath of ['/input.html','/action.html','/dashboard.html','/archive.html']){
@@ -58,11 +82,19 @@ async function run(){
     'Direct route must require protected password: '+directPath);
    assert.equal(await page.locator('.topbar').count(),0,
     'Direct route must not render medical UI: '+directPath);
+   assert.equal(await page.locator('html').getAttribute('lang'),'ru');
+   assert.deepEqual(await page.evaluate(()=>window.entryLanguageReads),[],
+    'Direct-route redirect must not propose a device language before password: '+directPath);
   }
   await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
   await page.locator('#entry-language-step').waitFor({state:'visible',timeout:20000});
   assert.equal(await page.locator('#entry-language').inputValue(),'en',
    'Device language must be proposed only after successful password unlock');
+  await page.waitForFunction(()=>document.documentElement.lang==='en');
+  const proposalReads=await page.evaluate(()=>window.entryLanguageReads);
+  assert.ok(proposalReads.length>0);
+  assert.ok(proposalReads.every(read=>read.unlocked),'All device-language reads must follow password verification');
+  assert.equal(await page.locator('body > h1').innerText(),english('MedControl — защищённый режим'));
   assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.isEntryAuthorized()),false,
    'Decrypting the vault must not authorize application entry');
   assert.equal(await page.locator('.topbar').count(),0);
@@ -85,7 +117,7 @@ async function run(){
   const modules=['encrypted-vault','offline-credential','protected-session','write-boundary','course-lifecycle-browser','protected-pages','final-intake','copy-migration','protected-workspace'];
   for(const module of modules){
    // Route-controlled fault injection must not be bypassed or replayed by the service worker.
-   context=await browser.newContext({serviceWorkers:'block'});page=await context.newPage();
+   context=await newContext({serviceWorkers:'block'});page=await context.newPage();
    await page.addInitScript(stored=>{
     // Seed the synthetic vault only on the first navigation in this context.
     // Re-seeding on the return visit would overwrite the confirmed language.
@@ -184,7 +216,7 @@ async function run(){
    console.log('PASS interrupted '+module+' recovers and opens existing encrypted data');
    await context.close();
   }
-  context=await browser.newContext();page=await context.newPage();
+  context=await newContext();page=await context.newPage();
   await page.addInitScript(stored=>{for(const [key,value]of Object.entries(stored))localStorage.setItem(key,value);},stored);
   await context.route('**/*',route=>{
    const url=new URL(route.request().url());
@@ -196,20 +228,26 @@ async function run(){
   assert.equal(await page.evaluate(()=>window.medcontrolProtectedEntryReady),false);
   assert.equal(await page.locator('#unlock').isDisabled(),true);
   assert.equal(await page.locator('#retry-entry').isVisible(),true);
-  assert.match(await page.locator('#message').innerText(),/Unable to prepare sign-in/);
+  assert.match(await page.locator('#message').innerText(),/Не удалось подготовить вход/,
+   'Failure before any password verification must use the fixed Russian entry source');
+  assert.equal(await page.locator('html').getAttribute('lang'),'ru');
+  assert.deepEqual(await page.evaluate(()=>window.entryLanguageReads),[]);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),before);
   console.log('PASS persistent entry failure gives retry and preserves encrypted data');
   await context.close();
-  context=await browser.newContext();page=await context.newPage();
+  context=await newContext();page=await context.newPage();
   await context.route('**/*',route=>new URL(route.request().url()).origin===BASE?route.continue():route.abort());
   await page.goto(BASE+'/modular3-protected.html');
   await page.locator('#unlock').click();
-  assert.match(await page.locator('#message').innerText(),/Enter your local password\./);
+  assert.match(await page.locator('#message').innerText(),/Введите локальный пароль\./);
   console.log('PASS empty password gives visible response');
   await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
-  assert.match(await page.locator('#message').innerText(),/No protected vault was found at this address/);
+  assert.match(await page.locator('#message').innerText(),/На этом адресе защищённое хранилище не найдено/);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),DATA),null);
-  console.log('PASS new address reports missing vault without creating or deleting data');
+  assert.deepEqual(await page.evaluate(()=>window.entryLanguageReads),[],
+   'An unsuccessful unlock must not inspect the device language');
+  assert.equal(await page.locator('html').getAttribute('lang'),'ru');
+  console.log('PASS new address reports missing vault in fixed Russian without data changes or device-language reads');
   await page.evaluate(()=>{
    const native=Storage.prototype.getItem;window.restoreStorageRead=()=>{Storage.prototype.getItem=native;};
    Storage.prototype.getItem=function(key){if(key.startsWith('medcontrol_modular3_'))throw Error('Synthetic blocked storage');return native.call(this,key);};

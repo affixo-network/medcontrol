@@ -8,11 +8,19 @@
  if(!CREDENTIAL||!VAULT)throw Error('Modular-3 protected dependencies unavailable');
  const DATA_KEY='medcontrol_modular3_protected_state_v1';
  const WRITE_LOCK='medcontrol-modular3-protected-write';
- let secret=null,state=null,checkpoint=null,entryAuthorized=false,chain=Promise.resolve();
+ let secret=null,state=null,checkpoint=null,entryAuthorized=false,epoch=0,chain=Promise.resolve();
  const clone=x=>structuredClone(x);
  function requireOpen(){if(!secret||!state||!CREDENTIAL.isUnlocked())throw Error('Protected session locked');}
+ function invalidate(){epoch++;secret=null;state=null;checkpoint=null;entryAuthorized=false;CREDENTIAL.lock();}
+ function checkEpoch(expected){
+  if(expected!==undefined&&expected!==epoch){
+   const error=Error('Protected session changed; language operation cancelled');
+   error.code='protected_session_changed';error.expectedEntryEpoch=expected;error.actualEntryEpoch=epoch;throw error;
+  }
+ }
  const api={
   async initialize(initial,password){
+   epoch++;
    // Lock the entire create/verify sequence, not just credential enrollment.
    if(!navigator.locks?.request)throw Error('Cross-tab storage locking unavailable');
    return navigator.locks.request('medcontrol-modular3-initialize',{mode:'exclusive'},async()=>{
@@ -42,14 +50,17 @@
    });
   },
   async unlock(password){
+   const unlockEpoch=++epoch;
    secret=null;state=null;checkpoint=null;entryAuthorized=false;
    if(!await CREDENTIAL.unlock(password))return false;
+   checkEpoch(unlockEpoch);
    try{
     const raw=localStorage.getItem(DATA_KEY);
     if(!raw)throw Error('Encrypted data missing');
     const opened=await VAULT.open(JSON.parse(raw),password);
+    checkEpoch(unlockEpoch);
     secret=password;state=opened;checkpoint=raw;return true;
-   }catch(error){CREDENTIAL.lock();throw error;}
+   }catch(error){if(unlockEpoch===epoch)invalidate();throw error;}
   },
   read(){requireOpen();return clone(state);},
   transact(mutator,options={}){
@@ -57,14 +68,17 @@
    const task=chain.then(async()=>{
     if(!navigator.locks?.request)throw Error('Cross-tab storage locking unavailable');
     return navigator.locks.request(WRITE_LOCK,{mode:'exclusive'},async()=>{
+    checkEpoch(options.entryEpoch);
     requireOpen();
-    if(localStorage.getItem(DATA_KEY)!==checkpoint){secret=null;state=null;checkpoint=null;CREDENTIAL.lock();throw Error('Encrypted data changed in another tab; unlock again');}
+    if(localStorage.getItem(DATA_KEY)!==checkpoint){invalidate();throw Error('Encrypted data changed in another tab; unlock again');}
     const next=clone(state);
     await mutator(next);
+    checkEpoch(options.entryEpoch);
     requireOpen();
-    if(localStorage.getItem(DATA_KEY)!==checkpoint){secret=null;state=null;checkpoint=null;CREDENTIAL.lock();throw Error('Encrypted data changed during edit; unlock again');}
+    if(localStorage.getItem(DATA_KEY)!==checkpoint){invalidate();throw Error('Encrypted data changed during edit; unlock again');}
     if(options.skipUnchanged===true&&JSON.stringify(next)===JSON.stringify(state))return clone(state);
     const sealed=await VAULT.seal(next,secret);
+    checkEpoch(options.entryEpoch);
     const encoded=JSON.stringify(sealed);
     const previous=localStorage.getItem(DATA_KEY);
     if(!previous||previous!==checkpoint)throw Error('Encrypted checkpoint changed before write');
@@ -74,21 +88,24 @@
      const stored=localStorage.getItem(DATA_KEY);
      if(stored!==encoded)throw Error('Encrypted checkpoint verification failed');
      const verified=await VAULT.open(JSON.parse(stored),secret);
+     checkEpoch(options.entryEpoch);
      if(JSON.stringify(verified)!==JSON.stringify(next))throw Error('Encrypted checkpoint content mismatch');
      state=verified;checkpoint=encoded;
      if(!root.MedControlEntryLanguages?.confirmed(state.settings))entryAuthorized=false;
      return clone(state);
     }catch(error){
+     // A stale language operation must never roll back or lock a newer unlock.
+     checkEpoch(options.entryEpoch);
      // Preserve the last verified encrypted snapshot when a new write fails.
      const current=localStorage.getItem(DATA_KEY);
      // Never overwrite a checkpoint written by another tab while rolling back.
      if(current===encoded){
       try{localStorage.setItem(DATA_KEY,previous);}catch(rollbackError){
-       secret=null;state=null;checkpoint=null;CREDENTIAL.lock();
+       invalidate();
        throw Error('Encrypted write and rollback failed; session locked: '+rollbackError.message);
       }
      }else if(current!==previous){
-      secret=null;state=null;checkpoint=null;CREDENTIAL.lock();
+      invalidate();
       throw Error('Encrypted checkpoint changed concurrently; session locked');
      }
      throw error;
@@ -98,7 +115,13 @@
    chain=task.catch(()=>{});
    return task;
   },
-  async lock(){await chain;secret=null;state=null;checkpoint=null;entryAuthorized=false;CREDENTIAL.lock();},
+  async lock(){
+   const lockEpoch=++epoch;entryAuthorized=false;
+   await chain;
+   // An unlock begun while an old write drained owns the newer session.
+   if(epoch===lockEpoch)invalidate();
+  },
+  entryEpoch(){return epoch;},
   isUnlocked(){return Boolean(secret&&state&&CREDENTIAL.isUnlocked());},
   authorizeEntry(){
    requireOpen();

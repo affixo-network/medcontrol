@@ -5,6 +5,13 @@ on:
     paths:
       - 'js/auth-guard.js'
       - 'js/modular3-entry-languages.js'
+      - 'js/modular3-protected-locale-controller.js'
+      - 'tests/modular3-entry*.spec.js'
+      - 'tests/modular3-entry*.test.cjs'
+      - 'tests/modular3-protected-locale-controller.test.cjs'
+      - 'tests/modular3-offline-selected-language.spec.js'
+      - 'tests/modular3-rehearsal-locale.spec.js'
+      - 'tests/modular3-selected-locale-cache.test.cjs'
       - 'tests/modular3-entry-policy.test.cjs'
       - 'modular3-static-cache-sw.js'
       - 'js/modular3-action-help.js'
@@ -139,6 +146,8 @@ jobs:
         run: node tests/modular3-single-language-audit.cjs
       - name: Validate all 96 protected entry locales and canonical IDs
         run: node tests/modular3-entry-policy.test.cjs
+      - name: Verify canonical entry transactions and language failure isolation
+        run: node --test tests/modular3-entry-transaction.test.cjs tests/modular3-protected-locale-controller.test.cjs tests/modular3-entry-session-epoch.test.cjs tests/modular3-entry-locked-recovery.test.cjs tests/modular3-selected-locale-cache.test.cjs tests/modular3-entry-review-followup.test.cjs
       - name: Run isolated browser tests
         run: npx playwright test --config=playwright.modular3.config.cjs --shard=${{ matrix.shard }}/8
       - name: Verify complete protected interface and English cycle notice

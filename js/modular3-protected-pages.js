@@ -11,7 +11,7 @@
  const PAGES=Object.freeze(['input','action','dashboard','archive']);
  const adapter={
   pages:PAGES,
-  enabled(){return session.isUnlocked();},
+  enabled(){return session.isEntryAuthorized?.()===true;},
   read(page){if(!PAGES.includes(page))throw Error('Unknown page');return boundary.read(page);},
   async change(page,mutator){
    if(!PAGES.includes(page))throw Error('Unknown page');

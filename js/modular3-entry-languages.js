@@ -7,7 +7,8 @@
  const CACHE='medcontrol-static-modular3-v16';
  function resolve(value){
   const input=String(value||'').trim().replace(/_/g,'-').toLowerCase();
-  if(!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(input))return null;
+  if(!/^[a-z]{2,3}(?:-[a-z0-9]{1,8})*$/.test(input))return null;
+  try{Intl.getCanonicalLocales(input);}catch(_){return null;}
   if(byCode.has(input))return input;
   const base=input.split('-')[0];
   const key=aliases[base]||base;
@@ -27,7 +28,14 @@
  function validate(source,catalog,code){
   const keys=Object.keys(source||{});
   if(keys.length!==639)throw Error('Russian source catalog must have 639 messages');
-  if(code==='ru')return Object.freeze({code,source,messages:null,lookup:null});
+  const snapshot=Object.create(null);
+  for(const key of keys){
+   const record=source[key];
+   if(!record||typeof record.source!=='string')throw Error('Invalid Russian source entry: '+key);
+   snapshot[key]=Object.freeze({...record,...(Array.isArray(record.files)?{files:Object.freeze([...record.files])}:{})});
+  }
+  const immutableSource=Object.freeze(snapshot);
+  if(code==='ru')return Object.freeze({code,source:immutableSource,messages:null,lookup:null});
   if(!catalog||catalog.language!==code||!catalog.messages||Object.keys(catalog.messages).length!==639)
    throw Error('Incomplete language catalog: '+code);
   const lookup=Object.create(null);
@@ -40,7 +48,7 @@
    if(!Object.prototype.hasOwnProperty.call(lookup,russian))lookup[russian]=value;
    else if(lookup[russian]!==value)lookup[russian]=null;
   }
-  return Object.freeze({code,source,messages:catalog.messages,lookup});
+  return Object.freeze({code,source:immutableSource,messages:Object.freeze({...catalog.messages}),lookup:Object.freeze(lookup)});
  }
  async function prepare(raw,fetcher=root.fetch.bind(root)){
   const code=resolve(raw);
@@ -57,11 +65,74 @@
    throw Error('Language offline assets not verified: '+code);
   return prepared;
  }
+ // One queue per unlocked session: a later request cannot commit before an
+ // earlier request finishes preparing, staging and persisting its exact code.
+ const pending=new WeakMap();
+ function serialize(session,operation,epoch){
+  if(!session||typeof session.read!=='function'||typeof session.transact!=='function')
+   return Promise.reject(Error('Protected language session required'));
+  const previous=pending.get(session)||Promise.resolve();
+  const result=previous.then(operation).catch(error=>{checkEpoch(session,epoch);throw error;});
+  const settled=result.then(()=>{},()=>{});
+  pending.set(session,settled);
+  settled.then(()=>{if(pending.get(session)===settled)pending.delete(session);});
+  return result;
+ }
+ function captureEpoch(session){return typeof session?.entryEpoch==='function'?session.entryEpoch():undefined;}
+ function checkEpoch(session,expected){
+  const actual=captureEpoch(session);
+  if(expected!==undefined&&actual!==expected){
+   const error=Error('Protected session changed; language operation cancelled');
+   error.code='protected_session_changed';error.expectedEntryEpoch=expected;error.actualEntryEpoch=actual;throw error;
+  }
+ }
+ async function stagePrepared(code,fetcher,stage,session,epoch){
+  checkEpoch(session,epoch);
+  const prepared=await prepare(code,fetcher);
+  checkEpoch(session,epoch);
+  if(stage!==undefined){
+   if(typeof stage!=='function')throw Error('Invalid language staging callback');
+   if(await stage(prepared)===false)throw Error('Language catalog staging failed: '+code);
+   checkEpoch(session,epoch);
+  }
+  return prepared;
+ }
+ function confirm(session,code,{fetcher,stage}={}){
+  // No aliases or coercion here: only an exact choice from the approved list
+  // may be saved. Capture the string before any asynchronous work begins.
+  if(typeof code!=='string'||!byCode.has(code))return Promise.reject(Error('Unsupported language'));
+  const epoch=captureEpoch(session);
+  return serialize(session,async()=>{
+   checkEpoch(session,epoch);
+   const prepared=await stagePrepared(code,fetcher,stage,session,epoch);
+   checkEpoch(session,epoch);
+   const settings=session.read()?.settings;
+   if(confirmed(settings)&&settings.interfaceLanguage===code)return prepared;
+   await session.transact(state=>{
+    checkEpoch(session,epoch);
+    state.settings=state.settings||{};
+    state.settings.interfaceLanguage=code;
+    state.settings.languageChoiceConfirmed=true;
+    state.settings.languageConfirmationVersion=1;
+   },{entryEpoch:epoch});
+   checkEpoch(session,epoch);
+   return prepared;
+  },epoch);
+ }
+ function restore(session,{fetcher,stage}={}){
+  const epoch=captureEpoch(session);
+  return serialize(session,async()=>{
+   checkEpoch(session,epoch);
+   const settings=session.read()?.settings;
+   if(!confirmed(settings))throw Error('Canonical language confirmation required');
+   return stagePrepared(settings.interfaceLanguage,fetcher,stage,session,epoch);
+  },epoch);
+ }
  function translate(prepared,original){
   if(!prepared||prepared.code==='ru')return original;
   return prepared.lookup?.[original]||null;
  }
- const api=Object.freeze({registry,resolve,propose,confirmed,validate,prepare,translate,cacheName:CACHE});
+ const api=Object.freeze({registry,resolve,propose,confirmed,validate,prepare,confirm,restore,translate,cacheName:CACHE});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  else root.MedControlEntryLanguages=api;
 })(typeof window!=='undefined'?window:globalThis);

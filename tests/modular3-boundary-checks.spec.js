@@ -3,8 +3,8 @@ const {test,expect}=require('@playwright/test');
 const URL='http://127.0.0.1:8765/modular3-protected.html';
 const PASSWORD='Synthetic-Only-Password-2026';
 const KEY='medcontrol_modular3_protected_state_v1';
-const SAMPLE={settings:{timezone:'Asia/Yerevan'},medications:[{id:'fake1',name:'SYNTHETIC',times:['09:00','14:00']}],intakeLogs:[{id:'event1',plannedAt:'2026-10-14T05:00:00Z',actualAt:'2026-10-14T05:30:00Z'}],intakeCorrections:[{id:'cancel1',eventId:'event1'}],archiveHistory:[{id:'archive1',medicationId:'fake1'}]};
-async function setup(page){await page.goto(URL);await page.addScriptTag({url:'/js/modular3-write-boundary.js'});await page.evaluate(async ({sample,password})=>MedControlModular3ProtectedSession.initialize(sample,password),{sample:SAMPLE,password:PASSWORD});}
+const SAMPLE={settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',languageChoiceConfirmed:true,languageConfirmationVersion:1},medications:[{id:'fake1',name:'SYNTHETIC',times:['09:00','14:00']}],intakeLogs:[{id:'event1',plannedAt:'2026-10-14T05:00:00Z',actualAt:'2026-10-14T05:30:00Z'}],intakeCorrections:[{id:'cancel1',eventId:'event1'}],archiveHistory:[{id:'archive1',medicationId:'fake1'}]};
+async function setup(page){await page.goto(URL);await page.addScriptTag({url:'/js/modular3-write-boundary.js'});await page.evaluate(async ({sample,password})=>{await MedControlModular3ProtectedSession.initialize(sample,password);MedControlModular3ProtectedSession.authorizeEntry();},{sample:SAMPLE,password:PASSWORD});}
 test('encrypted write failure rejects operation without losing history',async({browser})=>{
  const context=await browser.newContext();const page=await context.newPage();await setup(page);
  const result=await page.evaluate(async key=>{
@@ -40,7 +40,7 @@ test('four-section encrypted history survives reload and local password unlock',
  const context=await browser.newContext();const page=await context.newPage();await setup(page);
  for(const section of ['input','action','dashboard','archive'])await page.evaluate(async section=>MedControlModular3WriteBoundary.write(section,s=>{s.audit=s.audit||[];s.audit.push(section);}),section);
  await page.reload();await page.addScriptTag({url:'/js/modular3-write-boundary.js'});
- expect(await page.evaluate(async password=>MedControlModular3ProtectedSession.unlock(password),PASSWORD)).toBe(true);
+ expect(await page.evaluate(async password=>{const unlocked=await MedControlModular3ProtectedSession.unlock(password);if(unlocked)MedControlModular3ProtectedSession.authorizeEntry();return unlocked;},PASSWORD)).toBe(true);
  const state=await page.evaluate(()=>MedControlModular3WriteBoundary.read('archive'));
  for(const field of ['medications','intakeLogs','intakeCorrections','archiveHistory'])expect(state[field]).toEqual(SAMPLE[field]);
  expect(state.audit).toEqual(['input','action','dashboard','archive']);
@@ -254,7 +254,7 @@ test('fully offline browser restart unlocks all four protected pages',async({bro
  await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
  await expect.poll(async()=>page.evaluate(async()=>{
-  const cache=await caches.open('medcontrol-static-modular3-v15');
+  const cache=await caches.open(MedControlEntryLanguages.cacheName);
   return Boolean(await cache.match('/archive.html'))&&Boolean(await cache.match('/js/archive-page.js'));
  })).toBe(true);
  await page.close();
@@ -282,7 +282,7 @@ test('offline intake write survives page restart and remains encrypted',async({b
  await unlockRealPage(page);
  await expect.poll(async()=>page.evaluate(()=>Boolean(navigator.serviceWorker?.controller))).toBe(true);
  await expect.poll(async()=>page.evaluate(async()=>{
-  const cache=await caches.open('medcontrol-static-modular3-v15');
+  const cache=await caches.open(MedControlEntryLanguages.cacheName);
   return Boolean(await cache.match('/action.html'))&&Boolean(await cache.match('/js/modular3-write-boundary.js'));
  })).toBe(true);
  await context.setOffline(true);

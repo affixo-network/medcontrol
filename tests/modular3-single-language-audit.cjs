@@ -7,8 +7,9 @@ const assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 const source=JSON.parse(fs.readFileSync(path.join(root,'locales/source-ru.json'),'utf8'));
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'locales/manifest.json'),'utf8'));
-const languages=manifest.filter(item=>item.id<=95);
-assert.equal(languages.length,95,'Expected exactly 95 commercial languages');
+const languages=manifest;
+assert.equal(languages[27].code,'ka');assert.equal(languages[95].code,'fil');
+assert.equal(languages.length,96,'Expected exactly 96 canonical commercial languages');
 const ids=Object.keys(source);
 assert.equal(ids.length,639,'Russian reference must contain 639 messages');
 const sectionTitleIds={

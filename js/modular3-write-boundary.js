@@ -7,18 +7,23 @@
  const KEY=SESSION.storageKey;
  let queue=Promise.resolve();
  function requirePage(page){if(!PAGES.includes(page))throw Error('Unknown protected page');}
- function protectedMode(){return SESSION.isUnlocked();}
- function read(page){requirePage(page);if(!protectedMode())throw Error('Protected session locked');return SESSION.read();}
+ function protectedMode(){return SESSION.isEntryAuthorized?.()===true;}
+ function read(page){requirePage(page);if(!protectedMode())throw Error('Explicit protected entry authorization required');return SESSION.read();}
  function write(page,mutator){
   requirePage(page);
   if(typeof mutator!=='function')return Promise.reject(Error('Mutation callback required'));
+  if(!protectedMode())return Promise.reject(Error('Explicit protected entry authorization required'));
   const operation=queue.then(async()=>{
-   if(!protectedMode())throw Error('Protected session locked');
+   if(!protectedMode())throw Error('Explicit protected entry authorization required');
    const before=localStorage.getItem(KEY);
    const result=await SESSION.transact(async state=>{
+    // A setup transaction may revoke entry while this write waits in the
+    // session queue. Check again before executing any page mutation.
+    if(!protectedMode())throw Error('Explicit protected entry authorization required');
     const policy=root.medcontrolProtectedInterface&&root.MedControlModular3FinalIntake;
     const before=policy?policy.capture(state):null;
     await mutator(state);
+    if(!protectedMode())throw Error('Explicit protected entry authorization required');
     if(before)policy.afterChange(state,before);
    });
    const persisted=localStorage.getItem(KEY);

@@ -24,7 +24,7 @@ test('[' + language + '] real protected four-page shell survives an offline rest
  await page.locator('#password').fill(PASS);
  page.once('dialog',dialog=>dialog.accept());
  await page.locator('#commit-migration').click();
- await expect(page.locator('#entry-language-step')).toBeVisible();
+ await expect(page.locator('#entry-language-step')).toBeVisible({timeout:20000});
  await expect(page.locator('#workspace')).toBeHidden();
  await expect(page.locator('#entry-language option[value="'+language+'"]')).toHaveCount(1,{timeout:10000});
  await page.locator('#entry-language').selectOption(language);

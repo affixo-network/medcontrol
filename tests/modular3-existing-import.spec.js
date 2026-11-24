@@ -25,6 +25,7 @@ async function snapshot(page){return page.evaluate(()=>Object.fromEntries(Object
 async function preview(page){return page.evaluate(async({OLD_PASS,FILE_PASS,transfer})=>{
  await MedControlModular3ProtectedSession.unlock(OLD_PASS);
  window.importPlan=await MedControlModular3CopyMigration.previewExistingImport(transfer,FILE_PASS);
+ if(MedControlModular3ProtectedSession.isEntryAuthorized())throw Error('Read-only import preview must not authorize entry');
  return window.importPlan;
 },{OLD_PASS,FILE_PASS,transfer});}
 async function fillImport(page){
@@ -47,6 +48,7 @@ test('reproduces initial import refusal, then previews the existing-install tran
 test('activation preserves exact old ciphertext and credential while importing all source fields',async({page})=>{
  const before=await snapshot(page);await preview(page);
  const result=await page.evaluate(async()=>MedControlModular3CopyMigration.commitExistingImport(window.importPlan));
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
  expect(result).toMatchObject({medications:7,intakeLogs:35,previousVaultPreserved:true});
  expect((await snapshot(page))[CRED]).toBe(before[CRED]);
  const after=await page.evaluate(async({OLD_PASS})=>{
@@ -143,6 +145,17 @@ test('UI wrong local password does not activate file or create a backup',async({
 });
 test('cancelling a second UI import locks the preview session and hides the prior Open action',async({page})=>{
  await fillImport(page);page.once('dialog',d=>d.accept());await page.locator('#import-backup').click();
+ // First import now requires language confirmation. Exercise that UI before
+ // returning to the same-page repeated-import cancellation regression.
+ await expect(page.locator('#entry-language-step')).toBeVisible();
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
+ await page.locator('#entry-language').selectOption('ru');
+ await page.locator('#confirm-entry-language').click();
+ await expect(page.locator('#unlock')).toBeVisible();
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
+ transfer=await page.evaluate(async FILE_PASS=>JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:await MedControlModular3EncryptedVault.seal(MedControlModular3ProtectedSession.read(),FILE_PASS)}),FILE_PASS);
+ await page.reload();await page.waitForFunction(()=>window.medcontrolProtectedWorkspaceReady===true);
+ await fillImport(page);await page.locator('#import-backup').click();
  await expect(page.locator('#open-imported')).toBeVisible();
  const before=await snapshot(page);await fillImport(page);
  const previousFile=await page.evaluate(async({OLD,FILE_PASS})=>JSON.stringify({format:'medcontrol-encrypted-transfer-v1',encrypted:await MedControlModular3EncryptedVault.seal(OLD,FILE_PASS)}),{OLD,FILE_PASS});
@@ -274,13 +287,14 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
  const fs=require('node:fs');const raw=fs.readFileSync(await download.path(),'utf8');
  const old=await page.evaluate(async({raw,OLD_PASS})=>MedControlModular3EncryptedVault.open(JSON.parse(raw).encrypted,OLD_PASS),{raw,OLD_PASS});
  expect(old).toEqual(OLD);
- await page.locator('#open-imported').click();
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
  await expect(page.locator('#entry-language-step')).toBeVisible();
  await expect(page).toHaveURL(BASE+'/modular3-protected.html');
  await page.locator('#entry-language').selectOption('ru');
  await page.locator('#confirm-entry-language').click();
  await expect(page).toHaveURL(BASE+'/modular3-protected.html');
  await expect(page.locator('#unlock')).toBeVisible();
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
  await page.locator('#unlock').click();
  await expect(page).toHaveURL(BASE+'/input.html');
  await expect(page.locator('.topbar')).toBeVisible();
@@ -291,7 +305,7 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications)).toEqual(INCOMING.medications);
  await page.waitForFunction(async()=>{
   if(!navigator.serviceWorker.controller)return false;
-  const cache=await caches.open('medcontrol-static-modular3-v15');
+  const cache=await caches.open(window.MedControlEntryLanguages.cacheName);
   return !!(await cache.match('/input.html')) && !!(await cache.match('/js/auth-guard.js'));
  });
  await context.setOffline(true);await page.reload();

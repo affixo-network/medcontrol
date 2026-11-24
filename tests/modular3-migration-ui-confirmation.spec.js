@@ -59,7 +59,9 @@ test('migration UI: confirmation preserves source, seals full history, and allow
  await page.locator('#commit-migration').click();
  await expect(page.locator('#entry-language-step')).toBeVisible();
  await expect(page.locator('#workspace')).toBeHidden();
- await expect(page.locator('#message')).toContainText('Подтвердите язык');
+ await expect(page.locator('#message')).toContainText('Защищённая копия проверена и сохранена. Исходная история не изменена.');
+ await expect(page.locator('#confirm-entry-language')).toBeVisible();
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
  const after=await snapshot(page);
  expect(after.source).toBe(before.source);
  expect(after.destination).toBeTruthy();

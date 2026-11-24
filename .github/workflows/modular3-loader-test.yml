@@ -1,7 +1,7 @@
 name: Modular 3 Loader Tests
 on:
   push:
-    branches: [modular-2.000]
+    branches: [modular-2.000, modular-3.000]
     paths:
       - 'js/modular3-script-loader.js'
       - 'js/auth-guard.js'

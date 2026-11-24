@@ -1,23 +1,12 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
-const fs=require('node:fs');
-const path=require('node:path');
-const guard=fs.readFileSync(path.resolve(__dirname,'../js/auth-guard.js'),'utf8');
-test('real UI: click Taken, cancel accidental press, preserve audit on reload',async({browser})=>{
+const {BASE,installLegacyModuleHost}=require('./modular3-legacy-module-fixture.cjs');
+test('legacy-module browser regression: real UI: click Taken, cancel accidental press, preserve audit on reload',async({browser})=>{
  const context=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'ru-RU',serviceWorkers:'block'});
  const page=await context.newPage();
- await page.route('**/*',async route=>{
-  const url=new URL(route.request().url());
-  if(url.origin!=='http://127.0.0.1:8765')return route.abort();
-  if(url.pathname==='/js/auth-guard.js'){
-   const mocked=guard.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'synthetic-ui'},access_token:'fake',refresh_token:'fake'}},error:null})}})})");
-   return route.fulfill({status:200,contentType:'application/javascript',body:mocked});
-  }
-  if(url.pathname==='/js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&!!s.settings&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs),meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
-  return route.continue();
- });
+ await installLegacyModuleHost(context);
  await page.clock.install({time:new Date('2026-10-13T08:00:00.000Z')});
- await page.goto('http://127.0.0.1:8765/action.html');
+ await page.goto(BASE+'/action.html');
  await expect(page.getByRole('heading',{name:/Приём препаратов/})).toBeVisible();
  await page.evaluate(()=>{
   const state=getState();const date=currentLocalDate();

@@ -23,4 +23,4 @@ for(const [locale,values] of Object.entries(translations)){
  for(const key of keys)assert.ok(typeof values[key]==='string'||Array.isArray(values[key]),'Invalid translation '+locale+'.'+key);
 }
 console.log('PASS commercial localization baseline: '+locales.join(', ')+'; '+keys.length+' keys');
-console.log('INFO commercial localization target: 95 languages; actual translated catalogs: '+locales.length+'/95');
+console.log('INFO immutable built-in localization baseline: '+locales.length+'; canonical public target: 96 languages including RU');

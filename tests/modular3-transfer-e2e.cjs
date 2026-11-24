@@ -87,8 +87,12 @@ async function run(){
   assert.equal(await page.locator('#workspace').isVisible(),false,'Imported records must remain locked behind language confirmation');
   const restored=await page.evaluate(()=>window.MedControlModular3ProtectedSession.read());
   assert.deepEqual(restored,original);
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.isEntryAuthorized()),false,'Import must not authorize entry');
   await page.locator('#entry-language').selectOption('ru');
   await page.locator('#confirm-entry-language').click();
+  await page.locator('#unlock').waitFor({state:'visible'});
+  assert.equal(await page.evaluate(()=>window.MedControlModular3ProtectedSession.isEntryAuthorized()),false,'Language confirmation must not authorize entry');
+  assert.equal(await page.locator('#workspace').isVisible(),false,'Explicit Enter is required after confirmation');
   await page.locator('#unlock').click();
   await page.locator('#workspace').waitFor({state:'visible',timeout:30000});
   console.log('PASS 3: seven courses, intake, history and corrections restored exactly');
@@ -149,16 +153,16 @@ async function run(){
   await page.waitForFunction(()=>navigator.serviceWorker.controller!==null,null,{timeout:30000});
   // Regression: a partially missing current-version cache must recover online.
   await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v15');
+   const cache=await caches.open(window.MedControlEntryLanguages.cacheName);
    await cache.delete('/js/modular3-copy-migration.js');
   });
   await page.reload({waitUntil:'load'});
   await page.waitForFunction(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v15');
+   const cache=await caches.open(window.MedControlEntryLanguages.cacheName);
    return !!(await cache.match('/js/modular3-copy-migration.js'));
   },null,{timeout:30000});
   assert.equal(await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v15');
+   const cache=await caches.open(window.MedControlEntryLanguages.cacheName);
    return !!(await cache.match('/js/modular3-copy-migration.js'));
   }),true,'Missing offline asset must be restored on reload');
   console.log('PASS 4a: missing offline cache asset restored without clearing medical vault');
@@ -167,7 +171,7 @@ async function run(){
   await page.locator('#workspace').waitFor({state:'visible'});
   assert.deepEqual(await page.evaluate(()=>{const state=window.MedControlModular3ProtectedSession.read();const {languageChoiceConfirmed,languageConfirmationVersion,...settings}=state.settings;return {...state,settings};}),original);
   const offlineFiles=await page.evaluate(async()=>{
-   const cache=await caches.open('medcontrol-static-modular3-v15');
+   const cache=await caches.open(window.MedControlEntryLanguages.cacheName);
    const paths=['/modular3-protected.html','/js/modular3-encrypted-vault.js',
     '/js/modular3-offline-credential.js','/js/modular3-protected-session.js',
     '/js/modular3-write-boundary.js','/js/modular3-protected-pages.js',

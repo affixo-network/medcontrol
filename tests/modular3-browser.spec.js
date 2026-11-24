@@ -1,57 +1,34 @@
 'use strict';
-const { test, expect } = require('@playwright/test');
-const fs = require('node:fs');
-const path = require('node:path');
-const ROOT = path.resolve(__dirname,'..');
-const guardSource = fs.readFileSync(path.join(ROOT,'js/auth-guard.js'),'utf8');
-const loaderSource = fs.readFileSync(path.join(ROOT,'js/modular3-script-loader.js'),'utf8');
+const {test,expect}=require('@playwright/test');
+// Multiple real encrypted reopen flows and full worker-cache acknowledgment.
+test.setTimeout(120000);
+const {BASE,openProtected}=require('./modular3-protected-test-fixture.cjs');
 const pages=['input','action','dashboard','archive'];
-
-test('unauthenticated user cannot access all four sections', async ({browser}) => {
-  const context=await browser.newContext({serviceWorkers:'block'});
-  for(const pageName of pages){
-    const page=await context.newPage();
-    await page.goto('http://127.0.0.1:8765/'+pageName+'.html');
-    await expect(page).toHaveURL(/auth-login\.html\?/,{timeout:15000});
-    await page.close();
-  }
-  await context.close();
+test('unauthenticated user cannot access all four sections',async({browser})=>{
+ const context=await browser.newContext({serviceWorkers:'block'});
+ const external=[];
+ await context.route('**/*',route=>{if(new URL(route.request().url()).origin!==BASE){external.push(route.request().url());return route.abort();}return route.continue();});
+ for(const section of pages){
+  const page=await context.newPage();await page.goto(BASE+'/'+section+'.html');
+  await expect(page).toHaveURL(BASE+'/modular3-protected.html');
+  await expect(page.locator('#workspace')).toBeHidden();
+  await expect(page.locator('.topbar')).toHaveCount(0);
+  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
+  await page.close();
+ }
+ expect(external).toEqual([]);await context.close();
 });
-
-test('isolated authorized shell renders all four sections with mock-only data', async ({browser}) => {
-  const context=await browser.newContext({serviceWorkers:'block'});
-  const session={access_token:'mock-only-token',refresh_token:'mock-only-refresh',user:{id:'synthetic-e2e-user'},expires_at:Math.floor(Date.now()/1000)+3600};
-  await context.addInitScript(({session})=>{
-    localStorage.setItem('sb-lewdbjjaohqxbirzhrbm-auth-token',JSON.stringify(session));
-    window.__medcontrolE2E=true;
-  },{session});
-  for(const pageName of pages){
-    const page=await context.newPage();
-    const errors=[];
-    page.on('pageerror',e=>errors.push(e.message));
-    await page.route('**/*',async route=>{
-      const req=route.request();
-      const url=new URL(req.url());
-      if(url.origin!=='http://127.0.0.1:8765')return route.abort();
-      if(url.pathname==='/js/auth-guard.js') {
-        const mockGuard=guardSource.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:JSON.parse(localStorage.getItem('sb-lewdbjjaohqxbirzhrbm-auth-token'))},error:null})}})})");
-        return route.fulfill({status:200,contentType:'application/javascript',body:mockGuard});
-      }
-      if(url.pathname==='/js/modular3-script-loader.js')return route.fulfill({status:200,contentType:'application/javascript',body:loaderSource});
-      if(url.pathname.startsWith('/js/')||url.pathname==='/core.js'){
-        const name=url.pathname.split('/').pop();
-        if(name==='cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&!!s.settings&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs),meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
-        if(name==='navigation.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.mount=function(p){document.getElementById("app").textContent="E2E MOUNT "+p};window.fixPreviewNavigation=function(){};'});
-        if(name==='archive-page.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.renderArchivePage=function(){document.getElementById("app").textContent="E2E ARCHIVE"};'});
-        return route.fulfill({status:200,contentType:'application/javascript',body:'/* mocked app module: no production data access */'});
-      }
-      return route.continue();
-    });
-    await page.goto('http://127.0.0.1:8765/'+pageName+'.html');
-    if(pageName==='archive')await expect(page.locator('#app')).toHaveText('MedControl');
-    else await expect(page.locator('#app')).toHaveText('E2E MOUNT '+pageName);
-    expect(errors).toEqual([]);
-    await page.close();
-  }
-  await context.close();
+test('isolated authorized shell renders all four sections with synthetic protected data',async({browser})=>{
+ const context=await browser.newContext({serviceWorkers:'block',locale:'ru-RU'});
+ const external=[];
+ await context.route('**/*',route=>{if(new URL(route.request().url()).origin!==BASE){external.push(route.request().url());return route.abort();}return route.continue();});
+ for(const section of pages){
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await openProtected(page,section);
+  await expect(page.locator('.topbar')).toBeVisible();
+  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(true);
+  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications)).toEqual([]);
+  expect(errors).toEqual([]);await page.close();
+ }
+ expect(external).toEqual([]);await context.close();
 });

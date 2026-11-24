@@ -2,7 +2,7 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const guard=fs.readFileSync(path.join(root,'js/auth-guard.js'),'utf8');
+const {installLegacyModuleHost}=require('./modular3-legacy-module-fixture.cjs');
 test('all four real MedControl pages read synthetic preview and cannot overwrite original storage',async({browser})=>{
  test.setTimeout(120000);
  const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
@@ -17,10 +17,6 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
  await context.route('**/*',async route=>{
   const url=new URL(route.request().url()),name=decodeURIComponent(url.pathname).replace(/^\/+/, '');
   if(url.origin!=='http://127.0.0.1:8765')return route.abort();
-  if(name==='js/auth-guard.js'){
-   const mock=guard.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'synthetic-preview'},access_token:'fake',refresh_token:'fake'}},error:null})}})})");
-   return route.fulfill({status:200,contentType:'application/javascript',body:mock});
-  }
   if(name==='js/storage.js'||name.startsWith('js/storage.js?')){
    const storage=fs.readFileSync(path.join(root,'js/storage.js'),'utf8');
    const adapter=fs.readFileSync(path.join(root,'tests/modular3-real-page-readonly-adapter.js'),'utf8');
@@ -32,6 +28,9 @@ test('all four real MedControl pages read synthetic preview and cannot overwrite
   const ext=path.extname(file);
   return route.fulfill({status:200,contentType:ext==='.js'?'application/javascript':ext==='.html'?'text/html':ext==='.css'?'text/css':'application/octet-stream',body:fs.readFileSync(file)});
  });
+ // This legacy read-only adapter is a module-level fixture, not an alternate
+ // protected entry. The canonical password guard is tested by entry-boundary E2E.
+ await installLegacyModuleHost(context,undefined,{seed:false});
  await context.setOffline(true);
  for(const section of ['input','action','dashboard','archive']){
   const page=await context.newPage(),errors=[];

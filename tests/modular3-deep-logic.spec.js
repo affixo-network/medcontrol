@@ -1,24 +1,12 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
-const fs=require('node:fs');
-const path=require('node:path');
-const guard=fs.readFileSync(path.resolve(__dirname,'../js/auth-guard.js'),'utf8');
-test('real intake, cancellation, completion, seven-day archive, persistence - synthetic only',async({browser})=>{
+const {BASE,installLegacyModuleHost}=require('./modular3-legacy-module-fixture.cjs');
+test('legacy-module browser regression: real intake, cancellation, completion, seven-day archive, persistence - synthetic only',async({browser})=>{
  const context=await browser.newContext({locale:'ru-RU',timezoneId:'Asia/Yerevan',serviceWorkers:'block'});
  const page=await context.newPage();
- const blocked=[];
- await page.route('**/*',async route=>{
-   const url=new URL(route.request().url());
-   if(url.origin!=='http://127.0.0.1:8765'){blocked.push(url.origin);return route.abort();}
-   if(url.pathname==='/js/auth-guard.js'){
-     const mocked=guard.replace("import('https://esm.sh/@supabase/supabase-js@2')","Promise.resolve({createClient:()=>({auth:{getSession:async()=>({data:{session:{user:{id:'synthetic-e2e-only'},access_token:'fake',refresh_token:'fake'}},error:null})}})})");
-     return route.fulfill({status:200,contentType:'application/javascript',body:mocked});
-   }
-   if(url.pathname==='/js/cloud-snapshot.js')return route.fulfill({status:200,contentType:'application/javascript',body:'window.medcontrolCloudSnapshot={validState:s=>!!s&&!!s.settings&&Array.isArray(s.medications)&&Array.isArray(s.intakeLogs),meaningfulState:s=>!!s&&(s.medications.length>0||s.intakeLogs.length>0),latest:async()=>({ok:true,snapshot:null}),restoreLatest:async()=>({ok:false,reason:"synthetic_test_only"})};'});
-   return route.continue();
- });
+ const blocked=await installLegacyModuleHost(context);
  await page.clock.install({time:new Date('2026-10-12T15:00:00.000Z')});
- await page.goto('http://127.0.0.1:8765/input.html');
+ await page.goto(BASE+'/input.html');
  await expect(page.locator('#create_name')).toBeVisible({timeout:20000});
  const outcome=await page.evaluate(()=>{
    const date=currentLocalDate();

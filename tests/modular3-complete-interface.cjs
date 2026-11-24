@@ -5,6 +5,12 @@ const {spawn}=require('node:child_process');
 const PASS='Synthetic-Complete-Interface-2026';
 const KEY='medcontrol_modular3_protected_state_v1';
 const BASE='http://127.0.0.1:8791';
+const SOURCE=require('../locales/source-ru.json'),EN=require('../locales/catalogs/en.json');
+function english(text){
+ const entry=Object.entries(SOURCE).find(([,row])=>row.source===text);
+ assert.ok(entry,'Expected immutable source phrase: '+text);
+ return EN.messages[entry[0]];
+}
 async function run(){
  const server=spawn('python3',['-m','http.server','8791','--bind','127.0.0.1'],{stdio:'ignore'});
  let browser;
@@ -23,7 +29,17 @@ async function run(){
     await new Promise(resolve=>setTimeout(resolve,50));
   }
   browser=await chromium.launch({headless:true,...(process.env.MEDCONTROL_CHROMIUM?{executablePath:process.env.MEDCONTROL_CHROMIUM,args:['--no-sandbox']}:{} )});
-  const context=await browser.newContext({timezoneId:'Asia/Yerevan'});
+  const context=await browser.newContext({timezoneId:'Asia/Yerevan',locale:'en-US'});
+  // Approved password-first contract supersedes device-English entry at startup.
+  // Probe the properties without reading them; every real access records whether
+  // a successful password operation has already unlocked the protected session.
+  await context.addInitScript(()=>{
+   window.entryLanguageReads=[];
+   for(const key of ['language','languages'])Object.defineProperty(navigator,key,{configurable:true,get(){
+    window.entryLanguageReads.push({key,unlocked:window.MedControlModular3ProtectedSession?.isUnlocked()===true});
+    return key==='language'?'en-US':['en-US','en'];
+   }});
+  });
   const page=await context.newPage();
   await page.clock.setFixedTime(new Date('2026-10-23T08:00:00Z'));
   const external=[];const errors=[];
@@ -31,14 +47,20 @@ async function run(){
   page.on('pageerror',e=>errors.push(e.message));
   page.on('dialog',d=>d.accept());
   await page.goto(BASE+'/modular3-protected.html');
-  assert.equal(await page.locator('body > h1').innerText(),'MedControl — Protected mode','English browser must show English protected entry heading');
-  assert.equal(await page.locator('#unlock').innerText(),'Sign in','English browser must show English sign-in button');
-  assert.equal(await page.locator('#existing-import').innerText().then(t=>t.includes('A vault already exists.')),true,'Existing vault transfer instructions must be in English');
-  assert.equal(await page.locator('html').getAttribute('lang'),'en');
+  assert.equal(await page.locator('body > h1').innerText(),'MedControl — защищённый режим',
+   'An English browser must retain the fixed Russian entry before password verification');
+  assert.equal(await page.locator('#unlock').innerText(),'Войти');
+  assert.equal(await page.locator('#existing-import').textContent().then(t=>t.includes('Хранилище уже существует.')),true,
+   'Pre-password transfer instructions must retain the original Russian source');
+  assert.equal(await page.locator('html').getAttribute('lang'),'ru');
+  assert.equal(await page.locator('#entry-language-step').isVisible(),false);
   await page.waitForFunction(()=>document.getElementById('message').textContent.length>0);
-  assert.match(await page.locator('#message').innerText(),/Offline files are ready|Offline loading is not ready/,'English browser must display English offline status');
-  assert.equal(await page.locator('#retry-entry').innerText(),'Retry loading','English browser must display English retry action');
-  console.log('PASS English browser displays English protected entry without touching encrypted records');
+  assert.match(await page.locator('#message').innerText(),/Автономные файлы подготовлены|Автономная загрузка не готова/);
+  assert.equal(await page.locator('#retry-entry').innerText(),'Повторить загрузку');
+  assert.deepEqual(await page.evaluate(()=>window.entryLanguageReads),[],
+   'Startup must not inspect either navigator language property before password verification');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),null);
+  console.log('PASS fixed Russian entry and zero device-language reads before password, including an English browser');
   const russianContext=await browser.newContext({locale:'ru-RU'});
   try{
    const russianPage=await russianContext.newPage();
@@ -53,9 +75,27 @@ async function run(){
    await window.MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',country:'Armenia',infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[]},password);
   },PASS);
   await page.reload();
+  assert.equal(await page.locator('html').getAttribute('lang'),'ru');
+  assert.deepEqual(await page.evaluate(()=>window.entryLanguageReads),[]);
+  const beforeLanguageProposal=await page.evaluate(key=>localStorage.getItem(key),KEY);
   await page.locator('#password').fill(PASS);
   await page.locator('#unlock').click();
   await page.locator('#entry-language-step').waitFor({state:'visible',timeout:10000});
+  await page.waitForFunction(()=>document.documentElement.lang==='en');
+  assert.equal(await page.locator('#entry-language').inputValue(),'en');
+  const proposalReads=await page.evaluate(()=>window.entryLanguageReads);
+  assert.ok(proposalReads.length>0,'Successful password unlock must allow device-language proposal');
+  assert.ok(proposalReads.every(read=>read.unlocked),'Every device-language read must follow verified password unlock');
+  assert.equal(await page.locator('body > h1').innerText(),english('MedControl — защищённый режим'));
+  const importSource=Object.values(SOURCE).find(row=>row.source.startsWith('Хранилище уже существует.')).source;
+  assert.equal(await page.locator('#existing-import > p').textContent(),english(importSource));
+  assert.equal(await page.locator('#retry-entry').innerText(),'Retry loading');
+  assert.equal(await page.locator('.topbar').count(),0,'Proposed English must not authorize medical entry');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeLanguageProposal,
+   'Proposing English must not rewrite the encrypted medical vault');
+  console.log('PASS English proposal appears only after verified password unlock and does not authorize entry');
+  // Retain Russian for the original clinical/domain cycle below. Separate
+  // confirmed-English navigation and cycle-notice regression coverage follows.
   await page.locator('#entry-language').selectOption('ru');
   await page.locator('#confirm-entry-language').click();
   await page.locator('#unlock').click();
@@ -547,13 +587,13 @@ async function run(){
    assert.equal(await inheritedPage.evaluate(()=>getState().settings.languageConfirmationVersion),1);
    assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
    console.log('PASS inherited English confirmation and explicit entry');
-   assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
+   assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),english('Архив'),
     'Protected Archive navigation must be English');
-  assert.equal(await inheritedPage.locator('#create_manufacturer').locator('xpath=preceding-sibling::label[1]').innerText(),'Manufacturer',
+  assert.equal(await inheritedPage.locator('#create_manufacturer').locator('xpath=preceding-sibling::label[1]').innerText(),english('Производитель'),
     'Protected manufacturer form label must be English');
-  assert.equal(await inheritedPage.locator('#create_contentUnit option[value="other"]').innerText(),'Other');
-  assert.equal(await inheritedPage.locator('#create_intakeUnit option[value="tablet"]').innerText(),'tablet');
-  assert.equal(await inheritedPage.locator('.card h2').filter({hasText:'Removed and replaced times'}).count(),1,
+  assert.equal(await inheritedPage.locator('#create_contentUnit option[value="other"]').innerText(),english('Другое'));
+  assert.equal(await inheritedPage.locator('#create_intakeUnit option[value="tablet"]').innerText(),english('таблетка'));
+  assert.equal(await inheritedPage.locator('.card h2').filter({hasText:english('Удалённые и заменённые времена')}).count(),1,
     'Removed-time heading must be English');
   assert.equal(await inheritedPage.locator('#create_name').inputValue(),'',
     'Interface language adapter must not alter entered medication fields');
@@ -569,13 +609,23 @@ async function run(){
       '<p><strong>Сначала проверьте Архив.</strong> После проверки можно начать новый цикл.</p>'+
       '<button type="button">Начать заново</button></section>');
   });
-  await inheritedPage.waitForFunction(()=>
-    document.querySelector('#medControlCycleReady strong')?.textContent==='First check the Archive.' &&
-    document.querySelector('#medControlCycleReady p:nth-of-type(2)')?.textContent===
-      'First check the Archive. After reviewing it, you can start a new cycle.'
+  const cycleEnglish={
+   first:english('Сначала проверьте Архив.'),
+   after:english('После проверки можно начать новый цикл.'),
+   heading:english('Цикл завершён'),
+   body:english('Все курсы применения препаратов завершены или отменены. Данные сохранены и доступны в Архиве.'),
+   reset:english('Начать заново')
+  };
+  await inheritedPage.waitForFunction(expected=>
+    document.querySelector('#medControlCycleReady strong')?.textContent===expected.first &&
+    document.querySelector('#medControlCycleReady p:nth-of-type(2)')?.textContent===expected.first+' '+expected.after,
+    cycleEnglish
   );
-  assert.equal(await inheritedPage.locator('#medControlCycleReady h2').innerText(),'Cycle completed');
-  assert.equal(await inheritedPage.locator('#medControlCycleReady button').innerText(),'Start new cycle');
+  assert.equal(await inheritedPage.locator('#medControlCycleReady h2').innerText(),cycleEnglish.heading);
+  assert.equal(await inheritedPage.locator('#medControlCycleReady p').first().innerText(),cycleEnglish.body);
+  assert.equal(await inheritedPage.locator('#medControlCycleReady button').innerText(),cycleEnglish.reset);
+  assert.doesNotMatch(await inheritedPage.locator('#medControlCycleReady').innerText(),/[А-Яа-яЁё]/,
+   'The separate confirmed-English cycle notice must have no Russian system text');
   assert.equal(await inheritedPage.evaluate(()=>localStorage.getItem('medcontrol_modular3_protected_state_v1')),cycleVaultBefore,
     'Cycle notice localization must not change encrypted records');
   await inheritedPage.locator('#medControlCycleReady').evaluate(element=>element.remove());
@@ -583,7 +633,7 @@ async function run(){
   // Archive title must follow protected English on in-app navigation, not only on a full reload.
   await inheritedPage.evaluate(()=>window.medcontrolNavigateTo('archive'));
   await inheritedPage.waitForURL('**/archive.html');
-  assert.equal(await inheritedPage.title(),'MedControl — Archive',
+  assert.equal(await inheritedPage.title(),english('MedControl — Архив'),
     'Protected English Archive browser title must be translated after in-app navigation');
   assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en');
   assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true);
@@ -597,7 +647,7 @@ async function run(){
       'English locale must persist after navigating to '+section);
     assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true,
       'Protected vault must stay unlocked in '+section);
-    assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),'Archive',
+    assert.equal(await inheritedPage.locator('.topbar .nav a[href="archive.html"]').innerText(),english('Архив'),
       'English Archive navigation must remain translated in '+section);
     assert.equal(await inheritedPage.locator('.topbar .nav a').count(),4,
       'All four protected navigation links must remain available in '+section);

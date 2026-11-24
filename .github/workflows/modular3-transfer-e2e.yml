@@ -69,13 +69,13 @@ jobs:
           cp js/*.js protected/js/
           cp core.js protected/
           mkdir -p protected/locales
-          cp -R locales/source-ru.json locales/catalogs protected/locales/
+          cp -R locales/source-ru.json locales/manifest.json locales/catalogs protected/locales/
           test -s legacy/transfer-to-modular3.html
           test -s protected/modular3-protected.html
 
       - name: Install pinned Playwright and Chromium
         run: |
-          npm install --no-save --no-package-lock @playwright/test@1.57.0
+          npm install --no-save --no-package-lock @playwright/test@1.58.2
           npx playwright install --with-deps chromium
 
       - name: Isolated encrypted shard integrity E2E

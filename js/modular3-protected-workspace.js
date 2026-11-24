@@ -11,83 +11,175 @@
  let section='input';
 
  // Canonical 96-language registry including Filipino (#96).
- const languageRegistry=[["ru","русский","Russian"],["en","English","English"],["fr","français","French"],["de","Deutsch","German"],["es","español","Spanish"],["it","italiano","Italian"],["pt","português","Portuguese"],["af","Afrikaans","Afrikaans"],["am","አማርኛ","Amharic"],["ar","العربية","Arabic"],["az","azərbaycan","Azerbaijani"],["be","беларуская","Belarusian"],["bg","български","Bulgarian"],["bn","বাংলা","Bangla"],["bs","bosanski","Bosnian"],["ca","català","Catalan"],["cs","čeština","Czech"],["da","dansk","Danish"],["nl","Nederlands","Dutch"],["et","eesti","Estonian"],["fi","suomi","Finnish"],["fy","Frysk","Western Frisian"],["el","Ελληνικά","Greek"],["gu","ગુજરાતી","Gujarati"],["he","עברית","Hebrew"],["hi","हिन्दी","Hindi"],["gl","galego","Galician"],["ka","ქართული","Georgian"],["sq","shqip","Albanian"],["hy","հայերեն","Armenian"],["eu","euskara","Basque"],["ceb","Cebuano","Cebuano"],["zh","中文","Chinese"],["co","Corsican","Corsican"],["hr","hrvatski","Croatian"],["eo","Esperanto","Esperanto"],["ht","Haitian Creole","Haitian Creole"],["ha","Hausa","Hausa"],["hmn","Hmong","Hmong"],["hu","magyar","Hungarian"],["is","íslenska","Icelandic"],["ig","Igbo","Igbo"],["id","Indonesia","Indonesian"],["ga","Gaeilge","Irish"],["ja","日本語","Japanese"],["jv","Jawa","Javanese"],["kn","ಕನ್ನಡ","Kannada"],["kk","қазақ тілі","Kazakh"],["km","ខ្មែរ","Khmer"],["ko","한국어","Korean"],["ku","kurdî (kurmancî)","Kurdish"],["ky","кыргызча","Kyrgyz"],["lo","ລາວ","Lao"],["lv","latviešu","Latvian"],["lt","lietuvių","Lithuanian"],["lb","Lëtzebuergesch","Luxembourgish"],["mk","македонски","Macedonian"],["mg","Malagasy","Malagasy"],["ms","Melayu","Malay"],["ml","മലയാളം","Malayalam"],["mt","Malti","Maltese"],["mr","मराठी","Marathi"],["mn","монгол","Mongolian"],["my","မြန်မာ","Burmese"],["ne","नेपाली","Nepali"],["no","norsk","Norwegian"],["ps","پښتو","Pashto"],["fa","فارسی","Persian"],["pl","polski","Polish"],["pa","ਪੰਜਾਬੀ","Punjabi"],["ro","română","Romanian"],["gd","Gàidhlig","Scottish Gaelic"],["sr","српски","Serbian"],["sd","سنڌي","Sindhi"],["si","සිංහල","Sinhala"],["sk","slovenčina","Slovak"],["sl","slovenščina","Slovenian"],["so","Soomaali","Somali"],["su","Basa Sunda","Sundanese"],["sw","Kiswahili","Swahili"],["sv","svenska","Swedish"],["tg","тоҷикӣ","Tajik"],["ta","தமிழ்","Tamil"],["te","తెలుగు","Telugu"],["th","ไทย","Thai"],["tr","Türkçe","Turkish"],["uk","українська","Ukrainian"],["ur","اردو","Urdu"],["uz","o‘zbek","Uzbek"],["vi","Tiếng Việt","Vietnamese"],["cy","Cymraeg","Welsh"],["xh","IsiXhosa","Xhosa"],["yi","ייִדיש","Yiddish"],["yo","Èdè Yorùbá","Yoruba"],["zu","isiZulu","Zulu"],["fil","Filipino","Filipino"]];
- const languageLabels={
-  ru:['Ввод','Приём препаратов','Табло','Архив','Выйти','Язык интерфейса','Подтвердить язык','Изменить язык','Предлагаемый язык браузера','Язык сохранён'],
-  en:['Input','Medication intake','Dashboard','Archive','Log out','Interface language','Confirm language','Change language','Browser language suggestion','Language saved'],
-  hy:['Մուտքագրում','Դեղերի ընդունում','Վահանակ','Արխիվ','Դուրս գալ','Միջերեսի լեզու','Հաստատել լեզուն','Փոխել լեզուն','Բրաուզերի առաջարկած լեզուն','Լեզուն պահպանված է']
+ const policy=window.MedControlEntryLanguages;
+ const languageRegistry=policy.registry.map(({code,name,englishName})=>[code,name,englishName]);
+ let currentLanguage='ru',preparedEntry=null,pendingOperationNotice=null;
+ const languagePanel=document.createElement('section');languagePanel.id='protected-language-choice';languagePanel.hidden=true;
+ const languageTitle=document.createElement('label');languageTitle.htmlFor='protected-language-select';
+ const languageSelect=document.createElement('select');languageSelect.id='protected-language-select';
+ policy.registry.forEach(item=>languageSelect.add(new Option(item.name,item.code)));
+ const languageConfirm=document.createElement('button');languageConfirm.id='protected-language-confirm';
+ const languageHint=document.createElement('span');languagePanel.append(languageTitle,languageSelect,languageConfirm,languageHint);workspace.prepend(languagePanel);
+ const entryOriginals=new Map();
+ const entryWalker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+ while(entryWalker.nextNode()){
+  const node=entryWalker.currentNode;
+  if(!node.parentElement?.closest('script,style,#workspace')&&node.textContent.trim())entryOriginals.set(node,node.textContent);
+ }
+ function textFor(prepared,text){
+  if(text==='MedControl'||!prepared||prepared.code==='ru')return text;
+  const exact=policy.translate(prepared,text);if(exact)return exact;
+  const trimmed=String(text).trim(),plain=policy.translate(prepared,trimmed);
+  if(plain)return text.replace(trimmed,plain);
+  for(const item of Object.values(prepared.source)){
+   if(!/⟦\d+⟧/.test(item.source)||!/[А-Яа-яЁё]/.test(item.source.replace(/⟦\d+⟧/g,'')))continue;
+   const slots=[];
+   const escaped=item.source.split(/(⟦\d+⟧)/g).map(part=>{
+    if(/^⟦\d+⟧$/.test(part)){slots.push(part);return '([\\s\\S]*?)';}
+    return part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+   }).join('');
+   const match=new RegExp('^'+escaped+'$').exec(text),translated=policy.translate(prepared,item.source);
+   if(match&&translated)return translated.replace(/⟦\d+⟧/g,slot=>match[slots.indexOf(slot)+1]);
+  }
+  const fragments=Object.keys(prepared.lookup||{}).filter(key=>prepared.lookup[key]&&/[А-Яа-яЁё]/.test(key)).sort((a,b)=>b.length-a.length);
+  const escapedFragments=fragments.map(key=>key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  if(escapedFragments.length){
+   const pattern=new RegExp(escapedFragments.join('|'),'g');
+   const remainder=String(text).replace(pattern,'');
+   if(!/[А-Яа-яЁё]/.test(remainder))return String(text).replace(pattern,key=>prepared.lookup[key]);
+  }
+  return null;
+ }
+ // Rehearsal wording predates the canonical catalog. Resolve authored labels to
+ // existing source phrases; never infer translations from medical names/values.
+ const rehearsalAliases={
+  'Название':'Название препарата','Другая единица содержания':'Другая единица содержания *','Другая единица приёма':'Другая единица приёма *',
+  'Сохранить курс':'Сохранить','Активный режим':'Режим','Повторение курса':'Параметры расписания',
+  'Конкретные даты':'Даты','Даты через запятую':'Даты','Конкретные даты (через запятую)':'Даты',
+  'Другая':'Другое','шт.':'ед.','Часы приёма':'Часы','Минуты приёма':'Минуты',
+  'ЧЧ:ММ':'00:00','Время в формате ЧЧ:ММ':'Укажите корректное время.',
+  'Время в формате ЧЧ:ММ (необязательно)':'Укажите корректное время.',
+  'Выбрать время 1':'Время 1','Выбрать время 2':'Время 2',
+  'Укажите название препарата и дозировку.':'Во Вводе создаётся правило приёма: название, доза, расписание, время, дата начала, дата окончания и режим Активно / Пассивно.',
+  'Выберите расписание и время приёма.':'Выберите режим расписания.',
+  'Для второго приёма используйте «Время 2».':'Отметьте часы и минуты, затем нажмите «Добавить время».',
+  'Проверьте даты начала и окончания.':'Проверьте дату окончания, дни недели / даты и время приёма.',
+  'Нажмите «Добавить» для защищённого сохранения.':'Подтвердить и сохранить',
+  'Добавьте хотя бы одно время приёма.':'Добавьте хотя бы одно время.',
+  'Курс зашифрован и сохранён.':'Сохранённые данные курса',
+  'Режим препарата зашифрован и сохранён.':'Изменено','Новые времена зашифрованы и сохранены.':'Изменено',
+  'Сведения зашифрованы и сохранены.':'Изменено','Расписание зашифровано и сохранено.':'Изменено',
+  'Отмена препарата зашифрована и сохранена.':'Отменено','Завершение курса зашифровано и сохранено.':'Курс завершён',
+  'Приём зашифрован и сохранён.':'Принято','Отмена зашифрована и сохранена.':'Отмена «Принято»',
+  'Дата окончания раньше даты начала.':'Дата окончания не может быть раньше даты начала.',
+  'Выберите дни недели.':'Отметьте хотя бы один день недели.',
+  'Укажите даты в формате ГГГГ-ММ-ДД.':'Например: 2026-04-10, 2026-04-20',
+  'Расписание на сегодня':'Состояния текущего дня','Всего:':'Расчётный приём',
+  '; принято:':'Принято','; ожидается:':'Ожидается','; не принято:':'Не принято',
+  'Нет запланированных приёмов':'На сегодня активных позиций нет.',
+  'Активировать препарат':'Активировать','Перевести в пассивный режим':'Сделать пассивным',
+  'Изменить будущие времена приёма':'Изменить время','Времена (ЧЧ:ММ через запятую)':'Например: 09:00, 14:30, 21:00',
+  'Сохранить изменения':'Сохранить','Укажите различные времена в формате ЧЧ:ММ.':'Укажите корректное время.',
+  'Изменить сведения о препарате':'Изменить препарат','Сохранить сведения':'Сохранить',
+  'Название обязательно.':'Введите название препарата.',
+  'Изменить будущее расписание курса':'Параметры расписания','Сохранить расписание':'Сохранить',
+  'Проверьте конкретные даты.':'Проверьте дату окончания, дни недели / даты и время приёма.',
+  'История курса и изменения':'История изменений строки',
+  'Изменены времена приёма':'Изменены данные времени.','Изменено расписание':'Параметры расписания заменены',
+  'Изменены сведения':'Изменено','Изменён режим препарата':'Режим',
+  'Завершить курс':'Отправить в архив',
+  'Отменить «Принято» (случайность)':'Отменить «Принято»',
+  'Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.':'Отменить случайное нажатие «Принято»? Исходное фактическое время сохранится в истории.',
+  ': расчётное':'Расчётное время','; фактическое':'Фактическое время',
+  'История событий (':'История событий','Дата не указана':'Дата',
+  'Удалено/заменено':'Удалено','→ добавлено':'добавлено',
+  'Завершить курс «⟦0⟧»? История и приёмы сохранятся.':'Отправить завершённый курс «⟦0⟧» в Архив?',
+  'Отменить препарат «⟦0⟧»? Все уже зарегистрированные приёмы и история изменений сохранятся.':['Отменить препарат','Препарат: ⟦0⟧','Продолжить?'],
+  'Изменить времена только для будущих приёмов? Прошлая история сохранится.':['Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.','Продолжить?'],
+  'Изменить будущее расписание? История прошлых приёмов останется без изменений.':['Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.','Продолжить?']
  };
- let currentLanguage='ru';
- const languagePanel=document.createElement('section');
- languagePanel.id='protected-language-choice';
- languagePanel.style.cssText='padding:12px;margin:12px 0;border:1px solid #cbd5e1;border-radius:8px;background:#fff';
- const languageTitle=document.createElement('label');
- languageTitle.htmlFor='protected-language-select';
- const languageSelect=document.createElement('select');
- languageSelect.id='protected-language-select';
- languageSelect.style.cssText='max-width:100%;margin:0 8px;padding:7px';
- for(const [code,native,english] of languageRegistry){
-  const option=document.createElement('option');option.value=code;option.textContent=native;
-  languageSelect.append(option);
+ function ui(text){
+  if(!preparedEntry||currentLanguage==='ru'||!/[А-Яа-яЁё]/.test(text))return text;
+  const trimmed=text.trim(),alias=rehearsalAliases[trimmed];
+  const translateAlias=value=>{
+   if(value==='00:00')return value;
+   const translated=textFor(preparedEntry,value);
+   if(!translated)throw Error('Missing rehearsal catalog phrase: '+value);
+   return translated;
+  };
+  if(alias){
+   let translated=(Array.isArray(alias)?alias:[alias]).map(translateAlias).join(' ');
+   if(/^[:;]/.test(trimmed))translated=trimmed[0]+' '+translated;
+   if(/[:(]$/.test(trimmed))translated+=(trimmed.endsWith('(')?' (':':');
+   if(trimmed.startsWith('→'))translated='→ '+translated;
+   return text.replace(trimmed,translated);
+  }
+  const direct=textFor(preparedEntry,text);if(direct)return direct;
+  // Preserve punctuation around a known system label, without processing values.
+  const plain=trimmed.replace(/^[:;]\s*/,'').replace(/[:(]\s*$/,'');
+  if(plain!==trimmed){
+   const translated=textFor(preparedEntry,plain);
+   if(translated)return text.replace(plain,translated);
+  }
+  window.medcontrolRehearsalLocaleError='Missing rehearsal catalog phrase: '+text;
+  throw Error(window.medcontrolRehearsalLocaleError);
  }
- const languageConfirm=document.createElement('button');
- languageConfirm.type='button';languageConfirm.id='protected-language-confirm';
- const languageHint=document.createElement('span');
- languageHint.style.marginLeft='8px';
- languagePanel.append(languageTitle,languageSelect,languageConfirm,languageHint);
- workspace.insertBefore(languagePanel,workspace.firstChild);
- function deviceLanguage(){
-  const candidates=Array.isArray(navigator.languages)?navigator.languages:[navigator.language];
-  return window.MedControlEntryLanguages.propose(candidates);
-  return 'en';
+ function localizeMarkup(element){
+  if(currentLanguage==='ru')return;
+  const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);
+  while(walker.nextNode()){
+   const node=walker.currentNode;if(node.textContent.trim())node.textContent=ui(node.textContent);
+  }
+  for(const field of element.querySelectorAll('[aria-label],[title],[placeholder]'))for(const key of ['aria-label','title','placeholder']){
+   const value=field.getAttribute(key);if(value)field.setAttribute(key,ui(value));
+  }
  }
- function applyLanguage(code){
-  currentLanguage=window.MedControlEntryLanguages.resolve(code)||'ru';
-  const labels=languageLabels[currentLanguage]||languageLabels.en;
-  document.documentElement.lang=currentLanguage;
-  document.documentElement.dir=window.MedControlEntryLanguages.registry.find(item=>item.code===currentLanguage)?.direction||'ltr';
-  document.querySelectorAll('#workspace nav [data-tab]').forEach((button,index)=>button.textContent=labels[index]);
-  document.getElementById('lock').textContent=labels[4];
-  languageTitle.textContent=labels[5]+': ';
-  languageConfirm.textContent=labels[6];
-  const heading=screen.querySelector('h2');
-  if(heading)heading.textContent=labels[['input','action','dashboard','archive'].indexOf(section)];
+ function weekday(value,russian=value){
+  if(currentLanguage==='ru')return russian;
+  const offset=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].indexOf(value);
+  return new Intl.DateTimeFormat(currentLanguage,{weekday:'short',timeZone:'UTC'}).format(new Date(Date.UTC(2026,10,23+offset,12)));
  }
- function offerLanguage(){
-  if(!session.isUnlocked())return;
-  const settings=session.read().settings||{};
-  const confirmed=window.MedControlEntryLanguages.confirmed(settings);
-  const proposed=confirmed?settings.interfaceLanguage:deviceLanguage();
-  applyLanguage(proposed);
-  languageSelect.value=currentLanguage;
-  languagePanel.hidden=confirmed;
-  languageHint.textContent=confirmed?'':(languageLabels[currentLanguage]||languageLabels.en)[8]+': '+currentLanguage;
-  if(confirmed)render();
+ function calendarDate(value){
+  if(!value||currentLanguage==='ru')return value||'';
+  const date=new Date(value+'T12:00:00Z');
+  return Number.isFinite(date.getTime())?new Intl.DateTimeFormat(currentLanguage,{timeZone:'UTC',year:'numeric',month:'2-digit',day:'2-digit'}).format(date):value;
  }
+ function rehearsalConfirmation(template,values){
+  return ui(template).replace(/⟦(\d+)⟧/g,(_,index)=>String(values[Number(index)]));
+ }
+ function userContent(text){
+  const span=document.createElement('span');span.dataset.medcontrolUserContent='';span.dir='auto';span.textContent=text;return span;
+ }
+ function paintEntry(prepared){
+  for(const [node,original]of entryOriginals){if(node.isConnected){const translated=textFor(prepared,original);if(translated)node.textContent=translated;}}
+  document.documentElement.lang=prepared.code;
+  document.documentElement.dir=policy.registry.find(item=>item.code===prepared.code).direction;
+ }
+ function applyLanguage(code,prepared=preparedEntry){
+  if(!prepared||prepared.code!==code)throw Error('Selected catalog is not prepared');
+  currentLanguage=code;preparedEntry=prepared;
+  document.documentElement.lang=code;document.documentElement.dir=policy.registry.find(item=>item.code===code).direction;
+  const labels=['Ввод','Приём препаратов','Табло','Архив'];
+  document.querySelectorAll('#workspace nav [data-tab]').forEach((button,index)=>button.textContent=ui(labels[index]));
+  document.getElementById('lock').textContent=textFor(prepared,'Выйти')||'MedControl';
+  languageTitle.textContent=textFor(prepared,'Язык интерфейса')||'MedControl';
+  languageSelect.setAttribute('aria-label',languageTitle.textContent);
+  languageConfirm.textContent=textFor(prepared,'Подтвердить')||'MedControl';
+  const heading=screen.querySelector('h2');if(heading)heading.textContent=textFor(prepared,labels[['input','action','dashboard','archive'].indexOf(section)])||'MedControl';
+  window.medcontrolRenderActionSemantics?.(code);
+ }
+ function offerLanguage(){languagePanel.hidden=true;applyLanguage(session.read().settings.interfaceLanguage);}
+ const changeLanguage=document.createElement('button');changeLanguage.id='protected-language-change';changeLanguage.type='button';
+ changeLanguage.onclick=()=>{if(session.isEntryAuthorized()){languagePanel.hidden=false;languageSelect.value=currentLanguage;}};
+ workspace.querySelector('nav').append(changeLanguage);
+ function updateLanguageChange(){changeLanguage.textContent=textFor(preparedEntry,'Язык интерфейса')||'MedControl';}
  languageConfirm.onclick=async()=>{
   if(!session.isEntryAuthorized())return;
-  const code=languageSelect.value;
-  languageConfirm.disabled=true;
-  try{
-   await window.MedControlEntryLanguages.prepare(code);
-   await session.transact(state=>{
-    state.settings=state.settings||{};
-    state.settings.interfaceLanguage=code;
-    state.settings.languageChoiceConfirmed=true;
-    state.settings.languageConfirmationVersion=1;
-   });
-   applyLanguage(code);languagePanel.hidden=true;render();
-   notice((languageLabels[currentLanguage]||languageLabels.en)[9]+'.');
-  }catch(error){notice('Language confirmation failed: '+error.message);}
-  finally{languageConfirm.disabled=false;}
+  const code=languageSelect.value;languageSelect.disabled=true;languageConfirm.disabled=true;
+  try{const prepared=await policy.confirm(session,code);applyLanguage(code,prepared);languagePanel.hidden=true;render();}
+  catch(error){languageSelect.value=currentLanguage;notice('Не удалось сохранить изменения. Предыдущие данные сохранены.');}
+  finally{languageSelect.disabled=false;languageConfirm.disabled=false;}
  };
- const changeLanguage=document.createElement('button');
- changeLanguage.id='protected-language-change';
- changeLanguage.type='button';
- changeLanguage.onclick=()=>{if(session.isEntryAuthorized()){languagePanel.hidden=false;languageSelect.value=currentLanguage;languageSelect.focus();}};
- workspace.querySelector('nav').append(changeLanguage);
- function updateLanguageChange(){changeLanguage.textContent=(languageLabels[currentLanguage]||languageLabels.en)[7];}
-
  function plannedTimes(med,day){
   const changes=(med.rowHistory||[]).filter(x=>x.action==='times_changed'&&Array.isArray(x.previousTimes)&&Array.isArray(x.newTimes)&&Number.isFinite(Date.parse(x.at))).sort((a,b)=>Date.parse(a.at)-Date.parse(b.at));
   const candidates=new Set([...(med.times||[]),...changes.flatMap(x=>[...x.previousTimes,...x.newTimes])]);
@@ -140,16 +232,7 @@
   if(p.year+'-'+p.month+'-'+p.day!==day||p.hour+':'+p.minute!==time)throw Error('Nonexistent time in configured timezone');
   return new Date(stamp).toISOString();
  }
- const entryMessagesEn=Object.freeze({
-  'Введите локальный пароль.':'Enter your local password.',
-  'На этом адресе защищённое хранилище не найдено. Для существующих записей требуется перенос защищённой копии.':'No protected vault was found at this address. To access existing records, transfer an encrypted backup.',
-  'Создание защищённого хранилища не завершено. Нажмите «Восстановить доступ» с прежним паролем.':'Protected vault setup is incomplete. Select Recover access using your previous password.',
-  'Защищённая копия данных на этом адресе не найдена. Ничего не изменено.':'No encrypted vault data was found at this address. Nothing was changed.',
-  'Автономный вход выполнен.':'Offline sign-in succeeded.',
-  'Неверный пароль.':'Incorrect password.'
- });
- // Device language is proposed before sign-in; explicit changes are
- // committed only after the password has unlocked the protected vault.
+ // Language is detected only after successful password confirmation/unlock.
  const entryLanguage=document.getElementById('entry-language');
  const languageStep=document.getElementById('entry-language-step');
  const confirmEntryLanguage=document.getElementById('confirm-entry-language');
@@ -157,20 +240,20 @@
  const confirmPassword=document.getElementById('confirm-password');
  let languagePending=false;
  let languageConfirmed=false;
- const preferences=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language];
  const suggested='ru';
  let entryLocaleVersion=0;
+ let confirmationBusy=false,confirmingCode=null;
  async function renderEntryLanguage(){
   const ticket=++entryLocaleVersion;
   const code=entryLanguage.value||'en',policy=window.MedControlEntryLanguages;
   confirmEntryLanguage.disabled=true;
-  document.documentElement.lang=code;
-  document.documentElement.dir=policy.registry.find(item=>item.code===code)?.direction||'ltr';
   document.getElementById('entry-language-label').firstChild.textContent='MedControl ';
   document.getElementById('entry-language-hint').textContent='';
   try{
    const prepared=await policy.prepare(code);
    if(ticket!==entryLocaleVersion)return;
+   preparedEntry=prepared;currentLanguage=code;paintEntry(prepared);
+   document.documentElement.lang=code;document.documentElement.dir=policy.registry.find(item=>item.code===code).direction;
    const localized=value=>code==='ru'?value:policy.translate(prepared,value);
    const language=localized('Язык интерфейса');
    const confirm=localized('Подтвердить');
@@ -180,52 +263,74 @@
    entryLanguage.setAttribute('aria-label',language);
    confirmEntryLanguage.textContent=confirm;
    document.getElementById('unlock').textContent=enter;
-   confirmEntryLanguage.disabled=false;
+   confirmEntryLanguage.disabled=confirmationBusy;
+   if(languagePending)notice(pendingOperationNotice||'Язык интерфейса');
   }catch(error){
    if(ticket!==entryLocaleVersion)return;
-   document.getElementById('entry-language-hint').textContent='MedControl: '+error.message;
+   window.medcontrolEntryLocaleError=String(error?.message||error);
+   document.getElementById('entry-language-hint').textContent=textFor(preparedEntry,'Ошибка')||'MedControl';
+   entryLanguage.value=currentLanguage;
   }
  }
- entryLanguage.addEventListener('change',renderEntryLanguage);
+ entryLanguage.addEventListener('change',()=>{if(confirmationBusy){entryLanguage.value=confirmingCode;return;}renderEntryLanguage();});
  entryLanguage.replaceChildren();
  for(const [code,native,english] of languageRegistry)entryLanguage.add(new Option(native,code));
  entryLanguage.value=suggested;
  function beginLanguageStep(){
   languagePending=true;languageConfirmed=false;
-  for(const child of login.children)if(child!==languageStep&&child.id!=='unlock')child.hidden=true;
-  entryLanguage.value=window.MedControlEntryLanguages.propose(preferences);
+  for(const child of login.children)if(child!==languageStep&&child.id!=='unlock'&&!child.contains(message)&&!child.contains(document.getElementById('preserved-backups')))child.hidden=true;
+  const preferences=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language];
+  entryLanguage.value=policy.propose(preferences);
   renderEntryLanguage();languageStep.hidden=false;
   password.closest('label').hidden=true;confirmPasswordLabel.hidden=true;
   document.getElementById('unlock').hidden=true;
   document.getElementById('enroll').hidden=true;
-  notice('Подтвердите язык интерфейса.');
+  notice(pendingOperationNotice||'MedControl');
+ }
+ function resetEntryAfterLock(error){
+  ++entryLocaleVersion;languagePending=false;languageConfirmed=false;
+  confirmationBusy=false;confirmingCode=null;pendingOperationNotice=null;
+  workspace.hidden=true;document.getElementById('screen')?.replaceChildren?.();login.hidden=false;
+  password.value='';password.closest('label').hidden=false;
+  confirmPassword.value='';confirmPasswordLabel.hidden=true;
+  languageStep.hidden=true;languagePanel.hidden=true;
+  const unlock=document.getElementById('unlock');unlock.hidden=false;unlock.disabled=false;
+  entryLanguage.disabled=false;confirmEntryLanguage.disabled=false;
+  if(typeof refreshImportControls==='function'){try{refreshImportControls();}catch(_){}}
+  notice('Ошибка входа: '+String(error?.message||error));
  }
  confirmEntryLanguage.onclick=async()=>{
-  if(!languagePending||!session.isUnlocked())return;
-  confirmEntryLanguage.disabled=true;
+  if(!languagePending||!session.isUnlocked()||confirmationBusy)return;
+  const code=entryLanguage.value;confirmingCode=code;confirmationBusy=true;confirmEntryLanguage.disabled=true;entryLanguage.disabled=true;++entryLocaleVersion;
   try{
-   await window.MedControlEntryLanguages.prepare(entryLanguage.value);
-   await session.transact(state=>{
-    state.settings=state.settings||{};
-    state.settings.interfaceLanguage=entryLanguage.value;
-    state.settings.languageChoiceConfirmed=true;
-    state.settings.languageConfirmationVersion=1;
-   });
-   languagePending=false;languageConfirmed=true;languageStep.hidden=true;
-   document.getElementById('unlock').hidden=false;
-   document.getElementById('unlock').disabled=false;
-   renderEntryLanguage();
+   const prepared=await policy.confirm(session,code);
+   preparedEntry=prepared;currentLanguage=code;paintEntry(prepared);languagePending=false;languageConfirmed=true;languageStep.hidden=true;
+   document.getElementById('unlock').hidden=false;document.getElementById('unlock').disabled=false;
+   document.getElementById('unlock').textContent=textFor(prepared,'Войти');
+   document.documentElement.lang=code;document.documentElement.dir=policy.registry.find(item=>item.code===code).direction;
    notice('MedControl');
-   // Keep the unlocked session in memory; the user explicitly enters with the button.
-   // languageConfirmed remains true until that click.
-  }catch(error){notice('Не удалось сохранить язык: '+error.message);}
-  finally{confirmEntryLanguage.disabled=false;}
+  }catch(error){
+   if(!session.isUnlocked())resetEntryAfterLock(error);
+   else notice('Не удалось сохранить изменение.');
+  }
+  finally{confirmationBusy=false;confirmingCode=null;entryLanguage.disabled=false;confirmEntryLanguage.disabled=false;}
  };
+ async function afterUnlock({enter=false}={}){
+  if(!session.isUnlocked())throw Error('Protected session is locked');
+  if(!policy.confirmed(session.read().settings)){beginLanguageStep();return;}
+  const prepared=await policy.restore(session);
+  preparedEntry=prepared;currentLanguage=prepared.code;paintEntry(prepared);languagePending=false;languageConfirmed=true;languageStep.hidden=true;
+  document.documentElement.lang=prepared.code;document.documentElement.dir=policy.registry.find(item=>item.code===prepared.code).direction;
+  document.getElementById('unlock').textContent=textFor(prepared,'Войти');
+  document.getElementById('unlock').hidden=false;document.getElementById('unlock').disabled=false;
+  if(enter){session.authorizeEntry();languageConfirmed=false;show();}
+ }
  document.getElementById('enroll').addEventListener('click',()=>{confirmPasswordLabel.hidden=false;},{capture:true});
+ function operationNotice(text){pendingOperationNotice=text;notice(text);}
  function notice(text){
-  const english=document.documentElement.lang==='en';
-  const translated=english?entryMessagesEn[text]:undefined;
-  message.textContent=translated||text;
+  let localized=textFor(preparedEntry,text);
+  if(preparedEntry&&new URLSearchParams(window.location.search).get('rehearsal')==='1'){try{localized=ui(text);}catch(_){/* Keep the existing selected-language generic failure label. */}}
+  message.textContent=localized||(preparedEntry&&preparedEntry.code!=='ru'?(textFor(preparedEntry,'Ошибка')||'MedControl'):text);
  }
  function show(){
   // No protected interface may open before first-run language confirmation.
@@ -248,41 +353,41 @@
   if(!session.isEntryAuthorized()){workspace.hidden=true;login.hidden=false;screen.replaceChildren();return;}
   const state=pages.read(section);
   screen.replaceChildren();
-  const title=document.createElement('h2');title.textContent={input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section];screen.append(title);
+  const title=document.createElement('h2');title.textContent={input:ui('Ввод'),action:ui('Приём препаратов'),dashboard:ui('Табло'),archive:ui('Архив')}[section];screen.append(title);
   if(session.read().settings?.languageChoiceConfirmed)applyLanguage(session.read().settings.interfaceLanguage||currentLanguage);
   if(section==='archive'){
    const controls=document.createElement('section');controls.className='card';
-   const heading=document.createElement('h2');heading.textContent='История приёмов';controls.append(heading);
+   const heading=document.createElement('h2');heading.textContent=ui('История приёмов');controls.append(heading);
    const actions=document.createElement('div');actions.className='inline';
    const active=window.__medcontrolProtectedArchiveOutcome||'';
    for(const [value,label] of [['taken','Принято'],['missed','Не принято']]){
-    const button=document.createElement('button');button.type='button';button.textContent=label;
+    const button=document.createElement('button');button.type='button';button.textContent=ui(label);
     button.setAttribute('aria-pressed',String(active===value));
     button.onclick=()=>{window.__medcontrolProtectedArchiveOutcome=value;render();};
     actions.append(button);
    }
    if(active){
-    const filter=document.createElement('select');filter.setAttribute('aria-label','Период истории');
-    for(const [value,label] of [['today','Сегодня'],['7','7 дней'],['30','30 дней'],['all','Весь период']])filter.add(new Option(label,value));
+    const filter=document.createElement('select');filter.setAttribute('aria-label',ui('Период истории'));
+    for(const [value,label] of [['today','Сегодня'],['7','7 дней'],['30','30 дней'],['all','Весь период']])filter.add(new Option(ui(label),value));
     filter.value=window.__medcontrolProtectedArchivePeriod||'7';
     filter.onchange=()=>{window.__medcontrolProtectedArchivePeriod=filter.value;render();};
-    const periodLabel=document.createElement('label');periodLabel.textContent='Период';periodLabel.append(filter);actions.append(periodLabel);
-    const collapse=document.createElement('button');collapse.type='button';collapse.textContent='Свернуть';
+    const periodLabel=document.createElement('label');periodLabel.textContent=ui('Период');periodLabel.append(filter);actions.append(periodLabel);
+    const collapse=document.createElement('button');collapse.type='button';collapse.textContent=ui('Свернуть');
     collapse.onclick=()=>{window.__medcontrolProtectedArchiveOutcome='';render();};actions.append(collapse);
    }
    controls.append(actions);screen.append(controls);
   }
   if(section==='input'){
    const form=document.createElement('form');
-   form.innerHTML='<label>Название <input name="name" required></label><label>Производитель <input name="manufacturer"></label><label>Количественное содержание <input name="contentQuantity" type="number" min="0" step="any"></label><label>Единица содержания <input name="contentUnit"></label><label>Другая единица содержания <input name="contentUnitOther"></label><label>Количество приёма <input name="intakeQuantity" type="number" min="0" step="any"></label><label>Единица приёма <input name="intakeUnit"></label><label>Другая единица приёма <input name="intakeUnitOther"></label><label>Детали <input name="details"></label><label>Дата начала <input name="date" type="date" required></label><label>Дата окончания <input name="endDate" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ (необязательно)"> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';
-   const mode=document.createElement('label');mode.textContent='Активный режим ';const activeInput=document.createElement('input');activeInput.type='checkbox';activeInput.name='active';activeInput.checked=true;mode.append(activeInput);form.querySelector('button:not([type])').before(mode);
+   form.innerHTML='<label>Название <input name="name" required></label><label>Производитель <input name="manufacturer"></label><label>Количественное содержание <input name="contentQuantity" type="number" min="0" step="any"></label><label>Единица содержания <input name="contentUnit"></label><label>Другая единица содержания <input name="contentUnitOther"></label><label>Количество приёма <input name="intakeQuantity" type="number" min="0" step="any"></label><label>Единица приёма <input name="intakeUnit"></label><label>Другая единица приёма <input name="intakeUnitOther"></label><label>Детали <input name="details"></label><label>Дата начала <input name="date" type="date" required></label><label>Дата окончания <input name="endDate" type="date" required></label><label>Время 1 <input name="first" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ" required> <button type="button" data-picker="first" aria-label="Выбрать время 1">◷</button></label><label>Время 2 <input name="second" type="text" inputmode="numeric" placeholder="ЧЧ:ММ" maxlength="5" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9]" title="Время в формате ЧЧ:ММ (необязательно)"> <button type="button" data-picker="second" aria-label="Выбрать время 2">◷</button></label><button>Сохранить курс</button>';localizeMarkup(form);
+   const mode=document.createElement('label');mode.textContent=ui('Активный режим ');const activeInput=document.createElement('input');activeInput.type='checkbox';activeInput.name='active';activeInput.checked=true;mode.append(activeInput);form.querySelector('button:not([type])').before(mode);
    const schedule=document.createElement('fieldset');
-   schedule.innerHTML='<legend>Повторение курса</legend><label>Расписание <select name="scheduleType"><option value="daily">Каждый день</option><option value="weekdays">Дни недели</option><option value="explicit_dates">Конкретные даты</option></select></label><div data-schedule-weekdays hidden>Дни недели: </div><label data-schedule-dates hidden>Даты через запятую <input name="explicitDates" placeholder="2026-10-18, 2026-10-20"></label>';
+   schedule.innerHTML='<legend>Повторение курса</legend><label>Расписание <select name="scheduleType"><option value="daily">Каждый день</option><option value="weekdays">Дни недели</option><option value="explicit_dates">Конкретные даты</option></select></label><div data-schedule-weekdays hidden>Дни недели: </div><label data-schedule-dates hidden>Даты через запятую <input name="explicitDates" placeholder="2026-10-18, 2026-10-20"></label>';localizeMarkup(schedule);
    const weekdaysBox=schedule.querySelector('[data-schedule-weekdays]');
    for(const day of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']){
     const label=document.createElement('label');
     const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.name='weekday';checkbox.value=day;
-    label.append(checkbox,document.createTextNode(day+' '));weekdaysBox.append(label);
+    label.append(checkbox,document.createTextNode(weekday(day)+' '));weekdaysBox.append(label);
    }
    const scheduleSelect=schedule.querySelector('[name="scheduleType"]');
    scheduleSelect.onchange=()=>{
@@ -303,7 +408,7 @@
      if(existing&&existing.dataset.timePicker===name){existing.remove();return;}
      const picker=document.createElement('span');picker.dataset.timePicker=name;
      const hour=document.createElement('select'),minute=document.createElement('select');
-     hour.setAttribute('aria-label','Часы');minute.setAttribute('aria-label','Минуты');
+     hour.setAttribute('aria-label',ui('Часы'));minute.setAttribute('aria-label',ui('Минуты'));
      const current=/^(\d{2}):(\d{2})$/.exec(field.value);
      for(let i=0;i<24;i++){const v=String(i).padStart(2,'0');hour.add(new Option(v,v));}
      for(let i=0;i<60;i++){const v=String(i).padStart(2,'0');minute.add(new Option(v,v));}
@@ -321,11 +426,11 @@
    ]){
     const oldInput=form.elements.namedItem(name);
     const dropdown=document.createElement('select');dropdown.name=name;dropdown.required=true;
-    dropdown.add(new Option('Выберите',''));
-    for(const value of options)dropdown.add(new Option(value,value));
+    dropdown.add(new Option(ui('Выберите'),''));
+    for(const value of options)dropdown.add(new Option(ui(value),value));
     const other=form.elements.namedItem(otherName);
     const otherLabel=other.closest('label');otherLabel.hidden=true;
-    other.placeholder='Укажите другую единицу';other.required=false;
+    other.placeholder=ui(name==='contentUnit'?'Укажите другую единицу содержания.':'Укажите другую единицу приёма.');other.required=false;
     dropdown.onchange=()=>{
      otherLabel.hidden=dropdown.value!=='Другая';
      other.required=dropdown.value==='Другая';
@@ -337,7 +442,7 @@
    form.classList.add('protected-input-form');
    const panel=document.createElement('div');panel.className='protected-input-layout';
    const editor=document.createElement('section');editor.className='protected-input-editor';
-   const editorTitle=document.createElement('h3');editorTitle.textContent='Новый препарат';editor.append(editorTitle);
+   const editorTitle=document.createElement('h3');editorTitle.textContent=ui('Новый препарат');editor.append(editorTitle);
    const fields=document.createElement('div');fields.className='protected-input-fields';
    const moveField=name=>{
     const field=form.elements.namedItem(name);
@@ -348,19 +453,19 @@
    for(const name of ['name','manufacturer','contentQuantity','contentUnit','contentUnitOther','intakeQuantity','intakeUnit','intakeUnitOther','details'])moveField(name);
    fields.querySelector('label:has([name="details"])')?.classList.add('protected-full-field');
    editor.append(fields);
-   const scheduleTitle=document.createElement('h4');scheduleTitle.textContent='Расписание';editor.append(scheduleTitle);
+   const scheduleTitle=document.createElement('h4');scheduleTitle.textContent=ui('Расписание');editor.append(scheduleTitle);
    const scheduleFields=document.createElement('div');scheduleFields.className='protected-schedule-fields';
    scheduleFields.append(schedule,mode);
    const firstInput=form.elements.namedItem('first'),secondInput=form.elements.namedItem('second');
    const times=new Set();
    const timeBox=document.createElement('fieldset');timeBox.className='protected-time-editor';
-   const legend=document.createElement('legend');legend.textContent='Время приёма';timeBox.append(legend);
+   const legend=document.createElement('legend');legend.textContent=ui('Время приёма');timeBox.append(legend);
    const controls=document.createElement('div');controls.className='protected-time-controls';
    const hour=document.createElement('select'),minute=document.createElement('select');
-   hour.setAttribute('aria-label','Часы приёма');minute.setAttribute('aria-label','Минуты приёма');
+   hour.setAttribute('aria-label',ui('Часы приёма'));minute.setAttribute('aria-label',ui('Минуты приёма'));
    for(let i=0;i<24;i++){const n=String(i).padStart(2,'0');hour.add(new Option(n,n));}
    for(let i=0;i<60;i++){const n=String(i).padStart(2,'0');minute.add(new Option(n,n));}
-   const add=document.createElement('button');add.type='button';add.textContent='Добавить время';
+   const add=document.createElement('button');add.type='button';add.textContent=ui('Добавить время');
    const list=document.createElement('div');list.className='protected-time-list';
    const sync=()=>{
     const values=[...times].sort();
@@ -369,7 +474,7 @@
     for(const time of values){
      const chip=document.createElement('span');chip.className='protected-time-chip';
      const value=document.createElement('span');value.textContent=time;
-     const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label','Удалить время '+time);
+     const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label',ui('Удалить время')+' '+time);
      remove.onclick=()=>{times.delete(time);sync();};chip.append(value,remove);list.append(chip);
     }
    };
@@ -381,12 +486,12 @@
    for(const name of ['date','endDate'])scheduleFields.append(form.elements.namedItem(name).closest('label'));
    editor.append(scheduleFields);
    const save=form.querySelector('button:not([type])');
-   save.textContent='Добавить';save.classList.add('protected-save-course');editor.append(save);
+   save.textContent=ui('Добавить');save.classList.add('protected-save-course');editor.append(save);
    const help=document.createElement('aside');help.className='protected-input-help';
-   const helpTitle=document.createElement('h3');helpTitle.textContent='Варианты заполнения';help.append(helpTitle);
+   const helpTitle=document.createElement('h3');helpTitle.textContent=ui('Варианты заполнения');help.append(helpTitle);
    const hints=document.createElement('ul');
    for(const hint of ['Укажите название препарата и дозировку.','Выберите расписание и время приёма.','Для второго приёма используйте «Время 2».','Проверьте даты начала и окончания.','Нажмите «Добавить» для защищённого сохранения.']){
-    const item=document.createElement('li');item.textContent=hint;hints.append(item);
+    const item=document.createElement('li');item.textContent=ui(hint);hints.append(item);
    }
    help.append(hints);panel.append(editor,help);form.append(panel);
    form.onsubmit=async event=>{
@@ -423,28 +528,28 @@
    }
    today.sort((a,b)=>a.plannedAt.localeCompare(b.plannedAt));
    const panel=document.createElement('section');panel.className='card';
-   const heading=document.createElement('h2');heading.textContent='Расписание на сегодня';panel.append(heading);
+   const heading=document.createElement('h2');heading.textContent=ui('Расписание на сегодня');panel.append(heading);
    const summary=document.createElement('p');
    summary.className='muted';
-   summary.textContent='Всего: '+today.length+'; принято: '+today.filter(x=>x.taken).length+'; ожидается: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)>now).length+'; не принято: '+today.filter(x=>!x.taken&&new Date(x.plannedAt)<=now).length;
+   summary.textContent=ui('Всего: ')+today.length+ui('; принято: ')+today.filter(x=>x.taken).length+ui('; ожидается: ')+today.filter(x=>!x.taken&&new Date(x.plannedAt)>now).length+ui('; не принято: ')+today.filter(x=>!x.taken&&new Date(x.plannedAt)<=now).length;
    panel.append(summary);
    const table=document.createElement('table');
    const thead=document.createElement('thead');
    const header=document.createElement('tr');
-   for(const label of ['№','Препарат','Доза','Расчётное время','Состояние']){const th=document.createElement('th');th.textContent=label;header.append(th);}
+   for(const label of ['№','Препарат','Доза','Расчётное время','Состояние']){const th=document.createElement('th');th.textContent=ui(label);header.append(th);}
    thead.append(header);table.append(thead);
    const tbody=document.createElement('tbody');
    for(const [index,item] of today.entries()){
     const row=document.createElement('tr');
     const dose=[item.med.intakeQuantity||item.med.dose||'',item.med.intakeUnit||''].filter(Boolean).join(' ');
-    const status=item.taken?'Принято · '+new Date(item.taken.actualAt).toLocaleTimeString():new Date(item.plannedAt)>now?'Ожидается':'Не принято';
+    const status=item.taken?ui('Принято · ')+new Date(item.taken.actualAt).toLocaleTimeString(currentLanguage==='ru'?undefined:currentLanguage):new Date(item.plannedAt)>now?ui('Ожидается'):ui('Не принято');
     for(const value of [String(item.med.order||index+1),item.med.name,dose,item.time,status]){
-     const td=document.createElement('td');td.textContent=value;row.append(td);
+     const td=document.createElement('td');td.textContent=value;if(value===item.med.name||value===dose)td.dataset.medcontrolUserContent='';row.append(td);
     }
     row.lastElementChild.className=item.taken?'success':new Date(item.plannedAt)>now?'upcoming':'overdue';
     tbody.append(row);
    }
-   if(!today.length){const row=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent='Нет запланированных приёмов';row.append(td);tbody.append(row);}
+   if(!today.length){const row=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent=ui('Нет запланированных приёмов');row.append(td);tbody.append(row);}
    table.append(tbody);panel.append(table);screen.append(panel);
    return;
   }
@@ -453,26 +558,26 @@
    if(section==='action'&&(med.cancelled||med.archivedCompleted||med.active===false))continue;
    const article=document.createElement('article');
    const heading=document.createElement('h3');heading.textContent=med.name;article.append(heading);
-   const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+(med.startDate||'')+' — '+(med.endDate||med.startDate||'');article.append(summary);
+   const summary=document.createElement('p');summary.textContent=(med.times||[]).join(', ')+' · '+calendarDate(med.startDate)+' — '+calendarDate(med.endDate||med.startDate);article.append(summary);
    if(section==='input'){
     if(!med.cancelled&&!med.archivedCompleted){
-     const toggle=document.createElement('button');toggle.type='button';toggle.textContent=med.active===false?'Активировать препарат':'Перевести в пассивный режим';
+     const toggle=document.createElement('button');toggle.type='button';toggle.textContent=med.active===false?ui('Активировать препарат'):ui('Перевести в пассивный режим');
      toggle.onclick=async()=>{toggle.disabled=true;try{await pages.changeCourse(med.id,course=>{if(course.cancelled||course.archivedCompleted)throw Error('Курс завершён');course.active=course.active===false;course.rowHistory=course.rowHistory||[];course.rowHistory.push({action:'edited',at:new Date().toISOString(),details:course.active?'Статус препарата изменён на «Активно».':'Статус препарата изменён на «Пассивно».'});});notice('Режим препарата зашифрован и сохранён.');render();}catch(error){toggle.disabled=false;notice('Не удалось изменить режим: '+error.message);}};
      article.append(toggle);
     }
     if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
      const edit=document.createElement('details');
-     const caption=document.createElement('summary');caption.textContent='Изменить будущие времена приёма';edit.append(caption);
+     const caption=document.createElement('summary');caption.textContent=ui('Изменить будущие времена приёма');edit.append(caption);
      const form=document.createElement('form');
-     const label=document.createElement('label');label.textContent='Времена (ЧЧ:ММ через запятую) ';
+     const label=document.createElement('label');label.textContent=ui('Времена (ЧЧ:ММ через запятую) ');
      const field=document.createElement('input');field.required=true;field.value=(med.times||[]).join(', ');label.append(field);
-     const save=document.createElement('button');save.type='submit';save.textContent='Сохранить изменения';
+     const save=document.createElement('button');save.type='submit';save.textContent=ui('Сохранить изменения');
      form.append(label,save);
      form.onsubmit=async event=>{
       event.preventDefault();
       const times=field.value.split(',').map(x=>x.trim()).filter(Boolean);
       if(!times.length||times.some(x=>!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(x))||new Set(times).size!==times.length){notice('Укажите различные времена в формате ЧЧ:ММ.');return;}
-      if(!window.confirm('Изменить времена только для будущих приёмов? Прошлая история сохранится.'))return;
+      if(!window.confirm(ui('Изменить времена только для будущих приёмов? Прошлая история сохранится.')))return;
       save.disabled=true;
       try{
        const changedAt=new Date().toISOString();
@@ -489,18 +594,18 @@
     }
     if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
      const editInfo=document.createElement('details');
-     const title=document.createElement('summary');title.textContent='Изменить сведения о препарате';editInfo.append(title);
+     const title=document.createElement('summary');title.textContent=ui('Изменить сведения о препарате');editInfo.append(title);
      const form=document.createElement('form');
      const keys=['name','manufacturer','contentValue','contentUnit','contentUnitOther','intakeQuantity','intakeUnit','intakeUnitOther','details'];
      const captions=['Название','Производитель','Количественное содержание','Единица содержания','Другая единица содержания','Количество приёма','Единица приёма','Другая единица приёма','Детали'];
      keys.forEach((key,index)=>{
-      const label=document.createElement('label');label.textContent=captions[index];
+      const label=document.createElement('label');label.textContent=ui(captions[index]);
       const input=document.createElement('input');input.name=key;input.value=String(key==='contentValue'?(med.contentValue??med.contentQuantity??''):(med[key]??''));
       if(key==='name')input.required=true;
       if(key==='contentValue'||key==='intakeQuantity'){input.type='number';input.min='0';input.step='any';}
       label.append(input);form.append(label);
      });
-     const save=document.createElement('button');save.textContent='Сохранить сведения';form.append(save);
+     const save=document.createElement('button');save.textContent=ui('Сохранить сведения');form.append(save);
      form.onsubmit=async event=>{
       event.preventDefault();
       const data=new FormData(form),next={};
@@ -524,29 +629,29 @@
     }
     if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
      const scheduleEdit=document.createElement('details');
-     const caption=document.createElement('summary');caption.textContent='Изменить будущее расписание курса';scheduleEdit.append(caption);
+     const caption=document.createElement('summary');caption.textContent=ui('Изменить будущее расписание курса');scheduleEdit.append(caption);
      const form=document.createElement('form');
      const rule=document.createElement('select');rule.name='scheduleType';
-     for(const [value,label] of [['daily','Каждый день'],['weekdays','Дни недели'],['explicit_dates','Конкретные даты']])rule.add(new Option(label,value));
+     for(const [value,label] of [['daily','Каждый день'],['weekdays','Дни недели'],['explicit_dates','Конкретные даты']])rule.add(new Option(ui(label),value));
      rule.value=med.scheduleType||'daily';
-     const label=document.createElement('label');label.textContent='Расписание';label.append(rule);form.append(label);
-     const weekdays=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent='Дни недели';weekdays.append(legend);
+     const label=document.createElement('label');label.textContent=ui('Расписание');label.append(rule);form.append(label);
+     const weekdays=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent=ui('Дни недели');weekdays.append(legend);
      for(const [value,text] of [['Mon','Пн'],['Tue','Вт'],['Wed','Ср'],['Thu','Чт'],['Fri','Пт'],['Sat','Сб'],['Sun','Вс']]){
       const dayLabel=document.createElement('label');const input=document.createElement('input');input.type='checkbox';input.name='weekday';input.value=value;input.checked=(med.weekdays||[]).includes(value);
-      dayLabel.append(input,document.createTextNode(text));weekdays.append(dayLabel);
+      dayLabel.append(input,document.createTextNode(weekday(value,text)));weekdays.append(dayLabel);
      }
      form.append(weekdays);
-     const datesLabel=document.createElement('label');datesLabel.textContent='Конкретные даты (через запятую)';
+     const datesLabel=document.createElement('label');datesLabel.textContent=ui('Конкретные даты (через запятую)');
      const dates=document.createElement('input');dates.name='explicitDates';dates.value=(med.explicitDates||[]).join(', ');datesLabel.append(dates);form.append(datesLabel);
      const sync=()=>{weekdays.hidden=rule.value!=='weekdays';datesLabel.hidden=rule.value!=='explicit_dates';};rule.onchange=sync;sync();
-     const save=document.createElement('button');save.textContent='Сохранить расписание';form.append(save);
+     const save=document.createElement('button');save.textContent=ui('Сохранить расписание');form.append(save);
      form.onsubmit=async event=>{
       event.preventDefault();
       const data=new FormData(form);
       const next={scheduleType:String(data.get('scheduleType')),weekdays:data.getAll('weekday').map(String),explicitDates:String(data.get('explicitDates')||'').split(',').map(x=>x.trim()).filter(Boolean).sort()};
       if(next.scheduleType==='weekdays'&&!next.weekdays.length){notice('Выберите дни недели.');return;}
       if(next.scheduleType==='explicit_dates'&&(!next.explicitDates.length||next.explicitDates.some(x=>!validCalendarDay(x)))){notice('Проверьте конкретные даты.');return;}
-      if(!window.confirm('Изменить будущее расписание? История прошлых приёмов останется без изменений.'))return;
+      if(!window.confirm(ui('Изменить будущее расписание? История прошлых приёмов останется без изменений.')))return;
       save.disabled=true;
       try{
        await pages.changeCourse(med.id,course=>{
@@ -563,9 +668,9 @@
     }
     if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
      const cancelCourse=document.createElement('button');
-     cancelCourse.type='button';cancelCourse.textContent='Отменить препарат';
+     cancelCourse.type='button';cancelCourse.textContent=ui('Отменить препарат');
      cancelCourse.onclick=async()=>{
-      if(!window.confirm('Отменить препарат «'+med.name+'»? Все уже зарегистрированные приёмы и история изменений сохранятся.'))return;
+      if(!window.confirm(rehearsalConfirmation('Отменить препарат «⟦0⟧»? Все уже зарегистрированные приёмы и история изменений сохранятся.',[med.name])))return;
       cancelCourse.disabled=true;
       try{
        await pages.changeCourse(med.id,course=>{
@@ -581,24 +686,24 @@
     }
     const history=document.createElement('details');
     const summaryTitle=document.createElement('summary');
-    summaryTitle.textContent='История курса и изменения';
+    summaryTitle.textContent=ui('История курса и изменения');
     history.append(summaryTitle);
     for(const entry of med.rowHistory||[]){
      const line=document.createElement('p');
-     const labels={created:'Создано',completed:'Завершён',cancelled:'Отменён',times_changed:'Изменены времена приёма',schedule_changed:'Изменено расписание',details_changed:'Изменены сведения',edited:'Изменён режим препарата'};
+     const labels={created:ui('Создано'),completed:ui('Завершён'),cancelled:ui('Отменён'),times_changed:ui('Изменены времена приёма'),schedule_changed:ui('Изменено расписание'),details_changed:ui('Изменены сведения'),edited:ui('Изменён режим препарата')};
      const action=labels[entry.action]||entry.action||'Событие';
-     line.textContent=(entry.at?new Date(entry.at).toLocaleString()+' — ':'')+action;
-     if(entry.action==='edited'&&entry.details)line.textContent+=': '+entry.details;
+     line.textContent=(entry.at?new Date(entry.at).toLocaleString(currentLanguage==='ru'?undefined:currentLanguage)+' — ':'')+action;
+     if(entry.action==='edited'&&entry.details){line.append(document.createTextNode(': '));if(['Статус препарата изменён на «Активно».','Статус препарата изменён на «Пассивно».'].includes(entry.details))line.append(document.createTextNode(ui(entry.details)));else line.append(userContent(entry.details));}
      if(entry.action==='times_changed'){
       line.textContent+=': '+(entry.previousTimes||[]).join(', ')+' → '+(entry.newTimes||[]).join(', ');
      }else if(entry.action==='schedule_changed'){
-      const describe=rule=>rule.scheduleType==='weekdays'?'Дни недели: '+(rule.weekdays||[]).join(', '):rule.scheduleType==='explicit_dates'?'Даты: '+(rule.explicitDates||[]).join(', '):'Каждый день';
+      const describe=rule=>rule.scheduleType==='weekdays'?ui('Дни недели: ')+(rule.weekdays||[]).map(value=>weekday(value)).join(', '):rule.scheduleType==='explicit_dates'?ui('Даты: ')+(rule.explicitDates||[]).map(calendarDate).join(', '):ui('Каждый день');
       if(entry.previous&&entry.next)line.textContent+=': '+describe(entry.previous)+' → '+describe(entry.next);
      }else if(entry.action==='details_changed'&&entry.previous&&entry.next){
       const keys=Object.keys(entry.next).filter(key=>String(entry.previous[key]??'')!==String(entry.next[key]??''));
       const details=document.createElement('ul');
       for(const key of keys){
-       const item=document.createElement('li');item.textContent=key+': '+String(entry.previous[key]??'')+' → '+String(entry.next[key]??'');details.append(item);
+       const item=document.createElement('li');const captions={name:'Название препарата',manufacturer:'Производитель',contentValue:'Количественное содержание',contentUnit:'Единица содержания',contentUnitOther:'Другая единица содержания',intakeQuantity:'Количество приёма',intakeUnit:'Единица приёма',intakeUnitOther:'Другая единица приёма',details:'Детали'};if(currentLanguage==='ru')item.textContent=key+': '+String(entry.previous[key]??'')+' → '+String(entry.next[key]??'');else item.append(document.createTextNode(ui(captions[key]||'Детали')+': '),userContent(String(entry.previous[key]??'')),document.createTextNode(' → '),userContent(String(entry.next[key]??'')));details.append(item);
       }
       line.append(details);
      }
@@ -608,9 +713,9 @@
     if(med.active!==false&&!med.cancelled&&!med.archivedCompleted){
      const stop=document.createElement('button');
      stop.type='button';
-     stop.textContent='Завершить курс';
+     stop.textContent=ui('Завершить курс');
      stop.onclick=async()=>{
-      if(!window.confirm('Завершить курс «'+med.name+'»? История и приёмы сохранятся.'))return;
+      if(!window.confirm(rehearsalConfirmation('Завершить курс «⟦0⟧»? История и приёмы сохранятся.',[med.name])))return;
       stop.disabled=true;
       try{
        await pages.changeCourse(med.id,course=>{
@@ -636,7 +741,7 @@
      const plannedAt=zonedSlot(date,time,zone);
      const events=(state.intakeLogs||[]).filter(x=>x.medicationId===med.id&&x.plannedAt===plannedAt).sort((a,b)=>String(a.actualAt||a.createdAt||'').localeCompare(String(b.actualAt||b.createdAt||'')));
      const log=events.reduce((active,event)=>event.action==='taken'?event:(event.action==='cancelled'||event.action==='cancel_taken'||event.action==='undo_taken'?null:active),null);
-     const button=document.createElement('button');button.textContent=log?'Принято: '+new Date(log.actualAt).toLocaleString():'Принято '+time;button.disabled=!!log;
+     const button=document.createElement('button');button.textContent=log?ui('Принято: ')+new Date(log.actualAt).toLocaleString(currentLanguage==='ru'?undefined:currentLanguage):ui('Принято ')+time;button.disabled=!!log;
      button.onclick=async()=>{
       try{await pages.recordIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString(),action:'taken'});notice('Приём зашифрован и сохранён.');render();}
       catch(error){notice('Ошибка сохранения: '+error.message);}
@@ -644,9 +749,9 @@
      if(log){
       const cancel=document.createElement('button');
       cancel.type='button';
-      cancel.textContent='Отменить «Принято» (случайность)';
+      cancel.textContent=ui('Отменить «Принято» (случайность)');
       cancel.onclick=async()=>{
-       if(!window.confirm('Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.'))return;
+       if(!window.confirm(ui('Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.')))return;
        cancel.disabled=true;
        try{
         await pages.cancelIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString()});
@@ -693,13 +798,13 @@
      const outcome=window.__medcontrolProtectedArchiveOutcome||'';
      if(section==='archive'&&(!outcome||(outcome==='taken')!==Boolean(taken)))continue;
      const p=document.createElement('p');
-     p.textContent=(taken?'Принято':'Не принято')+': расчётное '+new Date(plannedAt).toLocaleString()+(taken?'; фактическое '+new Date(taken.actualAt).toLocaleString():'');
+     p.textContent=(taken?ui('Принято'):ui('Не принято'))+ui(': расчётное ')+new Date(plannedAt).toLocaleString(currentLanguage==='ru'?undefined:currentLanguage)+(taken?ui('; фактическое ')+new Date(taken.actualAt).toLocaleString(currentLanguage==='ru'?undefined:currentLanguage):'');
      article.append(p);
      if(section==='archive'&&taken){
       const undo=document.createElement('button');undo.type='button';
-      undo.textContent='Отменить «Принято» (случайность)';
+      undo.textContent=ui('Отменить «Принято» (случайность)');
       undo.onclick=async()=>{
-       if(!window.confirm('Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.'))return;
+       if(!window.confirm(ui('Отменить ошибочное подтверждение? Запись об отмене сохранится в истории.')))return;
        undo.disabled=true;
        try{
         await pages.cancelIntake({id:crypto.randomUUID(),medicationId:med.id,plannedAt,actualAt:new Date().toISOString()});
@@ -710,12 +815,12 @@
      }
      if(section==='archive'&&events.length){
       const timeline=document.createElement('details');
-      const caption=document.createElement('summary');caption.textContent='История событий ('+events.length+')';timeline.append(caption);
+      const caption=document.createElement('summary');caption.textContent=ui('История событий (')+events.length+')';timeline.append(caption);
       for(const entry of events){
        const line=document.createElement('p');
-       const kind=entry.action==='taken'?'Принято':['cancelled','cancel_taken','undo_taken'].includes(entry.action)?'Отмена «Принято»':String(entry.action||'Событие');
+       const kind=entry.action==='taken'?ui('Принято'):['cancelled','cancel_taken','undo_taken'].includes(entry.action)?ui('Отмена «Принято»'):String(entry.action||ui('Событие'));
        const at=entry.actualAt||entry.createdAt;
-       line.textContent=kind+(at?' — '+new Date(at).toLocaleString():'');
+       line.textContent=kind+(at?' — '+new Date(at).toLocaleString(currentLanguage==='ru'?undefined:currentLanguage):'');
        timeline.append(line);
       }
       article.append(timeline);
@@ -726,7 +831,7 @@
   }
   if(section==='input'){
    const panel=document.createElement('section');panel.className='card protected-time-history';
-   const heading=document.createElement('h3');heading.textContent='Удалённые и заменённые времена';panel.append(heading);
+   const heading=document.createElement('h3');heading.textContent=ui('Удалённые и заменённые времена');panel.append(heading);
    let shown=0;
    for(const med of state.medications||[]){
     for(const entry of med.rowHistory||[]){
@@ -738,12 +843,12 @@
      const line=document.createElement('p');
      const date=entry.at?new Date(entry.at):null;
      const zone=state.settings?.timezone||'Asia/Yerevan';
-     const when=date&&Number.isFinite(date.getTime())?date.toLocaleString('ru-RU',{timeZone:zone}):'Дата не указана';
-     line.textContent=med.name+' · '+when+': '+(removed.length?'Удалено/заменено '+removed.join(', '):'')+(added.length?' → добавлено '+added.join(', '):'');
+     const when=date&&Number.isFinite(date.getTime())?date.toLocaleString(currentLanguage==='ru'?'ru-RU':currentLanguage,{timeZone:zone}):ui('Дата не указана');
+     line.append(userContent(med.name));line.append(document.createTextNode(' · '+when+': '+(removed.length?ui('Удалено/заменено ')+removed.join(', '):'')+(added.length?ui(' → добавлено ')+added.join(', '):'')));
      panel.append(line);
     }
    }
-   if(!shown){const p=document.createElement('p');p.className='muted';p.textContent='Нет удалённых или заменённых времён.';panel.append(p);}
+   if(!shown){const p=document.createElement('p');p.className='muted';p.textContent=ui('Нет удалённых или заменённых времён.');panel.append(p);}
    screen.append(panel);
   }
  }
@@ -788,14 +893,17 @@
   const counts=inspection.counts;
   const confirmed=window.confirm('Создать зашифрованную копию '+counts.medications+' препаратов и '+counts.intakeLogs+' приёмов? Исходная история сохранится без изменений.');
   if(!confirmed){notice('Перенос отменён. Исходные данные не изменены.');return;}
+  document.getElementById('unlock').disabled=true;
+  document.getElementById('commit-migration').disabled=true;
   try{
    const result=await migration.commit(password.value);
    const unlocked=await session.unlock(password.value);
    if(!unlocked)throw Error('Не удалось проверить локальный вход после переноса');
    password.value='';
-   notice('Защищённая копия проверена и сохранена. Исходная история не изменена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
-   show();
+   operationNotice('Защищённая копия проверена и сохранена. Исходная история не изменена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
+   await afterUnlock();
   }catch(error){notice('Перенос не завершён: '+error.message+'. Исходная история не удалялась.');}
+  finally{document.getElementById('unlock').disabled=false;document.getElementById('commit-migration').disabled=false;}
  };
  function refreshImportControls(){
   try{
@@ -815,7 +923,7 @@
    setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){notice('Не удалось скачать сохранённую копию: '+error.message);}
  };
- document.getElementById('open-imported').onclick=()=>{if(session.isEntryAuthorized())show();};
+ document.getElementById('open-imported').onclick=async()=>{try{await afterUnlock({enter:true});}catch(error){notice('Ошибка входа: '+error.message);}};
  refreshImportControls();
  document.getElementById('import-backup').onclick=async()=>{
   const selected=document.getElementById('legacy-backup').files?.[0];
@@ -848,7 +956,8 @@
     const result=await migration.commitExistingImport(plan);
     password.value='';document.getElementById('transfer-password').value='';document.getElementById('legacy-backup').value='';
     refreshImportControls();
-    notice((result.alreadyImported?comparisonNotice(plan):'Копия перенесена и проверена. Прежнее хранилище сохранено отдельно.')+' Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'. Пароль входа остался прежним.');
+    operationNotice((result.alreadyImported?comparisonNotice(plan):'Копия перенесена и проверена. Прежнее хранилище сохранено отдельно.')+' Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'. Пароль входа остался прежним.');
+    await afterUnlock();
     document.getElementById('open-imported').hidden=false;
     activated=true;
     return;
@@ -859,8 +968,8 @@
    if(!await session.unlock(entered))throw Error('Не удалось открыть зашифрованную копию');
    password.value='';
    document.getElementById('legacy-backup').value='';
-   notice('Зашифрованная копия импортирована и проверена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
-   show();
+   operationNotice('Зашифрованная копия импортирована и проверена. Препаратов: '+result.medications+'; приёмов: '+result.intakeLogs+'.');
+   await afterUnlock();
   }catch(error){notice('Импорт не завершён: '+error.message+'. Исходный файл не изменён.');refreshImportControls();}
   finally{
    // A preview unlock is not authorization to leave medical data open after cancellation/failure.
@@ -894,8 +1003,8 @@
    if(localStorage.getItem(key)!==before)throw Error('Зашифрованная копия неожиданно изменилась');
    if(!await session.unlock(entered))throw Error('Не удалось открыть восстановленное хранилище');
    password.value='';
-   notice('Доступ восстановлен. Зашифрованные данные проверены и открыты.');
-   show();
+   operationNotice('Доступ восстановлен. Зашифрованные данные проверены и открыты.');
+   await afterUnlock();
   }catch(error){
    notice('Восстановление не завершено: '+error.message+'. Сохранённые данные не удалялись.');
   }finally{button.disabled=false;}
@@ -903,7 +1012,7 @@
  document.getElementById('unlock').onclick=async()=>{
   const button=document.getElementById('unlock');
   if(languageConfirmed){
-   try{await window.MedControlEntryLanguages.prepare(session.read().settings.interfaceLanguage);session.authorizeEntry();languageConfirmed=false;password.value='';show();}
+   try{await afterUnlock({enter:true});password.value='';}
    catch(error){notice('Выбранный языковой каталог недоступен: '+error.message);}
    return;
   }
@@ -917,11 +1026,7 @@
    button.disabled=true;
    if(await session.unlock(password.value)){
     password.value='';
-    const settings=session.read().settings||{};
-    if(window.MedControlEntryLanguages.confirmed(settings)){
-     try{await window.MedControlEntryLanguages.prepare(settings.interfaceLanguage);session.authorizeEntry();notice('Автономный вход выполнен.');show();}
-     catch(error){await session.lock();notice('Языковой каталог недоступен: '+error.message);}
-    }else beginLanguageStep();
+    try{await afterUnlock({enter:true});}catch(error){await session.lock();notice('Ошибка входа: '+error.message);}
    }else notice('Неверный пароль.');
   }catch(error){notice('Ошибка входа: '+error.message);}
   finally{button.disabled=false;}
@@ -937,7 +1042,7 @@
   finally{button.disabled=false;}
  };
  document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{if(!session.isEntryAuthorized())return;section=button.dataset.tab;render();});
- document.getElementById('lock').onclick=async()=>{await session.lock();notice('Данные заблокированы.');render();};
+ document.getElementById('lock').onclick=async()=>{await session.lock();languagePending=false;languageConfirmed=false;notice('Данные заблокированы.');render();};
  render();
  window.medcontrolProtectedWorkspaceReady=true;
 })();
