@@ -23,6 +23,8 @@ test('device language is not read until password confirmation succeeds',async({p
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
 });
 test('migration restores a confirmed language but still requires explicit entry',async({page})=>{
+ // Keep the migration fixture on its intended day; course lifecycle is tested separately.
+ await page.clock.setFixedTime(new Date('2026-11-24T08:00:00Z'));
  await page.goto(BASE+'/modular3-protected.html');
  await expect(page.locator('#commit-migration')).toBeEnabled();
  const state={settings:{timezone:'Asia/Yerevan',interfaceLanguage:'ru',languageChoiceConfirmed:true,languageConfirmationVersion:1},medications:[{id:'SYNTHETIC-MIGRATION',name:'SYNTHETIC MIGRATION ONLY',times:['09:00'],active:false,timeStatuses:{'09:00':true},timeStatusHistory:[],startDate:'2026-11-24',endDate:'2026-11-24'}],intakeLogs:[]};

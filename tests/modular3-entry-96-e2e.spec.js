@@ -156,11 +156,15 @@ for (const language of languages) {
       records.push({language:language.code,deviceLanguage:next.code,phase:'password-first-device-detection',pass:true});
       expect(await page.evaluate(() => MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
       await page.locator('#entry-language').selectOption(language.code);
+      await expect(page.locator('#confirm-entry-language')).toHaveText(messages(language.code)['27bca309f5f89bc6']);
+      await expect(page.locator('#entry-language')).toHaveAttribute('aria-label', messages(language.code)['9089a73112cc819e']);
+      await expect(page.locator('body > h1')).toHaveText(messages(language.code)['f0078d3655994ddb']);
       await page.locator('#confirm-entry-language').click();
       await expect(page.locator('#entry-language-step')).toBeHidden();
       expect(await page.evaluate(() => MedControlModular3ProtectedSession.read().settings.interfaceLanguage)).toBe(language.code);
       expect(await page.evaluate(() => MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
       await expect(page.locator('.topbar')).toHaveCount(0);
+      await expect(page.locator('#unlock')).toHaveText(messages(language.code)['8fc9ab2eeb38ad7a']);
       await page.locator('#unlock').click();
       await expect(page).toHaveURL(base + '/input.html');
       await assertLocale(page, language);
