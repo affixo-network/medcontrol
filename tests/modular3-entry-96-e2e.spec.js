@@ -26,6 +26,7 @@ async function navigate(page, base, section) {
   await page.locator('.topbar .nav a[href="' + section + '.html"]').click();
   await expect(page).toHaveURL(base + '/' + section + '.html');
   await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('.topbar .nav a.active')).toHaveAttribute('href',section+'.html');
 }
 async function assertLocale(page, language) {
   await expect(page.locator('.topbar')).toBeVisible({timeout:20000});
@@ -33,6 +34,15 @@ async function assertLocale(page, language) {
   await expect(page.locator('html')).toHaveAttribute('lang', language.code);
   await expect(page.locator('html')).toHaveAttribute('dir', language.direction);
   const section = new URL(page.url()).pathname.split('/').pop().replace('.html', '');
+  await expect(page.locator('.topbar .nav a.active')).toHaveAttribute('href',section+'.html');
+  // The legacy shell appends its colon; Archive catalogs the whole caption.
+  const metadata=section==='archive'
+    ? [['#topCurrentDate','9e3155cc798e53c1'],['#topCurrentTime','110913d36234c4e3']]
+    : [['#topCurrentDate','8df2040160ce7336'],['#topCurrentTime','727721a75694fd16']];
+  for(const [selector,id] of metadata){
+    await expect(page.locator(selector).locator('..')).toContainText(catalog[id]);
+  }
+  await expect(page.locator('.topbar .meta .pill').filter({hasText:'Asia/Yerevan'})).toContainText(catalog[section==='archive'?'2db0c625b694bc0f':'ce2e24e73ac44e1c']);
   await expect(page).toHaveTitle(catalog[TITLE_IDS[section]]);
   await expect.poll(() => page.evaluate(() => getState().settings.interfaceLanguage)).toBe(language.code);
   expect(await page.evaluate(() => MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(true);
@@ -186,6 +196,16 @@ for (const language of languages) {
       await assertLocale(page, language);
       await expect(page.locator('#create_timeHour')).toHaveAttribute('aria-label', messages(language.code)['7e6da98020ac2053']);
       await expect(page.locator('#create_timeMinute')).toHaveAttribute('aria-label', messages(language.code)['935ec56194d6f572']);
+      const emptyMedical=medical(await state(page));
+      for(const section of SECTIONS){
+        await navigate(page,base,section);await assertLocale(page,language);
+        if(['action','dashboard'].includes(section))await expect(page.locator('.wrap td[colspan]').first()).toHaveText(messages(language.code)['5f084638f6f971ec']);
+        expect(medical(await state(page))).toEqual(emptyMedical);
+        const record={language:language.code,selected:language.code,section,phase:'empty-online',pass:true};
+        records.push(record);
+        await info.attach(language.code+'-empty-online-'+section,{body:Buffer.from(JSON.stringify(record)),contentType:'application/json'});
+      }
+      await navigate(page,base,'input');
       const name = 'Synthetic language ' + language.code;
       progress('create synthetic course');
       const id = await createCourse(page, name);

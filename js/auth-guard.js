@@ -243,15 +243,16 @@
         if(!Object.prototype.hasOwnProperty.call(labels,russian))labels[russian]=english;
       }
     }
-    // Translate UI controls, never medical table cells, free text, or form values.
+    // Translate authored UI nodes only; ordinary medical cells and form values are excluded.
     const nodes=document.querySelectorAll(
-      '.topbar a,.topbar button,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
+      '.topbar a,.topbar button,.topbar .meta .pill,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
       '.wrap label,.wrap legend,.wrap caption,.wrap button,.wrap th,.wrap option,.wrap summary,'+
       '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p,'+
       '.wrap .card > ul > li,.wrap .card > ol > li,'+
       '.wrap .card > div > p,.wrap .card > section > p,'+
       '.wrap fieldset > p,.wrap fieldset > div > p,'+
-      '.wrap #medControlCycleReady strong'
+      '.wrap #medControlCycleReady strong,'+
+      '.wrap .card > table > tbody > tr:only-child > td[colspan]:only-child'
     );
     // Diagnostic counts for static UI text only; no patient values or storage.
     let inspected=0,translatedCount=0,unmappedRussian=0;
@@ -268,6 +269,10 @@
         const previous=protectedOriginalText.get(child);
         const original=previous&&previous.localized===child.nodeValue?previous.original:child.nodeValue;
         const value=original.trim();
+        // A sole spanning cell is eligible only for the authored empty-row
+        // placeholder. Never translate label-like names in ordinary data cells.
+        if(element.tagName==='TD'&&(element.childElementCount!==0||
+          !['Нет записей','Нет записей.'].includes(value)))continue;
         const required=value.endsWith('*');
         const lookup=required?value.slice(0,-1).trim():value;
         const translation=labels[lookup];
