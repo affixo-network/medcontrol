@@ -167,6 +167,11 @@ test('cancelling a second UI import locks the preview session and hides the prio
  await expect(page.locator('#import-backup')).toBeEnabled();
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(false);
  await expect(page.locator('#open-imported')).toBeHidden();expect(await snapshot(page)).toEqual(before);
+ await page.locator('#password').fill(OLD_PASS);await page.locator('#unlock').click();
+ await expect(page).toHaveURL(BASE+'/input.html');
+ expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(true);
+ expect((await snapshot(page))[DATA]).toBe(before[DATA]);
+ expect((await snapshot(page))[CRED]).toBe(before[CRED]);
 });
 async function installSuperset(page){
  await page.evaluate(async({OLD_PASS,INCOMING})=>{
@@ -285,6 +290,8 @@ test('UI imports seven courses and 35 events, preserves the old copy, and stays 
  await fillImport(page);page.once('dialog',d=>d.accept());await page.locator('#import-backup').click();
  await expect(page.locator('#message')).toContainText('Препаратов: 7; приёмов: 35');
  await expect(page.locator('#message')).toContainText('Пароль входа остался прежним');
+ await expect(page.locator('#existing-import')).toBeHidden();
+ await expect(page.locator('#preserved-backups')).toBeVisible();
  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#download-preserved-backup').click()]);
  const fs=require('node:fs');const raw=fs.readFileSync(await download.path(),'utf8');
  const old=await page.evaluate(async({raw,OLD_PASS})=>MedControlModular3EncryptedVault.open(JSON.parse(raw).encrypted,OLD_PASS),{raw,OLD_PASS});

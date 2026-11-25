@@ -152,6 +152,18 @@ for (const language of languages) {
       await page.locator('#confirm-password').fill(PASS);
       await page.locator('#enroll').click();
       await expect(page.locator('#entry-language-step')).toBeVisible();
+      expect(await page.evaluate(()=>window.__entryDeviceReads)).toBeGreaterThan(0);
+      const pendingPair=await page.evaluate(()=>({cipher:localStorage.getItem('medcontrol_modular3_protected_state_v1'),credential:localStorage.getItem('medcontrol_modular3_local_credential_v1')}));
+      progress('full restart before language confirmation');
+      await context.close();
+      page=await launch(false);
+      await page.goto(base+'/modular3-protected.html');
+      await expect(page.locator('#unlock')).toBeEnabled();
+      expect(await page.evaluate(()=>window.__entryDeviceReads)).toBe(0);
+      await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
+      await expect(page.locator('#entry-language-step')).toBeVisible();
+      await expect(page.locator('#existing-import')).toBeHidden();
+      expect(await page.evaluate(()=>({cipher:localStorage.getItem('medcontrol_modular3_protected_state_v1'),credential:localStorage.getItem('medcontrol_modular3_local_credential_v1')}))).toEqual(pendingPair);
       await expect(page.locator('#password').locator('..')).toBeHidden();
       await expect(page.locator('#confirm-password-label')).toBeHidden();
       await expect(page.locator('#legacy-backup').locator('..')).toBeHidden();

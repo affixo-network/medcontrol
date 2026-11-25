@@ -278,6 +278,7 @@
  entryLanguage.value=suggested;
  function beginLanguageStep(){
   languagePending=true;languageConfirmed=false;
+  refreshImportControls();
   for(const child of login.children)if(child!==languageStep&&child.id!=='unlock'&&!child.contains(message)&&!child.contains(document.getElementById('preserved-backups')))child.hidden=true;
   const preferences=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language];
   entryLanguage.value=policy.propose(preferences);
@@ -907,7 +908,7 @@
  };
  function refreshImportControls(){
   try{
-   document.getElementById('existing-import').hidden=localStorage.getItem('medcontrol_modular3_protected_state_v1')===null&&localStorage.getItem('medcontrol_modular3_local_credential_v1')===null;
+   document.getElementById('existing-import').hidden=languagePending||(localStorage.getItem('medcontrol_modular3_protected_state_v1')===null&&localStorage.getItem('medcontrol_modular3_local_credential_v1')===null);
    const backups=window.MedControlModular3CopyMigration.listPreservedBackups();
    const list=document.getElementById('preserved-backup');list.replaceChildren();
    for(const backup of backups)list.add(new Option(new Date(backup.createdAt).toLocaleString(),backup.key));
@@ -932,6 +933,7 @@
   if(selected.size>20*1024*1024){notice('Файл превышает допустимый размер 20 МБ.');return;}
   if(!password.value||password.value.length<12){notice('Введите локальный пароль длиной не менее 12 символов.');return;}
   button.disabled=true;
+  languagePending=false;languageConfirmed=false;
   const entryButtons=[...document.querySelectorAll('#login button')];
   entryButtons.forEach(control=>{control.disabled=true;});
   document.getElementById('open-imported').hidden=true;
