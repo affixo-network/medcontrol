@@ -4,7 +4,7 @@ test.use({serviceWorkers:'block'});
 const BASE='http://127.0.0.1:8765';const PASS='SYNTHETIC-Fault-Password-2026';const KEY='medcontrol_modular3_protected_state_v1';
 async function create(page){
  await page.goto(BASE+'/modular3-protected.html');await expect(page.locator('#enroll')).toBeEnabled();
- await page.locator('#password').fill(PASS);await page.locator('#confirm-password').fill(PASS);await page.locator('#enroll').click();
+ await page.locator('#password').fill(PASS);await page.locator('#enroll').click();await expect(page.locator('#confirm-password')).toBeVisible();await page.locator('#confirm-password').fill(PASS);await page.locator('#enroll').click();
  await expect(page.locator('#entry-language-step')).toBeVisible();
  await expect(page.locator('#confirm-entry-language')).toBeEnabled();
 }

@@ -144,6 +144,7 @@ for (const language of languages) {
       let page = await launch(false);
       await page.goto(base + '/modular3-protected.html');
       await expect(page.locator('#entry-language-step')).toBeHidden();
+      await expect(page.locator('#confirm-password-label')).toBeHidden();
       expect(await page.evaluate(()=>window.__entryDeviceReads)).toBe(0);
       await page.locator('#password').fill(PASS);
       await page.locator('#enroll').click();
@@ -151,6 +152,9 @@ for (const language of languages) {
       await page.locator('#confirm-password').fill(PASS);
       await page.locator('#enroll').click();
       await expect(page.locator('#entry-language-step')).toBeVisible();
+      await expect(page.locator('#password').locator('..')).toBeHidden();
+      await expect(page.locator('#confirm-password-label')).toBeHidden();
+      await expect(page.locator('#legacy-backup').locator('..')).toBeHidden();
       await expect(page.locator('#entry-language')).toHaveValue(next.code);
       expect(await page.evaluate(()=>window.__entryDeviceReads)).toBeGreaterThan(0);
       records.push({language:language.code,deviceLanguage:next.code,phase:'password-first-device-detection',pass:true});

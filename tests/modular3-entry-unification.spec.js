@@ -10,6 +10,7 @@ test('device language is not read until password confirmation succeeds',async({p
  });
  await page.goto(BASE+'/modular3-protected.html');
  await expect(page.locator('#enroll')).toBeEnabled();
+ await expect(page.locator('#confirm-password-label')).toBeHidden();
  expect(await page.evaluate(()=>window.__deviceLanguageReads)).toBe(0);
  await page.locator('#password').fill(PASS);await page.locator('#enroll').click();
  await expect(page.locator('#confirm-password')).toBeVisible();
@@ -19,6 +20,9 @@ test('device language is not read until password confirmation succeeds',async({p
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isUnlocked())).toBe(false);
  await page.locator('#confirm-password').fill(PASS);await page.locator('#enroll').click();
  await expect(page.locator('#entry-language-step')).toBeVisible();
+ await expect(page.locator('#password').locator('..')).toBeHidden();
+ await expect(page.locator('#confirm-password-label')).toBeHidden();
+ await expect(page.locator('#legacy-backup').locator('..')).toBeHidden();
  await expect(page.locator('#entry-language')).toHaveValue('fil');
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
 });
