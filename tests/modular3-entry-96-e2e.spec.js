@@ -134,10 +134,10 @@ for (const language of languages) {
         await info.attach(language.code + '-' + phase + '-' + section, {body:Buffer.from(JSON.stringify(record)), contentType:'application/json'});
       }
     }
-    async function restartAndUnlock(selected) {
-      progress('closing browser and restarting disconnected: ' + selected.code);
+    async function restartAndUnlock(selected,offline=true) {
+      progress('closing browser and restarting '+(offline?'disconnected':'via local HTTP')+': '+selected.code);
       await context.close(); // Closes the entire persistent Chromium process.
-      const page = await launch(true); // Disconnected BEFORE the first navigation.
+      const page = await launch(offline); // Offline runs disconnect BEFORE navigation.
       await page.goto(base + '/modular3-protected.html');
       await expect(page.locator('#entry-language-step')).toBeHidden();
       await expect(page.locator('.topbar')).toHaveCount(0);
@@ -209,6 +209,30 @@ for (const language of languages) {
       const name = 'Synthetic language ' + language.code;
       progress('create synthetic course');
       const id = await createCourse(page, name);
+      const beforeActiveRestart=medical(await state(page));
+      page=await restartAndUnlock(language,false);
+      expect(medical(await state(page))).toEqual(beforeActiveRestart);
+      const populatedMedical=medical(await state(page));
+      const catalog=messages(language.code);
+      for(const section of SECTIONS){
+        await navigate(page,base,section);await assertLocale(page,language);
+        if(section==='input'){
+          const row=page.locator('tr').filter({has:page.locator('button[onclick^="openEditMedication("]')});
+          for(const [index,key] of [[4,'4d3b9935cee18ed7'],[6,'a5e49b2e7c253894'],[9,'f37b297e01100c8c']])
+            await expect(row.locator(':scope > td').nth(index)).toHaveText(catalog[key]);
+          await expect(row.locator(':scope > td > .status')).toHaveText(catalog['68505b6d0475073b']);
+        }
+        if(['action','dashboard'].includes(section))await expect(page.locator('td > .status').first()).toHaveText(catalog['d6839d4bba6f57f0']);
+        if(section==='dashboard'){
+          await expect(page.locator('[data-dashboard-timing]').first().locator('strong')).toHaveText(catalog['f811d075b83b0531']);
+          const duration=catalog['06cf4eca8aefb953'].replace('⟦0⟧','0').replace('⟦1⟧','01').replace('⟦2⟧','00').replace('⟦3⟧','00');
+          await expect(page.locator('[data-dashboard-timing]').first()).toContainText(duration);
+        }
+        expect(medical(await state(page))).toEqual(populatedMedical);
+        const record={language:language.code,selected:language.code,section,phase:'populated-online',pass:true};
+        records.push(record);
+        await info.attach(language.code+'-populated-online-'+section,{body:Buffer.from(JSON.stringify(record)),contentType:'application/json'});
+      }
       await navigate(page, base, 'action');
       await assertLocale(page, language);
       const taken = () => page.locator('button[onclick^="markTaken(\'' + id + '\'"]');

@@ -72,3 +72,52 @@ async function createCourse(page, name) {
   expect(course.times).toEqual(['13:00','14:00']);
   return course.id;
 }
+
+async function populated(page){
+ await page.clock.setFixedTime(new Date('2026-11-24T08:00:00Z'));
+ await login(page);await createCourse(page,'SYNTHETIC ONLY');
+}
+test('input localizes controlled units, daily schedule and active mode',async({page})=>{
+ await populated(page);
+ const row=page.locator('tr').filter({has:page.locator('button[onclick^="openEditMedication("]')});
+ await expect.soft(row.locator(':scope > td').nth(4)).toHaveText('mg');
+ await expect.soft(row.locator(':scope > td').nth(6)).toHaveText('tablet');
+ await expect.soft(row.locator(':scope > td').nth(9)).toHaveText('Daily');
+ await expect.soft(row.locator(':scope > td > .status')).toHaveText('Active');
+});
+test('action localizes controlled pending status',async({page})=>{
+ await populated(page);await page.locator('.topbar a[href="action.html"]').click();
+ await expect(page.locator('.topbar .nav a.active')).toHaveAttribute('href','action.html');
+ await expect(page.locator('td > .status').first()).toHaveText('Pending');
+});
+test('dashboard localizes pending status and exact duration without changing timestamps',async({page})=>{
+ await populated(page);const before=await page.evaluate(()=>getState());
+ await page.locator('.topbar a[href="dashboard.html"]').click();
+ await expect(page.locator('.topbar .nav a.active')).toHaveAttribute('href','dashboard.html');
+ await expect.soft(page.locator('td > .status').first()).toHaveText('Pending');
+ await expect.soft(page.locator('[data-dashboard-timing]').first().locator('strong')).toHaveText('Time until medication intake');
+ await expect.soft(page.locator('[data-dashboard-timing]').first()).toContainText('0 days 01 h 00 min 00 sec');
+ expect((await page.evaluate(()=>getState())).medications).toEqual(before.medications);
+});
+test('custom units matching UI copy remain literal and encrypted data stays unchanged',async({page},info)=>{
+ await populated(page);
+ // Fixture changes only synthetic custom-unit fields; then visible password re-entry.
+ await page.evaluate(async()=>{
+  await MedControlModular3ProtectedSession.transact(s=>{s.medications[0].contentUnit='other';s.medications[0].contentUnitOther='мг';s.medications[0].intakeUnit='other';s.medications[0].intakeUnitOther='Ожидается';});
+ });
+ const before=await page.evaluate(()=>getState());
+ await page.reload();
+ await page.clock.setFixedTime(new Date('2026-11-24T08:00:00Z'));
+ await expect(page.locator('#password')).toBeVisible();
+ await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
+ await expect(page).toHaveURL(BASE+'/input.html');
+ await expect(page.locator('h1')).toHaveText('MedControl — Input');
+ const actual=await page.evaluate(()=>({state:getState(),vault:MedControlModular3ProtectedSession.read(),tables:document.querySelectorAll('table').length}));
+ await info.attach('custom-unit-integrity',{body:Buffer.from(JSON.stringify({before,actual})),contentType:'application/json'});
+ expect(actual.state.medications).toEqual(before.medications);
+ expect(actual.vault.medications).toEqual(before.medications);
+ const row=page.locator('tr').filter({has:page.locator('button[onclick^="openEditMedication("]')});
+ await expect(row.locator(':scope > td').nth(4)).toHaveText('мг');
+ await expect(row.locator(':scope > td').nth(6)).toHaveText('Ожидается');
+ expect((await page.evaluate(()=>getState())).medications).toEqual(before.medications);
+});

@@ -210,7 +210,8 @@
   const protectedOriginalTitles=new WeakMap();
   function localizeProtectedLegacyUi(){
     if(!window.medcontrolProtectedInterface||!window.MedControlModular3ProtectedSession?.isEntryAuthorized())return;
-    const language=getState()?.settings?.interfaceLanguage;
+    const protectedState=getState();
+    const language=protectedState?.settings?.interfaceLanguage;
     if(!language)throw Error('Confirmed interface language missing');
     applyProtectedLocaleDirection(language);
     window.MedControlProtectedLocaleController?.applyLayout(document);
@@ -244,16 +245,33 @@
       }
     }
     // Translate authored UI nodes only; ordinary medical cells and form values are excluded.
-    const nodes=document.querySelectorAll(
+    const nodes=new Set(document.querySelectorAll(
       '.topbar a,.topbar button,.topbar .meta .pill,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
       '.wrap label,.wrap legend,.wrap caption,.wrap button,.wrap th,.wrap option,.wrap summary,'+
       '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p,'+
       '.wrap .card > ul > li,.wrap .card > ol > li,'+
       '.wrap .card > div > p,.wrap .card > section > p,'+
       '.wrap fieldset > p,.wrap fieldset > div > p,'+
-      '.wrap #medControlCycleReady strong,'+
+      '.wrap #medControlCycleReady strong,.wrap td > .status,'+
+      '.wrap td[data-dashboard-timing],.wrap td[data-dashboard-timing] > strong,'+
       '.wrap .card > table > tbody > tr:only-child > td[colspan]:only-child'
-    );
+    ));
+    // These are renderer-owned presentation cells, identified by the bound
+    // medication. Names, details, numeric values and custom units stay excluded.
+    const controlledCells=new Set();
+    const contentUnits=new Set(['mcg','mg','g','kg','ml','l','%','mg/ml','mcg/ml','mg/g','IU','unit']);
+    const intakeUnits=new Set(['tablet','capsule','ml','drop','teaspoon','tablespoon','dose','puff','ampoule','vial','packet','sachet','suppository','patch','injection','unit']);
+    for(const button of document.querySelectorAll('.wrap td button[onclick]')){
+      const match=/^(?:openEditMedication|toggleMedicationMode|showRowHistory|repeatCompletedCourse|archiveCompletedCourse)\('([^']+)'\)$/.exec(button.getAttribute('onclick')||'');
+      const med=match&&(protectedState.medications||[]).find(item=>item.id===match[1]);
+      const row=button.closest('tr');
+      // The renderer may split intake times into additional columns.
+      if(!med||!row||row.cells.length<15||row.cells[1].textContent!==med.name)continue;
+      const add=index=>{controlledCells.add(row.cells[index]);nodes.add(row.cells[index]);};
+      if(contentUnits.has(med.contentUnit))add(4);
+      if(intakeUnits.has(med.intakeUnit))add(6);
+      if((med.scheduleType||'daily')==='daily')add(9);
+    }
     // Diagnostic counts for static UI text only; no patient values or storage.
     let inspected=0,translatedCount=0,unmappedRussian=0;
     const recordCoverage=(original,translation)=>{
@@ -271,11 +289,19 @@
         const value=original.trim();
         // A sole spanning cell is eligible only for the authored empty-row
         // placeholder. Never translate label-like names in ordinary data cells.
-        if(element.tagName==='TD'&&(element.childElementCount!==0||
+        if(element.tagName==='TD'&&!controlledCells.has(element)&&
+          !element.hasAttribute('data-dashboard-timing')&&(element.childElementCount!==0||
           !['Нет записей','Нет записей.'].includes(value)))continue;
         const required=value.endsWith('*');
         const lookup=required?value.slice(0,-1).trim():value;
-        const translation=labels[lookup];
+        let translation=labels[lookup];
+        // Countdown output has a strict numeric shape. Preserve every digit;
+        // substitute only the already published UI template's unit labels.
+        if(element.hasAttribute('data-dashboard-timing')){
+          const duration=/^(\d+) дн\. (\d+) ч\. (\d+) мин\. (\d+) сек\.$/.exec(value);
+          const template=labels['⟦0⟧ дн. ⟦1⟧ ч. ⟦2⟧ мин. ⟦3⟧ сек.'];
+          if(duration&&template)translation=template.replace(/⟦([0-3])⟧/g,(_,index)=>duration[Number(index)+1]);
+        }
         recordCoverage(lookup,translation);
         const updated=translation?original.replace(value,translation+(required?' *':'')):original;
         if(updated!==child.nodeValue)child.nodeValue=updated;

@@ -122,7 +122,13 @@ window.medcontrolScriptReady = (async function(){
         const rowsById=new Map();
         sections.forEach(section=>{
           section.querySelectorAll('tbody tr').forEach(row=>{
-            const id=row.dataset.medicationId||'';
+            let id=row.dataset.medicationId||'';
+            // Protected localization can render non-Russian headers before
+            // restructuring. Keep its bound rows even when that step is skipped.
+            if(!id&&window.medcontrolProtectedInterface){
+              const actions=[...row.querySelectorAll('button[onclick]')].map(button=>button.getAttribute('onclick')||'');
+              id=meds.find(med=>actions.some(action=>action.includes(`'${med.id}'`)))?.id||'';
+            }
             if(id)rowsById.set(id,row);
           });
         });
