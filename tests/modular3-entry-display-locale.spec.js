@@ -15,8 +15,8 @@ async function fixture(page,remember=true){
 }
 async function pair(page){return page.evaluate(({DATA,CRED})=>({cipher:localStorage.getItem(DATA),credential:localStorage.getItem(CRED)}),{DATA,CRED});}
 test('returning page uses Filipino before password without changing encrypted pair',async({page})=>{
- const raw=await fixture(page);await page.reload();await expect(page.locator('#unlock')).toBeEnabled();
- await expect(page.locator('html')).toHaveAttribute('lang','fil');expect(await pair(page)).toEqual(raw);
+ const raw=await fixture(page);await page.addInitScript(()=>{window.__lockedCachePuts=0;const original=Cache.prototype.put;Cache.prototype.put=function(...args){window.__lockedCachePuts++;return original.apply(this,args);};});await page.reload();await expect(page.locator('#unlock')).toBeEnabled();
+ await expect(page.locator('html')).toHaveAttribute('lang','fil');expect(await page.evaluate(()=>window.__lockedCachePuts)).toBe(0);expect(await pair(page)).toEqual(raw);
  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
  await expect(page.locator('html')).not.toHaveAttribute('data-entry-locale-pending','');
 });
@@ -33,7 +33,7 @@ for(const corrupt of ['malformed','stale','unsupported','other-valid-language'])
  await page.locator('#password').fill(PASS);await page.locator('#unlock').click();await expect(page).toHaveURL(BASE+'/input.html');await expect(page.locator('html')).toHaveAttribute('lang','fil');expect(await pair(page)).toEqual(raw);
 });
 test('unavailable hinted catalog exposes neutral entry and cannot bypass locked state',async({page})=>{
- const raw=await fixture(page);await page.route('**/locales/catalogs/fil.json',r=>r.fulfill({status:503,body:'synthetic unavailable'}));
+ const raw=await fixture(page);await page.evaluate(async()=>{const cache=await caches.open(MedControlEntryLanguages.cacheName);await cache.delete('/locales/catalogs/fil.json');});await page.route('**/locales/catalogs/fil.json',r=>r.fulfill({status:503,body:'synthetic unavailable'}));
  await page.reload();await expect(page.locator('#unlock')).toBeEnabled();
  await expect(page.locator('h1')).toHaveText('MedControl');expect(await pair(page)).toEqual(raw);
  await page.locator('#password').fill('Wrong-Synthetic-Password');await page.locator('#unlock').click();await expect(page.locator('#message')).toHaveText('MedControl');expect(await pair(page)).toEqual(raw);expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
@@ -51,4 +51,9 @@ test('interrupted public locale journal stays neutral until protected password r
  await page.reload();await expect(page.locator('#unlock')).toBeEnabled();await expect(page.locator('h1')).toHaveText('MedControl');await expect(page.locator('html')).toHaveAttribute('lang','und');expect(await pair(page)).toEqual(raw);
  await page.locator('#password').fill(PASS);await page.locator('#unlock').click();await expect(page).toHaveURL(BASE+'/input.html');await expect(page.locator('html')).toHaveAttribute('lang','fil');expect(await pair(page)).toEqual(raw);
  expect(await page.evaluate(()=>MedControlEntryLanguages.displayPending())).toBe(false);
+});
+
+test('locked display uses validated cached locale when catalog network is unavailable',async({page})=>{
+ const raw=await fixture(page);let network=0;await page.route('**/locales/catalogs/fil.json',r=>{network++;return r.fulfill({status:503,body:'synthetic unavailable'});});
+ await page.reload();await expect(page.locator('#unlock')).toBeEnabled();await expect(page.locator('html')).toHaveAttribute('lang','fil');expect(network).toBe(0);expect(await pair(page)).toEqual(raw);expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
 });

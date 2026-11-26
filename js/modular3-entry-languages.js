@@ -65,6 +65,18 @@
    throw Error('Language offline assets not verified: '+code);
   return prepared;
  }
+ // A locked display must not rewrite caches: its tab can close at any moment.
+ // Use validated cached assets, or fetch for presentation without Cache.put.
+ async function prepareDisplay(raw,fetcher=root.fetch.bind(root)){
+  const code=resolve(raw);if(!code||code!==raw)throw Error('Unsupported language');
+  const paths=['/locales/source-ru.json',...(code==='ru'?[]:['/locales/catalogs/'+code+'.json'])];
+  let cache=null;
+  try{if(root.caches?.has&&await root.caches.has(CACHE))cache=await root.caches.open(CACHE);}catch(_){/* Network presentation remains read-only. */}
+  const responses=await Promise.all(paths.map(async path=>(cache&&await cache.match(path))||fetcher(path,{cache:'no-store',credentials:'same-origin'})));
+  if(responses.some(response=>!response.ok))throw Error('Language assets unavailable: '+code);
+  const json=await Promise.all(responses.map(response=>response.json()));
+  return validate(json[0],json[1],code);
+ }
  // One queue per unlocked session: a later request cannot commit before an
  // earlier request finishes preparing, staging and persisting its exact code.
  const pending=new WeakMap();
@@ -168,7 +180,7 @@
   if(!prepared||prepared.code==='ru')return original;
   return prepared.lookup?.[original]||null;
  }
- const api=Object.freeze({registry,resolve,propose,confirmed,validate,prepare,confirm,restore,translate,readDisplayLanguage,displayPending,displayKey,cacheName:CACHE});
+ const api=Object.freeze({registry,resolve,propose,confirmed,validate,prepare,prepareDisplay,confirm,restore,translate,readDisplayLanguage,displayPending,displayKey,cacheName:CACHE});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  else root.MedControlEntryLanguages=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -1059,7 +1059,7 @@
   };
   try{
    if(code){
-    const prepared=await policy.prepare(code);preparedEntry=prepared;currentLanguage=code;paintEntry(prepared);
+    const prepared=await policy.prepareDisplay(code);preparedEntry=prepared;currentLanguage=code;paintEntry(prepared);
     if(message.textContent)notice(message.textContent);
    }else if(pending)neutral();
   }catch(error){

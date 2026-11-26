@@ -8,7 +8,7 @@ const policyPath=path.join(__dirname,'../js/modular3-entry-languages.js');
 const source=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/source-ru.json'),'utf8'));
 function harness(options={}){
  const entries=new Map(),fetches=[];
- const context={localStorage:options.storage,module:{exports:{}},Intl,fetch:()=>{},caches:{open:async()=>({
+ const context={localStorage:options.storage,module:{exports:{}},Intl,fetch:()=>{},caches:{has:async()=>entries.size>0,open:async()=>({
   put:async(key,response)=>{if(options.cacheError)throw Error('cache denied');entries.set(key,response.clone());},
   match:async key=>options.cacheMissing?undefined:entries.get(key)
  })}};
@@ -118,4 +118,11 @@ test('display hint staging failure preserves protected choice; failed finalizati
  mode='final';await p.confirm(s,'fil',{fetcher});assert.equal(s.read().settings.interfaceLanguage,'fil');assert.equal(p.readDisplayLanguage(storage),null);assert.equal(p.displayPending(storage),true);assert.equal(s.authorizations,0);
  mode='ok';await p.restore(s,{fetcher});assert.equal(p.readDisplayLanguage(storage),'fil');
  const before=values.get(p.displayKey);const other=harness({storage,fetchError:true});await assert.rejects(other.policy.confirm(s,'en',{fetcher:other.fetcher}));assert.equal(values.get(p.displayKey),before);assert.equal(s.read().settings.interfaceLanguage,'fil');
+});
+
+test('locked display validates cached assets without fetching or writing caches',async()=>{
+ const {policy:p,fetcher,entries}=harness();
+ await p.prepare('ar',fetcher);const before=[...entries.keys()];
+ const prepared=await p.prepareDisplay('ar',async()=>{throw Error('network must not be needed');});assert.equal(prepared.code,'ar');assert.deepEqual([...entries.keys()],before);
+ const readonly=harness();const display=await readonly.policy.prepareDisplay('fil',readonly.fetcher);assert.equal(display.code,'fil');assert.equal(readonly.entries.size,0,'Network display must not write a cache');
 });
