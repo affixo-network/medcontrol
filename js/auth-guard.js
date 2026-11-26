@@ -77,6 +77,7 @@
     if(window.medcontrolProtectedInterface){
       await loadScript('js/modular3-action-help.js');
       window.MedControlModular3FinalIntake?.install();
+      window.MedControlProtectedLocaleController?.bindHistoryOwners?.();
     }
   }
   async function stagePublicLocale(language){
@@ -246,22 +247,22 @@
     }
     // Translate authored UI nodes only; ordinary medical cells and form values are excluded.
     const nodes=new Set(document.querySelectorAll(
-      '.topbar a,.topbar button,.topbar .meta .pill,.wrap h1,.wrap h2,.wrap h3,.wrap h4,'+
-      '.wrap label,.wrap legend,.wrap caption,.wrap button,.wrap th,.wrap option,.wrap summary,'+
-      '.wrap .muted,.wrap .help p,.wrap .help li,.wrap .card > p,'+
-      '.wrap .card > ul > li,.wrap .card > ol > li,'+
-      '.wrap .card > div > p,.wrap .card > section > p,'+
-      '.wrap fieldset > p,.wrap fieldset > div > p,'+
-      '.wrap #medControlCycleReady strong,.wrap td > .status,'+
-      '.wrap td[data-dashboard-timing],.wrap td[data-dashboard-timing] > strong,'+
-      '.wrap .card > table > tbody > tr:only-child > td[colspan]:only-child'
+      '.topbar a,.topbar button,.topbar .meta .pill,:is(.wrap,dialog) h1,:is(.wrap,dialog) h2,:is(.wrap,dialog) h3,:is(.wrap,dialog) h4,'+
+      ':is(.wrap,dialog) label,:is(.wrap,dialog) legend,:is(.wrap,dialog) caption,:is(.wrap,dialog) button,:is(.wrap,dialog) th,:is(.wrap,dialog) option,:is(.wrap,dialog) summary,'+
+      ':is(.wrap,dialog) .muted,:is(.wrap,dialog) .help p,:is(.wrap,dialog) .help li,:is(.wrap,dialog) .card > p,'+
+      ':is(.wrap,dialog) .card > ul > li,:is(.wrap,dialog) .card > ol > li,'+
+      ':is(.wrap,dialog) .card > div > p,:is(.wrap,dialog) .card > section > p,'+
+      ':is(.wrap,dialog) fieldset > p,:is(.wrap,dialog) fieldset > div > p,'+
+      ':is(.wrap,dialog) #medControlCycleReady strong,:is(.wrap,dialog) td > .status,'+
+      ':is(.wrap,dialog) td[data-dashboard-timing],:is(.wrap,dialog) td[data-dashboard-timing] > strong,'+
+      ':is(.wrap,dialog) .card > table > tbody > tr:only-child > td[colspan]:only-child'
     ));
     // These are renderer-owned presentation cells, identified by the bound
     // medication. Names, details, numeric values and custom units stay excluded.
     const controlledCells=new Set();
     const contentUnits=new Set(['mcg','mg','g','kg','ml','l','%','mg/ml','mcg/ml','mg/g','IU','unit']);
     const intakeUnits=new Set(['tablet','capsule','ml','drop','teaspoon','tablespoon','dose','puff','ampoule','vial','packet','sachet','suppository','patch','injection','unit']);
-    for(const button of document.querySelectorAll('.wrap td button[onclick]')){
+    for(const button of document.querySelectorAll(':is(.wrap,dialog) td button[onclick]')){
       const match=/^(?:openEditMedication|toggleMedicationMode|showRowHistory|repeatCompletedCourse|archiveCompletedCourse)\('([^']+)'\)$/.exec(button.getAttribute('onclick')||'');
       const med=match&&(protectedState.medications||[]).find(item=>item.id===match[1]);
       const row=button.closest('tr');
@@ -291,6 +292,29 @@
         if(cell.textContent!==presentation)cell.textContent=presentation;
       }
     }
+    const readOriginal=element=>[...element.childNodes].map(child=>{
+      const previous=protectedOriginalText.get(child);
+      return child.nodeType===Node.TEXT_NODE&&previous?.localized===child.nodeValue?previous.original:child.textContent;
+    }).join('');
+    const authoredSources=new Map();
+    for(const [selector,source,english] of [
+      ['#finalIntakeDialog h2','Последний приём курса','Last intake of the course'],
+      ['#finalIntakeDialog > p:not([id])','Это последний приём курса. Чтобы повторить препарат, измените даты курса. После подтверждения последнего приёма завершённый курс автоматически перейдёт в Архив. Вся история сохранится.','This is the last intake of the course. To repeat the medication, change the course dates. After confirmation, the completed course will move to Archive automatically. Its full history will be retained.'],
+      ['#finalIntakeConfirm','Подтвердить «Принято»','Confirm Taken'],
+      ['#finalIntakeChangeDates','Изменить даты','Change dates'],
+      ['#finalIntakeCancel','Отмена','Cancel']
+    ]){
+      const element=document.querySelector(selector);
+      if(element&&[source,english].includes(readOriginal(element))){nodes.add(element);authoredSources.set(element,source);}
+    }
+    const finalError=document.getElementById('finalIntakeError');if(finalError)nodes.add(finalError);
+    const history=window.MedControlProtectedLocaleController?.historyPresentation?.({state:protectedState,labels,readOriginal,contentUnits,intakeUnits});
+    for(const element of history?.nodes||[]){controlledCells.add(element);nodes.add(element);}
+    for(const {cell,original,localized} of history?.projections||[]){
+      const child=cell.firstChild;if(!child||child.nodeType!==Node.TEXT_NODE)continue;
+      if(child.nodeValue!==localized)child.nodeValue=localized;
+      if(original!==localized)protectedOriginalText.set(child,{original,localized});else protectedOriginalText.delete(child);
+    }
     // Diagnostic counts for static UI text only; no patient values or storage.
     let inspected=0,translatedCount=0,unmappedRussian=0;
     const recordCoverage=(original,translation)=>{
@@ -299,6 +323,7 @@
       if(typeof translation==='string'&&translation!==original)translatedCount++;
       else if(language!=='ru')unmappedRussian++;
     };
+    let fragmentPattern;
     for(const element of nodes){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
       for(const child of element.childNodes){
@@ -312,8 +337,20 @@
           !element.hasAttribute('data-dashboard-timing')&&(element.childElementCount!==0||
           !['Нет записей','Нет записей.'].includes(value)))continue;
         const required=value.endsWith('*');
-        const lookup=required?value.slice(0,-1).trim():value;
-        let translation=labels[lookup];
+        const fullTranslation=labels[value]||window.MedControlProtectedLocaleController?.formatMessage?.(value,catalogLabels,controlledCells.has(element));
+        const lookup=fullTranslation?value:required?value.slice(0,-1).trim():value;
+        const semanticSource=authoredSources.get(element);
+        let translation=semanticSource?(language==='ru'?semanticSource:labels[semanticSource])
+          :fullTranslation||labels[lookup]||window.MedControlProtectedLocaleController?.formatMessage?.(lookup,catalogLabels,controlledCells.has(element));
+        if(element.id==='finalIntakeError'&&value){
+          const source='Приём не сохранён. Повторите действие.';
+          const prefix=[source,'Intake was not saved. Try again.'].find(prefix=>value.startsWith(prefix));
+          if(prefix){
+            const detail=value.slice(prefix.length).trimStart(),head=language==='ru'?source:labels[source];
+            const localizedDetail=window.MedControlProtectedLocaleController?.formatMessage?.(detail,catalogLabels)||detail;
+            if(head)translation=head+(detail?' '+localizedDetail:'');
+          }
+        }
         // Countdown output has a strict numeric shape. Preserve every digit;
         // substitute only the already published UI template's unit labels.
         if(element.hasAttribute('data-dashboard-timing')){
@@ -321,14 +358,21 @@
           const template=labels['⟦0⟧ дн. ⟦1⟧ ч. ⟦2⟧ мин. ⟦3⟧ сек.'];
           if(duration&&template)translation=template.replace(/⟦([0-3])⟧/g,(_,index)=>duration[Number(index)+1]);
         }
+        if(!translation&&controlledCells.has(element)&&/[А-Яа-яЁё]/.test(lookup)){
+          if(fragmentPattern===undefined){
+            const keys=Object.keys(labels).filter(key=>/[А-Яа-яЁё]/.test(key)&&!key.includes('⟦')).sort((a,b)=>b.length-a.length);
+            fragmentPattern=keys.length?new RegExp(keys.map(key=>key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g'):null;
+          }
+          if(fragmentPattern&&!/[А-Яа-яЁё]/.test(lookup.replace(fragmentPattern,'')))translation=lookup.replace(fragmentPattern,key=>labels[key]);
+        }
         recordCoverage(lookup,translation);
-        const updated=translation?original.replace(value,translation+(required?' *':'')):original;
+        const updated=translation?original.replace(value,translation+(required&&lookup!==value?' *':'')):original;
         if(updated!==child.nodeValue)child.nodeValue=updated;
         if(updated!==original)protectedOriginalText.set(child,{original,localized:updated});
         else protectedOriginalText.delete(child);
       }
     }
-    for(const input of document.querySelectorAll('.wrap input[placeholder],.wrap textarea[placeholder]')){
+    for(const input of document.querySelectorAll(':is(.wrap,dialog) input[placeholder],:is(.wrap,dialog) textarea[placeholder]')){
       const previous=protectedOriginalPlaceholders.get(input);
       const original=previous&&previous.localized===input.placeholder?previous.original:input.placeholder;
       recordCoverage(original,labels[original]);
@@ -339,7 +383,7 @@
     }
     // Accessible control names must switch languages too, without touching
     // medication values or other user-entered text.
-    for(const element of document.querySelectorAll('.topbar [aria-label],.wrap [aria-label]')){
+    for(const element of document.querySelectorAll('.topbar [aria-label],:is(.wrap,dialog) [aria-label]')){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
       const previous=protectedOriginalAriaLabels.get(element);
       const current=element.getAttribute('aria-label');
@@ -352,7 +396,7 @@
     }
     // Native title tooltips are UI copy as well; preserve their Russian source
     // across language switches, without modifying entered medication data.
-    for(const element of document.querySelectorAll('.topbar [title],.wrap [title]')){
+    for(const element of document.querySelectorAll('.topbar [title],:is(.wrap,dialog) [title]')){
       if(element.closest('#medcontrolFirstLanguageDialog'))continue;
       const current=element.getAttribute('title');
       const previous=protectedOriginalTitles.get(element);

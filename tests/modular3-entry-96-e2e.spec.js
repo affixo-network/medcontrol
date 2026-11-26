@@ -7,6 +7,8 @@ const path = require('node:path');
 const manifest = require('../locales/manifest.json');
 const source = require('../locales/source-ru.json');
 const PASS = 'Synthetic-96-Local-Password-2026';
+const SOURCE_IDS=Object.fromEntries(Object.entries(source).map(([id,row])=>[row.source,id]));
+const catalogText=(code,text)=>messages(code)[SOURCE_IDS[text]];
 const SECTIONS = ['input', 'action', 'dashboard', 'archive'];
 const NAV_IDS = {input:'2641301ae19af731', action:'6a543025d854b29c', dashboard:'67f955e0e8892d65', archive:'3c54b5e783ef6052'};
 const TITLE_IDS = {input:'87a2b9ea146d476e', action:'f45170df6a0828f5', dashboard:'0fe132872b85f083', archive:'78aca0cace982b30'};
@@ -58,6 +60,19 @@ async function assertLocale(page, language) {
   const translated = await page.evaluate(() => ['nav_input','nav_action','nav_dashboard'].map(key => tr(key)));
   expect(translated).toEqual([catalog[NAV_IDS.input], catalog[NAV_IDS.action], catalog[NAV_IDS.dashboard]]);
 }
+async function assertVisibleEnglish(page){
+ if(await page.locator('html').getAttribute('lang')!=='en')return;
+ const russian=()=>page.evaluate(()=>{
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),out=[];
+  while(walker.nextNode()){
+   const n=walker.currentNode,p=n.parentElement;
+   if(!p||p.closest('script,style,select,option')||!/[А-Яа-яЁё]/.test(n.nodeValue))continue;
+   if(p.closest('dialog')&&!p.closest('dialog').open)continue;
+   const range=document.createRange();range.selectNodeContents(n);if(range.getBoundingClientRect().height)out.push(n.nodeValue.trim());
+  }return out;
+ });
+ await expect.poll(russian,{message:'These synthetic fixtures use Latin patient text; visible Russian is untranslated UI'}).toEqual([]);
+}
 async function createCourse(page, name) {
   for (const [field, value] of Object.entries({name,manufacturer:'Synthetic Factory',contentValue:'1'})) {
     await page.locator('#create_' + field).fill(value);
@@ -89,6 +104,7 @@ async function createCourse(page, name) {
   await expect(rows.nth(0).locator('td').last()).toHaveText(name);
   console.log('[entry96 '+code+'] confirmation locale verified');
   expect((await state(page)).medications).toHaveLength(0);
+  await assertVisibleEnglish(page);
 
   await page.locator('#medicationConfirmDialog button[onclick="proceedMedicationCreateConfirmation()"] ').click();
   await expect(page.locator('#medicationSaveDialog')).toBeVisible();
@@ -141,6 +157,7 @@ for (const language of languages) {
       for (const section of SECTIONS) {
         await navigate(page, base, section);
         await assertLocale(page, selected);
+        await assertVisibleEnglish(page);
         expect(medical(await state(page))).toEqual(expected);
         const record = {language:language.code, selected:selected.code, section, phase, pass:true};
         records.push(record);
@@ -253,6 +270,32 @@ for (const language of languages) {
           const duration=catalog['06cf4eca8aefb953'].replace('⟦0⟧','0').replace('⟦1⟧','01').replace('⟦2⟧','00').replace('⟦3⟧','00');
           await expect(page.locator('[data-dashboard-timing]').first()).toContainText(duration);
         }
+
+        await assertVisibleEnglish(page);
+        if(section==='input'){
+          await page.locator('button[onclick="showRowHistory(\''+id+'\')"]').click();
+          await expect(page.locator('#rowHistoryDialog')).toBeVisible();
+          await expect(page.locator('#rowHistoryDialog h2')).toHaveText(catalogText(language.code,'История препарата «⟦0⟧»').replace('⟦0⟧',name));
+          const createdRow=page.locator('#rowHistoryContent tbody tr').first();
+          await expect(createdRow.locator('td').nth(1)).toHaveText(catalogText(language.code,'Создано'));
+          await expect(createdRow.locator('td').nth(4)).toHaveText(catalogText(language.code,'мг'));
+          await expect(createdRow.locator('td').nth(6)).toHaveText(catalogText(language.code,'таблетка'));
+          await assertVisibleEnglish(page);
+          await page.locator('#rowHistoryDialog button[onclick*=".close()"] ').click();
+          await page.locator('button[onclick="openEditMedication(\''+id+'\')"]').click();
+          await expect(page.locator('#editDialog')).toBeVisible();
+          await expect(page.locator('#editDialog h2')).toHaveText(catalogText(language.code,'Изменить препарат'));
+          await expect(page.locator('#editDialog label').filter({hasText:catalogText(language.code,'Количественное содержание (указанное производителем) *')})).toHaveCount(1);
+          await assertVisibleEnglish(page);
+          await page.locator('#editDialog button[onclick*=".close()"] ').click();
+        }
+        if(['action','dashboard'].includes(section)){
+          await page.locator('button[onclick^="showIntakeHistory("]').first().click();
+          await expect(page.locator('#intakeHistoryDialog')).toBeVisible();
+          await expect(page.locator('#intakeHistoryDialog h2')).toHaveText(catalogText(language.code,'История приёма препарата «⟦0⟧»').replace('⟦0⟧',name));
+          await assertVisibleEnglish(page);
+          await page.locator('#intakeHistoryDialog button[onclick*=".close()"] ').click();
+        }
         expect(medical(await state(page))).toEqual(populatedMedical);
         const record={language:language.code,selected:language.code,section,phase:'populated-online',pass:true};
         records.push(record);
@@ -264,6 +307,7 @@ for (const language of languages) {
       progress('take, cancel, retake, final archive');
       await taken().first().click();
       await expect.poll(async () => (await state(page)).intakeLogs.length).toBe(1);
+      await page.locator('button[onclick^="showIntakeHistory("]').first().click();await expect(page.locator('#intakeHistoryDialog')).toBeVisible();await assertVisibleEnglish(page);await page.locator('#intakeHistoryDialog button[onclick*=".close()"] ').click();
       const firstLogId = (await state(page)).intakeLogs[0].id;
       const factualTime = (await state(page)).intakeLogs[0].actualAt;
       // Distinct user events need distinct simulated timestamps; freezing the
@@ -271,9 +315,11 @@ for (const language of languages) {
       // unable to place a cancellation after its original Taken event.
       await page.clock.setFixedTime(new Date('2026-11-24T08:00:00.500Z'));
       await page.locator('button[onclick^="openCorrection(\'' + id + '\'"]').first().click();
+      await assertVisibleEnglish(page);
       await page.locator('#correction_reason').selectOption('accident');
       await page.locator('#correction_apply').click();
       await expect.poll(async () => (await state(page)).intakeCorrections.length).toBe(1);
+      await page.locator('button[onclick^="showIntakeHistory("]').first().click();await expect(page.locator('#intakeHistoryDialog')).toBeVisible();await assertVisibleEnglish(page);await page.locator('#intakeHistoryDialog button[onclick*=".close()"] ').click();
       expect((await state(page)).intakeLogs[0].actualAt).toBe(factualTime);
       await page.clock.setFixedTime(new Date('2026-11-24T08:00:01Z'));
       await taken().first().click();
@@ -286,6 +332,9 @@ for (const language of languages) {
       await page.clock.setFixedTime(new Date('2026-11-24T08:00:02Z'));
       await taken().last().click();
       await expect(page.locator('#finalIntakeDialog')).toBeVisible();
+      await expect(page.locator('#finalIntakeDialog h2')).toHaveText(catalogText(language.code,'Последний приём курса'));
+      await expect(page.locator('#finalIntakeConfirm')).toHaveText(catalogText(language.code,'Подтвердить «Принято»'));
+      await assertVisibleEnglish(page);
       await page.locator('#finalIntakeConfirm').click();
       await expect.poll(async () => (await state(page)).medications.find(item => item.id === id).archivedCompleted).toBe(true);
       const expected = medical(await state(page));
@@ -297,6 +346,15 @@ for (const language of languages) {
       await page.locator('button[onclick="showArchiveMedicationHistory(\'' + id + '\')"]').click();
       await expect(page.locator('#archiveHistoryTitle')).toContainText(name);
       await expect(page.locator('#archiveHistoryContent')).not.toBeEmpty();
+      await expect(page.locator('#archiveHistoryTitle')).toHaveText(catalogText(language.code,'История курса «⟦0⟧»').replace('⟦0⟧',name));
+      const journal=page.locator('#archiveHistoryContent tbody tr');
+      const createdJournal=journal.filter({has:page.getByText(catalogText(language.code,'Создано'),{exact:true})}).first();
+      await expect(createdJournal.locator('td').nth(3)).toHaveText('1 '+catalogText(language.code,'мг'));
+      await expect(createdJournal.locator('td').nth(4)).toHaveText('1 '+catalogText(language.code,'таблетка'));
+      await expect(createdJournal.locator('td').nth(5)).toHaveText(catalogText(language.code,'Каждый день'));
+      await expect(journal.filter({has:page.getByText(catalogText(language.code,'Расчётный приём'),{exact:true})}).first().locator('td').nth(8)).toContainText(catalogText(language.code,'Случайное нажатие'));
+      progress('owned dialogs and history locale verified');
+      await assertVisibleEnglish(page);
       await page.waitForFunction(() => window.medcontrolOfflineShellReady === true, null, {timeout:45000});
       page = await restartAndUnlock(language);
       progress('four offline sections');

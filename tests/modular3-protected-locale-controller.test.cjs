@@ -127,3 +127,25 @@ test('native Hint channel uses all95 catalogs and preserves unknown/patient text
  code='ru';const original='Подсказка\n\n'+hints[0];window.alert(original);assert.equal(last,original);
  code='en';authorized=false;window.alert(original);assert.equal(last,original);
 });
+
+test('catalog templates preserve patient captures and translate only explicitly typed UI slots',()=>{
+ const api=require(target);
+ const catalog={'История курса «⟦0⟧»':'Course history «⟦0⟧»','⟦0⟧ заменён':'⟦0⟧ replaced','Статус':'Status','Производитель':'Manufacturer'};
+ assert.equal(api.formatMessage('История курса «Статус $&»',catalog),'Course history «Статус $&»');
+ assert.equal(api.formatMessage('Производитель заменён',catalog,true),'Manufacturer replaced');
+ assert.equal(api.formatMessage('Производитель заменён',catalog),'Производитель replaced');
+ assert.equal(api.formatMessage('SYNTHETIC patient text: Статус',catalog),null);
+ assert.equal(api.formatMessage('История курса «Статус»',undefined),null);
+});
+test('history ownership binds the preferred existing dialog, preserves returns and avoids duplicate wrappers',()=>{
+ const archive={dataset:{}},fallback={dataset:{}},document={querySelector:selector=>selector==='#archiveHistoryDialog'?archive:selector==='#rowHistoryDialog'?fallback:null};
+ const window={document,medcontrolProtectedInterface:true,showArchiveMedicationHistory(id){this.lastId=id;return 'original-result';}};
+ const context=vm.createContext({window,document});vm.runInContext(fs.readFileSync(target,'utf8'),context);
+ window.MedControlProtectedLocaleController.bindHistoryOwners();
+ const wrapped=window.showArchiveMedicationHistory;
+ assert.equal(wrapped.call(window,'synthetic-owner'),'original-result');assert.equal(window.lastId,'synthetic-owner');
+ assert.equal(archive.dataset.medcontrolHistoryOwner,'synthetic-owner');assert.equal(archive.dataset.medcontrolHistoryKind,'archive');assert.equal(fallback.dataset.medcontrolHistoryOwner,undefined);
+ window.MedControlProtectedLocaleController.bindHistoryOwners();assert.equal(window.showArchiveMedicationHistory,wrapped);
+ const replacement=function(){return false;};window.showArchiveMedicationHistory=replacement;
+ window.medcontrolProtectedInterface=false;window.MedControlProtectedLocaleController.bindHistoryOwners();assert.equal(window.showArchiveMedicationHistory,replacement);
+});
