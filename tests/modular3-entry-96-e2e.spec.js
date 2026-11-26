@@ -78,6 +78,18 @@ async function createCourse(page, name) {
   await page.locator('#create_endDate').fill('2026-11-24');
   await page.locator('#createMedicationButton').click();
   await expect(page.locator('#medicationConfirmDialog')).toBeVisible();
+  const code=await page.locator('html').getAttribute('lang'),catalog=messages(code);
+  const label=text=>catalog[Object.keys(source).find(id=>source[id].source===text)];
+  const rows=page.locator('#medicationConfirmContent table tr');
+  for(const [index,text] of [[1,'Производитель'],[2,'Количественное содержание'],[3,'Доза']])await expect(rows.nth(index).locator('td').first()).toHaveText(label(text));
+  await expect(rows.nth(2).locator('td').last()).toHaveText('1 '+label('мг'));
+  await expect(rows.nth(3).locator('td').last()).toHaveText('1 '+label('таблетка'));
+  await expect(page.locator('#medicationConfirmContent [data-confirm-status] td').first()).toHaveText(label('Статус'));
+  await expect(page.locator('#medicationConfirmContent [data-confirm-status] td').last()).toHaveText(label('Активно'));
+  await expect(rows.nth(0).locator('td').last()).toHaveText(name);
+  console.log('[entry96 '+code+'] confirmation locale verified');
+  expect((await state(page)).medications).toHaveLength(0);
+
   await page.locator('#medicationConfirmDialog button[onclick="proceedMedicationCreateConfirmation()"] ').click();
   await expect(page.locator('#medicationSaveDialog')).toBeVisible();
   await page.locator('#medicationSaveDialog button[onclick="confirmMedicationCreate()"] ').click();
@@ -93,7 +105,8 @@ for (const language of languages) {
     const base = String(info.project.use.baseURL || 'http://127.0.0.1:8765').replace(/\/$/, '');
     const next = manifest[language.id % manifest.length];
     const profile = info.outputPath('persistent-profile');
-    const records = [], errors = [], external = [];
+    const records = [], errors = [], external = [], nativeDialogs=[];
+    let dialogLanguage=null;
     let context;
     const progress = stage => console.log('[entry96 ' + language.code + '] ' + stage);
     async function launch(offline) {
@@ -118,7 +131,7 @@ for (const language of languages) {
       });
       context.on('page', page => {
         page.on('pageerror', error => errors.push(error.message));
-        page.on('dialog', dialog => dialog.accept());
+        page.on('dialog', dialog => {nativeDialogs.push({language:dialogLanguage,type:dialog.type(),message:dialog.message()});dialog.accept();});
       });
       const page = await context.newPage();
       await page.clock.setFixedTime(new Date('2026-11-24T08:00:00Z'));
@@ -194,6 +207,7 @@ for (const language of languages) {
       await page.locator('#unlock').click();
       await expect(page).toHaveURL(base + '/input.html');
       await assertLocale(page, language);
+      dialogLanguage=language.code;
       await expect(page.locator('#create_timeHour')).toHaveAttribute('aria-label', messages(language.code)['7e6da98020ac2053']);
       await expect(page.locator('#create_timeMinute')).toHaveAttribute('aria-label', messages(language.code)['935ec56194d6f572']);
       const emptyMedical=medical(await state(page));
@@ -207,6 +221,17 @@ for (const language of languages) {
       }
       await navigate(page,base,'input');
       const name = 'Synthetic language ' + language.code;
+
+      await page.locator('#create_name').fill(name);
+      await page.locator('#create_manufacturer').fill('Synthetic Factory');
+      const beforeHint=medical(await state(page));
+      const hintEvent=page.waitForEvent('dialog');
+      await page.locator('#create_contentUnit').focus();
+      const validationHint=await hintEvent;
+      expect(validationHint.type()).toBe('alert');
+      expect(validationHint.message()).toBe(messages(language.code)['576077460ea8b800']+'\n\n'+messages(language.code)['d6b8f8f44922621f']);
+      expect(medical(await state(page))).toEqual(beforeHint);
+      progress('native amount hint verified');
       progress('create synthetic course');
       const id = await createCourse(page, name);
       const beforeActiveRestart=medical(await state(page));
@@ -283,6 +308,7 @@ for (const language of languages) {
       await navigate(page, base, 'input');
       await page.locator('.topbar select[onchange*="changeInterfaceLanguage"]').selectOption(next.code);
       await assertLocale(page, next);
+      dialogLanguage=next.code;
       expect(medical(await state(page))).toEqual(expected);
       await page.waitForFunction(() => window.medcontrolOfflineShellReady === true, null, {timeout:45000});
       page = await restartAndUnlock(next);
@@ -290,9 +316,13 @@ for (const language of languages) {
       await visitAll(page, next, 'switched-offline-restart', expected);
       expect(external, 'No outside service is contacted').toEqual([]);
       expect(errors, 'No uncaught browser errors').toEqual([]);
+      // These fixtures use Latin patient names/details. Cyrillic in a native
+      // dialog is therefore UI copy unless that selected language uses Cyrillic.
+      const cyrillic=new Set(['ru','be','bg','mk','sr','uk','kk','ky','tg','mn']);
+      expect(nativeDialogs.filter(x=>x.language&&!cyrillic.has(x.language)&&/[А-Яа-яЁё]/.test(x.message)),'No Russian native UI fallback').toEqual([]);
     } finally {
       if (context) await context.close();
-      await info.attach('language-flow-evidence', {body:Buffer.from(JSON.stringify({language:language.code, diagnosticSubset:!!diagnostic, requiredSections:4, records, external, errors}, null, 2)),contentType:'application/json'});
+      await info.attach('language-flow-evidence', {body:Buffer.from(JSON.stringify({language:language.code, diagnosticSubset:!!diagnostic, requiredSections:4, records, external, errors,nativeDialogs}, null, 2)),contentType:'application/json'});
     }
   });
 }

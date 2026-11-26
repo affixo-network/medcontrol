@@ -96,3 +96,34 @@ test('protected logical layout installs once across RTL to LTR renders and isola
  assert.equal(styles.length,1);assert.match(styles[0].textContent,/text-align:start/);assert.match(styles[0].textContent,/text-align:end/);assert.match(styles[0].textContent,/padding-inline-start/);
  assert.equal(free.dir,'auto');assert.equal(time.dir,'ltr');assert.equal(number.dir,'ltr');assert.equal(doc.documentElement.dir,'ltr');
 });
+
+test('native Hint channel uses all95 catalogs and preserves unknown/patient text and locked-session behavior',()=>{
+ const source=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/source-ru.json'),'utf8'));
+ const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/manifest.json'),'utf8'));
+ const bySource=Object.fromEntries(Object.entries(source).map(([id,row])=>[row.source,id]));
+ const catalogs={};
+ for(const item of manifest.filter(x=>x.code!=='ru')){
+  const messages=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/catalogs',item.code+'.json'),'utf8')).messages;
+  catalogs[item.code]=Object.fromEntries(Object.entries(source).map(([id,row])=>[row.source,messages[id]]));
+ }
+ let code='en',authorized=true,last;
+ const session={read(){assert.ok(authorized,'Locked alert must not read encrypted settings');return {settings:{interfaceLanguage:code}};},isEntryAuthorized:()=>authorized};
+ const document={documentElement:{},querySelectorAll:()=>[]};
+ const window={document,medcontrolProtectedInterface:true,MedControlProtectedUiCatalogs:catalogs,alert:message=>{last=message;return 'native-return';},tr:key=>key==='hint_title'?(code==='ru'?'Подсказка':catalogs[code]['Подсказка']):key};
+ const context=vm.createContext({window,document});
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/modular3-protected-locale-controller.js'),'utf8'),context);
+ window.MedControlProtectedLocaleController.install({session,policy:{},stage:async()=>{},render:async()=>{},failClosed:async()=>{}});
+ const hints=['Введите количественное содержание препарата.','Выберите единицу содержания.','Укажите другую единицу содержания.','Введите количество приёма.','Выберите единицу приёма.','Укажите другую единицу приёма.','Дата начала не заполнена.','Дата окончания не заполнена.','Выберите режим расписания.','Для изменения Расписания вначале отмените Расписание в разделе «Приём препаратов».','Для изменения времени приёма вначале отмените время приёма в разделе «Приём препаратов».'];
+ for(const item of manifest.filter(x=>x.code!=='ru')){
+  code=item.code;
+  for(const hint of hints){assert.ok(bySource[hint]);assert.equal(window.alert(window.tr('hint_title')+'\n\n'+hint),'native-return');assert.equal(last,window.tr('hint_title')+'\n\n'+catalogs[code][hint],code+': '+hint);}
+  const start='Подсказка\n\nВыбранная дата начала не соответствует дням недели расписания. Ближайшая допустимая дата начала: ⟦0⟧.';
+  window.alert(start.replace('⟦0⟧','11/30/2026'));assert.equal(last,catalogs[code][start].replace('⟦0⟧','11/30/2026'));
+  const end='Подсказка\n\nВыбранная дата окончания не соответствует дням недели расписания. Ближайшие допустимые даты: ⟦0⟧.';
+  window.alert(end.replace('⟦0⟧','11/23/2026 или 11/30/2026'));assert.equal(last,catalogs[code][end].replace('⟦0⟧','11/23/2026 '+catalogs[code]['или']+' 11/30/2026'));
+  const unknown=window.tr('hint_title')+'\n\nSYNTHETIC patient text: Статус';window.alert(unknown);assert.equal(last,unknown);
+  window.alert('Препарат: Доза');assert.equal(last,'Препарат: Доза');
+ }
+ code='ru';const original='Подсказка\n\n'+hints[0];window.alert(original);assert.equal(last,original);
+ code='en';authorized=false;window.alert(original);assert.equal(last,original);
+});

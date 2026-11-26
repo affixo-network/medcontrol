@@ -104,6 +104,42 @@ html[data-medcontrol-protected-locale] .wrap [dir="auto"]{unicode-bidi:isolate}
     return root.medcontrolOriginalProtectedTr(key);
    };
   }
+  // Native validation alerts do not enter the DOM observer. Translate only
+  // the recognized Hint channel; arbitrary alert/patient text stays literal.
+  if(!root.medcontrolOriginalProtectedAlert&&typeof root.alert==='function'){
+   const nativeAlert=root.alert;
+   root.medcontrolOriginalProtectedAlert=nativeAlert;
+   root.alert=function(message){
+    if(!session.isEntryAuthorized?.())return nativeAlert.apply(root,arguments);
+    const code=session.read().settings.interfaceLanguage;
+    if(code==='ru'||typeof message!=='string')return nativeAlert.apply(root,arguments);
+    const catalog=root.MedControlProtectedUiCatalogs?.[code];
+    const title=root.tr('hint_title'),prefix=title+'\n\n',russianPrefix='Подсказка\n\n';
+    const body=message.startsWith(prefix)?message.slice(prefix.length)
+     :message.startsWith(russianPrefix)?message.slice(russianPrefix.length):null;
+    if(body===null)return nativeAlert.apply(root,arguments);
+    if(typeof catalog?.[body]==='string')return nativeAlert.call(root,prefix+catalog[body]);
+    // The two date-boundary hints use catalog templates. Keep their date
+    // values and localize only the renderer-owned date-list conjunction.
+    for(const [source,translated] of Object.entries(catalog||{})){
+     if(!source.startsWith(russianPrefix)||!source.includes('⟦0⟧'))continue;
+     const slots=[];
+     const pattern=source.split(/(⟦\d+⟧)/g).map(part=>{
+      if(/^⟦\d+⟧$/.test(part)){slots.push(part);return '([\\s\\S]*?)';}
+      return part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+     }).join('');
+     const match=new RegExp('^'+pattern+'$').exec(russianPrefix+body);
+     if(!match)continue;
+     const output=translated.replace(/⟦\d+⟧/g,slot=>{
+      const value=match[slots.indexOf(slot)+1];
+      return source.startsWith(russianPrefix+'Выбранная дата окончания')&&catalog['или']
+       ?value.split(' или ').join(' '+catalog['или']+' '):value;
+     });
+     return nativeAlert.call(root,output);
+    }
+    return nativeAlert.apply(root,arguments);
+   };
+  }
   // Settings is inherited by the protected shell but uses the canonical registry.
   // Its device-language field must never trigger another proposal after entry.
   root.medControlDeviceLanguage=()=>session.read().settings.interfaceLanguage;

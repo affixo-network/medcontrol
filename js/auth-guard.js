@@ -272,6 +272,25 @@
       if(intakeUnits.has(med.intakeUnit))add(6);
       if((med.scheduleType||'daily')==='daily')add(9);
     }
+    // Confirmation label cells are authored UI. The adjacent patient values
+    // remain excluded; only typed unit presentations are composed below.
+    for(const cell of document.querySelectorAll('#medicationConfirmContent .confirm-table td:first-child,#medicationConfirmContent [data-confirm-status] td:last-child')){
+      controlledCells.add(cell);nodes.add(cell);
+    }
+    const pending=typeof pendingMedicationCreate!=='undefined'?pendingMedicationCreate?.item:null;
+    const confirmation=document.querySelector('#medicationConfirmContent .confirm-table');
+    if(pending&&confirmation){
+      for(const [index,quantity,unit,other,known,renderUnit] of [
+        [2,pending.contentValue,pending.contentUnit,pending.contentUnitOther,contentUnits,medicationContentUnitLabel],
+        [3,pending.intakeQuantity,pending.intakeUnit,pending.intakeUnitOther,intakeUnits,medicationIntakeUnitLabel]
+      ]){
+        const cell=confirmation.rows[index]?.cells[1];
+        if(!cell||cell.childElementCount)continue;
+        const original=renderUnit(unit,other),translated=known.has(unit)?labels[original]||original:original;
+        const presentation=String(quantity)+' '+translated;
+        if(cell.textContent!==presentation)cell.textContent=presentation;
+      }
+    }
     // Diagnostic counts for static UI text only; no patient values or storage.
     let inspected=0,translatedCount=0,unmappedRussian=0;
     const recordCoverage=(original,translation)=>{
