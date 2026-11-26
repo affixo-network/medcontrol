@@ -13,7 +13,7 @@
  // Canonical 96-language registry including Filipino (#96).
  const policy=window.MedControlEntryLanguages;
  const languageRegistry=policy.registry.map(({code,name,englishName})=>[code,name,englishName]);
- let currentLanguage='ru',preparedEntry=null,pendingOperationNotice=null;
+ let currentLanguage='ru',preparedEntry=null,pendingOperationNotice=null,displayLocaleUnavailable=false;
  const languagePanel=document.createElement('section');languagePanel.id='protected-language-choice';languagePanel.hidden=true;
  const languageTitle=document.createElement('label');languageTitle.htmlFor='protected-language-select';
  const languageSelect=document.createElement('select');languageSelect.id='protected-language-select';
@@ -151,6 +151,7 @@
   const span=document.createElement('span');span.dataset.medcontrolUserContent='';span.dir='auto';span.textContent=text;return span;
  }
  function paintEntry(prepared){
+  displayLocaleUnavailable=false;
   for(const [node,original]of entryOriginals){if(node.isConnected){const translated=textFor(prepared,original);if(translated)node.textContent=translated;}}
   document.documentElement.lang=prepared.code;
   document.documentElement.dir=policy.registry.find(item=>item.code===prepared.code).direction;
@@ -329,6 +330,7 @@
  document.getElementById('enroll').addEventListener('click',()=>{confirmPasswordLabel.hidden=false;},{capture:true});
  function operationNotice(text){pendingOperationNotice=text;notice(text);}
  function notice(text){
+  if(displayLocaleUnavailable&&!preparedEntry){message.textContent='MedControl';return;}
   let localized=textFor(preparedEntry,text);
   if(preparedEntry&&new URLSearchParams(window.location.search).get('rehearsal')==='1'){try{localized=ui(text);}catch(_){/* Keep the existing selected-language generic failure label. */}}
   message.textContent=localized||(preparedEntry&&preparedEntry.code!=='ru'?(textFor(preparedEntry,'Ошибка')||'MedControl'):text);
@@ -1046,5 +1048,23 @@
  document.querySelectorAll('[data-tab]').forEach(button=>button.onclick=()=>{if(!session.isEntryAuthorized())return;section=button.dataset.tab;render();});
  document.getElementById('lock').onclick=async()=>{await session.lock();languagePending=false;languageConfirmed=false;notice('Данные заблокированы.');render();};
  render();
+ window.medcontrolEntryText=text=>displayLocaleUnavailable&&!preparedEntry?'MedControl':textFor(preparedEntry,text)||(preparedEntry?textFor(preparedEntry,'Ошибка')||'MedControl':text);
+ window.medcontrolProtectedLocaleReady=(async()=>{
+  const code=policy.readDisplayLanguage(),pending=policy.displayPending();
+  const neutral=()=>{
+   displayLocaleUnavailable=true;currentLanguage=code||'ru';
+   document.documentElement.lang=code||'und';document.documentElement.dir=policy.registry.find(item=>item.code===code)?.direction||'auto';
+   for(const [node,original]of entryOriginals)if(node.isConnected&&/[А-Яа-яЁё]/.test(original))node.textContent='MedControl';
+   message.textContent='MedControl';
+  };
+  try{
+   if(code){
+    const prepared=await policy.prepare(code);preparedEntry=prepared;currentLanguage=code;paintEntry(prepared);
+    if(message.textContent)notice(message.textContent);
+   }else if(pending)neutral();
+  }catch(error){
+   neutral();window.medcontrolEntryDisplayLocaleError=String(error?.message||error);
+  }finally{document.documentElement.removeAttribute('data-entry-locale-pending');}
+ })();
  window.medcontrolProtectedWorkspaceReady=true;
 })();

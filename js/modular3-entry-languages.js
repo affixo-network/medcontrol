@@ -107,7 +107,8 @@
    const prepared=await stagePrepared(code,fetcher,stage,session,epoch);
    checkEpoch(session,epoch);
    const settings=session.read()?.settings;
-   if(confirmed(settings)&&settings.interfaceLanguage===code)return prepared;
+   if(confirmed(settings)&&settings.interfaceLanguage===code){rememberDisplayLanguage(session,prepared);return prepared;}
+   stageDisplayLanguage();
    await session.transact(state=>{
     checkEpoch(session,epoch);
     state.settings=state.settings||{};
@@ -116,6 +117,7 @@
     state.settings.languageConfirmationVersion=1;
    },{entryEpoch:epoch});
    checkEpoch(session,epoch);
+   rememberDisplayLanguage(session,prepared);
    return prepared;
   },epoch);
  }
@@ -125,14 +127,48 @@
    checkEpoch(session,epoch);
    const settings=session.read()?.settings;
    if(!confirmed(settings))throw Error('Canonical language confirmation required');
-   return stagePrepared(settings.interfaceLanguage,fetcher,stage,session,epoch);
+   const prepared=await stagePrepared(settings.interfaceLanguage,fetcher,stage,session,epoch);
+   checkEpoch(session,epoch);rememberDisplayLanguage(session,prepared);return prepared;
   },epoch);
+ }
+ // Public presentation metadata only. Credential salt binds it to this vault;
+ // protected settings, never this hint, remain authoritative after unlock.
+ const displayKey='medcontrol_modular3_entry_display_locale_v1';
+ function displayCredential(storage){
+  if(storage.getItem('medcontrol_modular3_protected_state_v1')===null)return null;
+  const credential=JSON.parse(storage.getItem('medcontrol_modular3_local_credential_v1'));
+  return credential?.version===1&&typeof credential.salt==='string'&&/^[a-f0-9]{32}$/.test(credential.salt)?credential.salt:null;
+ }
+ function readDisplayLanguage(storage=root.localStorage){
+  try{
+   const salt=displayCredential(storage);if(!salt)return null;
+   const hint=JSON.parse(storage.getItem(displayKey));
+   return hint?.version===1&&hint.pending!==true&&byCode.has(hint.code)&&hint.salt===salt?hint.code:null;
+  }catch(_){return null;}
+ }
+ function displayPending(storage=root.localStorage){
+  try{const salt=displayCredential(storage),hint=JSON.parse(storage.getItem(displayKey));return !!salt&&hint?.version===1&&hint.pending===true&&hint.salt===salt;}catch(_){return false;}
+ }
+ function stageDisplayLanguage(){
+  const storage=root.localStorage;if(!storage)return;
+  const salt=displayCredential(storage);if(!salt)return;
+  // Invalidate an older display choice before the encrypted change. If this
+  // write or finalization fails, the next locked screen must stay neutral.
+  storage.setItem(displayKey,JSON.stringify({version:1,pending:true,salt}));
+ }
+ function rememberDisplayLanguage(session,prepared){
+  try{
+   const settings=session.read()?.settings;
+   if(!confirmed(settings)||settings.interfaceLanguage!==prepared.code)return;
+   const salt=displayCredential(root.localStorage);if(!salt)return;
+   root.localStorage.setItem(displayKey,JSON.stringify({version:1,code:prepared.code,salt}));
+  }catch(_){/* Display metadata failure cannot undo a committed protected choice. */}
  }
  function translate(prepared,original){
   if(!prepared||prepared.code==='ru')return original;
   return prepared.lookup?.[original]||null;
  }
- const api=Object.freeze({registry,resolve,propose,confirmed,validate,prepare,confirm,restore,translate,cacheName:CACHE});
+ const api=Object.freeze({registry,resolve,propose,confirmed,validate,prepare,confirm,restore,translate,readDisplayLanguage,displayPending,displayKey,cacheName:CACHE});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  else root.MedControlEntryLanguages=api;
 })(typeof window!=='undefined'?window:globalThis);

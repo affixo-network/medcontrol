@@ -1,5 +1,9 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MedControl Protected</title><style>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MedControl Protected</title><script>
+// Hide the initial source text only when a returning vault has a bound display hint.
+try{const h=JSON.parse(localStorage.getItem('medcontrol_modular3_entry_display_locale_v1')),c=JSON.parse(localStorage.getItem('medcontrol_modular3_local_credential_v1'));if(h?.version===1&&(h.pending===true||/^[a-z]{2,3}$/.test(h.code))&&c?.version===1&&/^[a-f0-9]{32}$/.test(c.salt)&&h.salt===c.salt&&localStorage.getItem('medcontrol_modular3_protected_state_v1')!==null)document.documentElement.setAttribute('data-entry-locale-pending','');}catch(_){}
+</script><style>html[data-entry-locale-pending] body{visibility:hidden}
+
 :root{--fg:#111827;--muted:#6b7280;--bd:#e5e7eb;--bg:#f8fafc;--card:#fff;--accent:#111827}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -224,8 +228,7 @@ html[dir="rtl"] th,html[dir="rtl"] td{text-align:start} html[dir="rtl"] input{di
 <script src="/js/modular3-entry-languages.js"></script><script src="/js/modular3-encrypted-vault.js"></script><script src="/js/modular3-offline-credential.js"></script><script src="/js/modular3-protected-session.js"></script><script src="/js/modular3-write-boundary.js"></script><script src="/js/modular3-course-lifecycle-browser.js"></script><script src="/js/modular3-protected-pages.js"></script><script src="/js/modular3-final-intake.js"></script><script src="/js/modular3-copy-migration.js"></script><script src="/js/modular3-protected-workspace.js"></script><script>
 (function(){
  'use strict';
- const entryEnglish=document.documentElement.lang==='en';
- const entryText=(ru,en)=>entryEnglish?en:ru;
+ const entryText=ru=>window.medcontrolEntryText?window.medcontrolEntryText(ru):document.documentElement.hasAttribute('data-entry-locale-pending')?'MedControl':ru;
  const status=document.getElementById('message');
  const controls=[...document.querySelectorAll('#login button')];
  const retry=document.getElementById('retry-entry');
@@ -256,14 +259,25 @@ html[dir="rtl"] th,html[dir="rtl"] td{text-align:start} html[dir="rtl"] input{di
      document.head.appendChild(script);
     });
    }
+   await window.medcontrolProtectedLocaleReady;
    if(typeof document.getElementById('unlock').onclick!=='function')throw Error('Local unlock handler unavailable');
    controls.forEach(button=>{button.disabled=false;});
    return true;
   }catch(error){
    console.error('MedControl protected entry failed.',error);
+   // A failed original/retry module may never install the locale helper.
+   // Do not expose the Russian source text when a returning hint was pending.
+   if(document.documentElement.hasAttribute('data-entry-locale-pending')){
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    while(walker.nextNode()){
+     const node=walker.currentNode;
+     if(!node.parentElement?.closest('script,style,#workspace')&&/[А-Яа-яЁё]/.test(node.textContent))node.textContent='MedControl';
+    }
+   }
    controls.forEach(button=>{button.disabled=true;});
    status.textContent=entryText('Не удалось подготовить вход. Проверьте соединение и нажмите «Повторить загрузку». Данные не изменены.','Unable to prepare sign-in. Check your connection and select Retry loading. No data was changed.');
    retry.hidden=false;
+   document.documentElement.removeAttribute('data-entry-locale-pending');
    return false;
   }
  })();

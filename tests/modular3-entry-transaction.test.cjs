@@ -8,7 +8,7 @@ const policyPath=path.join(__dirname,'../js/modular3-entry-languages.js');
 const source=JSON.parse(fs.readFileSync(path.join(__dirname,'../locales/source-ru.json'),'utf8'));
 function harness(options={}){
  const entries=new Map(),fetches=[];
- const context={module:{exports:{}},Intl,fetch:()=>{},caches:{open:async()=>({
+ const context={localStorage:options.storage,module:{exports:{}},Intl,fetch:()=>{},caches:{open:async()=>({
   put:async(key,response)=>{if(options.cacheError)throw Error('cache denied');entries.set(key,response.clone());},
   match:async key=>options.cacheMissing?undefined:entries.get(key)
  })}};
@@ -95,4 +95,27 @@ test('restore waits for an earlier confirmation and restores the committed canon
  const first=p.confirm(s,'fil',{fetcher,stage:async()=>{entered.resolve();await blocked.promise;}});
  const restored=p.restore(s,{fetcher});await entered.promise;assert.equal(s.writes,0);blocked.resolve();await first;
  assert.equal((await restored).code,'fil');assert.equal(s.writes,1);assert.equal(s.authorizations,0);
+});
+
+test('display hint accepts only canonical codes bound to an existing credential and ciphertext',()=>{
+ const {policy:p}=harness();const values=new Map();const storage={getItem:key=>values.has(key)?values.get(key):null};
+ const set=hint=>values.set(p.displayKey,JSON.stringify(hint));
+ set({version:1,code:'en',salt:null});assert.equal(p.readDisplayLanguage(storage),null);
+ const salt='a'.repeat(32);values.set('medcontrol_modular3_protected_state_v1','synthetic-cipher');values.set('medcontrol_modular3_local_credential_v1',JSON.stringify({version:1,salt,verifier:'synthetic'}));
+ for(const language of p.registry){set({version:1,code:language.code,salt});assert.equal(p.readDisplayLanguage(storage),language.code);}
+ for(const hint of [{version:1,code:'en-US',salt},{version:1,code:'../en',salt},{version:2,code:'en',salt},{version:1,code:'en',salt:'b'.repeat(32)}]){set(hint);assert.equal(p.readDisplayLanguage(storage),null);}
+ values.set(p.displayKey,'{bad');assert.equal(p.readDisplayLanguage(storage),null);
+ assert.equal(p.readDisplayLanguage({getItem(){throw Error('storage blocked');}}),null);
+});
+test('display hint staging failure preserves protected choice; failed finalization stays pending',async()=>{
+ const values=new Map([['medcontrol_modular3_protected_state_v1','synthetic-cipher'],['medcontrol_modular3_local_credential_v1',JSON.stringify({version:1,salt:'a'.repeat(32)})]]);
+ let mode='ok';const storage={getItem:key=>values.get(key)??null,setItem(key,value){if(mode==='before')throw Error('synthetic pre-write failure');if(mode==='final'&&!JSON.parse(value).pending)throw Error('synthetic final write failure');values.set(key,value);if(mode==='after')throw Error('synthetic post-write failure');}};
+ const {policy:p,fetcher}=harness({storage});const s=makeSession();
+ await p.confirm(s,'ar',{fetcher});assert.equal(p.readDisplayLanguage(storage),'ar');
+ mode='before';await assert.rejects(p.confirm(s,'fil',{fetcher}));assert.equal(s.read().settings.interfaceLanguage,'ar');assert.equal(p.readDisplayLanguage(storage),'ar');
+ mode='after';await assert.rejects(p.confirm(s,'fil',{fetcher}));assert.equal(s.read().settings.interfaceLanguage,'ar');assert.equal(p.readDisplayLanguage(storage),null);assert.equal(p.displayPending(storage),true);
+ mode='ok';await p.restore(s,{fetcher});assert.equal(p.readDisplayLanguage(storage),'ar');
+ mode='final';await p.confirm(s,'fil',{fetcher});assert.equal(s.read().settings.interfaceLanguage,'fil');assert.equal(p.readDisplayLanguage(storage),null);assert.equal(p.displayPending(storage),true);assert.equal(s.authorizations,0);
+ mode='ok';await p.restore(s,{fetcher});assert.equal(p.readDisplayLanguage(storage),'fil');
+ const before=values.get(p.displayKey);const other=harness({storage,fetchError:true});await assert.rejects(other.policy.confirm(s,'en',{fetcher:other.fetcher}));assert.equal(values.get(p.displayKey),before);assert.equal(s.read().settings.interfaceLanguage,'fil');
 });
