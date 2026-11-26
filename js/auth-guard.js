@@ -133,6 +133,9 @@
     if(!stale)await session.lock();
   }
   async function installProtectedLocaleController(){
+    await loadScript('js/modular3-system-dialog-messages.js');
+    const messages=window.MedControlSystemDialogMessages;
+    if(!messages||!window.MedControlEntryLanguages.registry.every(entry=>Object.keys(messages[entry.code]||{}).length===2&&Object.values(messages[entry.code]).every(value=>typeof value==='string'&&value.trim())))throw Error('Administrative locale messages unavailable');
     await loadScript('js/modular3-protected-locale-controller.js');
     window.MedControlProtectedLocaleController.install({
       session:window.MedControlModular3ProtectedSession,
@@ -609,7 +612,7 @@
     }
     if(window.medcontrolProtectedInterface){
       try{await window.medControlInputDraft?.flush();}
-      catch(error){window.alert('Не удалось сохранить черновик. Форма остаётся открытой. '+error.message);return false;}
+      catch(error){window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemError?.('Не удалось сохранить черновик. Форма остаётся открытой.',error,' ')||'MedControl'):'Не удалось сохранить черновик. Форма остаётся открытой. '+error.message);return false;}
     }
     const target='/'+targetPage+'.html';
     const activeDeployment=currentDeploymentId();
@@ -664,7 +667,7 @@
            '/js/modular3-locale-bootstrap.js','/js/modular3-public-catalog-loader.js',
            '/js/modular3-legacy-locale-adapter.js','/js/modular3-locale-preparation.js',
            '/js/modular3-locale-activation.js'] : [];
-      const paths=[...new Set(['/core.js','/js/modular3-action-help.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src),...localeAssets])];
+      const paths=[...new Set(['/core.js','/js/modular3-action-help.js','/js/modular3-system-dialog-messages.js',...Object.values(scriptsByPage).flat().map(src=>'/'+src.split('?')[0]),...protectedModules.map(src=>'/'+src),...localeAssets])];
       const channel=new MessageChannel();
       return await new Promise(resolve=>{
         const timer=setTimeout(()=>resolve(false),30000);

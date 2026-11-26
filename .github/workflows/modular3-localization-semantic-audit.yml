@@ -3,6 +3,7 @@ on:
   push:
     branches: [modular-3.000]
     paths:
+      - 'modular3-protected.html'
       - 'locales/**'
       - 'scripts/localization/audit-commercial-readiness.cjs'
       - '.github/workflows/modular3-localization-semantic-audit.yml'

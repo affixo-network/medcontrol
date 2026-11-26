@@ -65,9 +65,9 @@
 
   window.openCorrection=function(medicationId,plannedAt){
     const base=primary(medicationId,plannedAt);
-    if(!base){alert('Сначала необходимо зафиксировать «Принято».');return;}
+    if(!base){alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Сначала необходимо зафиксировать «Принято».')||'MedControl'):'Сначала необходимо зафиксировать «Принято».');return;}
     if(typeof window.canCorrectIntakeNow==='function'&&!window.canCorrectIntakeNow(medicationId,plannedAt)){
-      alert('Окно исправления закрыто.');return;
+      alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Окно исправления закрыто.')||'MedControl'):'Окно исправления закрыто.');return;
     }
 
     const dialog=document.getElementById('correctionDialog');
@@ -152,7 +152,7 @@
       (await mount('action'));
       return true;
     }catch(error){
-      alert('Отмена не сохранена: '+error.message);
+      window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemError?.('Отмена не сохранена:',error,' ')||'MedControl'):'Отмена не сохранена: '+error.message);
       return false;
     }
   };

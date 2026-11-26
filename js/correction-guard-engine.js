@@ -44,7 +44,7 @@
   window.markTaken=async function(medicationId,plannedAt){
     const state=ensureCorrectionState(getState());
     if(primaryLog(medicationId,plannedAt)){
-      alert('Приём уже зафиксирован. Для изменения используйте отдельную кнопку «Исправить».');
+      alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Приём уже зафиксирован. Для изменения используйте отдельную кнопку «Исправить».')||'MedControl'):'Приём уже зафиксирован. Для изменения используйте отдельную кнопку «Исправить».');
       return;
     }
     const actualAt=nowISO();

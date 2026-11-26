@@ -21,7 +21,7 @@ function ensureLogoutNavigation() {
   button.onclick = async () => {
     if(window.MedControlModular3ProtectedSession?.isUnlocked()){
       try{await window.medControlInputDraft?.flush();}
-      catch(error){window.alert('Последние изменения черновика не сохранены. Данные будут заблокированы. '+error.message);}
+      catch(error){window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemError?.('Последние изменения черновика не сохранены. Данные будут заблокированы.',error,' ')||'MedControl'):'Последние изменения черновика не сохранены. Данные будут заблокированы. '+error.message);}
       await window.MedControlModular3ProtectedSession.lock();
       window.location.replace('/input.html');
       return;

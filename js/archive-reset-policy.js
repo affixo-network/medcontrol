@@ -94,7 +94,10 @@ window.medcontrolScriptReady = (async function(){
       if(!session?.isUnlocked())throw Error('Войдите с локальным паролем.');
       const {meds,current}=medicationState();
       if(!meds.length||current.length||!allMedicalRecordsArchived(getState()))return;
-      if(!window.confirm('Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.'))return;
+      const resetPrompt=window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.')||'MedControl'):'Начать заново? Все медицинские записи, история и архив будут безвозвратно удалены. Отменить удаление после подтверждения невозможно.';
+      // Never accept a destructive confirmation without its selected-language warning.
+      if(resetPrompt==='MedControl'){window.alert('MedControl');return;}
+      if(!window.confirm(resetPrompt))return;
       resetInProgress=true;
       const cloudSnapshots=window.medcontrolCloudSnapshot;
       let resetCommitted=false;
@@ -166,8 +169,8 @@ window.medcontrolScriptReady = (async function(){
         // Navigation is secondary: the encrypted reset has already committed.
         // Do not report a successful reset as failed solely because navigation fails.
         try{await window.medcontrolNavigateTo('input');}
-        catch(navigationError){console.error('MedControl: reset committed, navigation failed.',navigationError);window.alert('Медицинские записи сброшены, но переход в раздел «Ввод» не выполнен. Откройте раздел вручную.');}
-      }catch(error){window.alert('Не удалось начать новый цикл: '+error.message);}
+        catch(navigationError){console.error('MedControl: reset committed, navigation failed.',navigationError);window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Медицинские записи сброшены, но переход в раздел «Ввод» не выполнен. Откройте раздел вручную.')||'MedControl'):'Медицинские записи сброшены, но переход в раздел «Ввод» не выполнен. Откройте раздел вручную.');}
+      }catch(error){window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemError?.('Не удалось начать новый цикл:',error)||'MedControl'):'Не удалось начать новый цикл: '+error.message);}
       finally{
         if(!resetCommitted)cloudSnapshots?.resumeAfterResetFailure?.();
         resetInProgress=false;

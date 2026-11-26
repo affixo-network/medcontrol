@@ -814,13 +814,17 @@ window.startMedicationCancellation = async function(id) {
         ? 'Дни недели'
         : 'Даты';
 
+  const systemText=(source,slots=[])=>window.medcontrolProtectedInterface
+    ? (window.medcontrolSystemText?.(source,slots)||'MedControl')
+    : source.replace(/⟦(\d+)⟧/g,(_,index)=>String(slots[Number(index)]??''));
+
   const firstConfirm = window.confirm(
-    `Вы собираетесь отменить приём препарата «${med.name}».\n\n` +
-    `Текущее расписание: ${scheduleText}.\n\n` +
-    `Важно: «Отменено» отличается от статуса «Пассивно».\n` +
-    `Пассивно — временная остановка с возможностью продолжения.\n` +
-    `Отменено — окончательное завершение этой карточки препарата.\n\n` +
-    `Продолжить?`
+    systemText('Вы собираетесь отменить приём препарата «⟦0⟧».',[med.name])+'\n\n'+
+    systemText('Текущее расписание: ⟦0⟧.',[systemText(scheduleText)])+'\n\n'+
+    systemText('Важно: «Отменено» отличается от статуса «Пассивно».')+'\n'+
+    systemText('Пассивно — временная остановка с возможностью продолжения.')+'\n'+
+    systemText('Отменено — окончательное завершение этой карточки препарата.')+'\n\n'+
+    systemText('Продолжить?')
   );
 
   if (!firstConfirm) return;
@@ -833,24 +837,23 @@ window.startMedicationCancellation = async function(id) {
       : `${formatDate(med.startDate)} → ${formatDate(med.endDate)}`;
 
   const secondConfirm = window.confirm(
-    `Подтвердите прекращение действия дат приёма.\n\n` +
-    `Текущий период / даты:\n${datesText || '—'}\n\n` +
-    `После отмены эта карточка больше не будет использоваться ` +
-    `для дальнейшего приёма.\n\n` +
-    `Продолжить?`
+    systemText('Подтвердите прекращение действия дат приёма.')+'\n\n'+
+    systemText('Текущий период / даты:\n⟦0⟧',[datesText||'—'])+'\n\n'+
+    systemText('После отмены эта карточка больше не будет использоваться')+' '+
+    systemText('для дальнейшего приёма.')+'\n\n'+systemText('Продолжить?')
   );
 
   if (!secondConfirm) return;
 
   const thirdConfirm = window.confirm(
-    `ФИНАЛЬНОЕ ПОДТВЕРЖДЕНИЕ\n\n` +
-    `Препарат: ${med.name}\n` +
-    `Статус будет установлен: Отменено\n\n` +
-    `Все ранее введённые данные и история сохранятся,\n` +
-    `но эта карточка будет окончательно закрыта.\n\n` +
-    `Если в будущем вы снова начнёте принимать этот препарат,\n` +
-    `необходимо будет создать новую карточку и новую историю.\n\n` +
-    `Подтвердить отмену?`
+    systemText('ФИНАЛЬНОЕ ПОДТВЕРЖДЕНИЕ')+'\n\n'+
+    systemText('Препарат: ⟦0⟧',[med.name])+'\n'+
+    systemText('Статус будет установлен: Отменено')+'\n\n'+
+    systemText('Все ранее введённые данные и история сохранятся,')+'\n'+
+    systemText('но эта карточка будет окончательно закрыта.')+'\n\n'+
+    systemText('Если в будущем вы снова начнёте принимать этот препарат,')+'\n'+
+    systemText('необходимо будет создать новую карточку и новую историю.')+'\n\n'+
+    systemText('Подтвердить отмену?')
   );
 
   if (!thirdConfirm) return;
@@ -870,7 +873,7 @@ window.openEditMedication = function(id) {
   if (!med) return;
   if (med.cancelled) return;
   if (med.active === false) {
-    alert('Пассивный препарат нельзя изменять. Сначала активируйте препарат.');
+    alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Пассивный препарат нельзя изменять. Сначала активируйте препарат.')||'MedControl'):'Пассивный препарат нельзя изменять. Сначала активируйте препарат.');
     return;
   }
   const normalizedPeriod = typeof window.medicationPeriodDates === 'function'

@@ -102,7 +102,7 @@
     document.getElementById('scheduleScopeCancel').onclick = () => dialog.close();
     document.getElementById('scheduleScopeSave').onclick = () => {
       const selected = dialog.querySelector('input[name="scheduleScope"]:checked');
-      if (!selected) { alert('Выберите, когда применить изменения.'); return; }
+      if (!selected) { alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Выберите, когда применить изменения.')||'MedControl'):'Выберите, когда применить изменения.'); return; }
       dialog.close();
       onSave(selected.value);
     };

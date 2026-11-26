@@ -10,7 +10,7 @@ const loader=fs.readFileSync(path.join(root,'js/modular3-script-loader.js'),'utf
 const policy=fs.readFileSync(path.join(root,'js/modular3-entry-languages.js'),'utf8');
 const overlay=fs.readFileSync(path.join(root,'js/modular3-protected-locale-controller.js'),'utf8');
 
-function harness({vault=false,authorized=false,confirmed=true,failCatalog=false,failStage=false,holdStage=false,page='input'}={}){
+function harness({vault=false,authorized=false,confirmed=true,failCatalog=false,failStage=false,failAdministrative=false,holdStage=false,page='input'}={}){
  const scripts=[],redirects=[],events=[];
  const result={mounted:[],authCalls:0,clientCalls:0,locked:0,fetches:[],stageStarted:false,cacheWrites:[]};
  const synthetic={settings:{interfaceLanguage:'fil',languageChoiceConfirmed:confirmed,languageConfirmationVersion:1},medications:[{id:'synthetic-course',name:'Synthetic medication'}],intakeLogs:[]};
@@ -25,6 +25,7 @@ function harness({vault=false,authorized=false,confirmed=true,failCatalog=false,
   head:{querySelectorAll:()=>[],appendChild(element){if(element.tagName!=='script')return;scripts.push(element.src);const scriptPath=element.src.split('?')[0];
    if(scriptPath==='js/modular3-script-loader.js')vm.runInContext(loader,ctx);
    if(scriptPath==='js/modular3-protected-locale-controller.js')vm.runInContext(overlay,ctx);
+   if(scriptPath==='js/modular3-system-dialog-messages.js'){if(failAdministrative){queueMicrotask(()=>element.onerror?.());return;}vm.runInContext(fs.readFileSync(path.join(root,scriptPath),'utf8'),ctx);}
    if(scriptPath==='js/navigation.js')ctx.mount=async section=>{events.push('mount');assert.ok(result.cacheWrites.includes('/locales/catalogs/fil.json'),'Medical mount requires verified offline selected catalog');assert.ok(ctx.window.MedControlProtectedUiCatalogs.fil,'Medical mount requires staged selected catalog');result.mounted.push(section);};
    queueMicrotask(()=>element.onload?.());}},
   createElement:tag=>({tagName:tag,src:'',onload:null,onerror:null}),getElementById:id=>id==='app'?app:null,
@@ -51,3 +52,5 @@ for(const page of ['input','action','dashboard','archive']){
 test('authorized entry cannot mount until exact639 selected catalog is cached and public APIs staged',async()=>{const h=harness({vault:true,authorized:true,holdStage:true});const running=h.run();await waitFor(()=>h.result.stageStarted||h.result.locked);assert.equal(h.result.locked,0,h.ctx.window.medcontrolProtectedLocaleRefreshError);assert.equal(h.result.mounted.length,0);assert.equal(h.scripts[0],'js/modular3-script-loader.js');h.releaseStage();await running;assert.deepEqual(h.result.mounted,['input']);assert.ok(h.events.indexOf('stage-ready')<h.events.indexOf('mount'));assert.equal(h.ctx.document.documentElement.lang,'fil');assert.equal(h.ctx.document.documentElement.dir,'ltr');assert.equal(h.redirects.length,0);noCloud(h);h.unchanged();});
 test('unconfirmed protected language redirects before medical scripts mount',async()=>{const h=harness({vault:true,authorized:true,confirmed:false});await h.run();assert.deepEqual(h.redirects,['/modular3-protected.html']);assert.equal(h.result.mounted.length,0);noCloud(h);h.unchanged();});
 for(const failure of ['failCatalog','failStage'])test(failure+': authorized startup fails closed without deleting clinical data or mounting fallback',async()=>{const h=harness({vault:true,authorized:true,[failure]:true});await h.run();assert.equal(h.result.mounted.length,0);assert.equal(h.result.locked,1);assert.equal(h.ctx.window.MedControlModular3ProtectedSession.isEntryAuthorized(),false);assert.match(h.ctx.window.medcontrolProtectedLocaleRefreshError,failure==='failCatalog'?/Language assets unavailable: fil/:/Selected language catalog activation failed: fil/);assert.equal(h.ctx.document.getElementById('app').textContent,'MedControl');noCloud(h);h.unchanged();});
+
+test('missing administrative warning module fails closed before any medical mount',async()=>{const h=harness({vault:true,authorized:true,failAdministrative:true});await h.run();assert.equal(h.result.mounted.length,0);assert.equal(h.result.locked,1);assert.equal(h.ctx.window.MedControlModular3ProtectedSession.isEntryAuthorized(),false);assert.match(h.ctx.window.medcontrolProtectedLocaleRefreshError,/modular3-system-dialog-messages/);assert.equal(h.ctx.document.getElementById('app').textContent,'MedControl');noCloud(h);h.unchanged();});

@@ -21,7 +21,7 @@
   if(typeof inheritedApplyCorrection==='function'){
     window.applyCorrection=async function(medicationId,plannedAt){
       if(!window.canCorrectIntakeNow(medicationId,plannedAt)){
-        alert('Исправление доступно только до 23:59 дня приёма.');
+        alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Исправление доступно только до 23:59 дня приёма.')||'MedControl'):'Исправление доступно только до 23:59 дня приёма.');
         return;
       }
       return (await inheritedApplyCorrection.apply(this,arguments));

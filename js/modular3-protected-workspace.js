@@ -167,7 +167,7 @@
   languageSelect.setAttribute('aria-label',languageTitle.textContent);
   languageConfirm.textContent=textFor(prepared,'Подтвердить')||'MedControl';
   const heading=screen.querySelector('h2');if(heading)heading.textContent=textFor(prepared,labels[['input','action','dashboard','archive'].indexOf(section)])||'MedControl';
-  window.medcontrolRenderActionSemantics?.(code);
+  if(!window.MedControlActionHelp?.renderInto(document.getElementById('action-semantics-help'),code))throw Error('Selected action help unavailable');
  }
  function offerLanguage(){languagePanel.hidden=true;applyLanguage(session.read().settings.interfaceLanguage);}
  const changeLanguage=document.createElement('button');changeLanguage.id='protected-language-change';changeLanguage.type='button';
@@ -894,7 +894,7 @@
   if(!inspection.ready){notice('Перенос недоступен: '+inspection.reason+'. Данные не изменены.');return;}
   if(!password.value){notice('Для переноса введите новый локальный пароль.');return;}
   const counts=inspection.counts;
-  const confirmed=window.confirm('Создать зашифрованную копию '+counts.medications+' препаратов и '+counts.intakeLogs+' приёмов? Исходная история сохранится без изменений.');
+  const confirmed=window.confirm(ui('Создать зашифрованную копию')+' '+counts.medications+' '+ui('препаратов и')+' '+counts.intakeLogs+' '+ui('приёмов? Исходная история сохранится без изменений.'));
   if(!confirmed){notice('Перенос отменён. Исходные данные не изменены.');return;}
   document.getElementById('unlock').disabled=true;
   document.getElementById('commit-migration').disabled=true;
@@ -952,10 +952,15 @@
     const filePassword=document.getElementById('transfer-password').value;
     if(filePassword.length<12)throw Error('Введите пароль файла переноса в отдельное поле (не менее 12 символов)');
     if(!await session.unlock(entered))throw Error('Неверный пароль существующего хранилища');
+    // Restore presentation after verified password even on old profiles without
+    // a public hint. Preview never authorizes entry or changes medical state.
+    if(policy.confirmed(session.read().settings)){
+     const prepared=await policy.prepareDisplay(session.read().settings.interfaceLanguage);preparedEntry=prepared;currentLanguage=prepared.code;paintEntry(prepared);
+    }
     const raw=await selected.text();
     const migration=window.MedControlModular3CopyMigration;
     const plan=await migration.previewExistingImport(raw,filePassword);
-    const confirmed=plan.comparison.allIncluded||window.confirm('Перенести из файла '+plan.incoming.medications+' курсов и '+plan.incoming.intakeLogs+' событий приёма в рабочее хранилище?\nТекущее хранилище ('+plan.existing.medications+' курсов; '+plan.existing.intakeLogs+' событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.');
+    const confirmed=plan.comparison.allIncluded||window.confirm(ui('Перенести из файла')+' '+plan.incoming.medications+' '+ui('курсов и')+' '+plan.incoming.intakeLogs+' '+ui('событий приёма в рабочее хранилище?\nТекущее хранилище (')+plan.existing.medications+' '+ui('курсов;')+' '+plan.existing.intakeLogs+' '+ui('событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.'));
     if(!confirmed){notice('Импорт отменён. Хранилище не изменено.');return;}
     const result=await migration.commitExistingImport(plan);
     password.value='';document.getElementById('transfer-password').value='';document.getElementById('legacy-backup').value='';
@@ -966,7 +971,7 @@
     activated=true;
     return;
    }
-   if(!window.confirm('Импортировать зашифрованную копию? Существующие данные не будут перезаписаны.'))return;
+   if(!window.confirm(ui('Импортировать зашифрованную копию? Существующие данные не будут перезаписаны.')))return;
    const raw=await selected.text();
    const result=await window.MedControlModular3CopyMigration.importBackup(raw,entered);
    if(!await session.unlock(entered))throw Error('Не удалось открыть зашифрованную копию');
@@ -994,7 +999,7 @@
   if(localStorage.getItem(key)===null){
    notice('Незавершённая зашифрованная копия не найдена. Ничего не изменено.');return;
   }
-  if(!window.confirm('Завершить восстановление защищённого хранилища? Существующая зашифрованная копия и исходные данные не будут удалены.'))return;
+  if(!window.confirm(ui('Завершить восстановление защищённого хранилища? Существующая зашифрованная копия и исходные данные не будут удалены.')))return;
   button.disabled=true;
   try{
    const before=localStorage.getItem(key);

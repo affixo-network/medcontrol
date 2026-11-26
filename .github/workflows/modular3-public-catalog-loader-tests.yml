@@ -3,6 +3,7 @@ on:
   push:
     branches: [modular-3.000]
     paths:
+      - 'modular3-protected.html'
       - 'scripts/localization/audit-commercial-readiness.cjs'
       - 'js/modular3-public-catalog-loader.js'
       - 'js/modular3-legacy-locale-adapter.js'

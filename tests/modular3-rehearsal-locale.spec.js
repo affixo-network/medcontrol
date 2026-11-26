@@ -69,3 +69,63 @@ for(const code of ['en','ar'])test('rehearsal authored UI uses '+code+' while Cy
   expect(await page.evaluate(()=>window.medcontrolRehearsalLocaleError)).toBeUndefined();
  }finally{await context.close();}
 });
+
+// The reference is the existing shared help dictionary, not the alternate renderer.
+// Assert every label and description, not just the existence of a language option.
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const helperSource=fs.readFileSync(path.join(__dirname,'../js/modular3-action-help.js'),'utf8');
+const dictionaryStart=helperSource.indexOf('const texts=')+'const texts='.length;
+const dictionaryEnd=helperSource.indexOf(';\n function render',dictionaryStart);
+const helpReference=vm.runInNewContext('('+helperSource.slice(dictionaryStart,dictionaryEnd)+')');
+const registry=require('../locales/manifest.json');
+const selected=process.env.MEDCONTROL_REHEARSAL_CODES?.split(',');
+for(const language of registry.filter(item=>!selected||selected.includes(item.code)))test('rehearsal shared help, four sections and offline restart '+language.code,async({},info)=>{
+ test.setTimeout(90000);
+ const {chromium}=require('@playwright/test');
+ const code=language.code,profile=info.outputPath('synthetic-profile');let context;
+ const keys=['medcontrol_modular3_protected_state_v1','medcontrol_modular3_local_credential_v1'];
+ const stored=page=>page.evaluate(keys=>keys.map(key=>localStorage.getItem(key)),keys);
+ const start=async offline=>{
+  context=await chromium.launchPersistentContext(profile,{...(info.project.use.launchOptions||{}),headless:true,locale:'de-DE',timezoneId:'Asia/Yerevan',offline});
+  await context.route('**/*',route=>new URL(route.request().url()).origin===BASE?route.continue():route.abort());
+  const page=await context.newPage();await page.goto(BASE+'/modular3-protected.html?rehearsal=1');
+  await page.waitForFunction(()=>window.medcontrolProtectedWorkspaceReady===true);return page;
+ };
+ const source=require('../locales/source-ru.json');
+ const messages=code==='ru'?Object.fromEntries(Object.entries(source).map(([id,row])=>[id,row.source])):require('../locales/catalogs/'+code+'.json').messages;
+ const translate=text=>messages[Object.keys(source).find(id=>source[id].source===text)];
+ const check=async page=>{
+  await expect(page.locator('html')).toHaveAttribute('lang',code);
+  await expect(page.locator('html')).toHaveAttribute('dir',language.direction);
+  const panel=page.locator('#action-semantics-help');
+  for(const section of ['input','action','dashboard','archive']){
+   await page.locator('[data-tab="'+section+'"]').click();
+   await expect(page.locator('#screen > h2')).toHaveText(translate({input:'Ввод',action:'Приём препаратов',dashboard:'Табло',archive:'Архив'}[section]));
+   await expect(panel).toBeVisible();await panel.locator('summary').click();
+   await expect(panel.locator('dt')).toHaveText(Array.from(helpReference[code],pair=>pair[0]));
+   await expect(panel.locator('dd')).toHaveText(Array.from(helpReference[code],pair=>pair[1]));
+   await expect(panel.locator('summary')).toHaveText(helpReference[code][0][0]+' / '+helpReference[code][1][0]+' — '+code.toUpperCase());
+   await panel.locator('summary').click();
+  }
+ };
+ try{
+  let page=await start(false);
+  await page.evaluate(async({PASS,code})=>{
+   const day='2026-11-26';
+   const med={id:'synthetic-help',name:'TEST-HELP-001',details:'Synthetic only',contentValue:'1',contentUnit:'mg',intakeQuantity:'1',intakeUnit:'tablet',active:true,scheduleType:'daily',startDate:day,endDate:'2026-11-27',times:['12:00'],rowHistory:[]};
+   await MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan'},medications:[med],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[],timeHistory:[]},PASS);
+   await MedControlEntryLanguages.confirm(MedControlModular3ProtectedSession,code);await MedControlModular3ProtectedSession.lock();
+  },{PASS,code});
+  const before=await stored(page);expect(before.every(value=>typeof value==='string'&&value.length>0)).toBe(true);
+  await page.reload();await page.locator('#password').fill(PASS);await page.locator('#unlock').click();await expect(page.locator('#workspace')).toBeVisible();
+  await check(page);expect(await stored(page)).toEqual(before);
+  await page.waitForFunction(async()=>{
+   if(!navigator.serviceWorker.controller)return false;
+   const cache=await caches.open('medcontrol-static-modular3-v16');return !!await cache.match('/js/modular3-action-help.js');
+  });
+  await context.close();context=null;
+  page=await start(true);await page.locator('#password').fill(PASS);await page.locator('#unlock').click();await expect(page.locator('#workspace')).toBeVisible();
+  await check(page);expect(await stored(page)).toEqual(before);
+  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.read().medications[0].name)).toBe('TEST-HELP-001');
+ }finally{await context?.close();}
+});

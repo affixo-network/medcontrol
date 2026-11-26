@@ -235,7 +235,7 @@
     const state=getState();
     const med=(state.medications||[]).find(item=>item.id===id);
     if(!med||!med.courseCompleted||med.archivedCompleted)return;
-    if(!confirm(`Отправить завершённый курс «${med.name||''}» в Архив?`))return;
+    if(!confirm(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Отправить завершённый курс «⟦0⟧» в Архив?',[med.name||''])||'MedControl'):`Отправить завершённый курс «${med.name||''}» в Архив?`))return;
     med.archivedCompleted=true;
     med.archivedAt=nowISO();
     if(!(await saveStateAsync(state)))return;

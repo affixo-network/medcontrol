@@ -15,6 +15,7 @@ on:
       - 'tests/modular3-entry-policy.test.cjs'
       - 'modular3-static-cache-sw.js'
       - 'js/modular3-action-help.js'
+      - 'js/modular3-system-dialog-messages.js'
       - 'js/settings.js'
       - 'js/modular3-locale-bootstrap.js'
       - 'js/modular3-public-catalog-loader.js'

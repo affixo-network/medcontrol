@@ -150,7 +150,7 @@
         }
         return result;
       }catch(error){
-        window.alert('Не удалось сохранить препарат. Изменения не подтверждены. '+error.message);
+        window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemError?.('Не удалось сохранить препарат. Изменения не подтверждены.',error,' ')||'MedControl'):'Не удалось сохранить препарат. Изменения не подтверждены. '+error.message);
         return false;
       }
     };

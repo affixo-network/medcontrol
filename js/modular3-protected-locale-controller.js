@@ -90,6 +90,31 @@ html[data-medcontrol-protected-locale] :is(.wrap,dialog) [dir="auto"]{unicode-bi
    status.textContent=label;
    root.medcontrolProtectedLocaleFailureLabel=label;
   }
+  // Explicit opt-in for renderer-owned native dialogs. Patient text is never
+  // translated implicitly; placeholders receive opaque values from the caller.
+  function systemLanguage(){
+   let code;
+   try{code=session.read().settings.interfaceLanguage;}
+   catch(_){code=document.documentElement.lang;}
+   return policy.registry.some(entry=>entry.code===code)?code:null;
+  }
+  root.medcontrolSystemText=function(source,slots=[]){
+   try{
+    const code=systemLanguage();
+    const label=code==='ru'?source:(root.MedControlProtectedUiCatalogs?.[code]?.[source]||root.MedControlSystemDialogMessages?.[code]?.[source]);
+    if(typeof label!=='string'||!label.trim())return 'MedControl';
+    return label.replace(/⟦(\d+)⟧/g,(_,index)=>String(slots[Number(index)]??''));
+   }catch(error){console.error('Protected system message unavailable.',error);return 'MedControl';}
+  };
+  root.medcontrolSystemError=function(source,error,separator=' '){
+   try{
+    // A failed write may already have locked the session. The canonical last
+    // rendered locale is presentation only and never grants storage access.
+    if(systemLanguage()==='ru')return source+separator+String(error?.message||error);
+    console.error('MedControl protected operation failed.',error);
+    return root.medcontrolSystemText(source);
+   }catch(_){return 'MedControl';}
+  };
   applyLayout(document);
   const controller=create({...options,document,notify});
   root.changeInterfaceLanguage=controller.change;

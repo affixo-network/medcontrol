@@ -148,5 +148,21 @@
   for(const [label,description] of chosen){const dt=document.createElement('dt');dt.textContent=label;dt.style.fontWeight='600';const dd=document.createElement('dd');dd.textContent=description;dd.style.margin='0 0 9px';dl.append(dt,dd);}
   details.append(dl);host.insertAdjacentElement('afterend',details);
  }
- root.MedControlActionHelp={render,languages:Object.keys(texts)};
+ // Both protected shells use this same reviewed dictionary. No locale fallback.
+ function renderInto(details,language){
+  const chosen=texts[language];
+  if(!details||!chosen){if(details)details.hidden=true;return false;}
+  const summary=details.querySelector('summary');
+  const content=details.querySelector('#action-semantics-content');
+  if(!summary||!content)return false;
+  summary.textContent=chosen[0][0]+' / '+chosen[1][0]+' — '+language.toUpperCase();
+  const list=document.createElement('dl');
+  for(const [label,description] of chosen){
+   const dt=document.createElement('dt');dt.textContent=label;dt.style.fontWeight='600';
+   const dd=document.createElement('dd');dd.textContent=description;dd.style.margin='0 0 9px 0';
+   list.append(dt,dd);
+  }
+  content.replaceChildren(list);details.hidden=false;return true;
+ }
+ root.MedControlActionHelp={render,renderInto,languages:Object.keys(texts)};
 })(window);

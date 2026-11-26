@@ -26,8 +26,8 @@
   window.saveInputTimeEditV4=async function(){
     const c=window.__timeEditV3,state=getState(),med=(state.medications||[]).find(x=>x.id===c?.id);if(!c||!med)return;
     const oldTime=c.originalTime,newTime=selectedTime(),active=document.getElementById('timeEditStatus')?.value==='active',scope=document.getElementById('timeEditScope')?.value||'daily';
-    if(!c.deleteCurrent&&!newTime){alert('Укажите корректное время.');return;}
-    if(!c.deleteCurrent&&newTime!==oldTime&&(med.times||[]).includes(newTime)){alert('Такое время уже существует.');return;}
+    if(!c.deleteCurrent&&!newTime){alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Укажите корректное время.')||'MedControl'):'Укажите корректное время.');return;}
+    if(!c.deleteCurrent&&newTime!==oldTime&&(med.times||[]).includes(newTime)){alert(window.medcontrolProtectedInterface?(window.medcontrolSystemText?.('Такое время уже существует.')||'MedControl'):'Такое время уже существует.');return;}
     const oldActive=activeNow(med,oldTime),oldScope=scopeNow(med,oldTime);
     if(!c.deleteCurrent&&newTime===oldTime&&active===oldActive&&scope===oldScope){document.getElementById('timeStatusEditDialog')?.close();return;}
     const at=nowISO(),date=currentLocalDate(),beforeTimes=[...(med.times||[])];let afterTimes=[...beforeTimes];

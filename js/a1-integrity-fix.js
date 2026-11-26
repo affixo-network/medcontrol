@@ -1,4 +1,5 @@
 (function(){
+  const systemCopy=(source,slots=[])=>window.medcontrolProtectedInterface?(window.medcontrolSystemText?.(source,slots)||'MedControl'):source.replace(/⟦(\d+)⟧/g,(_,i)=>String(slots[Number(i)]??''));
   function plusDays(dateISO, days) {
     const [y, m, d] = String(dateISO || '').split('-').map(Number);
     const date = new Date(Date.UTC(y, m - 1, d + days, 12));
@@ -191,9 +192,9 @@
     window.showMedicationHint = function(code) {
       if (code === 'schedule_no_future_intake') {
         alert(
-          'Расписание не может быть сохранено.\n\n' +
-          'После текущего момента и до окончания курса нет ни одного будущего расчётного приёма.\n\n' +
-          'Проверьте дату окончания, дни недели / даты и время приёма.'
+          systemCopy('Расписание не может быть сохранено.')+'\n\n'+
+          systemCopy('После текущего момента и до окончания курса нет ни одного будущего расчётного приёма.')+'\n\n'+
+          systemCopy('Проверьте дату окончания, дни недели / даты и время приёма.')
         );
         return;
       }
@@ -202,9 +203,9 @@
         const times = window.__a1ConflictTimes || [];
         window.__a1ConflictTimes = [];
         alert(
-          'Изменение не сохранено.\n\n' +
-          `Добавляется уже прошедшее расчётное время текущего дня: ${times.join(', ') || '—'}.\n\n` +
-          'Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.'
+          systemCopy('Изменение не сохранено.')+'\n\n'+
+          systemCopy('Добавляется уже прошедшее расчётное время текущего дня: ⟦0⟧.',[times.join(', ')||'—'])+'\n\n'+
+          systemCopy('Изменение действует онлайн и не может создавать новые расчётные приёмы задним временем.')
         );
         return;
       }

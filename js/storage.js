@@ -38,7 +38,7 @@ async function saveStateAsync(next, options = {}) {
     protectedStateBases.set(next, structuredClone(captured));
     return true;
   } catch (error) {
-    if (!options.silent) window.alert('Не удалось сохранить изменения. Предыдущие данные сохранены.\n' + error.message);
+    if (!options.silent) window.alert(window.medcontrolProtectedInterface?(window.medcontrolSystemError?.('Не удалось сохранить изменения. Предыдущие данные сохранены.',error,'\n')||'MedControl'):'Не удалось сохранить изменения. Предыдущие данные сохранены.\n' + error.message);
     throw error;
   }
 }
