@@ -317,10 +317,25 @@
   }
   finally{confirmationBusy=false;confirmingCode=null;entryLanguage.disabled=false;confirmEntryLanguage.disabled=false;}
  };
+ function neutralEntry(code){
+  preparedEntry=null;displayLocaleUnavailable=true;currentLanguage=code||'ru';
+  document.documentElement.lang=code||'und';document.documentElement.dir=policy.registry.find(item=>item.code===code)?.direction||'auto';
+  for(const [node,original]of entryOriginals)if(node.isConnected&&/[А-Яа-яЁё]/.test(original))node.textContent='MedControl';
+  message.textContent='MedControl';
+ }
+ async function prepareVerifiedEntry({durable=false}={}){
+  const code=session.read().settings.interfaceLanguage;
+  try{return durable?await policy.restore(session):await policy.prepareDisplay(code);}
+  catch(error){neutralEntry(code);throw error;}
+ }
+ async function restoreVerifiedPresentation(){
+  if(!policy.confirmed(session.read().settings))return;
+  const prepared=await prepareVerifiedEntry();preparedEntry=prepared;currentLanguage=prepared.code;paintEntry(prepared);
+ }
  async function afterUnlock({enter=false}={}){
   if(!session.isUnlocked())throw Error('Protected session is locked');
   if(!policy.confirmed(session.read().settings)){beginLanguageStep();return;}
-  const prepared=await policy.restore(session);
+  const prepared=await prepareVerifiedEntry({durable:true});
   preparedEntry=prepared;currentLanguage=prepared.code;paintEntry(prepared);languagePending=false;languageConfirmed=true;languageStep.hidden=true;
   document.documentElement.lang=prepared.code;document.documentElement.dir=policy.registry.find(item=>item.code===prepared.code).direction;
   document.getElementById('unlock').textContent=textFor(prepared,'Войти');
@@ -349,7 +364,10 @@
   window.history.replaceState({medcontrolPage:'input'},'','/input.html');
   const script=document.createElement('script');
   script.src='/js/auth-guard.js';script.dataset.page='input';
-  script.onerror=()=>{document.getElementById('app').textContent='Не удалось загрузить защищённый интерфейс. Медицинские записи не изменены.';};
+  script.onerror=()=>{
+   const app=document.getElementById('app');if(!app)return;
+   app.textContent=currentLanguage==='ru'?'Не удалось загрузить защищённый интерфейс. Медицинские записи не изменены.':textFor(preparedEntry,'Не удалось запустить MedControl. Локальные данные не удалялись.')||'MedControl';
+  };
   document.head.appendChild(script);
  }
  function render(){
@@ -877,6 +895,7 @@
     const filePassword=document.getElementById('transfer-password').value;
     if(filePassword.length<12)throw Error('Введите пароль файла переноса в отдельное поле');
     if(!await session.unlock(password.value))throw Error('Неверный пароль существующего хранилища');
+    await restoreVerifiedPresentation();
     const plan=await window.MedControlModular3CopyMigration.previewExistingImport(await selected.text(),filePassword);
     notice(comparisonNotice(plan));return;
    }
@@ -954,9 +973,7 @@
     if(!await session.unlock(entered))throw Error('Неверный пароль существующего хранилища');
     // Restore presentation after verified password even on old profiles without
     // a public hint. Preview never authorizes entry or changes medical state.
-    if(policy.confirmed(session.read().settings)){
-     const prepared=await policy.prepareDisplay(session.read().settings.interfaceLanguage);preparedEntry=prepared;currentLanguage=prepared.code;paintEntry(prepared);
-    }
+    await restoreVerifiedPresentation();
     const raw=await selected.text();
     const migration=window.MedControlModular3CopyMigration;
     const plan=await migration.previewExistingImport(raw,filePassword);
@@ -1056,12 +1073,7 @@
  window.medcontrolEntryText=text=>displayLocaleUnavailable&&!preparedEntry?'MedControl':textFor(preparedEntry,text)||(preparedEntry?textFor(preparedEntry,'Ошибка')||'MedControl':text);
  window.medcontrolProtectedLocaleReady=(async()=>{
   const code=policy.readDisplayLanguage(),pending=policy.displayPending();
-  const neutral=()=>{
-   displayLocaleUnavailable=true;currentLanguage=code||'ru';
-   document.documentElement.lang=code||'und';document.documentElement.dir=policy.registry.find(item=>item.code===code)?.direction||'auto';
-   for(const [node,original]of entryOriginals)if(node.isConnected&&/[А-Яа-яЁё]/.test(original))node.textContent='MedControl';
-   message.textContent='MedControl';
-  };
+  const neutral=()=>neutralEntry(code);
   try{
    if(code){
     const prepared=await policy.prepareDisplay(code);preparedEntry=prepared;currentLanguage=code;paintEntry(prepared);

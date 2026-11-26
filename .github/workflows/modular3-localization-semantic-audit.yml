@@ -5,6 +5,7 @@ on:
     paths:
       - 'modular3-protected.html'
       - 'tests/modular3-complete-interface.cjs'
+      - 'tests/modular3-entry-display-locale.spec.js'
       - 'locales/**'
       - 'scripts/localization/audit-commercial-readiness.cjs'
       - '.github/workflows/modular3-localization-semantic-audit.yml'

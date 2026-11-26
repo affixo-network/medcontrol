@@ -3,14 +3,14 @@ const {test,expect}=require('@playwright/test');
 test.use({serviceWorkers:'block'});
 const BASE=process.env.MEDCONTROL_TEST_ORIGIN||'http://127.0.0.1:8765',PASS='Synthetic-Display-Locale-2026';
 const HINT='medcontrol_modular3_entry_display_locale_v1',DATA='medcontrol_modular3_protected_state_v1',CRED='medcontrol_modular3_local_credential_v1';
-async function fixture(page,remember=true){
+async function fixture(page,remember=true,language='fil'){
  await page.route('**/*',r=>new URL(r.request().url()).origin===BASE?r.continue():r.abort());
  await page.goto(BASE+'/modular3-protected.html');await page.waitForFunction(()=>window.medcontrolProtectedWorkspaceReady===true);
- await page.evaluate(async({PASS,remember})=>{
-  await MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:'fil',languageChoiceConfirmed:true,languageConfirmationVersion:1,infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[],timeHistory:[]},PASS);
+ await page.evaluate(async({PASS,remember,language})=>{
+  await MedControlModular3ProtectedSession.initialize({settings:{timezone:'Asia/Yerevan',interfaceLanguage:language,languageChoiceConfirmed:true,languageConfirmationVersion:1,infoDismissed:true},medications:[],intakeLogs:[],intakeCorrections:[],archiveHistory:[],archivedCourses:[],timeHistory:[]},PASS);
   if(remember)await MedControlEntryLanguages.restore(MedControlModular3ProtectedSession);
   await MedControlModular3ProtectedSession.lock();
- },{PASS,remember});
+ },{PASS,remember,language});
  return page.evaluate(({DATA,CRED})=>({cipher:localStorage.getItem(DATA),credential:localStorage.getItem(CRED)}),{DATA,CRED});
 }
 async function pair(page){return page.evaluate(({DATA,CRED})=>({cipher:localStorage.getItem(DATA),credential:localStorage.getItem(CRED)}),{DATA,CRED});}
@@ -57,3 +57,21 @@ test('locked display uses validated cached locale when catalog network is unavai
  const raw=await fixture(page);let network=0;await page.route('**/locales/catalogs/fil.json',r=>{network++;return r.fulfill({status:503,body:'synthetic unavailable'});});
  await page.reload();await expect(page.locator('#unlock')).toBeEnabled();await expect(page.locator('html')).toHaveAttribute('lang','fil');expect(network).toBe(0);expect(await pair(page)).toEqual(raw);expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
 });
+
+for(const language of ['en','ar','fil']){
+ test('legacy no-hint '+language+' unavailable catalog after correct password stays neutral',async({page})=>{
+  const raw=await fixture(page,false,language);
+  await page.evaluate(async language=>{const c=await caches.open(MedControlEntryLanguages.cacheName);await c.delete('/locales/catalogs/'+language+'.json');},language);
+  await page.route('**/locales/catalogs/'+language+'.json',r=>r.fulfill({status:503,body:'synthetic unavailable'}));
+  await page.reload();await expect(page.locator('#unlock')).toBeEnabled();await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
+  await expect(page.locator('#message')).toHaveText('MedControl');await expect(page.locator('h1')).toHaveText('MedControl');expect(await pair(page)).toEqual(raw);expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
+  await page.unroute('**/locales/catalogs/'+language+'.json');await page.locator('#password').fill(PASS);await page.locator('#unlock').click();await expect(page).toHaveURL(BASE+'/input.html');await expect(page.locator('html')).toHaveAttribute('lang',language);await page.waitForFunction(()=>typeof getState==='function');expect(await pair(page)).toEqual(raw);
+ });
+ test('authorized '+language+' medical-shell script failure preserves selected language and pair',async({page})=>{
+  const raw=await fixture(page,true,language);await page.reload();await expect(page.locator('#unlock')).toBeEnabled();
+  await page.route('**/js/auth-guard.js*',r=>r.fulfill({status:503,body:'synthetic unavailable'}));await page.locator('#password').fill(PASS);await page.locator('#unlock').click();
+  const source=require('../locales/source-ru.json'),catalog=require('../locales/catalogs/'+language+'.json').messages;
+  const id=Object.keys(source).find(k=>source[k].source==='Не удалось запустить MedControl. Локальные данные не удалялись.');
+  await expect(page.locator('#app')).toHaveText(catalog[id]);expect(await pair(page)).toEqual(raw);await expect(page.locator('.topbar')).toHaveCount(0);
+ });
+}

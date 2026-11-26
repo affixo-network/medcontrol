@@ -5,6 +5,7 @@ on:
     paths:
       - 'modular3-protected.html'
       - 'tests/modular3-complete-interface.cjs'
+      - 'tests/modular3-entry-display-locale.spec.js'
       - 'scripts/localization/audit-commercial-readiness.cjs'
       - 'js/modular3-public-catalog-loader.js'
       - 'js/modular3-legacy-locale-adapter.js'

@@ -22,6 +22,8 @@ for(const {code}of registry.filter(x=>!selected||selected.includes(x.code)))test
   await page.reload();await expect(page.locator('#unlock')).toBeEnabled();
   const before=await page.evaluate(()=>({cipher:localStorage.getItem('medcontrol_modular3_protected_state_v1'),credential:localStorage.getItem('medcontrol_modular3_local_credential_v1'),source:localStorage.getItem('affixo_medcontrol_standard_v3')}));
   await page.locator('#password').fill(PASS);await page.locator('#transfer-password').fill(FILE_PASS);await page.locator('#legacy-backup').setInputFiles({name:'synthetic-transfer.json',mimeType:'application/json',buffer:Buffer.from(transfer)});
+  await page.locator('#inspect-migration').click();await expect(page.locator('#inspect-migration')).toBeEnabled();await expect(page.locator('html')).toHaveAttribute('lang',code);
+  expect(await page.evaluate(()=>MedControlModular3ProtectedSession.isEntryAuthorized())).toBe(false);
   await page.locator('#import-backup').click();await expect.poll(()=>dialogs.length).toBe(1);
   const expected=t('Перенести из файла')+' 1 '+t('курсов и')+' 1 '+t('событий приёма в рабочее хранилище?\nТекущее хранилище (')+'1 '+t('курсов;')+' 0 '+t('событий) сначала сохранится отдельной зашифрованной копией. Её можно будет скачать.\nПароль входа останется прежним. Исходный Modular-2 и файл переноса не изменяются.');
   expect(dialogs[0]).toBe(expected);

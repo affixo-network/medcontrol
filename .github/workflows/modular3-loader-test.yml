@@ -5,6 +5,7 @@ on:
     paths:
       - 'modular3-protected.html'
       - 'tests/modular3-complete-interface.cjs'
+      - 'tests/modular3-entry-display-locale.spec.js'
       - 'js/modular3-script-loader.js'
       - 'js/auth-guard.js'
       - 'tests/modular3-script-loader.test.js'
