@@ -11,6 +11,19 @@ function english(text){
  assert.ok(entry,'Expected immutable source phrase: '+text);
  return EN.messages[entry[0]];
 }
+// Drive the visible navigation and wait for destination authorization. An
+// evaluated navigation callback may destroy its own execution context on reload.
+async function navigateVisibleProtected(page,section){
+ const navigationErrors=[];
+ const listener=message=>{if(message.type()==='error'&&message.text().includes('MedControl internal navigation failed'))navigationErrors.push(message.text());};
+ page.on('console',listener);
+ try{
+  await page.locator('.topbar .nav a[href="'+section+'.html"]').click();
+  await page.waitForURL('**/'+section+'.html');
+  await page.waitForFunction(()=>typeof getState==='function'&&window.MedControlModular3ProtectedSession?.isEntryAuthorized()===true);
+  assert.deepEqual(navigationErrors,[],'Visible navigation must not hide an internal error behind a reload');
+ }finally{page.off('console',listener);}
+}
 async function run(){
  const server=spawn('python3',['-m','http.server','8791','--bind','127.0.0.1'],{stdio:'ignore'});
  let browser;
@@ -631,8 +644,7 @@ async function run(){
   await inheritedPage.locator('#medControlCycleReady').evaluate(element=>element.remove());
   console.log('PASS completed-cycle warning is entirely English and encrypted vault remains unchanged');
   // Archive title must follow protected English on in-app navigation, not only on a full reload.
-  await inheritedPage.evaluate(()=>window.medcontrolNavigateTo('archive'));
-  await inheritedPage.waitForURL('**/archive.html');
+  await navigateVisibleProtected(inheritedPage,'archive');
   assert.equal(await inheritedPage.title(),english('MedControl — Архив'),
     'Protected English Archive browser title must be translated after in-app navigation');
   assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en');
@@ -641,8 +653,7 @@ async function run(){
 
   // Exercise the remaining protected sections with the confirmed English locale.
   for(const [section,label] of [['action','Intake'],['dashboard','Board']]){
-    await inheritedPage.evaluate(section=>window.medcontrolNavigateTo(section),section);
-    await inheritedPage.waitForURL('**/'+section+'.html');
+    await navigateVisibleProtected(inheritedPage,section);
     assert.equal(await inheritedPage.evaluate(()=>getState().settings.interfaceLanguage),'en',
       'English locale must persist after navigating to '+section);
     assert.equal(await inheritedPage.evaluate(()=>window.MedControlModular3ProtectedSession.isUnlocked()),true,
