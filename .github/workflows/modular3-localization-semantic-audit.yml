@@ -4,6 +4,7 @@ on:
     branches: [modular-3.000]
     paths:
       - 'modular3-protected.html'
+      - 'tests/modular3-complete-interface.cjs'
       - 'locales/**'
       - 'scripts/localization/audit-commercial-readiness.cjs'
       - '.github/workflows/modular3-localization-semantic-audit.yml'

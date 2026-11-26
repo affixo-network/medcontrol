@@ -4,6 +4,7 @@ on:
     branches: [modular-2.000, modular-3.000]
     paths:
       - 'modular3-protected.html'
+      - 'tests/modular3-complete-interface.cjs'
       - 'js/modular3-script-loader.js'
       - 'js/auth-guard.js'
       - 'tests/modular3-script-loader.test.js'

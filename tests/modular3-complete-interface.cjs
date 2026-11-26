@@ -757,6 +757,9 @@ async function run(){
   await resetPage.goto(BASE+'/archive.html');
   await resetPage.locator('#password').fill(PASS);
   await resetPage.locator('#unlock').click();
+  // A function loaded by the Input dependencies does not mean the protected
+  // interface and its required localized warning bundle have mounted yet.
+  await resetPage.locator('.topbar').waitFor({state:'visible',timeout:20000});
   await resetPage.waitForFunction(()=>typeof window.manualMedControlCycleReset==='function');
   const syntheticReset=await resetPage.evaluate(async()=>{
     const cloud=window.medcontrolCloudSnapshot;
