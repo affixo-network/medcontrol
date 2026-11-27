@@ -1,7 +1,7 @@
 'use strict';
 const {test,expect}=require('@playwright/test');
 const {setup,languages,BASE,PASS}=require('./functional-p1-fixture.cjs');
-const {create}=require('./functional-p1-course-helpers.cjs');
+const {create,button}=require('./functional-p1-course-helpers.cjs');
 test('P1 preserved encrypted import backup blocks local-only reset',async({page},info)=>{
  const h=await setup(page,'en');const id=await create(page,h,'SYNTHETIC-PRESERVED-COPY','daily','2026-11-24','2026-11-24');
  await h.navigate('action');await page.locator('button[onclick^="markTaken(\''+id+'\'"]').first().click();await page.locator('#finalIntakeConfirm').click();await expect(page.locator('#finalIntakeDialog')).toHaveCount(0);await h.navigate('input');
@@ -35,7 +35,12 @@ for(const {code}of languages)test('P1 final intake cancel, extend, failed save, 
  const error=await page.locator('#finalIntakeError').innerText();expect.soft(error).toContain(h.t('Приём не сохранён. Повторите действие.'));if(code!=='ru')expect.soft(error).not.toContain('Запись не подтверждена');await h.surface('final-save-failure');
  await page.evaluate(()=>{Storage.prototype.setItem=window.__p1NativeStorage;});await page.locator('#finalIntakeConfirm').click();await expect(page.locator('#finalIntakeDialog')).toHaveCount(0);await expect.poll(async()=> (await h.medical()).medications[0].archivedCompleted).toBe(true);expect((await h.medical()).intakeLogs).toHaveLength(2);
  await h.navigate('archive');await page.locator('button[onclick="showArchiveMedicationHistory(\''+id+'\')"]').click();await expect(page.locator('#archiveHistoryDialog')).toBeVisible();await h.surface('completed-history');await page.locator('#archiveHistoryDialog button[onclick*=".close()"]').click();
- await h.navigate('input');await expect(page.locator('button[onclick="manualMedControlCycleReset()"]')).toBeVisible();const all=await h.medical();
+ await h.navigate('input');
+ // Repeating a course creates a new card while the archived card and facts stay intact.
+ const prior=await h.medical();await page.clock.setFixedTime(new Date('2026-11-25T08:00:01Z'));const repeated=await create(page,h,'SYNTHETIC-FINAL-'+code,'daily','2026-11-26','2026-11-27');expect(repeated).not.toBe(id);
+ expect((await h.medical()).medications.find(m=>m.id===id)).toEqual(prior.medications.find(m=>m.id===id));expect((await h.medical()).intakeLogs).toEqual(prior.intakeLogs);
+ await button(page,'openEditMedication',repeated).click();h.answers.push(true,true,true);await page.locator('[data-medication-cancel]').click();await expect.poll(async()=> (await h.medical()).medications.find(m=>m.id===repeated).cancelled).toBe(true);
+ await expect(page.locator('button[onclick="manualMedControlCycleReset()"]')).toBeVisible();const all=await h.medical();
  await page.locator('button[onclick="manualMedControlCycleReset()"]').click();expect(await h.medical()).toEqual(all);
  // A synthetic persisted cloud binding must preserve the original inventory guard.
  const binding='sb-synthetic-p1-auth-token';await page.evaluate(key=>localStorage.setItem(key,'synthetic-test-only'),binding);

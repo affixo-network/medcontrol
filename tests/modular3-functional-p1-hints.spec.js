@@ -25,7 +25,9 @@ for(const {code}of languages)test('P1 all required hints, confirmation, weekday 
  await hint(()=>page.locator('[data-med-sequence-action="add-time"]').click(),'Это время уже добавлено.');
  await page.locator('#create_startDate').fill('');await hint(()=>page.locator('#create_endDate').focus(),'Дата начала не заполнена.');
  await page.locator('#create_startDate').fill('2026-11-24');await hint(()=>page.locator('#createMedicationButton').click(),'Дата окончания не заполнена.');
- await page.locator('#create_endDate').fill('2026-11-25');await page.locator('#createMedicationButton').click();await expect(page.locator('#medicationConfirmDialog')).toBeVisible();await surface('create-confirmation');
+ await page.locator('#create_endDate').fill('2026-11-23');await hint(()=>page.locator('#createMedicationButton').click(),'Дата окончания не может быть раньше даты начала.');
+ await page.locator('#create_endDate').fill('2026-11-25');await page.locator('#create_contentValue').fill('-1');await hint(()=>page.locator('#createMedicationButton').click(),'Введите количественное содержание препарата.');await page.locator('#create_contentValue').fill('1');
+ await page.locator('#create_intakeQuantity').fill('-1');await hint(()=>page.locator('#createMedicationButton').click(),'Введите количество приёма.');await page.locator('#create_intakeQuantity').fill('1');await page.locator('#createMedicationButton').click();await expect(page.locator('#medicationConfirmDialog')).toBeVisible();await surface('create-confirmation');
  await expect(page.locator('#medicationConfirmContent')).toContainText('SyntheticUnit');await expect(page.locator('#medicationConfirmContent')).toContainText('SyntheticDose');
  expect((await medical()).medications).toEqual([]);
  await page.locator('#medicationConfirmDialog button[onclick="proceedMedicationCreateConfirmation()"]').click();await expect(page.locator('#medicationSaveDialog')).toBeVisible();await surface('save-confirmation');
@@ -38,7 +40,7 @@ for(const {code}of languages)test('P1 all required hints, confirmation, weekday 
  dialogs.length=0;await page.locator('#create_endDate').fill('2026-11-25');await expect.poll(()=>dialogs.length).toBe(1);
  const dates=await page.evaluate(()=>[formatDate('2026-11-23'),formatDate('2026-11-30')]);
  expect(dialogs[0].message).toBe(t('Подсказка\n\nВыбранная дата окончания не соответствует дням недели расписания. Ближайшие допустимые даты: ⟦0⟧.').replace('⟦0⟧',dates.join(' '+t('или')+' ')));
- await page.locator('#create_scheduleType').selectOption('explicit_dates');
+ await page.locator('#create_scheduleType').selectOption('explicit_dates');await hint(()=>page.locator('#createMedicationButton').click(),'Добавьте хотя бы одну дату.');
  await hint(()=>page.locator('[data-med-sequence-action="add-date"]').click(),'Сначала отметьте дату в календаре.');
  await page.locator('#create_datePicker').fill('2026-11-25');await page.locator('[data-med-sequence-action="add-date"]').click();
  await page.locator('#create_datePicker').fill('2026-11-25');await hint(()=>page.locator('[data-med-sequence-action="add-date"]').click(),'Эта дата уже добавлена.');

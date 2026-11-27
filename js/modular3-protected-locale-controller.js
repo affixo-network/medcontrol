@@ -324,6 +324,13 @@ html[data-medcontrol-protected-locale] :is(.wrap,dialog) [dir="auto"]{unicode-bi
     }
     for(const row of table.tBodies[0].rows){
      if(row.cells.length!==headers.length)continue;
+     // A removed structured time is an authored placeholder, not patient text.
+     // Never apply this lookup to details, manufacturer or custom-unit cells.
+     if(kind==='general')for(let i=0;i<headers.length;i++){
+      if(/^Время \d+$/.test(headers[i])&&readOriginal(row.cells[i]).trim()==='Удалено'){
+       nodes.add(row.cells[i]);
+      }
+     }
      for(let i=0;i<headers.length;i++)if(metadata.has(headers[i])){
       nodes.add(row.cells[i]);row.cells[i].querySelectorAll('strong,span,small').forEach(node=>nodes.add(node));
      }

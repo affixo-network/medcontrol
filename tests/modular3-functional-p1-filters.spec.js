@@ -25,18 +25,19 @@ for(const {code}of languages)test('P1 actual taken/missed period filters before 
   }
   await page.locator('#'+prefix+'CollapseFilter').click();await expect(page.locator('#'+prefix+'IntakeHistoryContent')).toBeEmpty();
  }
- await h.navigate('action');await filters('action');
- await h.navigate('dashboard');const before=await h.medical();await page.locator('button[onclick^="showIntakeHistory("]').first().click();await expect(page.locator('#intakeHistoryDialog')).toBeVisible();await h.surface('dashboard-history');expect(await h.medical()).toEqual(before);await page.locator('#intakeHistoryDialog button[onclick*=".close()"]').click();
+ await h.navigate('action');await expect(page.locator('tr').filter({has:page.locator('button[onclick^="showIntakeHistory("]')}).first().locator('td').nth(2)).toHaveText('1 '+h.t('таблетка'));await filters('action');
+ await h.navigate('dashboard');await expect(page.locator('tr').filter({has:page.locator('button[onclick^="showIntakeHistory("]')}).first().locator('td').nth(3)).toHaveText(h.t('таблетка'));const before=await h.medical();await page.locator('button[onclick^="showIntakeHistory("]').first().click();await expect(page.locator('#intakeHistoryDialog')).toBeVisible();await h.surface('dashboard-history');expect(await h.medical()).toEqual(before);await page.locator('#intakeHistoryDialog button[onclick*=".close()"]').click();
  await h.navigate('input');await button(page,'openEditMedication',id).click();h.answers.push(true,true,true);await page.locator('[data-medication-cancel]').click();await expect.poll(async()=> (await h.medical()).medications[0].cancelled).toBe(true);
  await h.navigate('archive');await filters('archive');
  await button(page,'showArchiveMedicationHistory',id).click();await expect(page.locator('#archiveHistoryDialog')).toBeVisible();await h.surface('archive-full-history');expect((await h.medical()).intakeLogs).toHaveLength(4);
  const journal=page.locator('#archiveHistoryContent tbody tr');const baseline=await journal.allTextContents(),dates=await journal.locator('td:first-child').allTextContents();
- const known=await page.evaluate(ds=>ds.map(day=>({day,label:formatDate(day)})),[...allPastDates,'2026-11-24']);
+ const known=await page.evaluate(ds=>ds.map(day=>({day,label:formatDate(day)})),[...allPastDates,'2026-11-24','2026-11-25','2026-11-26','2026-11-27','2026-11-28','2026-11-29','2026-11-30']);
  const recordDates=dates.map(text=>known.find(x=>text.startsWith(x.label))?.day);expect(recordDates.every(Boolean)).toBe(true);
+ const eventLabels=await journal.locator('td:nth-child(2)').allTextContents();
  for(const period of ['today','7','30','all']){
   const cutoff=period==='today'?'2026-11-24':period==='7'?'2026-11-18':period==='30'?'2026-10-26':null;
   await page.locator('#archiveCourseHistoryPeriod').selectOption(period);
-  expect(await journal.allTextContents()).toEqual(baseline.filter((_,i)=>!cutoff||recordDates[i]>=cutoff));await h.surface('archive-modal-period-'+period);
+  expect(await journal.allTextContents()).toEqual(baseline.filter((_,i)=>!cutoff||eventLabels[i]===h.t('Создано')||(recordDates[i]>=cutoff&&recordDates[i]<='2026-11-24')));await h.surface('archive-modal-period-'+period);
  }
 
  await h.finish(info);
