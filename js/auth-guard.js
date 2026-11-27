@@ -256,7 +256,7 @@
       ':is(.wrap,dialog) .card > ul > li,:is(.wrap,dialog) .card > ol > li,'+
       ':is(.wrap,dialog) .card > div > p,:is(.wrap,dialog) .card > section > p,'+
       ':is(.wrap,dialog) fieldset > p,:is(.wrap,dialog) fieldset > div > p,'+
-      ':is(.wrap,dialog) #medControlCycleReady strong,:is(.wrap,dialog) td > .status,'+
+      ':is(.wrap,dialog) #medControlCycleReady strong,:is(.wrap,dialog) td > .status,:is(.wrap,dialog) [data-medcontrol-ui-label],'+
       ':is(.wrap,dialog) td[data-dashboard-timing],:is(.wrap,dialog) td[data-dashboard-timing] > strong,'+
       ':is(.wrap,dialog) .card > table > tbody > tr:only-child > td[colspan]:only-child'
     ));

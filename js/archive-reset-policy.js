@@ -83,6 +83,20 @@ window.medcontrolScriptReady = (async function(){
     return true;
   }
 
+  // A newly created protected local profile has no cloud owner or legacy
+  // medical copies to inventory. Do not infer that from a network error:
+  // only an explicit auth_unavailable inventory result can use this path.
+  function isUnboundProtectedCycle(){
+    if(!window.medcontrolProtectedInterface||window.medcontrolSupabase||window.medcontrolSupabaseUser||
+      getState()?.settings?.localCycleOrigin!=='protected-local-v1')return false;
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&(/^sb-.*-auth-token(?:\..*)?$/.test(key)||key.startsWith('medcontrol_modular3_preserved_before_import_v1/')||key==='affixo_medcontrol_standard_v3'||
+        /^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(key)))return false;
+    }
+    return true;
+  }
+
   let resetInProgress=false;
   async function manualCycleReset(){
     if(resetInProgress)return;
@@ -105,9 +119,11 @@ window.medcontrolScriptReady = (async function(){
         if(!cloudSnapshots?.suspendForReset)throw Error('Приостановка облачного резервирования недоступна. Сброс отменён.');
         const pendingSnapshot=await cloudSnapshots.suspendForReset();
         if(!pendingSnapshot?.ok&&!pendingSnapshot?.skipped)throw Error('Ожидающая облачная копия завершилась ошибкой. Сброс отменён.');
+        let localCycleOnly=false;
         if(cloudSnapshots?.verifyOwnSnapshotInventoryForReset){
           const inventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
-          if(!inventory.ok)throw Error('Не удалось проверить облачные резервные копии. Сброс отменён.');
+          localCycleOnly=inventory?.ok===false&&inventory.reason==='auth_unavailable'&&isUnboundProtectedCycle();
+          if(!inventory.ok&&!localCycleOnly)throw Error('Не удалось проверить облачные резервные копии. Сброс отменён.');
           // Inventory verified; the confirmed cleanup follows local safety checks.
         }else{
           throw Error('Проверка облачных резервных копий недоступна. Сброс отменён.');
@@ -124,17 +140,22 @@ window.medcontrolScriptReady = (async function(){
         }
         // The cloud inventory must be empty before committing the protected reset.
         // An authenticated, confirmed deletion is performed through the owner-scoped helper.
-        if(!cloudSnapshots.deleteOwnSnapshotsForConfirmedReset)
-          throw Error('Безопасное удаление облачных копий недоступно.');
-        const deletion=await cloudSnapshots.deleteOwnSnapshotsForConfirmedReset();
-        if(!deletion?.ok||!deletion.empty)
-          throw Error('Облачные копии не удалены полностью. Сброс отменён.');
-        // Re-check the cloud inventory immediately before committing the encrypted reset.
-        // A new owner-scoped snapshot appearing during preflight must block completion.
-        const finalInventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
-        if(!finalInventory?.ok||!finalInventory.empty)
+        if(!localCycleOnly){
+          if(!cloudSnapshots.deleteOwnSnapshotsForConfirmedReset)
+            throw Error('Безопасное удаление облачных копий недоступно.');
+          const deletion=await cloudSnapshots.deleteOwnSnapshotsForConfirmedReset();
+          if(!deletion?.ok||!deletion.empty)
+            throw Error('Облачные копии не удалены полностью. Сброс отменён.');
+          // Re-check the cloud inventory immediately before committing the encrypted reset.
+          // A new owner-scoped snapshot appearing during preflight must block completion.
+          const finalInventory=await cloudSnapshots.verifyOwnSnapshotInventoryForReset();
+          if(!finalInventory?.ok||!finalInventory.empty)
+            throw Error('Повторная проверка облачных копий не пройдена. Полный сброс отменён.');
+        }else if(!isUnboundProtectedCycle()){
           throw Error('Повторная проверка облачных копий не пройдена. Полный сброс отменён.');
+        }
         await session.transact(state=>{
+          if(localCycleOnly&&!isUnboundProtectedCycle())throw Error('Повторная проверка облачных копий не пройдена. Полный сброс отменён.');
           if(!allMedicalRecordsArchived(state))throw Error('Не все медицинские записи принадлежат завершённым архивным курсам.');
           delete state.cycleBackups;
           state.medications=[];state.intakeLogs=[];state.intakeCorrections=[];state.archiveHistory=[];state.archivedCourses=[];state.timeHistory=[];

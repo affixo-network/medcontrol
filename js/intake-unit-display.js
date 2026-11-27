@@ -11,7 +11,14 @@
     ja:{tablet:'錠',capsule:'カプセル',ml:'mL',drop:'滴',teaspoon:'小さじ',tablespoon:'大さじ',dose:'用量',puff:'吸入',ampoule:'アンプル',vial:'バイアル',packet:'包',sachet:'小袋',suppository:'坐薬',patch:'貼付剤',injection:'注射',unit:'単位'}
   };
   function language(){return getState()?.settings?.interfaceLanguage||document.documentElement.lang||'ru'}
-  function label(unit,other){if(unit==='other')return other||'—';const lang=language();return UNIT_LABELS[lang]?.[unit]||UNIT_LABELS.ru[unit]||unit||'—'}
+  function label(unit,other){
+    if(unit==='other')return other||'—';
+    const lang=language(),source=UNIT_LABELS.ru[unit];
+    if(window.medcontrolProtectedInterface&&lang!=='ru'&&source){
+      return window.MedControlProtectedUiCatalogs?.[lang]?.[source]||'MedControl';
+    }
+    return UNIT_LABELS[lang]?.[unit]||source||unit||'—';
+  }
   function inferUnit(med){
     if(med.intakeUnit) return med.intakeUnit;
     const dose=String(med.dose||'').toLowerCase();

@@ -1062,7 +1062,12 @@
   if(password.value!==confirmPassword.value){notice('Пароли не совпадают.');return;}
   const button=document.getElementById('enroll');button.disabled=true;
   try{
-   await session.initialize({settings:{timezone:Intl.DateTimeFormat().resolvedOptions().timeZone},medications:[],intakeLogs:[]},password.value);
+   const cleanLocalOrigin=!window.medcontrolSupabase&&!window.medcontrolSupabaseUser&&
+    !Object.keys(localStorage).some(storageKey=>/^sb-.*-auth-token(?:\..*)?$/.test(storageKey)||storageKey.startsWith('medcontrol_modular3_preserved_before_import_v1/')||storageKey==='affixo_medcontrol_standard_v3'||
+     /^affixo_medcontrol_standard_v3_(?:before_cloud_restore_|.*(?:backup|snapshot))/i.test(storageKey));
+   const settings={timezone:Intl.DateTimeFormat().resolvedOptions().timeZone};
+   if(cleanLocalOrigin)settings.localCycleOrigin='protected-local-v1';
+   await session.initialize({settings,medications:[],intakeLogs:[]},password.value);
    password.value='';confirmPassword.value='';beginLanguageStep();
   }catch(error){notice('Не удалось создать хранилище: '+error.message);}
   finally{button.disabled=false;}

@@ -87,11 +87,11 @@ window.renderArchivePage=function(){
 
   function medTable(items,kind){
     if(!items.length)return '<p class="muted">Нет записей.</p>';
-    return `<table><thead><tr><th>№</th><th>Препарат</th><th>Расписание</th><th>${kind==='cancelled'?'Статус':'Дата завершения'}</th><th>История</th></tr></thead><tbody>${items.map(m=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc((m.times||[]).join(', ')||'—')}</td><td>${kind==='cancelled'?'Отменён':esc(formatDate(medicationEnd(m))||'—')}</td><td><button type="button" onclick="showArchiveMedicationHistory('${m.id}')">История</button></td></tr>`).join('')}</tbody></table>`;
+    return `<table><thead><tr><th>№</th><th>Препарат</th><th>Расписание</th><th>${kind==='cancelled'?'Статус':'Дата завершения'}</th><th>История</th></tr></thead><tbody>${items.map(m=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc((m.times||[]).join(', ')||'—')}</td><td>${kind==='cancelled'?'<span data-medcontrol-ui-label>Отменён</span>':esc(formatDate(medicationEnd(m))||'—')}</td><td><button type="button" onclick="showArchiveMedicationHistory('${m.id}')">История</button></td></tr>`).join('')}</tbody></table>`;
   }
   function removedTimesTable(){
     if(!removed.length)return '<p class="muted">Нет удалённых или заменённых времён.</p>';
-    return `<table><thead><tr><th>№</th><th>Препарат</th><th>Время</th><th>Состояние</th><th>Дата/время изменения</th><th>История</th></tr></thead><tbody>${removed.map(x=>`<tr><td>${esc(x.m.order||'—')}</td><td>${esc(x.m.name||'—')}</td><td>${esc(x.time)}</td><td>${esc(x.kind+(x.newTime?' → '+x.newTime:''))}</td><td>${x.at?esc(formatDateTime(x.at)):(x.date?esc(formatDate(x.date)):'—')}</td><td><button type="button" onclick="showArchiveRemovedTimeHistory('${x.m.id}','${x.time}')">История</button></td></tr>`).join('')}</tbody></table>`;
+    return `<table><thead><tr><th>№</th><th>Препарат</th><th>Время</th><th>Состояние</th><th>Дата/время изменения</th><th>История</th></tr></thead><tbody>${removed.map(x=>`<tr><td>${esc(x.m.order||'—')}</td><td>${esc(x.m.name||'—')}</td><td>${esc(x.time)}</td><td><span data-medcontrol-ui-label>${esc(x.kind)}</span>${x.newTime?' → '+esc(x.newTime):''}</td><td>${x.at?esc(formatDateTime(x.at)):(x.date?esc(formatDate(x.date)):'—')}</td><td><button type="button" onclick="showArchiveRemovedTimeHistory('${x.m.id}','${x.time}')">История</button></td></tr>`).join('')}</tbody></table>`;
   }
   function todayTable(){
     if(!todayOnly.length)return '<p class="muted">Нет завершённых разовых назначений.</p>';
@@ -157,9 +157,9 @@ window.renderArchivePage=function(){
     }
 
     if(filter==='taken'){
-      host.innerHTML=`<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><strong>Принято</strong></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th><th>Фактическое время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td></tr>`).join('')}</tbody></table>`;
+      host.innerHTML=`<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><strong data-medcontrol-ui-label>Принято</strong></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th><th>Фактическое время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td><td>${slot.actualAt?esc(formatDateTime(slot.actualAt)):'—'}</td></tr>`).join('')}</tbody></table>`;
     }else{
-      host.innerHTML=`<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><strong>Не принято</strong></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td></tr>`).join('')}</tbody></table>`;
+      host.innerHTML=`<div style="display:flex;justify-content:flex-end;margin:0 0 8px"><strong data-medcontrol-ui-label>Не принято</strong></div><table><thead><tr><th>№</th><th>Препарат</th><th>Дата</th><th>Расчётное время</th></tr></thead><tbody>${rows.map(({m,slot})=>`<tr><td>${esc(m.order||'—')}</td><td>${esc(m.name||'—')}</td><td>${esc(formatDate(slot.date))}</td><td>${esc(slot.time)}</td></tr>`).join('')}</tbody></table>`;
     }
   };
   window.addEventListener('medcontrolArchiveCourseSlotsReady',()=>window.renderArchiveIntakeHistoryBlock?.());

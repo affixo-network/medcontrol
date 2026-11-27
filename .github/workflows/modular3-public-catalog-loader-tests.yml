@@ -3,6 +3,8 @@ on:
   push:
     branches: [modular-3.000]
     paths:
+      - 'tests/modular3-functional-p1-*'
+      - 'tests/functional-p1-*.cjs'
       - 'modular3-protected.html'
       - 'tests/modular3-complete-interface.cjs'
       - 'tests/modular3-entry-display-locale.spec.js'

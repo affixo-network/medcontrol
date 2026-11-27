@@ -4,6 +4,8 @@ on:
     branches:
       - modular-3.000
     paths:
+      - 'tests/modular3-functional-p1-*'
+      - 'tests/functional-p1-*.cjs'
       - 'tests/modular3-transfer-e2e.cjs'
       - 'tests/modular3-shard-storage.spec.js'
       - 'tests/modular3-copy-bridge.spec.js'

@@ -196,6 +196,23 @@ html[data-medcontrol-protected-locale] :is(.wrap,dialog) [dir="auto"]{unicode-bi
  function formatMessage(value,catalog,translateSlots=false){
   if(!catalog||typeof value!=='string')return null;
   if(typeof catalog[value]==='string')return catalog[value];
+  // Compound event cells contain renderer-owned field names and change verbs.
+  // This opt-in path is never used for patient names, details or custom units.
+  if(translateSlots){
+   const parts=value.split('; ');
+   if(parts.length>1){
+    const translated=parts.map(part=>formatMessage(part,catalog,true));
+    return translated.every(part=>typeof part==='string')?translated.join('; '):null;
+   }
+   const field=/^(Время \d+|Производитель|Количественное содержание|Количество приёма|Детали|Расписание|Дата начала|Дата окончания|Единица содержания|Единица приёма|Параметры расписания) (добавлен|добавлена|добавлено|добавлены|удалён|удалена|удалено|удалены|заменён|заменена|заменено|заменены|активировано|деактивировано)$/.exec(value);
+   if(field){
+    const time=/^Время (\d+)$/.exec(field[1]);
+    const template=time&&catalog['Время ⟦0⟧ '+field[2]];
+    if(typeof template==='string')return template.replace('⟦0⟧',time[1]);
+    const label=time?catalog['Время ⟦0⟧']?.replace('⟦0⟧',time[1]):catalog[field[1]];
+    if(typeof label==='string'&&typeof catalog[field[2]]==='string')return label+' '+catalog[field[2]];
+   }
+  }
   if(!/[А-Яа-яЁё]/.test(value))return null;
   for(const [source,translated] of Object.entries(catalog)){
    if(!/⟦\d+⟧/.test(source)||!/[А-Яа-яЁё]/.test(source.replace(/⟦\d+⟧/g,'')))continue;
