@@ -864,6 +864,10 @@ window.cancelMedication = async function(id) {
   return (await persistMedicationChange(id, med => {
     med.cancelled = true;
     med.active = false;
+    if(window.medcontrolProtectedInterface){
+      med.archivedCompleted = true;
+      med.archivedAt = nowISO();
+    }
     recordRowHistory(med, 'cancelled', 'Приём препарата отменён.');
   }));
 };

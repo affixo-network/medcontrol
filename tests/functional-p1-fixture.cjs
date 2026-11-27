@@ -41,7 +41,12 @@ async function setup(page,code){
   expect(dialogs[0]).toEqual({type:'alert',message:t('Подсказка')+'\n\n'+t(body)});
   await page.waitForFunction(()=>!medicationSequenceGuardActive);expect((await medical()).medications).toEqual([]);checkpoints.push({name:'native-required-hint',source:body,message:dialogs[0].message,passed:true});
  }
- async function navigate(section){await page.locator('.topbar a[href="'+section+'.html"]').click();await expect(page).toHaveURL(BASE+'/'+section+'.html');await expect(page.locator('.topbar')).toBeVisible();await surface(section);}
+ async function navigate(section){
+  await page.locator('.topbar a[href="'+section+'.html"]').click();await expect(page).toHaveURL(BASE+'/'+section+'.html');await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('.topbar .nav a.active')).toHaveAttribute('href',section+'.html');
+  const titles={input:'MedControl — Ввод',action:'MedControl — Приём препаратов',dashboard:'MedControl — Табло',archive:'MedControl — Архив'};
+  await expect(page).toHaveTitle(t(titles[section]));await surface(section);
+ }
  async function finish(info){expect(external).toEqual([]);expect(errors).toEqual([]);await info.attach('functional-p1-evidence',{body:Buffer.from(JSON.stringify({code,external,errors,dialogs,checkpoints},null,2)),contentType:'application/json'});}
  return {t,dialogs,answers,medical,surface,hint,navigate,finish};
 }
