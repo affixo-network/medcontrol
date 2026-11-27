@@ -276,6 +276,17 @@
       if(intakeUnits.has(med.intakeUnit))add(6);
       if((med.scheduleType||'daily')==='daily')add(9);
     }
+    // The immutable Input renderer also lists removed/replaced time facts.
+    // Bind only its typed six-cell row, never ordinary medication values.
+    for(const button of document.querySelectorAll(':is(.wrap,dialog) td button[onclick]')){
+      const match=/^showRowHistory\('([^']+)'\)$/.exec(button.getAttribute('onclick')||'');
+      const med=match&&(protectedState.medications||[]).find(item=>item.id===match[1]);
+      const row=button.closest('tr');
+      if(!med||row?.cells.length!==6||row.cells[1].textContent!==med.name||
+        !/^\d{2}:\d{2}$/.test(row.cells[2].textContent.trim())||
+        !/^(?:Удалено|Заменено)(?: → \d{2}:\d{2})?$/.test(row.cells[3].textContent.trim()))continue;
+      controlledCells.add(row.cells[3]);nodes.add(row.cells[3]);
+    }
     // Confirmation label cells are authored UI. The adjacent patient values
     // remain excluded; only typed unit presentations are composed below.
     for(const cell of document.querySelectorAll('#medicationConfirmContent .confirm-table td:first-child,#medicationConfirmContent [data-confirm-status] td:last-child')){

@@ -3,6 +3,7 @@ on:
   push:
     branches: [modular-3.000]
     paths:
+      - 'js/auth-guard.js'
       - 'tests/modular3-functional-p1-*'
       - 'tests/functional-p1-*.cjs'
       - 'modular3-protected.html'
