@@ -23,14 +23,26 @@ async function setup(page,code){
  const medical=()=>page.evaluate(()=>{const s=getState();return Object.fromEntries(['medications','intakeLogs','intakeCorrections','archiveHistory','archivedCourses','timeHistory'].map(k=>[k,s[k]||[]]));});
  const checkpoints=[];
  async function surface(name){
-  const values=await page.evaluate(()=>{
+  const values=await page.evaluate(dict=>{
+   // A translated Bulgarian status can itself be another Russian source key.
+   // Bind this owned cell to its actual medication and assert its exact key,
+   // rather than treating a cross-language spelling collision as a fallback.
+   const verifiedStatusNodes=new Set();
+   for(const label of document.querySelectorAll('td:nth-child(4) > span[data-medcontrol-ui-label]')){
+    const row=label.closest('tr'),action=row.querySelector('button[onclick^="showArchiveMedicationHistory("]');
+    const match=/^showArchiveMedicationHistory\('([^']+)'\)$/.exec(action?.getAttribute('onclick')||'');
+    const med=match&&(getState().medications||[]).find(m=>m.id===match[1]);
+    if(!med?.cancelled)continue;
+    if(label.textContent!==dict['Отменён'])throw Error('Cancelled archive status does not match its catalog key');
+    for(const node of label.childNodes)verifiedStatusNodes.add(node);
+   }
    const values=[];const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
-   while(walker.nextNode()){const n=walker.currentNode,p=n.parentElement;if(!p||p.closest('script,style,select[onchange*="changeInterfaceLanguage"],#settingsLanguageMatches')||p.closest('dialog:not([open])'))continue;
+   while(walker.nextNode()){const n=walker.currentNode,p=n.parentElement;if(verifiedStatusNodes.has(n)||!p||p.closest('script,style,select[onchange*="changeInterfaceLanguage"],#settingsLanguageMatches')||p.closest('dialog:not([open])'))continue;
     const range=document.createRange();range.selectNodeContents(n);if(range.getBoundingClientRect().height&&n.textContent.trim())values.push(n.textContent.trim());
    }
    for(const el of document.querySelectorAll('input,select,textarea,button,[title],[aria-label]')){if(!el.getClientRects().length)continue;for(const attr of ['placeholder','title','aria-label']){const v=el.getAttribute(attr);if(v)values.push(v);}}
    return [...new Set(values)];
-  });
+  },dict);
   const templates=Object.entries(dict).filter(([source,target])=>source.includes('⟦')&&source!==target&&/[А-Яа-яЁё]/.test(source)).map(([source,target])=>{const pattern=source.split(/(⟦\d+⟧)/g).map(part=>/^⟦\d+⟧$/.test(part)?'(.+?)':part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('');return {source,target,pattern:new RegExp('^'+pattern+'$')};});
   const untranslated=values.filter(value=>(dict[value]&&dict[value]!==value)||templates.some(item=>item.pattern.test(value))); 
   expect.soft(untranslated,'Untranslated own surface '+code+'/'+name).toEqual([]);
